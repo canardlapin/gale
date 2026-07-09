@@ -22,3 +22,6 @@ vendor/
 # mote: per-actor identity and scratch (ops log is committed)
 .mote/local/
 .mote/tmp/
+
+# Claude Code personal settings
+.claude/settings.local.json
