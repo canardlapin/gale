@@ -1,0 +1,24 @@
+# sbt / Scala build output
+target/
+project/target/
+project/project/
+.bloop/
+.bsp/
+.metals/
+metals.sbt
+
+# Scala.js
+*.sjsir
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Reference checkouts (not part of the build)
+vendor/
+
+# mote: per-actor identity and scratch (ops log is committed)
+.mote/local/
+.mote/tmp/
