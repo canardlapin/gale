@@ -219,26 +219,53 @@ final class DMat private[gale] (
     if cols != that.rows then
       throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(that.cols)), Shape(Rows(that.rows), Cols(that.cols)))
     val out = DMat.zeros(rows, that.cols)
-    DoubleKernels.dgemm(
-      rows,
-      that.cols,
-      cols,
-      1.0,
-      data,
-      offset.value,
-      rowStride.value,
-      colStride.value,
-      that.data,
-      that.offset.value,
-      that.rowStride.value,
-      that.colStride.value,
-      0.0,
-      out.data,
-      out.offset.value,
-      out.rowStride.value,
-      out.colStride.value
-    )
+    // `Aᵀ · A` with a row-major `A` (the common Gram/normal-equations product):
+    // a general gemm would traverse the transposed left operand column-strided and
+    // cache-hostile, so route it to the dedicated symmetric rank-k kernel (half the
+    // flops, unit-stride throughout). Detected structurally: `this` is exactly the
+    // transpose view of `that`, and `that` has unit column stride.
+    if isTransposeOf(that) && that.colStride.value == 1 then
+      DoubleKernels.dsyrkRowMajor(
+        that.rows,
+        that.cols,
+        that.data,
+        that.offset.value,
+        that.rowStride.value,
+        out.data,
+        out.offset.value,
+        out.rowStride.value
+      )
+    else
+      DoubleKernels.dgemm(
+        rows,
+        that.cols,
+        cols,
+        1.0,
+        data,
+        offset.value,
+        rowStride.value,
+        colStride.value,
+        that.data,
+        that.offset.value,
+        that.rowStride.value,
+        that.colStride.value,
+        0.0,
+        out.data,
+        out.offset.value,
+        out.rowStride.value,
+        out.colStride.value
+      )
     out
+
+  /** True when `this` is exactly the transpose view of `that` — same backing
+    * storage and offset, swapped shape and strides — so `this * that` is `AᵀA`.
+    */
+  private def isTransposeOf(that: DMat): Boolean =
+    DoubleArray.sameStorage(data, that.data) &&
+      offset.value == that.offset.value &&
+      rows == that.cols && cols == that.rows &&
+      rowStride.value == that.colStride.value &&
+      colStride.value == that.rowStride.value
 
   def +(that: DMat): DMat =
     requireSameShape(that)
