@@ -79,6 +79,34 @@ lazy val lawsJVM = laws.jvm
 lazy val coreJS  = core.js
 lazy val coreJVM = core.jvm
 
+lazy val breezeVersion = "2.1.0"
+
+// gale-parity: a JVM-only correctness-parity harness that compares gale's public
+// API against Scala Breeze on bit-identical random data. Breeze lives ONLY here,
+// in test scope — gale-core stays 100% Breeze-free (PRD hard constraint), and no
+// other module depends on this one.
+//
+// Breeze 2.1.0 is cross-published for Scala 3 (org.scalanlp:breeze_3:2.1.0, a
+// native build carrying .tasty), so a plain `%%` resolves the Scala 3 artifact
+// directly; no `CrossVersion.for3Use2_13` shim is needed (and its 2.13 variant is
+// the more fragile path here). Its netlib backend (dev.ludovic.netlib) is a
+// pure-Java reference implementation with a JVM fallback — it may log a one-time
+// "native BLAS not found, using Java" notice, which is harmless.
+lazy val parity =
+  project
+    .in(file("parity"))
+    .dependsOn(coreJVM)
+    .settings(
+      name           := "gale-parity",
+      publish / skip := true,
+      Test / fork    := false,
+      scalacOptions ++= commonScalacOptions,
+      libraryDependencies ++= Seq(
+        "org.scalameta" %% "munit"  % munitVersion  % Test,
+        "org.scalanlp"  %% "breeze" % breezeVersion % Test
+      )
+    )
+
 lazy val benchmarkSettings = Seq(
   scalacOptions ++= Seq(
     "-deprecation",
@@ -113,7 +141,7 @@ lazy val benchmarksJS =
 lazy val root =
   project
     .in(file("."))
-    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS)
+    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity)
     .settings(
       name := "gale",
       publish / skip := true
@@ -124,6 +152,8 @@ addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
 addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS")
+// Breeze parity harness (JVM-only correctness parity vs Scala Breeze 2.1.0).
+addCommandAlias("parityTest", ";parity/test")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
