@@ -3,6 +3,7 @@ package gale.linalg
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.platform.PlatformMath.fma
 
 final case class FactorizationDiagnostics(
     info: Int = 0,
@@ -195,69 +196,12 @@ object DenseDecompositions:
     // tau(k) = 2 / (v_k · v_k). No m x m Q is formed here; it is rebuilt on demand.
     val reflectors = DoubleArray.alloc(m * limit)
     val tau = DoubleArray.alloc(limit)
-    // The Householder reflector vector is the only genuine scratch QR needs;
-    // it is length m and is fully overwritten each column, so reusing the
-    // workspace buffer across calls is safe.
-    val v = workspace.work(m)
+    val scratch = workspace.work(DenseWorkspace.qrWorkSize(m, n))
 
-    var k = 0
-    while k < limit do
-      var normSquared = 0.0
-      var i = k
-      while i < m do
-        val value = r(i * n + k)
-        normSquared += value * value
-        i += 1
-
-      val norm = math.sqrt(normSquared)
-      if norm > 0.0 then
-        val x0 = r(k * n + k)
-        val alpha =
-          if x0 >= 0.0 then -norm else norm
-        i = 0
-        while i < m do
-          v(i) = 0.0
-          i += 1
-        v(k) = x0 - alpha
-        i = k + 1
-        while i < m do
-          v(i) = r(i * n + k)
-          i += 1
-
-        var vNormSquared = 0.0
-        i = k
-        while i < m do
-          vNormSquared += v(i) * v(i)
-          i += 1
-
-        if vNormSquared > 0.0 then
-          val beta = 2.0 / vNormSquared
-
-          var col = k
-          while col < n do
-            var dot = 0.0
-            i = k
-            while i < m do
-              dot += v(i) * r(i * n + col)
-              i += 1
-            dot *= beta
-            i = k
-            while i < m do
-              r(i * n + col) = r(i * n + col) - dot * v(i)
-              i += 1
-            col += 1
-
-          tau(k) = beta
-          i = k
-          while i < m do
-            reflectors(i * limit + k) = v(i)
-            i += 1
-
-          i = k + 1
-          while i < m do
-            r(i * n + k) = 0.0
-            i += 1
-      k += 1
+    if DenseWorkspace.usesBlockedQR(m, n) then
+      factorBlockedQR(r, m, n, reflectors, limit, tau, scratch)
+    else
+      factorUnblockedQR(r, m, n, reflectors, limit, tau, scratch)
 
     val rank = rankFromUpperTriangular(r, m, n)
     QR(
@@ -265,6 +209,270 @@ object DenseDecompositions:
       tau = tau,
       r = DMat.fromDoubleArrayOwned(m, n, r),
       diagnostics = FactorizationDiagnostics(info = 0, rank = Some(rank))
+    )
+
+  /** Small-shape QR: scalar Householder generation with row-major rank-1
+    * updates. Keeping this path avoids compact-WY setup overhead where Gale is
+    * already ahead of Breeze.
+    */
+  private def factorUnblockedQR(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      scratch: DoubleArray
+  ): Unit =
+    var k = 0
+    while k < limit do
+      factorHouseholder(r, m, n, reflectors, limit, tau, k)
+      applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
+      k += 1
+
+  /** Large-shape QR using compact WY panels. Each panel is factored with the
+    * unblocked kernel, but its reflectors are aggregated as
+    * `H = I - V T Vᵀ`; the trailing matrix receives `Hᵀ` through two GEMMs.
+    */
+  private def factorBlockedQR(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      scratch: DoubleArray
+  ): Unit =
+    val block = DenseWorkspace.QrBlockSize
+    val vtOffset = 0
+    val wOffset = block * m
+    val tOffset = wOffset + block * n
+    var panelStart = 0
+    while panelStart < limit do
+      val panelEnd = math.min(panelStart + block, limit)
+      var k = panelStart
+      while k < panelEnd do
+        factorHouseholder(r, m, n, reflectors, limit, tau, k)
+        applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, panelEnd, scratch, wOffset)
+        k += 1
+
+      if panelEnd < n then
+        val panelWidth = panelEnd - panelStart
+        formCompactWY(reflectors, m, limit, tau, panelStart, panelWidth, scratch, tOffset, wOffset, block)
+        applyCompactWYTranspose(
+          r, m, n, reflectors, limit, panelStart, panelEnd, panelWidth,
+          scratch, vtOffset, wOffset, tOffset, block
+        )
+      panelStart = panelEnd
+
+  /** Build one normalized Householder reflector with a scaled `dnrm2` norm.
+    * The stored vector has `v(k)=1`; `tau=2/(vᵀv)` and the transformed diagonal
+    * is written directly to `R`. This is the stable `dlarfg` convention.
+    */
+  private def factorHouseholder(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      k: Int
+  ): Unit =
+    val diagIndex = k * n + k
+    val x0 = r(diagIndex)
+    val norm = DoubleKernels.dnrm2(m - k, r, diagIndex, n)
+    reflectors(k * limit + k) = 1.0
+    if norm > 0.0 then
+      val beta = if x0 >= 0.0 then -norm else norm
+      // Compute through ratios: x0-beta can overflow even when x0, beta, and
+      // every input are finite (for example x0 ~= -beta ~= 1e308).
+      val x0OverBeta = x0 / beta
+      val denominatorOverBeta = x0OverBeta - 1.0
+      val tauK = 1.0 - x0OverBeta
+      tau(k) = tauK
+      r(diagIndex) = beta
+      var i = k + 1
+      while i < m do
+        val idx = i * n + k
+        reflectors(i * limit + k) = (r(idx) / beta) / denominatorOverBeta
+        r(idx) = 0.0
+        i += 1
+    else
+      tau(k) = 0.0
+      var i = k + 1
+      while i < m do
+        r(i * n + k) = 0.0
+        i += 1
+
+  /** Apply `I - tau*v*vᵀ` to a contiguous row-major column interval. The dot
+    * vector is accumulated row-first so the matrix traversal stays unit-stride.
+    */
+  private def applyReflectorToColumns(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      colFrom: Int,
+      colUntil: Int,
+      scratch: DoubleArray,
+      scratchOffset: Int
+  ): Unit =
+    val width = colUntil - colFrom
+    if tauK != 0.0 && width > 0 then
+      var j = 0
+      while j < width do
+        scratch(scratchOffset + j) = 0.0
+        j += 1
+      var i = k
+      while i < m do
+        val vi = reflectors(i * limit + k)
+        val rRow = i * n + colFrom
+        j = 0
+        while j < width do
+          val wj = scratchOffset + j
+          scratch(wj) = fma(vi, r(rRow + j), scratch(wj))
+          j += 1
+        i += 1
+      j = 0
+      while j < width do
+        scratch(scratchOffset + j) = tauK * scratch(scratchOffset + j)
+        j += 1
+      i = k
+      while i < m do
+        val vi = reflectors(i * limit + k)
+        val rRow = i * n + colFrom
+        j = 0
+        while j < width do
+          r(rRow + j) = fma(-vi, scratch(scratchOffset + j), r(rRow + j))
+          j += 1
+        i += 1
+
+  /** Form the upper-triangular compact-WY factor `T` for one reflector panel. */
+  private def formCompactWY(
+      reflectors: DoubleArray,
+      m: Int,
+      limit: Int,
+      tau: DoubleArray,
+      panelStart: Int,
+      panelWidth: Int,
+      scratch: DoubleArray,
+      tOffset: Int,
+      tempOffset: Int,
+      tStride: Int
+  ): Unit =
+    var i = 0
+    var j = 0
+    while i < panelWidth do
+      j = 0
+      while j < panelWidth do
+        scratch(tOffset + i * tStride + j) = 0.0
+        j += 1
+      i += 1
+
+    i = 0
+    while i < panelWidth do
+      val globalI = panelStart + i
+      val tauI = tau(globalI)
+      if tauI != 0.0 then
+        j = 0
+        while j < i do
+          var dot = 0.0
+          var row = globalI
+          while row < m do
+            dot = fma(
+              reflectors(row * limit + panelStart + j),
+              reflectors(row * limit + globalI),
+              dot
+            )
+            row += 1
+          scratch(tempOffset + j) = -tauI * dot
+          j += 1
+
+        j = 0
+        while j < i do
+          var sum = 0.0
+          var l = j
+          while l < i do
+            sum = fma(
+              scratch(tOffset + j * tStride + l),
+              scratch(tempOffset + l),
+              sum
+            )
+            l += 1
+          scratch(tOffset + j * tStride + i) = sum
+          j += 1
+      scratch(tOffset + i * tStride + i) = tauI
+      i += 1
+
+  /** Apply the panel product `Hᵀ = I - V Tᵀ Vᵀ` to the trailing matrix. */
+  private def applyCompactWYTranspose(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      panelStart: Int,
+      panelEnd: Int,
+      panelWidth: Int,
+      scratch: DoubleArray,
+      vtOffset: Int,
+      wOffset: Int,
+      tOffset: Int,
+      tStride: Int
+  ): Unit =
+    val rowsRemaining = m - panelStart
+    val trailingCols = n - panelEnd
+
+    // Pack V^T row-major; V itself stays row-major in `reflectors` and feeds the
+    // second GEMM without a copy.
+    var j = 0
+    while j < panelWidth do
+      var row = 0
+      while row < rowsRemaining do
+        scratch(vtOffset + j * rowsRemaining + row) =
+          reflectors((panelStart + row) * limit + panelStart + j)
+        row += 1
+      j += 1
+
+    // W := V^T C.
+    DoubleKernels.dgemm(
+      panelWidth, trailingCols, rowsRemaining,
+      1.0,
+      scratch, vtOffset, rowsRemaining, 1,
+      r, panelStart * n + panelEnd, n, 1,
+      0.0,
+      scratch, wOffset, trailingCols, 1
+    )
+
+    // W := T^T W. Descending rows make the triangular multiply safe in place.
+    var col = 0
+    while col < trailingCols do
+      var i = panelWidth - 1
+      while i >= 0 do
+        var sum = 0.0
+        var l = 0
+        while l <= i do
+          sum = fma(
+            scratch(tOffset + l * tStride + i),
+            scratch(wOffset + l * trailingCols + col),
+            sum
+          )
+          l += 1
+        scratch(wOffset + i * trailingCols + col) = sum
+        i -= 1
+      col += 1
+
+    // C := C - V W.
+    DoubleKernels.dgemm(
+      rowsRemaining, trailingCols, panelWidth,
+      -1.0,
+      reflectors, panelStart * limit + panelStart, limit, 1,
+      scratch, wOffset, trailingCols, 1,
+      1.0,
+      r, panelStart * n + panelEnd, n, 1
     )
 
   /** Rebuild the dense `m x m` orthogonal factor from the stored reflectors.
@@ -289,12 +497,12 @@ object DenseDecompositions:
           var dot = 0.0
           var i = k
           while i < m do
-            dot += q(row * m + i) * vData(i * limit + k)
+            dot = fma(q(row * m + i), vData(i * limit + k), dot)
             i += 1
           dot *= beta
           i = k
           while i < m do
-            q(row * m + i) = q(row * m + i) - dot * vData(i * limit + k)
+            q(row * m + i) = fma(-dot, vData(i * limit + k), q(row * m + i))
             i += 1
           row += 1
       k += 1
@@ -500,12 +708,12 @@ object DenseDecompositions:
             var dot = 0.0
             var i = k
             while i < m do
-              dot += vData(i * limit + k) * y(i)
+              dot = fma(vData(i * limit + k), y(i), dot)
               i += 1
             dot *= beta
             i = k
             while i < m do
-              y(i) = y(i) - dot * vData(i * limit + k)
+              y(i) = fma(-dot, vData(i * limit + k), y(i))
               i += 1
           k += 1
 
@@ -583,7 +791,10 @@ object DenseDecompositions:
     // Tolerance scales with the matrix magnitude; a hard floor at 1.0 would
     // wrongly rank uniformly tiny (but well-conditioned) matrices as deficient.
     // An all-zero matrix yields maxDiag == 0, hence tolerance 0, hence rank 0.
-    math.max(rows, cols).toDouble * 2.220446049250313e-16 * maxDiag
+    // Two guards the final diagonal against the pair of rounded Householder
+    // reductions that can leave an exactly dependent column a few ulps above the
+    // textbook `max(m,n)*eps` cutoff.
+    2.0 * math.max(rows, cols).toDouble * 2.220446049250313e-16 * maxDiag
 
   /** Matrix 1-norm: the maximum absolute column sum. */
   private def norm1(A: DMat): Double =

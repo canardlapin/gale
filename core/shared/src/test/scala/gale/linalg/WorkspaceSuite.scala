@@ -46,3 +46,22 @@ class WorkspaceSuite extends munit.FunSuite:
     assertEquals(first.r.valuesRowMajor, r1)
     assertEquals(second.diagnostics.rank, Some(3))
   }
+
+  test("blocked qrWith reuses panel, WY, and trailing-update workspace") {
+    val rng = new scala.util.Random(2026071003L)
+    val rows = 129
+    val cols = 97
+    val A = Matrix.dense(rows, cols, Seq.fill(rows * cols)(rng.nextDouble() * 2.0 - 1.0))
+    val workspace = DenseWorkspace.empty
+
+    val first = A.qrWith(workspace)
+    val capacity = workspace.workCapacity
+    val backing = TestAccess.workBacking(workspace)
+    assert(capacity > rows)
+
+    val second = A.qrWith(workspace)
+    assertEquals(workspace.workCapacity, capacity)
+    assert(TestAccess.sameStorage(backing, TestAccess.workBacking(workspace)))
+    assertEquals(first.diagnostics.rank, Some(cols))
+    assertEquals(second.diagnostics.rank, Some(cols))
+  }
