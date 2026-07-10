@@ -10,7 +10,12 @@ import gale.linalg.LinAlgError
   * dense SVD everywhere and with MATLAB, resolving the SciPy-`svds`-ascending
   * trap. `u` and `vt` hold the corresponding left and right singular vectors
   * (`vt` already transposed, i.e. `Vᵀ`); both are empty when only values were
-  * requested. `rank` is the numerical rank at the solve tolerance.
+  * requested. `rank` counts the '''returned''' singular values above the solve
+  * tolerance relative to the largest '''returned''' one — for a
+  * [[SingularOrder.Largest]] selection that is the numerical rank estimate at
+  * that tolerance, but under [[SingularOrder.Smallest]] the reference value is
+  * not `σ_max` of the matrix, so `rank` is a property of the returned set, not
+  * of the whole matrix.
   */
 final case class SVD private[gale] (
     singularValues: DVec,
