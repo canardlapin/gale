@@ -2,6 +2,7 @@ package gale.kernel
 
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.platform.PlatformMath.fma
 
 private[gale] object DoubleKernels:
   def ddot(
@@ -27,16 +28,16 @@ private[gale] object DoubleKernels:
       var xi = xOffset
       var yi = yOffset
       while i < limit do
-        acc0 += x(xi) * y(yi)
-        acc1 += x(xi + 1) * y(yi + 1)
-        acc2 += x(xi + 2) * y(yi + 2)
-        acc3 += x(xi + 3) * y(yi + 3)
+        acc0 = fma(x(xi), y(yi), acc0)
+        acc1 = fma(x(xi + 1), y(yi + 1), acc1)
+        acc2 = fma(x(xi + 2), y(yi + 2), acc2)
+        acc3 = fma(x(xi + 3), y(yi + 3), acc3)
         xi += 4
         yi += 4
         i += 4
       var acc = (acc0 + acc1) + (acc2 + acc3)
       while i < n do
-        acc += x(xi) * y(yi)
+        acc = fma(x(xi), y(yi), acc)
         xi += 1
         yi += 1
         i += 1
@@ -47,7 +48,7 @@ private[gale] object DoubleKernels:
       var yi = yOffset
       var acc = 0.0
       while i < n do
-        acc += x(xi) * y(yi)
+        acc = fma(x(xi), y(yi), acc)
         xi += xStride
         yi += yStride
         i += 1
@@ -124,15 +125,15 @@ private[gale] object DoubleKernels:
       var xi = xOffset
       var yi = yOffset
       while i < limit do
-        y(yi) = alpha * x(xi) + y(yi)
-        y(yi + 1) = alpha * x(xi + 1) + y(yi + 1)
-        y(yi + 2) = alpha * x(xi + 2) + y(yi + 2)
-        y(yi + 3) = alpha * x(xi + 3) + y(yi + 3)
+        y(yi) = fma(alpha, x(xi), y(yi))
+        y(yi + 1) = fma(alpha, x(xi + 1), y(yi + 1))
+        y(yi + 2) = fma(alpha, x(xi + 2), y(yi + 2))
+        y(yi + 3) = fma(alpha, x(xi + 3), y(yi + 3))
         xi += 4
         yi += 4
         i += 4
       while i < n do
-        y(yi) = alpha * x(xi) + y(yi)
+        y(yi) = fma(alpha, x(xi), y(yi))
         xi += 1
         yi += 1
         i += 1
@@ -141,7 +142,7 @@ private[gale] object DoubleKernels:
       var xi = xOffset
       var yi = yOffset
       while i < n do
-        y(yi) = alpha * x(xi) + y(yi)
+        y(yi) = fma(alpha, x(xi), y(yi))
         xi += xStride
         yi += yStride
         i += 1
@@ -232,11 +233,11 @@ private[gale] object DoubleKernels:
       var xj = xOffset
       var acc = 0.0
       while col < cols do
-        acc += a(aij) * x(xj)
+        acc = fma(a(aij), x(xj), acc)
         aij += colStride
         xj += xStride
         col += 1
-      y(yi) = if betaIsZero then alpha * acc else alpha * acc + beta * y(yi)
+      y(yi) = if betaIsZero then alpha * acc else fma(alpha, acc, beta * y(yi))
       ai += rowStride
       yi += yStride
       row += 1
@@ -271,20 +272,20 @@ private[gale] object DoubleKernels:
       var ai = aRow
       var xi = xOffset
       while col < limit do
-        acc0 += a(ai) * x(xi)
-        acc1 += a(ai + 1) * x(xi + 1)
-        acc2 += a(ai + 2) * x(xi + 2)
-        acc3 += a(ai + 3) * x(xi + 3)
+        acc0 = fma(a(ai), x(xi), acc0)
+        acc1 = fma(a(ai + 1), x(xi + 1), acc1)
+        acc2 = fma(a(ai + 2), x(xi + 2), acc2)
+        acc3 = fma(a(ai + 3), x(xi + 3), acc3)
         ai += 4
         xi += 4
         col += 4
       var acc = (acc0 + acc1) + (acc2 + acc3)
       while col < cols do
-        acc += a(ai) * x(xi)
+        acc = fma(a(ai), x(xi), acc)
         ai += 1
         xi += 1
         col += 1
-      y(yi) = if betaIsZero then alpha * acc else alpha * acc + beta * y(yi)
+      y(yi) = if betaIsZero then alpha * acc else fma(alpha, acc, beta * y(yi))
       aRow += rowStride
       yi += yStride
       row += 1
@@ -326,7 +327,7 @@ private[gale] object DoubleKernels:
       var ai = aCol
       yi = yOffset
       while row < rows do
-        y(yi) = y(yi) + scale * a(ai)
+        y(yi) = fma(scale, a(ai), y(yi))
         ai += 1
         yi += yStride
         row += 1
@@ -367,7 +368,7 @@ private[gale] object DoubleKernels:
         var xj = xOffset
         var j = 0
         while j < i do
-          sum -= a(aij) * x(xj)
+          sum = fma(-a(aij), x(xj), sum)
           aij += aColStride
           xj += xStride
           j += 1
@@ -390,7 +391,7 @@ private[gale] object DoubleKernels:
         var xj = xOffset + (i + 1) * xStride
         var j = i + 1
         while j < n do
-          sum -= a(aij) * x(xj)
+          sum = fma(-a(aij), x(xj), sum)
           aij += aColStride
           xj += xStride
           j += 1
@@ -481,11 +482,11 @@ private[gale] object DoubleKernels:
         var bkj = bCol
         var acc = 0.0
         while k < shared do
-          acc += a(aik) * b(bkj)
+          acc = fma(a(aik), b(bkj), acc)
           aik += aColStride
           bkj += bRowStride
           k += 1
-        c(cij) = if betaIsZero then alpha * acc else alpha * acc + beta * c(cij)
+        c(cij) = if betaIsZero then alpha * acc else fma(alpha, acc, beta * c(cij))
         cij += cColStride
         bCol += bColStride
         col += 1
@@ -535,8 +536,12 @@ private[gale] object DoubleKernels:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
-    gemmPanel(0, rows, 0, cols, 0, shared, alpha, a, aOffset, aRowStride, b, bOffset, bRowStride, c, cOffset, cRowStride)
+    val assign = beta == 0.0 && shared > 0
+    if !assign then scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
+    gemmPanel(
+      0, rows, 0, cols, 0, shared, alpha, a, aOffset, aRowStride, b, bOffset,
+      bRowStride, c, cOffset, cRowStride, assign
+    )
 
   /** Register-blocked accumulation micro-kernel over the tile `C[iStart:iEnd,
     * jStart:jEnd] += alpha·A[·, kStart:kEnd]·B[kStart:kEnd, ·]` (row-major, unit
@@ -565,7 +570,8 @@ private[gale] object DoubleKernels:
       bRowStride: Int,
       c: DoubleArray,
       cOffset: Int,
-      cRowStride: Int
+      cRowStride: Int,
+      assign: Boolean
   ): Unit =
     val iMain = iStart + ((iEnd - iStart) & ~3)
     val jMain = jStart + ((jEnd - jStart) & ~3)
@@ -596,16 +602,16 @@ private[gale] object DoubleKernels:
           val b1 = b(bRow + j + 1)
           val b2 = b(bRow + j + 2)
           val b3 = b(bRow + j + 3)
-          c00 += a0 * b0; c01 += a0 * b1; c02 += a0 * b2; c03 += a0 * b3
-          c10 += a1 * b0; c11 += a1 * b1; c12 += a1 * b2; c13 += a1 * b3
-          c20 += a2 * b0; c21 += a2 * b1; c22 += a2 * b2; c23 += a2 * b3
-          c30 += a3 * b0; c31 += a3 * b1; c32 += a3 * b2; c33 += a3 * b3
+          c00 = fma(a0, b0, c00); c01 = fma(a0, b1, c01); c02 = fma(a0, b2, c02); c03 = fma(a0, b3, c03)
+          c10 = fma(a1, b0, c10); c11 = fma(a1, b1, c11); c12 = fma(a1, b2, c12); c13 = fma(a1, b3, c13)
+          c20 = fma(a2, b0, c20); c21 = fma(a2, b1, c21); c22 = fma(a2, b2, c22); c23 = fma(a2, b3, c23)
+          c30 = fma(a3, b0, c30); c31 = fma(a3, b1, c31); c32 = fma(a3, b2, c32); c33 = fma(a3, b3, c33)
           bRow += bRowStride
           k += 1
-        storeTile4(c, cRow0, j, alpha, c00, c01, c02, c03)
-        storeTile4(c, cRow1, j, alpha, c10, c11, c12, c13)
-        storeTile4(c, cRow2, j, alpha, c20, c21, c22, c23)
-        storeTile4(c, cRow3, j, alpha, c30, c31, c32, c33)
+        storeTile4(c, cRow0, j, alpha, c00, c01, c02, c03, assign)
+        storeTile4(c, cRow1, j, alpha, c10, c11, c12, c13, assign)
+        storeTile4(c, cRow2, j, alpha, c20, c21, c22, c23, assign)
+        storeTile4(c, cRow3, j, alpha, c30, c31, c32, c33, assign)
         j += 4
       // Leftover 0–3 columns, still four rows at a time (one B load, four FMAs).
       while j < jEnd do
@@ -617,16 +623,16 @@ private[gale] object DoubleKernels:
         var bRow = bOffset + kStart * bRowStride
         while k < kEnd do
           val bv = b(bRow + j)
-          s0 += a(aRow0 + k) * bv
-          s1 += a(aRow1 + k) * bv
-          s2 += a(aRow2 + k) * bv
-          s3 += a(aRow3 + k) * bv
+          s0 = fma(a(aRow0 + k), bv, s0)
+          s1 = fma(a(aRow1 + k), bv, s1)
+          s2 = fma(a(aRow2 + k), bv, s2)
+          s3 = fma(a(aRow3 + k), bv, s3)
           bRow += bRowStride
           k += 1
-        val x0 = cRow0 + j; c(x0) = c(x0) + alpha * s0
-        val x1 = cRow1 + j; c(x1) = c(x1) + alpha * s1
-        val x2 = cRow2 + j; c(x2) = c(x2) + alpha * s2
-        val x3 = cRow3 + j; c(x3) = c(x3) + alpha * s3
+        val x0 = cRow0 + j; c(x0) = if assign then alpha * s0 else fma(alpha, s0, c(x0))
+        val x1 = cRow1 + j; c(x1) = if assign then alpha * s1 else fma(alpha, s1, c(x1))
+        val x2 = cRow2 + j; c(x2) = if assign then alpha * s2 else fma(alpha, s2, c(x2))
+        val x3 = cRow3 + j; c(x3) = if assign then alpha * s3 else fma(alpha, s3, c(x3))
         j += 1
       i += 4
     // Leftover 0–3 rows: scalar dot over the k-extent.
@@ -639,11 +645,11 @@ private[gale] object DoubleKernels:
         var k = kStart
         var bRow = bOffset + kStart * bRowStride
         while k < kEnd do
-          s += a(aRow + k) * b(bRow + j)
+          s = fma(a(aRow + k), b(bRow + j), s)
           bRow += bRowStride
           k += 1
         val idx = cRow + j
-        c(idx) = c(idx) + alpha * s
+        c(idx) = if assign then alpha * s else fma(alpha, s, c(idx))
         j += 1
       i += 1
 
@@ -656,16 +662,17 @@ private[gale] object DoubleKernels:
       t0: Double,
       t1: Double,
       t2: Double,
-      t3: Double
+      t3: Double,
+      assign: Boolean
   ): Unit =
     val i0 = cRow + j
-    c(i0) = c(i0) + alpha * t0
+    c(i0) = if assign then alpha * t0 else fma(alpha, t0, c(i0))
     val i1 = cRow + j + 1
-    c(i1) = c(i1) + alpha * t1
+    c(i1) = if assign then alpha * t1 else fma(alpha, t1, c(i1))
     val i2 = cRow + j + 2
-    c(i2) = c(i2) + alpha * t2
+    c(i2) = if assign then alpha * t2 else fma(alpha, t2, c(i2))
     val i3 = cRow + j + 3
-    c(i3) = c(i3) + alpha * t3
+    c(i3) = if assign then alpha * t3 else fma(alpha, t3, c(i3))
 
   private def dgemmBlockedRowMajor(
       rows: Int,
@@ -683,7 +690,8 @@ private[gale] object DoubleKernels:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
+    if beta != 0.0 || shared == 0 then
+      scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
     var ii = 0
     while ii < rows do
       val iMax = math.min(ii + GemmBlock, rows)
@@ -693,24 +701,25 @@ private[gale] object DoubleKernels:
         var jj = 0
         while jj < cols do
           val jMax = math.min(jj + GemmBlock, cols)
-          gemmPanel(ii, iMax, jj, jMax, kk, kMax, alpha, a, aOffset, aRowStride, b, bOffset, bRowStride, c, cOffset, cRowStride)
+          gemmPanel(
+            ii, iMax, jj, jMax, kk, kMax, alpha, a, aOffset, aRowStride, b,
+            bOffset, bRowStride, c, cOffset, cRowStride, assign = beta == 0.0 && kk == 0
+          )
           jj += GemmBlock
         kk += GemmBlock
       ii += GemmBlock
 
   /** Symmetric rank-k product `C := AᵀA` for a '''row-major''' `A` (`m × k`, unit
     * column stride), writing the full symmetric `k × k` result into `c` (row-major,
-    * unit column stride, assumed zero on entry — `DMat.zeros` guarantees it).
-    * '''Assign-only:''' there is no `alpha`/`beta` and `C` must be zero on entry —
-    * do NOT wire this into an accumulating (`C += …`) or scaled path without
-    * adding those semantics first.
+    * unit column stride). '''Assign-only:''' there is no `alpha`/`beta`; every
+    * output cell is overwritten, so the input contents of `C` are ignored.
     *
-    * A general gemm computing `Aᵀ·A` sees `Aᵀ` column-strided (stride `k`), so both
-    * operands stream cache-hostilely; this kernel instead accumulates each row of
-    * `A` as a '''triangular outer product''' into the upper triangle, then mirrors.
-    * That halves the flops and keeps every inner access unit-stride: for row `l`,
-    * `C[i, i..k-1] += A[l,i] · A[l, i..k-1]` streams the contiguous tail of `A`'s
-    * row against the contiguous tail of `C`'s row. The inner loop is unrolled 4x.
+    * A general gemm computing `Aᵀ·A` sees `Aᵀ` column-strided. This kernel instead
+    * visits the upper triangle in `4×4` output tiles, holds each tile in registers
+    * across the full `m` reduction, and mirrors it once. Compared with a row-wise
+    * rank-1 update, each `C` cell is written once rather than `m` times. Full tiles
+    * use 16 independent FMA accumulators; boundary tiles use the same scalar
+    * reduction with exact triangular bounds.
     */
   def dsyrkRowMajor(
       m: Int,
@@ -722,33 +731,65 @@ private[gale] object DoubleKernels:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    var l = 0
-    var aRow = aOffset
-    while l < m do
-      var i = 0
-      while i < k do
-        val ali = a(aRow + i)
-        val cRow = cOffset + i * cRowStride
-        val count = k - i
-        val jLimit = i + (count - (count & 3))
-        var j = i
-        while j < jLimit do
-          val i0 = cRow + j
-          c(i0) = c(i0) + ali * a(aRow + j)
-          val i1 = cRow + j + 1
-          c(i1) = c(i1) + ali * a(aRow + j + 1)
-          val i2 = cRow + j + 2
-          c(i2) = c(i2) + ali * a(aRow + j + 2)
-          val i3 = cRow + j + 3
-          c(i3) = c(i3) + ali * a(aRow + j + 3)
-          j += 4
-        while j < k do
-          val idx = cRow + j
-          c(idx) = c(idx) + ali * a(aRow + j)
-          j += 1
-        i += 1
-      aRow += aRowStride
-      l += 1
+    var ib = 0
+    while ib < k do
+      val iEnd = math.min(ib + 4, k)
+      var jb = ib
+      while jb < k do
+        val jEnd = math.min(jb + 4, k)
+        if iEnd - ib == 4 && jEnd - jb == 4 then
+          var c00 = 0.0; var c01 = 0.0; var c02 = 0.0; var c03 = 0.0
+          var c10 = 0.0; var c11 = 0.0; var c12 = 0.0; var c13 = 0.0
+          var c20 = 0.0; var c21 = 0.0; var c22 = 0.0; var c23 = 0.0
+          var c30 = 0.0; var c31 = 0.0; var c32 = 0.0; var c33 = 0.0
+          var l = 0
+          var aRow = aOffset
+          while l < m do
+            val a0 = a(aRow + ib)
+            val a1 = a(aRow + ib + 1)
+            val a2 = a(aRow + ib + 2)
+            val a3 = a(aRow + ib + 3)
+            val b0 = a(aRow + jb)
+            val b1 = a(aRow + jb + 1)
+            val b2 = a(aRow + jb + 2)
+            val b3 = a(aRow + jb + 3)
+            c00 = fma(a0, b0, c00); c01 = fma(a0, b1, c01); c02 = fma(a0, b2, c02); c03 = fma(a0, b3, c03)
+            c10 = fma(a1, b0, c10); c11 = fma(a1, b1, c11); c12 = fma(a1, b2, c12); c13 = fma(a1, b3, c13)
+            c20 = fma(a2, b0, c20); c21 = fma(a2, b1, c21); c22 = fma(a2, b2, c22); c23 = fma(a2, b3, c23)
+            c30 = fma(a3, b0, c30); c31 = fma(a3, b1, c31); c32 = fma(a3, b2, c32); c33 = fma(a3, b3, c33)
+            aRow += aRowStride
+            l += 1
+
+          val r0 = cOffset + ib * cRowStride + jb
+          val r1 = r0 + cRowStride
+          val r2 = r1 + cRowStride
+          val r3 = r2 + cRowStride
+          c(r0) = c00; c(r0 + 1) = c01; c(r0 + 2) = c02; c(r0 + 3) = c03
+          if jb == ib then
+            c(r1 + 1) = c11; c(r1 + 2) = c12; c(r1 + 3) = c13
+            c(r2 + 2) = c22; c(r2 + 3) = c23
+            c(r3 + 3) = c33
+          else
+            c(r1) = c10; c(r1 + 1) = c11; c(r1 + 2) = c12; c(r1 + 3) = c13
+            c(r2) = c20; c(r2 + 1) = c21; c(r2 + 2) = c22; c(r2 + 3) = c23
+            c(r3) = c30; c(r3 + 1) = c31; c(r3 + 2) = c32; c(r3 + 3) = c33
+        else
+          var i = ib
+          while i < iEnd do
+            var j = math.max(jb, i)
+            while j < jEnd do
+              var acc = 0.0
+              var l = 0
+              var aRow = aOffset
+              while l < m do
+                acc = fma(a(aRow + i), a(aRow + j), acc)
+                aRow += aRowStride
+                l += 1
+              c(cOffset + i * cRowStride + j) = acc
+              j += 1
+            i += 1
+        jb += 4
+      ib += 4
     // Mirror the computed upper triangle into the lower.
     var i = 1
     while i < k do

@@ -31,7 +31,7 @@ class GemmTuningSuite extends munit.FunSuite:
       i += 1
 
   test("syrk path: a.t * a matches the naive transpose product (tall/square/wide)") {
-    for (m, n, seed) <- Seq((12, 4, 1L), (5, 5, 2L), (3, 7, 3L), (17, 6, 4L)) do
+    for (m, n, seed) <- Seq((12, 4, 1L), (5, 5, 2L), (3, 7, 3L), (17, 6, 4L), (11, 9, 5L)) do
       val a = randomMat(m, n, seed)
       val gram = a.t * a // routes to dsyrk when a is row-major
       val reference = naiveMul(a.t, a)
@@ -44,6 +44,26 @@ class GemmTuningSuite extends munit.FunSuite:
         var j = 0
         while j < n do
           assertEquals(gram(i, j), gram(j, i), s"asymmetry at [$i,$j]")
+          j += 1
+        i += 1
+  }
+
+  test("syrk tiled path obeys quadratic scaling at extreme finite magnitudes") {
+    val base = randomMat(9, 7, 20260710L)
+    for scale <- Seq(1e100, 1e-100) do
+      val scaled = Matrix.tabulate(base.rows, base.cols)((i, j) => scale * base(i, j))
+      val actual = scaled.t * scaled
+      val expected = naiveMul(base.t, base)
+      val scale2 = scale * scale
+      var i = 0
+      while i < actual.rows do
+        var j = 0
+        while j < actual.cols do
+          val e = scale2 * expected(i, j)
+          val err = math.abs(actual(i, j) - e)
+          val tolerance = 2e-14 * math.max(math.abs(e), scale2)
+          assert(actual(i, j).isFinite, s"non-finite gram entry at [$i,$j], scale=$scale")
+          assert(err <= tolerance, s"[$i,$j] $err > $tolerance at scale=$scale")
           j += 1
         i += 1
   }
