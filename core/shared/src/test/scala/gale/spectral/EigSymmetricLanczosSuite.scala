@@ -169,8 +169,15 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     assert(Eigen.eigSymmetric(a, n, EigenSelection.Count(n, EigenOrder.LargestAlgebraic), opts).isLeft)
     // illegal order for symmetric.
     assert(Eigen.eigSymmetric(a, n, EigenSelection.Count(3, EigenOrder.LargestRealPart), opts).isLeft)
-    // dimension disagreement.
-    assert(Eigen.eigSymmetric(a, n + 1, EigenSelection.Count(3, EigenOrder.LargestAlgebraic), opts).isLeft)
+    // square operator whose shape disagrees with n -> DimensionMismatch.
+    Eigen.eigSymmetric(a, n + 1, EigenSelection.Count(3, EigenOrder.LargestAlgebraic), opts) match
+      case Left(_: LinAlgError.DimensionMismatch) => ()
+      case other                                  => fail(s"expected DimensionMismatch, got $other")
+    // genuinely non-square operator -> NonSquareMatrix (matches the dense path).
+    val rect = LinearOperator.fromFunction(n, n + 1)((_, _) => ())
+    Eigen.eigSymmetric(rect, n, EigenSelection.Count(3, EigenOrder.LargestAlgebraic), opts) match
+      case Left(_: LinAlgError.NonSquareMatrix) => ()
+      case other                                => fail(s"expected NonSquareMatrix, got $other")
     // illegal vector flag.
     val leftVecs = SpectralOptions(returnVectors = EigenVectors.Left)
     assert(Eigen.eigSymmetric(a, n, EigenSelection.Count(3, EigenOrder.LargestAlgebraic), leftVecs).isLeft)
