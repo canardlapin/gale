@@ -124,7 +124,14 @@ lazy val benchmarksJVM =
     .enablePlugins(JmhPlugin)
     .settings(benchmarkSettings)
     .settings(
-      name := "gale-benchmarks-jvm"
+      name := "gale-benchmarks-jvm",
+      // Breeze in COMPILE scope here (not test) so the paired gale-vs-Breeze JMH
+      // benchmarks can call it. This module is publish-skipped and is never a
+      // dependency of core/laws, so gale-core stays 100% Breeze-free. Same native
+      // Scala 3 artifact (breeze_3) as the parity module — its netlib backend runs
+      // the pure-Java F2J fallback here, which is deliberately the baseline the
+      // benchmarks target (native-BLAS Breeze is a separate, deferred comparison).
+      libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion
     )
 
 lazy val benchmarksJS =
