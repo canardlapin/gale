@@ -3,11 +3,13 @@ package gale.spectral
 import gale.linalg.Cols
 import gale.linalg.DMat
 import gale.linalg.DVec
+import gale.linalg.DenseDecompositions
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.linalg.MutableDVec
 import gale.linalg.Rows
 import gale.linalg.Shape
+import gale.linalg.TriangularSolve
 
 /** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric
   * (phase b) of `docs/spectral-parity.md`.
@@ -371,6 +373,106 @@ object Eigen:
             startVectorFor(options.startVector, n) match
               case Left(error) => Left(error)
               case Right(v0)   => runArnoldi(op, n, k, order, options, wantVectors, v0)
+
+  // ===========================================================================
+  // Generalized symmetric-definite eigendecomposition (A x = λ B x, B SPD)
+  // ===========================================================================
+
+  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` computing
+    * `B`-orthonormal eigenvectors ([[EigenVectors.Right]]). See the four-argument
+    * overload for the vector-flag and failure details.
+    */
+  def eigSymmetricGeneralized(
+      a: DMat,
+      b: DMat,
+      selection: EigenSelection
+  ): Either[LinAlgError, EigenDecomposition] =
+    eigSymmetricGeneralized(a, b, selection, EigenVectors.Right)
+
+  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` with `A`
+    * symmetric and `B` '''symmetric positive-definite''' (phase b, § 4 of
+    * `docs/spectral-parity.md`; SciPy `eigh(A, B)` type 1 — types 2/3 are out).
+    *
+    * Reduces to a standard symmetric problem by Cholesky of `B` (`B = L Lᵀ`):
+    * `C = L⁻¹ A L⁻ᵀ` is symmetric with the same real eigenvalues `λ`, solved by the
+    * shared tridiagonal QL/QR kernel, and the eigenvectors back-transform as
+    * `x = L⁻ᵀ y`. `C` is formed without inverses — solve `L Y = A`, then (since `C`
+    * is symmetric) `L C = Yᵀ` — and symmetrized before the kernel. The result reuses
+    * [[EigenDecomposition]]: real eigenvalues '''ascending-algebraic always''' (the
+    * selection chooses membership, not layout), real eigenvectors.
+    *
+    * '''`B`-orthonormality.''' The returned eigenvectors are '''`B`-orthonormal'''
+    * (`Xᵀ B X = I`), not Euclidean-orthonormal — the natural normalization for the
+    * `B`-inner-product this problem lives in. Accordingly `diagnostics.residuals`
+    * are the '''true generalized residuals''' `‖A x − λ B x‖` and
+    * `diagnostics.orthogonalityError` is `‖Xᵀ B X − I‖_F` (both zero /
+    * not-computed when values-only).
+    *
+    * '''Conditioning of `B`.''' The Cholesky reduction amplifies error roughly
+    * with `κ(B)` (the standard `sygv`-family sensitivity): for an ill-conditioned
+    * `B` the call still succeeds and `allConverged` is structurally `true` on
+    * this dense one-shot path, so '''`diagnostics.residuals` is the honest
+    * accuracy signal''' — check it when `B` is near-singular.
+    *
+    * Like [[eigSymmetric(a:gale\.linalg\.DMat*]], only the '''lower triangle''' of
+    * `A` and of `B` is read (the `Cholesky` precedent); the strict upper triangles
+    * are treated as their mirrors. `selection` is realized as a slice of the full
+    * ascending spectrum, with the same legality as the symmetric dense path
+    * ([[EigenSelection.Count]] with an algebraic/magnitude order,
+    * [[EigenSelection.IndexRange]], [[EigenSelection.ValueInterval]] all legal;
+    * real-part orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs
+    * [[EigenVectors.Right]].
+    *
+    * '''Scope.''' Only the dense path ships here; the operator/iterative
+    * generalized solver (§ 6's `B`-inner-product Lanczos) and the generalized
+    * '''nonsymmetric''' pencil / QZ (§ 5, backend-scoped) are '''out''' of this
+    * entry point.
+    *
+    * `Left` on: non-square `a` or `b` (`NonSquareMatrix`); disagreeing shapes
+    * (`DimensionMismatch`); `B` not positive-definite (`NotPositiveDefinite`, the
+    * same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal for a
+    * symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an
+    * inverted `ValueInterval`; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]];
+    * or (in practice unreachable) kernel non-convergence.
+    */
+  def eigSymmetricGeneralized(
+      a: DMat,
+      b: DMat,
+      selection: EigenSelection,
+      vectors: EigenVectors
+  ): Either[LinAlgError, EigenDecomposition] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if b.rows != b.cols then Left(LinAlgError.NonSquareMatrix(b.shape))
+    else if a.rows != b.rows then Left(LinAlgError.DimensionMismatch(a.shape, b.shape))
+    else
+      val n = a.rows
+      validateVectors(vectors) match
+        case Left(error) => Left(error)
+        case Right(wantVectors) =>
+          validateDenseSelection(selection, n) match
+            case Left(error) => Left(error)
+            case Right(()) =>
+              DenseDecompositions.cholesky(b) match
+                // B not SPD: reuse the Cholesky path's own Left (NotPositiveDefinite).
+                case Left(error) => Left(error)
+                case Right(chol) =>
+                  val l = chol.lower
+                  val aSym = mirrorLower(a)
+                  val bSym = mirrorLower(b)
+                  reduceToStandard(l, aSym, n) match
+                    case Left(error) => Left(error)
+                    case Right(c) =>
+                      DenseSpectralKernels.symmetricEigen(c, wantVectors) match
+                        case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
+                          Left(LinAlgError.DidNotConverge(iters, 0.0))
+                        case Right(kernel) =>
+                          val indices = denseSelectionIndices(selection, kernel.values, n)
+                          if wantVectors then
+                            backTransformVectors(l, kernel.vectors.get, indices) match
+                              case Left(error) => Left(error)
+                              case Right(x) =>
+                                Right(assembleGeneralized(aSym, bSym, kernel.values, indices, Some(x)))
+                          else Right(assembleGeneralized(aSym, bSym, kernel.values, indices, None))
 
   // ===========================================================================
   // Validation helpers
@@ -1146,3 +1248,113 @@ object Eigen:
       None,
       SpectralDiagnostics(requested, 0, DVec.zeros(0), 0.0, 0, None)
     )
+
+  // ===========================================================================
+  // Generalized symmetric-definite reduction + assembly
+  // ===========================================================================
+
+  /** Mirror the lower triangle of `m` into a full symmetric matrix (the
+    * lower-triangle-only read convention shared with `Cholesky` / the symmetric
+    * kernel): `out(i,j) = m(i,j)` for `i >= j`, else `m(j,i)`.
+    */
+  private def mirrorLower(m: DMat): DMat =
+    val n = m.rows
+    DMat.tabulate(n, n)((i, j) => if i >= j then m(i, j) else m(j, i))
+
+  /** Solve the triangular system `tri · X = M` column by column, `M` given by
+    * `colOf`, returning `X` as an `n × cols` matrix. `lower` picks forward vs back
+    * substitution. A `Left` (singular triangle) propagates — unreachable for a
+    * factor `L` from a successful SPD Cholesky (strictly positive diagonal).
+    */
+  private def solveTriColumns(
+      tri: DMat,
+      lower: Boolean,
+      cols: Int,
+      colOf: Int => DVec
+  ): Either[LinAlgError, DMat] =
+    val n = tri.rows
+    val xs = new Array[DVec](cols)
+    var j = 0
+    while j < cols do
+      val solved = if lower then TriangularSolve.lower(tri, colOf(j)) else TriangularSolve.upper(tri, colOf(j))
+      solved match
+        case Left(error) => return Left(error)
+        case Right(x)    => xs(j) = x
+      j += 1
+    Right(DMat.tabulate(n, cols)((i, jj) => xs(jj)(i)))
+
+  /** Reduce `A x = λ B x` to the standard symmetric `C y = λ y` with
+    * `C = L⁻¹ A L⁻ᵀ`, without forming inverses: solve `L Y = A` (`Y = L⁻¹A`), then
+    * — since `C = L⁻¹ A L⁻ᵀ` is symmetric, `C = Cᵀ = L⁻¹ Yᵀ` — solve `L C = Yᵀ`.
+    * The result is symmetrized `(C + Cᵀ)/2` so any rounding asymmetry does not
+    * reach the kernel (which reads one triangle).
+    */
+  private def reduceToStandard(l: DMat, aSym: DMat, n: Int): Either[LinAlgError, DMat] =
+    solveTriColumns(l, lower = true, n, j => aSym.col(j)) match
+      case Left(error) => Left(error)
+      case Right(y) =>
+        // Column j of Yᵀ is row j of Y.
+        solveTriColumns(l, lower = true, n, j => DVec.tabulate(n)(i => y(j, i))) match
+          case Left(error) => Left(error)
+          case Right(c) => Right(DMat.tabulate(n, n)((i, j) => 0.5 * (c(i, j) + c(j, i))))
+
+  /** Back-transform the selected standard eigenvectors `y` to generalized
+    * eigenvectors `x = L⁻ᵀ y` (solve `Lᵀ X = Y`), one selected column each.
+    */
+  private def backTransformVectors(
+      l: DMat,
+      kernelVectors: DMat,
+      indices: Array[Int]
+  ): Either[LinAlgError, DMat] =
+    solveTriColumns(l.t, lower = false, indices.length, c => kernelVectors.col(indices(c)))
+
+  /** Build the generalized result: selected eigenvalues (ascending), the
+    * back-transformed `B`-orthonormal eigenvectors (or an empty matrix when
+    * values-only), true generalized residuals `‖A x − λ B x‖`, and the
+    * `B`-inner-product orthogonality error `‖Xᵀ B X − I‖_F`.
+    */
+  private def assembleGeneralized(
+      aSym: DMat,
+      bSym: DMat,
+      fullValues: DVec,
+      indices: Array[Int],
+      vectors: Option[DMat]
+  ): EigenDecomposition =
+    val m = indices.length
+    val selValues = DVec.tabulate(m)(i => fullValues(indices(i)))
+    val n = aSym.rows
+    val (x, residuals, orthoErr) =
+      vectors match
+        case Some(mat) =>
+          val res = DVec.tabulate(m): c =>
+            val xc = mat.col(c)
+            ((aSym * xc) - (bSym * xc) * selValues(c)).norm2
+          (mat, res, bOrthogonalityError(mat, bSym))
+        case None =>
+          (DMat.zeros(n, 0), DVec.zeros(m), 0.0)
+    val diagnostics =
+      SpectralDiagnostics(
+        requested = m,
+        converged = m,
+        residuals = residuals,
+        orthogonalityError = orthoErr,
+        iterations = 0,
+        rank = None
+      )
+    EigenDecomposition(selValues, x, diagnostics)
+
+  /** `‖Xᵀ B X − I‖_F` — the `B`-inner-product orthogonality error of the
+    * generalized eigenvectors (`B`-orthonormal ⇒ this is ~0).
+    */
+  private def bOrthogonalityError(x: DMat, bSym: DMat): Double =
+    val g = x.t * (bSym * x)
+    var sum = 0.0
+    var i = 0
+    while i < g.rows do
+      var j = 0
+      while j < g.cols do
+        val d = if i == j then g(i, j) - 1.0 else g(i, j)
+        sum += d * d
+        j += 1
+      i += 1
+    math.sqrt(sum)

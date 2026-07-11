@@ -161,7 +161,7 @@ LAPACK: `sygv`/`sygvd`/`sygvx`. Reduces to standard symmetric via Cholesky of `B
 
 | Capability | MATLAB | SciPy | gale v0.3.5 plan | Notes |
 |---|---|---|---|---|
-| Sym-definite generalized eigenpairs | `eig(A,B,'chol')` (auto when `A` sym, `B` SPD) | `eigh(A, B)` (type 1) | **in-b** `generalizedEigenSymmetric(A, B, selection)` | Easiest phase-b item: Cholesky-of-`B` reduction onto the phase-a symmetric kernel. |
+| Sym-definite generalized eigenpairs | `eig(A,B,'chol')` (auto when `A` sym, `B` SPD) | `eigh(A, B)` (type 1) | **shipped** `eigSymmetricGeneralized(A, B, selection)` | Cholesky-of-`B` reduction onto the phase-a symmetric kernel; `B`-orthonormal vectors; error amplifies ~`κ(B)` (documented). |
 | Problem-type variants | — | `eigh(A, B, type=1\|2\|3)` (`ABx=λx`, `BAx=λx`) | **out** (v0.3.5) | PRD names only `A x = λ B x` (type 1). Types 2/3 deferred. |
 | Subset by index / value | — | `subset_by_index` / `subset_by_value` with `gvx` driver | **in-b** (via `EigenSelection`) | Same selection ADT as § 1; ascending-algebraic output. |
 | `B` not positive-definite | error | `LinAlgError`-equivalent | **`Left(NotPositiveDefinite)`** | Cholesky of `B` fails ⇒ same `Left` the dense `Cholesky` path already returns. |
