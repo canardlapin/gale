@@ -3,6 +3,7 @@ package gale.spectral
 import gale.linalg.Cols
 import gale.linalg.DMat
 import gale.linalg.DVec
+import gale.linalg.DenseDecompositions
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.linalg.MutableDVec
@@ -473,3 +474,205 @@ object Svds:
         val v = DVec.fromSeq(out.toIndexedSeq)
         val nrm = v.norm2
         Right(if nrm == 0.0 then v else (v * (1.0 / nrm)).copy)
+
+  // ===========================================================================
+  // Generalized SVD (gsvd) — pure, full-column-rank pencils only
+  // ===========================================================================
+
+  /** Below this the cosine/sine snaps to an exact `0`: `s ≤` ⇒
+    * [[GeneralizedSingularValue.Infinite]], `c ≤` ⇒
+    * [[GeneralizedSingularValue.Zero]]. The `c`/`s` here are '''normalized'''
+    * (`c² + s² = 1`), so the tolerance is on the unit CS scale. It sits far above
+    * the `~ε` a direct norm of a true-null direction produces, and far below any
+    * genuinely finite ratio the tests exercise.
+    */
+  private val CsSnapTolerance: Double = 1e-9
+
+  /** Generalized SVD of the pencil `(A, B)` (`A` `m×n`, `B` `p×n`) computing the
+    * full factors ([[EigenVectors.Right]]). See the three-argument overload for the
+    * vector flag, algorithm, and failure details.
+    */
+  def gsvd(a: DMat, b: DMat): Either[LinAlgError, GeneralizedSVD] =
+    gsvd(a, b, EigenVectors.Right)
+
+  /** Generalized SVD of `(A, B)` — `A = U C Xᵀ`, `B = V S Xᵀ`, `CᵀC + SᵀS = I`
+    * (§ 9 of `docs/spectral-parity.md`) — for a '''full-column-rank''' pencil
+    * (`[A;B]` has rank `n`). Values are the generalized singular values `c_i/s_i`
+    * ('''descending''', `Infinite` first / `Zero` last), typed as
+    * [[GeneralizedSingularValue]].
+    *
+    * '''Algorithm''' (the pure route that avoids the not-yet-shipped full dense
+    * SVD): QR of the stacked `[A;B]` (`(m+p)×n`) splits the thin `Q` into `Q1`
+    * (top `m` rows) and `Q2` (bottom `p` rows) with `A = Q1 R`, `B = Q2 R`. The CS
+    * decomposition comes from the symmetric-eigen kernel on the '''A-block Gram'''
+    * `Q1ᵀQ1 = W C² Wᵀ` (the `n×n` block; a single documented choice — `Q2ᵀQ2`
+    * shares `W` since `Q1ᵀQ1 + Q2ᵀQ2 = I`). Crucially the cosines and sines are
+    * then taken as the '''direct column norms''' `c_i = ‖Q1 w_i‖`,
+    * `s_i = ‖Q2 w_i‖` (not `s = √(1−c²)`), which keeps small `s` (and small `c`)
+    * accurate rather than suffering the cancellation of `1−c²`. Finally
+    * `U = Q1 W C⁻¹`, `V = Q2 W S⁻¹`, `Xᵀ = Wᵀ R`.
+    *
+    * '''Accuracy caveat.''' The Gram step delivers '''absolute''' accuracy `~ε` in
+    * `c²`/`s²`; for `c` or `s` very near `0` the '''relative''' accuracy degrades
+    * (those are exactly the near-`Infinite`/near-`Zero` values). The exact
+    * `Infinite` (`s = 0`) / `Zero` (`c = 0`) classifications use the documented
+    * snap tolerance `1e-9` on the normalized CS scale. A `Zero` leaves its `U`
+    * column undetermined by this route (stored as zero); an `Infinite` its `V`
+    * column — orthonormality is claimed only on the well-determined columns.
+    *
+    * `vectors` selects [[EigenVectors.ValuesOnly]] (only `c`/`s`/values) versus
+    * [[EigenVectors.Right]] (the full `U`, `V`, `X`); there is no one-sided mode
+    * ([[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected).
+    *
+    * '''Diagnostics.''' `diagnostics.residuals(i)` is the '''CS-identity defect'''
+    * `|c_raw_i² + s_raw_i² − 1|` (the thin-`Q` column-orthonormality drift), '''not'''
+    * an `A`/`B` reconstruction residual — despite `SpectralDiagnostics`'s generic
+    * "per-pair residual" wording. `orthogonalityError` is the worst column-Gram
+    * error `‖·ᵀ· − I‖_F` over the well-determined `U`/`V` columns.
+    *
+    * `Left` on: `A`/`B` with disagreeing column counts (`DimensionMismatch`); an
+    * empty dimension (`InvalidArgument`); or a '''rank-deficient stacked pencil'''
+    * (`rank([A;B]) < n`, including `m+p < n`) — `RankDeficient`, the honest scope
+    * boundary (rank-deficient GSVD is deferred to a backend, § 9). Rank is judged
+    * by the QR `R`-diagonal at gale's standard tolerance
+    * (`2·max(m+p,n)·ε·max|R_ii|`).
+    */
+  def gsvd(a: DMat, b: DMat, vectors: EigenVectors): Either[LinAlgError, GeneralizedSVD] =
+    if a.cols != b.cols then Left(LinAlgError.DimensionMismatch(a.shape, b.shape))
+    else
+      val m = a.rows
+      val p = b.rows
+      val n = a.cols
+      if m <= 0 || p <= 0 || n <= 0 then
+        Left(LinAlgError.InvalidArgument(s"GSVD requires nonempty A (${m}x$n) and B (${p}x$n)"))
+      else
+        validateVectors(vectors) match
+          case Left(error) => Left(error)
+          case Right(wantVectors) =>
+            // m+p is an upper bound on rank([A;B]) (the QR has not run yet); when
+            // it is below n the pencil cannot be full column rank. The reported
+            // rank is therefore this bound, not a measured value.
+            if m + p < n then Left(LinAlgError.RankDeficient(m + p, n))
+            else
+              val stacked = DMat.tabulate(m + p, n)((i, j) => if i < m then a(i, j) else b(i - m, j))
+              val qr = DenseDecompositions.qr(stacked)
+              val rank = qr.diagnostics.rank.getOrElse(n)
+              if rank < n then Left(LinAlgError.RankDeficient(rank, n))
+              else runGsvd(m, p, n, qr, wantVectors)
+
+  private def runGsvd(
+      m: Int,
+      p: Int,
+      n: Int,
+      qr: gale.linalg.QR,
+      wantVectors: Boolean
+  ): Either[LinAlgError, GeneralizedSVD] =
+    val q = qr.q
+    val rFull = qr.r
+    val q1 = DMat.tabulate(m, n)((i, j) => q(i, j))
+    val q2 = DMat.tabulate(p, n)((i, j) => q(m + i, j))
+    val rMat = DMat.tabulate(n, n)((i, j) => if i <= j then rFull(i, j) else 0.0)
+    val gram = q1.t * q1
+    DenseSpectralKernels.symmetricEigen(gram, wantVectors = true) match
+      case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
+        Left(LinAlgError.DidNotConverge(iters, 0.0))
+      case Right(eig) =>
+        Right(assembleGsvd(q1, q2, rMat, eig.vectors.get, m, p, n, wantVectors))
+
+  private def classifyCs(c: Double, s: Double): GeneralizedSingularValue =
+    if s <= CsSnapTolerance then GeneralizedSingularValue.Infinite
+    else if c <= CsSnapTolerance then GeneralizedSingularValue.Zero
+    else GeneralizedSingularValue.Finite(c / s)
+
+  private def assembleGsvd(
+      q1: DMat,
+      q2: DMat,
+      rMat: DMat,
+      w: DMat,
+      m: Int,
+      p: Int,
+      n: Int,
+      wantVectors: Boolean
+  ): GeneralizedSVD =
+    val q1w = new Array[DVec](n)
+    val q2w = new Array[DVec](n)
+    val cRaw = new Array[Double](n)
+    val sRaw = new Array[Double](n)
+    val cN = new Array[Double](n)
+    val sN = new Array[Double](n)
+    val resid = new Array[Double](n)
+    val typed = new Array[GeneralizedSingularValue](n)
+    var i = 0
+    while i < n do
+      val wi = w.col(i)
+      val a1 = q1 * wi
+      val a2 = q2 * wi
+      q1w(i) = a1
+      q2w(i) = a2
+      val cr = a1.norm2
+      val sr = a2.norm2
+      cRaw(i) = cr
+      sRaw(i) = sr
+      // Direct-norm CS values normalized so c²+s²=1 exactly (the raw pair already
+      // sums to ~1 by thin-Q column orthonormality; normalizing pins the identity).
+      val r = math.hypot(cr, sr)
+      val cc = if r > 0.0 then cr / r else 0.0
+      val ss = if r > 0.0 then sr / r else 0.0
+      cN(i) = cc
+      sN(i) = ss
+      resid(i) = math.abs(cr * cr + sr * sr - 1.0)
+      typed(i) = classifyCs(cc, ss)
+      i += 1
+
+    // Descending by ratio: Infinite (+∞) first, Zero (0) last; index breaks ties.
+    val order = (0 until n).sortBy(idx => (-typed(idx).value, idx)).toArray
+    val cOut = DVec.tabulate(n)(k => cN(order(k)))
+    val sOut = DVec.tabulate(n)(k => sN(order(k)))
+    val valuesOut = order.iterator.map(idx => typed(idx)).toIndexedSeq
+    val residOut = DVec.tabulate(n)(k => resid(order(k)))
+
+    val (u, v, x, orthoErr) =
+      if wantVectors then
+        // U = Q1 W C⁻¹ (unit columns from the raw norm), zeroed where c snaps to 0;
+        // V = Q2 W S⁻¹, zeroed where s snaps to 0.
+        val uMat = DMat.tabulate(m, n): (row, k) =>
+          val idx = order(k)
+          if cN(idx) > CsSnapTolerance then q1w(idx)(row) / cRaw(idx) else 0.0
+        val vMat = DMat.tabulate(p, n): (row, k) =>
+          val idx = order(k)
+          if sN(idx) > CsSnapTolerance then q2w(idx)(row) / sRaw(idx) else 0.0
+        // Xᵀ = Wᵀ R ⇒ X = Rᵀ W, columns permuted with the values.
+        val xFull = rMat.t * w
+        val xMat = DMat.tabulate(n, n)((row, k) => xFull(row, order(k)))
+        val uErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Zero).map(uMat.col))
+        val vErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col))
+        (uMat, vMat, xMat, math.max(uErr, vErr))
+      else (DMat.zeros(m, 0), DMat.zeros(p, 0), DMat.zeros(n, 0), 0.0)
+
+    val diagnostics =
+      SpectralDiagnostics(
+        requested = n,
+        converged = n,
+        residuals = residOut,
+        orthogonalityError = orthoErr,
+        iterations = 0,
+        rank = Some(n)
+      )
+    GeneralizedSVD(u, v, x, cOut, sOut, valuesOut, diagnostics)
+
+  /** `‖MᵀM − I‖_F` for the matrix whose columns are `cols` (`0` when empty). */
+  private def columnGramError(cols: IndexedSeq[DVec]): Double =
+    val k = cols.length
+    if k == 0 then 0.0
+    else
+      var sum = 0.0
+      var i = 0
+      while i < k do
+        var j = 0
+        while j < k do
+          val g = cols(i).dot(cols(j))
+          val d = if i == j then g - 1.0 else g
+          sum += d * d
+          j += 1
+        i += 1
+      math.sqrt(sum)
