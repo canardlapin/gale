@@ -313,6 +313,12 @@ infinities (`β = 0`) placed by criterion." `nonsymDenseIndices` only sorts
   `α_i.re·β_j` against `α_j.re·β_i` (LAPACK returns `β ≥ 0`, so the sign of the
   cross-product is meaningful). An infinite eigenvalue (`β_i = 0`) then compares
   as the largest magnitude automatically: `|α_i|·β_j > |α_j|·0`.
+  **`β ≥ 0` is a hard producer contract**, load-bearing for the comparator's
+  totality (a negative `β` inverts cross-multiplied comparisons and breaks
+  transitivity): it is documented on `RawGeneralizedEigen` and the facade
+  '''guards''' it before sorting — any negative `β` is rejected as
+  `Left(InvalidArgument)` naming the backend contract violation, never a
+  sort-time crash.
 - **Multiple infinite eigenvalues are mutually tied** (all "= ∞"). Break the tie
   deterministically — by descending `|α|`, then by original producer index — and
   document it as an arbitrary-but-fixed order, exactly as the parity doc fixes an

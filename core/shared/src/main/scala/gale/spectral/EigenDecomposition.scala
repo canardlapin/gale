@@ -12,7 +12,7 @@ import gale.linalg.LinAlgError
   * `eigenvectors` holds the orthonormal eigenvectors as columns, aligned with
   * `eigenvalues`; it is empty (zero columns) when only values were requested.
   */
-final case class EigenDecomposition private[gale] (
+final case class EigenDecomposition private[spectral] (
     eigenvalues: DVec,
     eigenvectors: DMat,
     diagnostics: SpectralDiagnostics
@@ -45,7 +45,7 @@ final case class EigenDecomposition private[gale] (
   * `a − b·i` at index `j+1` has eigenvector `v_re − i·v_im`. [[eigenvector]] and
   * [[leftEigenvector]] decode this, so no caller ever sees the shared columns.
   */
-final class NonsymmetricEigenDecomposition private[gale] (
+final class NonsymmetricEigenDecomposition private[spectral] (
     private[gale] val re: DVec,
     private[gale] val im: DVec,
     private[gale] val rightVectorsPacked: DMat,

@@ -492,7 +492,7 @@ object Svds:
     * full factors ([[EigenVectors.Right]]). See the three-argument overload for the
     * vector flag, algorithm, and failure details.
     */
-  def gsvd(a: DMat, b: DMat): Either[LinAlgError, GeneralizedSVD] =
+  def gsvd(a: DMat, b: DMat)(using backend: SpectralBackend): Either[LinAlgError, GeneralizedSVD] =
     gsvd(a, b, EigenVectors.Right)
 
   /** Generalized SVD of `(A, B)` — `A = U C Xᵀ`, `B = V S Xᵀ`, `CᵀC + SᵀS = I`
@@ -537,7 +537,9 @@ object Svds:
     * by the QR `R`-diagonal at gale's standard tolerance
     * (`2·max(m+p,n)·ε·max|R_ii|`).
     */
-  def gsvd(a: DMat, b: DMat, vectors: EigenVectors): Either[LinAlgError, GeneralizedSVD] =
+  def gsvd(a: DMat, b: DMat, vectors: EigenVectors)(using
+      backend: SpectralBackend
+  ): Either[LinAlgError, GeneralizedSVD] =
     if a.cols != b.cols then Left(LinAlgError.DimensionMismatch(a.shape, b.shape))
     else
       val m = a.rows
@@ -552,13 +554,26 @@ object Svds:
             // m+p is an upper bound on rank([A;B]) (the QR has not run yet); when
             // it is below n the pencil cannot be full column rank. The reported
             // rank is therefore this bound, not a measured value.
-            if m + p < n then Left(LinAlgError.RankDeficient(m + p, n))
+            if m + p < n then rankDeficientRoute(a, b, wantVectors, m + p, n)
             else
               val stacked = DMat.tabulate(m + p, n)((i, j) => if i < m then a(i, j) else b(i - m, j))
               val qr = DenseDecompositions.qr(stacked)
               val rank = qr.diagnostics.rank.getOrElse(n)
-              if rank < n then Left(LinAlgError.RankDeficient(rank, n))
+              if rank < n then rankDeficientRoute(a, b, wantVectors, rank, n)
               else runGsvd(m, p, n, qr, wantVectors)
+
+  /** Rank-deficient GSVD seam (S6 of `docs/spectral-backend-boundary.md`): a
+    * [[SpectralCapability.RankDeficientGsvd]]-capable backend '''computes''' the
+    * hard pencil (raw factors canonicalized here into a [[GeneralizedSVD]] with
+    * `Infinite`/`Zero` typed values); with no such backend — the pure default — the
+    * shipped `Left(RankDeficient)` stands.
+    */
+  private def rankDeficientRoute(a: DMat, b: DMat, wantVectors: Boolean, rank: Int, n: Int)(using
+      backend: SpectralBackend
+  ): Either[LinAlgError, GeneralizedSVD] =
+    if backend.capabilities.contains(SpectralCapability.RankDeficientGsvd) then
+      backend.rankDeficientGsvd(a, b, wantVectors).map(assembleRawGsvd)
+    else Left(LinAlgError.RankDeficient(rank, n))
 
   private def runGsvd(
       m: Int,
@@ -676,3 +691,54 @@ object Svds:
           j += 1
         i += 1
       math.sqrt(sum)
+
+  /** Canonicalize a backend's raw GSVD factors into the sealed [[GeneralizedSVD]]
+    * (the S6 rank-deficient path): normalize each `(c, s)` to the unit CS scale,
+    * classify the typed generalized singular value, impose the descending-ratio
+    * order (`Infinite` first / `Zero` last), permute `U`/`V`/`X` columns in lockstep,
+    * and report the CS-identity-defect residuals + well-determined orthogonality
+    * error — the same layout the pure full-rank path yields.
+    */
+  private def assembleRawGsvd(raw: RawGsvd): GeneralizedSVD =
+    val n = raw.c.length
+    val cN = new Array[Double](n)
+    val sN = new Array[Double](n)
+    val resid = new Array[Double](n)
+    val typed = new Array[GeneralizedSingularValue](n)
+    var i = 0
+    while i < n do
+      val cr = raw.c(i)
+      val sr = raw.s(i)
+      val r = math.hypot(cr, sr)
+      val cc = if r > 0.0 then cr / r else 0.0
+      val ss = if r > 0.0 then sr / r else 0.0
+      cN(i) = cc
+      sN(i) = ss
+      resid(i) = math.abs(cr * cr + sr * sr - 1.0)
+      typed(i) = classifyCs(cc, ss)
+      i += 1
+    val order = (0 until n).sortBy(idx => (-typed(idx).value, idx)).toArray
+    val cOut = DVec.tabulate(n)(k => cN(order(k)))
+    val sOut = DVec.tabulate(n)(k => sN(order(k)))
+    val valuesOut = order.iterator.map(idx => typed(idx)).toIndexedSeq
+    val residOut = DVec.tabulate(n)(k => resid(order(k)))
+    val wantVectors = raw.u.cols != 0
+    val (u, v, x, orthoErr) =
+      if wantVectors then
+        val uMat = DMat.tabulate(raw.u.rows, n)((row, k) => raw.u(row, order(k)))
+        val vMat = DMat.tabulate(raw.v.rows, n)((row, k) => raw.v(row, order(k)))
+        val xMat = DMat.tabulate(raw.x.rows, n)((row, k) => raw.x(row, order(k)))
+        val uErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Zero).map(uMat.col))
+        val vErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col))
+        (uMat, vMat, xMat, math.max(uErr, vErr))
+      else (DMat.zeros(raw.u.rows, 0), DMat.zeros(raw.v.rows, 0), DMat.zeros(raw.x.rows, 0), 0.0)
+    val diagnostics =
+      SpectralDiagnostics(
+        requested = n,
+        converged = n,
+        residuals = residOut,
+        orthogonalityError = orthoErr,
+        iterations = 0,
+        rank = Some(n)
+      )
+    GeneralizedSVD(u, v, x, cOut, sOut, valuesOut, diagnostics)

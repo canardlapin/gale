@@ -492,6 +492,48 @@ object Eigen:
                           else Right(assembleGeneralized(aSym, bSym, kernel.values, indices, None))
 
   // ===========================================================================
+  // Generalized nonsymmetric eigendecomposition (QZ) — backend-scoped
+  // ===========================================================================
+
+  /** Generalized '''nonsymmetric''' eigendecomposition `A x = λ B x` of a general
+    * pencil (parity § 5 / § 1.3 of `docs/spectral-backend-boundary.md`). This is a
+    * '''backend-scoped''' seam: the pure core ships no QZ engine, so with the
+    * default `given SpectralBackend` ([[SpectralBackend.none]]) — the only one in
+    * scope unless an acceleration module is imported — it returns
+    * `Left(UnsupportedOperation)`. A [[SpectralCapability.GeneralizedNonsymmetricEigen]]-capable
+    * backend supplies the raw `(α, β)` spectrum and vectors; this facade validates
+    * shape first, then '''canonicalizes''' the backend's output — the projective
+    * ordering ([[generalizedIndices]]: infinities first, pairs adjacent), the
+    * packing, and the re-derived homogeneous residuals `‖β A x − α B x‖` — and
+    * assembles the sealed [[GeneralizedEigenDecomposition]]. The order is gale's,
+    * never the engine's.
+    *
+    * Eigenvalues are '''projective''' `(α, β)`: `β = 0` marks an infinite eigenvalue
+    * from a singular / rank-deficient `B`. Output order is the canonical
+    * nonsymmetric order applied to `α/β` (descending magnitude, infinities first),
+    * conjugate pairs adjacent (positive-imaginary first, equal `β`).
+    *
+    * `Left` on: non-square `a`/`b` (`NonSquareMatrix`); shape disagreement
+    * (`DimensionMismatch`); or no capable backend (`UnsupportedOperation`).
+    */
+  def eigGeneralizedNonsymmetric(a: DMat, b: DMat, vectors: EigenVectors = EigenVectors.Right)(using
+      backend: SpectralBackend
+  ): Either[LinAlgError, GeneralizedEigenDecomposition] =
+    validateSquarePencil(a, b) match
+      case Left(error) => Left(error)
+      case Right(_) =>
+        if !backend.capabilities.contains(SpectralCapability.GeneralizedNonsymmetricEigen) then
+          Left(
+            LinAlgError.UnsupportedOperation(
+              s"generalized nonsymmetric eigen (QZ): no spectral backend registered (backend: ${backend.name})"
+            )
+          )
+        else
+          backend.generalizedNonsymmetricEigen(a, b, vectors) match
+            case Left(error) => Left(error)
+            case Right(raw)  => assembleQz(a, b, raw)
+
+  // ===========================================================================
   // Validation helpers
   // ===========================================================================
 
@@ -1610,3 +1652,237 @@ object Eigen:
         j += 1
       i += 1
     math.sqrt(sum)
+
+  // ===========================================================================
+  // Generalized nonsymmetric (QZ) — canonicalization + assembly (facade-owned)
+  // ===========================================================================
+
+  private def validateSquarePencil(a: DMat, b: DMat): Either[LinAlgError, Int] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if b.rows != b.cols then Left(LinAlgError.NonSquareMatrix(b.shape))
+    else if a.rows != b.rows then Left(LinAlgError.DimensionMismatch(a.shape, b.shape))
+    else Right(a.rows)
+
+  /** The base indices of the projective spectrum's units in packed order (a real /
+    * infinite singleton, or a finite conjugate pair, positive-imaginary first),
+    * walking `alphaIm` once.
+    */
+  private def generalizedUnitBases(alphaIm: DVec): Array[Int] =
+    val bases = scala.collection.mutable.ArrayBuffer.empty[Int]
+    var i = 0
+    while i < alphaIm.length do
+      bases += i
+      if alphaIm(i) > 0.0 then i += 2 else i += 1
+    bases.toArray
+
+  /** Canonical index order for a projective `(α, β)` spectrum (§ 1.3, D-b): sort
+    * units by the criterion on `α/β` via '''cross-multiplication''' (never dividing
+    * by `β`, so `β = 0` yields no `∞`/`NaN`); infinite eigenvalues (`β = 0`) are
+    * partitioned to the criterion's extreme (largest magnitude ⇒ first) and
+    * tie-broken among themselves by descending `|α|` then producer index; conjugate
+    * pairs stay adjacent. Used by the facade with [[EigenOrder.LargestMagnitude]]
+    * (the canonical layout); the other legal orders are supported for completeness.
+    */
+  private[spectral] def generalizedIndices(alphaRe: DVec, alphaIm: DVec, beta: DVec, order: EigenOrder): Array[Int] =
+    val bases = generalizedUnitBases(alphaIm)
+    val sorted = bases.sortWith((i, j) => generalizedUnitCompare(alphaRe, alphaIm, beta, i, j, order) < 0)
+    val out = scala.collection.mutable.ArrayBuffer.empty[Int]
+    var u = 0
+    while u < sorted.length do
+      val base = sorted(u)
+      out += base
+      if alphaIm(base) > 0.0 then out += (base + 1)
+      u += 1
+    out.toArray
+
+  /** Total order on unit base indices `i`, `j` (negative ⇒ `i` before `j`):
+    * partition by infinite class, then compare finite units by the criterion via
+    * cross-multiplication, then deterministic tie-breaks.
+    */
+  private def generalizedUnitCompare(
+      alphaRe: DVec,
+      alphaIm: DVec,
+      beta: DVec,
+      i: Int,
+      j: Int,
+      order: EigenOrder
+  ): Int =
+    val classI = infiniteClass(alphaRe(i), beta(i), order)
+    val classJ = infiniteClass(alphaRe(j), beta(j), order)
+    if classI != classJ then Integer.compare(classI, classJ)
+    else if classI != 0 then
+      // Both infinite in the same bucket: descending |α|, then producer index.
+      val c = java.lang.Double.compare(math.hypot(alphaRe(j), alphaIm(j)), math.hypot(alphaRe(i), alphaIm(i)))
+      if c != 0 then c else Integer.compare(i, j)
+    else
+      val c = finiteCriterionCompare(alphaRe, alphaIm, beta, i, j, order)
+      if c != 0 then c
+      else
+        // Tie-break: descending real part (αRe/β), then descending imag, then index.
+        val re = java.lang.Double.compare(alphaRe(j) * beta(i), alphaRe(i) * beta(j))
+        if re != 0 then re
+        else
+          val im = java.lang.Double.compare(alphaIm(j) * beta(i), alphaIm(i) * beta(j))
+          if im != 0 then im else Integer.compare(i, j)
+
+  /** Ordering bucket for a unit: `0` finite, `-1` infinite-at-front, `+1`
+    * infinite-at-back — placing `β = 0` at the criterion's extreme without division.
+    */
+  private def infiniteClass(alphaReVal: Double, betaVal: Double, order: EigenOrder): Int =
+    if betaVal != 0.0 then 0
+    else
+      order match
+        case EigenOrder.LargestMagnitude  => -1
+        case EigenOrder.SmallestMagnitude => 1
+        case EigenOrder.LargestRealPart   => if alphaReVal >= 0.0 then -1 else 1
+        case EigenOrder.SmallestRealPart  => if alphaReVal >= 0.0 then 1 else -1
+        case _                            => -1
+
+  /** Compare two '''finite''' units by the criterion on `α/β` via cross-
+    * multiplication (`β > 0` here, so products keep the ratio order). Negative ⇒
+    * `i` before `j`.
+    */
+  private def finiteCriterionCompare(
+      alphaRe: DVec,
+      alphaIm: DVec,
+      beta: DVec,
+      i: Int,
+      j: Int,
+      order: EigenOrder
+  ): Int =
+    order match
+      case EigenOrder.LargestMagnitude =>
+        java.lang.Double.compare(
+          math.hypot(alphaRe(j), alphaIm(j)) * beta(i),
+          math.hypot(alphaRe(i), alphaIm(i)) * beta(j)
+        )
+      case EigenOrder.SmallestMagnitude =>
+        java.lang.Double.compare(
+          math.hypot(alphaRe(i), alphaIm(i)) * beta(j),
+          math.hypot(alphaRe(j), alphaIm(j)) * beta(i)
+        )
+      case EigenOrder.LargestRealPart =>
+        java.lang.Double.compare(alphaRe(j) * beta(i), alphaRe(i) * beta(j))
+      case EigenOrder.SmallestRealPart =>
+        java.lang.Double.compare(alphaRe(i) * beta(j), alphaRe(j) * beta(i))
+      case _ => 0
+
+  /** Permute the columns of a packed vector matrix by `outIdx` (empty stays empty). */
+  private def permuteQzCols(m: DMat, outIdx: Array[Int]): DMat =
+    if m.cols == 0 then DMat.zeros(m.rows, 0)
+    else DMat.tabulate(m.rows, outIdx.length)((r, c) => m(r, outIdx(c)))
+
+  /** Assemble the sealed [[GeneralizedEigenDecomposition]] from a backend's raw QZ
+    * output: guard the `β ≥ 0` backend contract, impose the canonical projective
+    * order (moving each conjugate pair's two columns in lockstep), re-derive the
+    * homogeneous residuals against `a`, `b` — including the '''left''' residual when
+    * left vectors were returned (§ 1.5 honesty split) — and report a dense one-shot
+    * diagnostics (rank = number of finite eigenvalues).
+    */
+  private def assembleQz(a: DMat, b: DMat, raw: RawGeneralizedEigen): Either[LinAlgError, GeneralizedEigenDecomposition] =
+    // Guard the β ≥ 0 backend contract before sorting: a negative β would invert the
+    // cross-multiplied criterion comparisons, making the sorter non-transitive (a
+    // TimSort "violates its general contract" crash). Reject loudly instead.
+    var bi = 0
+    var negativeBeta = false
+    while bi < raw.beta.length do
+      if raw.beta(bi) < 0.0 then negativeBeta = true
+      bi += 1
+    if negativeBeta then
+      Left(
+        LinAlgError.InvalidArgument(
+          "QZ backend contract violation: β must be ≥ 0 (LAPACK ggev convention); a negative β was returned"
+        )
+      )
+    else
+      val outIdx = generalizedIndices(raw.alphaRe, raw.alphaIm, raw.beta, EigenOrder.LargestMagnitude)
+      val cnt = outIdx.length
+      val aRe = DVec.tabulate(cnt)(j => raw.alphaRe(outIdx(j)))
+      val aIm = DVec.tabulate(cnt)(j => raw.alphaIm(outIdx(j)))
+      val bt = DVec.tabulate(cnt)(j => raw.beta(outIdx(j)))
+      val rightSel = permuteQzCols(raw.rightPacked, outIdx)
+      val leftSel = raw.leftPacked.map(m => permuteQzCols(m, outIdx))
+      // Right residual (zeros when no right vectors); left residual (zeros when no
+      // left vectors). Per eigenvalue the reported residual is the worse of the two,
+      // so a left-only or left-and-right result reports an honest left residual
+      // rather than a deceptive zero.
+      val rightRes = generalizedQzResiduals(a, b, aRe, aIm, bt, rightSel)
+      val leftRes = leftSel match
+        case Some(l) => generalizedQzLeftResiduals(a.t, b.t, aRe, aIm, bt, l)
+        case None    => DVec.zeros(cnt)
+      val residuals = DVec.tabulate(cnt)(i => math.max(rightRes(i), leftRes(i)))
+      var finite = 0
+      var i = 0
+      while i < cnt do
+        if bt(i) != 0.0 then finite += 1
+        i += 1
+      val diagnostics =
+        SpectralDiagnostics(
+          requested = cnt,
+          converged = cnt,
+          residuals = residuals,
+          orthogonalityError = 0.0,
+          iterations = 0,
+          rank = Some(finite)
+        )
+      Right(new GeneralizedEigenDecomposition(aRe, aIm, bt, rightSel, leftSel, diagnostics))
+
+  /** Per-eigenvalue '''homogeneous''' residual `‖β A x − α B x‖` in real arithmetic
+    * (finite ⇒ the pencil residual `A x = (α/β) B x`; infinite ⇒ `|α|·‖B x‖`,
+    * testing `x ∈ null(B)`). Zeros when no vectors are present.
+    */
+  private def generalizedQzResiduals(a: DMat, b: DMat, aRe: DVec, aIm: DVec, bt: DVec, packed: DMat): DVec =
+    val cnt = aRe.length
+    if packed.cols == 0 then DVec.zeros(cnt)
+    else
+      val out = new Array[Double](cnt)
+      var j = 0
+      while j < cnt do
+        val im = aIm(j)
+        if im == 0.0 then
+          val x = packed.col(j)
+          out(j) = ((a * x) * bt(j) - (b * x) * aRe(j)).norm2
+          j += 1
+        else
+          val xr = packed.col(j)
+          val xi = packed.col(j + 1)
+          val ar = aRe(j)
+          val be = bt(j)
+          val realPart = (a * xr) * be - (b * xr) * ar + (b * xi) * im
+          val imagPart = (a * xi) * be - (b * xi) * ar - (b * xr) * im
+          val res = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
+          out(j) = res
+          out(j + 1) = res
+          j += 2
+      DVec.fromSeq(out.toIndexedSeq)
+
+  /** Per-eigenvalue homogeneous '''left''' residual `‖β wᴴ A − α wᴴ B‖` in real
+    * arithmetic, using `at = Aᵀ`, `bt = Bᵀ` (finite ⇒ `wᴴ A = (α/β) wᴴ B`; infinite
+    * ⇒ `|α|·‖wᴴ B‖`, testing `w` in the left null space of `B`). The transposed
+    * residual is `[β Aᵀw_re − αRe Bᵀw_re − αIm Bᵀw_im] +
+    * i[−β Aᵀw_im − αIm Bᵀw_re + αRe Bᵀw_im]`. Zeros when no left vectors.
+    */
+  private def generalizedQzLeftResiduals(at: DMat, bt: DMat, aRe: DVec, aIm: DVec, beta: DVec, packed: DMat): DVec =
+    val cnt = aRe.length
+    if packed.cols == 0 then DVec.zeros(cnt)
+    else
+      val out = new Array[Double](cnt)
+      var j = 0
+      while j < cnt do
+        val im = aIm(j)
+        if im == 0.0 then
+          val w = packed.col(j)
+          out(j) = ((at * w) * beta(j) - (bt * w) * aRe(j)).norm2
+          j += 1
+        else
+          val wr = packed.col(j)
+          val wi = packed.col(j + 1)
+          val ar = aRe(j)
+          val be = beta(j)
+          val realPart = (at * wr) * be - (bt * wr) * ar - (bt * wi) * im
+          val imagPart = (at * wi) * (-be) - (bt * wr) * im + (bt * wi) * ar
+          val res = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
+          out(j) = res
+          out(j + 1) = res
+          j += 2
+      DVec.fromSeq(out.toIndexedSeq)

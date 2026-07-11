@@ -17,7 +17,7 @@ import gale.linalg.LinAlgError
   * not `σ_max` of the matrix, so `rank` is a property of the returned set, not
   * of the whole matrix.
   */
-final case class SVD private[gale] (
+final case class SVD private[spectral] (
     singularValues: DVec,
     u: DMat,
     vt: DMat,

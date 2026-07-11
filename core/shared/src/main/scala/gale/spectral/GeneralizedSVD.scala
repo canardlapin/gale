@@ -31,7 +31,7 @@ import gale.linalg.LinAlgError
   * undetermined (stored as zero), an [[GeneralizedSingularValue.Infinite]] its `v`
   * column (this route cannot recover those from the Gram decomposition).
   */
-final case class GeneralizedSVD private[gale] (
+final case class GeneralizedSVD private[spectral] (
     u: DMat,
     v: DMat,
     x: DMat,
