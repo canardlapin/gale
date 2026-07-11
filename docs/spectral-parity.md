@@ -111,7 +111,7 @@ eigenvalues in conjugate pairs.
 |---|---|---|---|---|
 | Eigenvalues only | `eig(A)` (order **not** guaranteed) | `eig(A, right=False)` → `w` (unordered) | **in-b** `eig(A, EigenVectors.ValuesOnly)` | Complex outputs via SoA `(re, im)`; typed `eigenvalue(i): Complex`. |
 | Right eigenvectors | `[V,D]=eig(A)`, `A V = V D` | `eig(A)` → `(w, vr)` | **in-b** `EigenVectors.Right` | Real `DMat` in real-Schur packing; `eigenvector(i)` returns a complex pair view for complex eigenvalues. |
-| Left eigenvectors | `[V,D,W]=eig(A)`, `Wᴴ A = D Wᴴ` | `eig(A, left=True)` → `(w, vl, vr)` | **in-b** `EigenVectors.Left` / `LeftAndRight` | Normalization/conjugation conventions differ between MATLAB and SciPy; gale documents one (unit 2-norm, `wᴴA = λwᴴ`). |
+| Left eigenvectors | `[V,D,W]=eig(A)`, `Wᴴ A = D Wᴴ` | `eig(A, left=True)` → `(w, vl, vr)` | **deferred** (was in-b; the Francis kernel computes right vectors only — `EigenVectors.Left`/`LeftAndRight` return `Left(UnsupportedOperation)`; tracked as `gale-left-eigenvectors`) | Normalization/conjugation conventions differ between MATLAB and SciPy; gale will document one (unit 2-norm, `wᴴA = λwᴴ`) when implemented. |
 | Skip balancing | `eig(A,'nobalance')` | (balancing internal to `geev`) | **out** (v0.3.5) | Balancing is on by default internally; `'nobalance'` is a niche numerical knob, deferred. |
 | Ordering of results | not documented | not documented | **in-b** — gale-canonical | gale imposes a deterministic order the ecosystems lack (see below). |
 
