@@ -244,10 +244,5 @@ class EigNonsymmetricDenseSuite extends munit.FunSuite:
     // Bad k.
     assert(Eigen.eigNonsymmetric(blockDiag, EigenSelection.Count(0, EigenOrder.LargestMagnitude)).isLeft)
     assert(Eigen.eigNonsymmetric(blockDiag, EigenSelection.Count(7, EigenOrder.LargestMagnitude)).isLeft)
-
-    // Left / left-and-right vectors are deferred (kernel computes right vectors only).
-    for flag <- Seq(EigenVectors.Left, EigenVectors.LeftAndRight) do
-      Eigen.eigNonsymmetric(blockDiag, EigenSelection.All, flag) match
-        case Left(_: LinAlgError.UnsupportedOperation) => ()
-        case other                                     => fail(s"expected UnsupportedOperation for $flag, got $other")
+    // (Left / LeftAndRight are now supported — see EigNonsymmetricLeftVectorSuite.)
   }

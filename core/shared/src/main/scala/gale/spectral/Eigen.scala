@@ -29,14 +29,15 @@ import gale.linalg.TriangularSolve
   * '''Nonsymmetric''' ([[NonsymmetricEigenDecomposition]], § 2 / § 7). A real input
   * can have complex eigenvalues in conjugate pairs; the output is ordered '''by the
   * selection criterion''' with conjugate pairs kept adjacent (positive-imaginary
-  * first) and '''never split''' during selection. Only right eigenvectors are
-  * computed (left vectors deferred).
+  * first) and '''never split''' during selection.
   *
   *   - [[eigNonsymmetric(a:gale\.linalg\.DMat*]] — dense full solve via Hessenberg
   *     reduction + Francis double-shift QR, the selection realized as a permutation
-  *     of the full spectrum.
+  *     of the full spectrum. Right eigenvectors from the kernel; '''left'''
+  *     eigenvectors (`wᴴ A = λ wᴴ`) via the biorthogonal `V⁻¹` route.
   *   - [[eigNonsymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative
-  *     partial solve (`eigs`) via Arnoldi with full reorthogonalization.
+  *     partial solve (`eigs`) via Arnoldi with full reorthogonalization; right
+  *     eigenvectors only (left vectors need the dense path).
   *
   * '''Failure model''' (§ Convergence & failure semantics). Structural /
   * precondition violations are `Left(LinAlgError)`. For the '''dense''' paths,
@@ -236,20 +237,29 @@ object Eigen:
     * a dense one-shot solve, so `diagnostics.requested` and `converged` both report
     * the actual count returned and `allConverged` is true.
     *
-    * `vectors` chooses [[EigenVectors.ValuesOnly]] versus [[EigenVectors.Right]].
-    * '''Left and left-and-right eigenvectors are deferred''' — the Francis QR
-    * kernel computes right eigenvectors only — so [[EigenVectors.Left]] /
-    * [[EigenVectors.LeftAndRight]] return `Left(UnsupportedOperation)` (the parity
-    * doc lists left vectors in-b, but the kernel lacks them; deferring is the
-    * honest scope). Orthogonality error is reported as `0.0`: nonsymmetric
+    * `vectors` chooses [[EigenVectors.ValuesOnly]], [[EigenVectors.Right]],
+    * [[EigenVectors.Left]], or [[EigenVectors.LeftAndRight]]. '''Left eigenvectors'''
+    * follow the convention `wᴴ A = λ wᴴ`, '''unit 2-norm''' — a real `w` for a real
+    * `λ`, and the same real-Schur SoA packing as the right vectors for a conjugate
+    * pair — read through [[NonsymmetricEigenDecomposition.leftEigenvector]]. They are
+    * recovered from the full right-eigenvector matrix `V` via the biorthogonality
+    * identity (the left vectors are the conjugated rows of `V⁻¹`), the complex `V⁻¹`
+    * formed with a real `2n×2n` embedded LU solve (no complex kernel tier), so the
+    * pairing with the right vectors and eigenvalues is '''exact by construction'''.
+    * A '''defective''' (non-diagonalizable) `a` has no full set of left eigenvectors;
+    * gale detects that with a conditioning + residual guard on the recovery (see
+    * `computeLeftVectors`) and returns `Left(SingularMatrix)` rather than a degenerate
+    * basis. '''This diverges from LAPACK `dgeev`''', which returns (possibly
+    * near-parallel, non-orthogonal) left vectors for a defective `A`; gale prefers the
+    * explicit `Left`. Orthogonality error is reported as `0.0`: nonsymmetric
     * eigenvectors are not orthonormal, so `‖VᵀV − I‖` is not a meaningful signal.
     *
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a nonsymmetric
     * problem ([[EigenOrder.LargestAlgebraic]]/[[EigenOrder.SmallestAlgebraic]]/
     * [[EigenOrder.BothEnds]] are symmetric-only); a `k` outside `[1, n]`;
     * [[EigenSelection.IndexRange]] or [[EigenSelection.ValueInterval]]
-    * (symmetric-only); [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]]; or (in
-    * practice unreachable) kernel non-convergence.
+    * (symmetric-only); a defective `a` when left vectors are requested
+    * (`SingularMatrix`); or (in practice unreachable) kernel non-convergence.
     */
   def eigNonsymmetric(
       a: DMat,
@@ -259,20 +269,27 @@ object Eigen:
     if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
     else
       val n = a.rows
-      validateNonsymmetricVectors(vectors) match
+      nonsymmetricVectorFlags(vectors) match
         case Left(error) => Left(error)
-        case Right(wantVectors) =>
+        case Right((wantRight, wantLeft)) =>
           validateNonsymmetricDenseSelection(selection, n) match
             case Left(error) => Left(error)
             case Right(()) =>
-              DenseSpectralKernels.nonsymmetricEigen(a, wantVectors) match
+              // Left vectors are derived from the full right-eigenvector matrix, so
+              // the kernel must produce right vectors whenever either side is wanted.
+              DenseSpectralKernels.nonsymmetricEigen(a, wantRight || wantLeft) match
                 case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
                   // Dense path has no partial result to return, so exhaustion is a
                   // Left; residual is not measured on failure (reported as 0.0).
                   Left(LinAlgError.DidNotConverge(iters, 0.0))
                 case Right(kernel) =>
-                  val outIdx = nonsymDenseIndices(kernel.re, kernel.im, selection)
-                  Right(assembleNonsymDense(a, kernel, outIdx, wantVectors))
+                  val leftFull: Either[LinAlgError, Option[DMat]] =
+                    if wantLeft then computeLeftVectors(a, kernel).map(Some(_)) else Right(None)
+                  leftFull match
+                    case Left(error) => Left(error)
+                    case Right(leftOpt) =>
+                      val outIdx = nonsymDenseIndices(kernel.re, kernel.im, selection)
+                      Right(assembleNonsymDense(a, kernel, leftOpt, outIdx, wantRight, wantLeft))
 
   // ===========================================================================
   // Iterative partial nonsymmetric eigendecomposition (eigs)
@@ -358,7 +375,7 @@ object Eigen:
     else if op.rows != n then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(n)), Shape(Rows(op.rows), Cols(op.cols))))
     else
-      validateNonsymmetricVectors(options.returnVectors) match
+      validateArnoldiVectors(options.returnVectors) match
         case Left(error) => Left(error)
         case Right(wantVectors) =>
           if !nonsymmetricOrderLegal(order) then
@@ -813,19 +830,31 @@ object Eigen:
   // Nonsymmetric validation
   // ===========================================================================
 
-  /** Map the nonsymmetric vector flag to "compute right vectors?". Left / and
-    * left-and-right are '''deferred''' (the Francis QR kernel returns right vectors
-    * only) — `Left(UnsupportedOperation)`, unlike the symmetric path where they are
-    * meaningless (`InvalidArgument`).
+  /** Map the nonsymmetric vector flag to `(computeRight, computeLeft)` for the
+    * '''dense''' path. All four cases are supported: left eigenvectors are derived
+    * from the full right-eigenvector matrix, so the kernel still computes right
+    * vectors internally whenever left vectors are requested.
     */
-  private def validateNonsymmetricVectors(vectors: EigenVectors): Either[LinAlgError, Boolean] =
+  private def nonsymmetricVectorFlags(vectors: EigenVectors): Either[LinAlgError, (Boolean, Boolean)] =
+    vectors match
+      case EigenVectors.ValuesOnly   => Right((false, false))
+      case EigenVectors.Right        => Right((true, false))
+      case EigenVectors.Left         => Right((false, true))
+      case EigenVectors.LeftAndRight => Right((true, true))
+
+  /** Map the vector flag to "compute right vectors?" for the '''iterative
+    * (Arnoldi)''' path. Left / left-and-right are '''unsupported''' there — a Krylov
+    * basis for `A` carries no left-eigenvector information, and two-sided Arnoldi is
+    * out of scope — so they route to the dense API via `Left(UnsupportedOperation)`.
+    */
+  private def validateArnoldiVectors(vectors: EigenVectors): Either[LinAlgError, Boolean] =
     vectors match
       case EigenVectors.ValuesOnly => Right(false)
       case EigenVectors.Right      => Right(true)
       case EigenVectors.Left | EigenVectors.LeftAndRight =>
         Left(
           LinAlgError.UnsupportedOperation(
-            "left eigenvectors (the Francis QR kernel computes right eigenvectors only; left vectors are deferred)"
+            "left eigenvectors from the iterative solver (a Krylov basis for A gives no left vectors; use the dense eigNonsymmetric)"
           )
         )
 
@@ -968,28 +997,70 @@ object Eigen:
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
 
-  /** Build the dense nonsymmetric result: permute the kernel's re/im and packed
-    * vector columns by `outIdx`, compute per-eigenvalue residuals against `a`, and
-    * report all-converged diagnostics (a dense one-shot solve). Orthogonality error
-    * is `0.0` — nonsymmetric eigenvectors are not orthonormal, so that quality
-    * metric does not apply.
+  /** Per-eigenvalue '''left''' residual `‖wᴴ A − λ wᴴ‖` in real arithmetic, using
+    * `at = Aᵀ`. For `λ = a + b·i` and `w = w_re + i·w_im` the (transposed) residual
+    * is `[Aᵀ w_re − a·w_re − b·w_im] + i·[a·w_im − Aᵀ w_im − b·w_re]`. A real
+    * eigenvalue uses its single column; a conjugate pair shares one residual.
+    */
+  private def nonsymLeftResiduals(at: DMat, re: DVec, im: DVec, packed: DMat): DVec =
+    val cnt = re.length
+    if packed.cols == 0 then DVec.zeros(cnt)
+    else
+      val out = new Array[Double](cnt)
+      var j = 0
+      while j < cnt do
+        val b = im(j)
+        if b == 0.0 then
+          val w = packed.col(j)
+          out(j) = ((at * w) - w * re(j)).norm2
+          j += 1
+        else
+          val wr = packed.col(j)
+          val wi = packed.col(j + 1)
+          val a = re(j)
+          val realPart = (at * wr) - (wr * a) - (wi * b)
+          val imagPart = (wi * a) - (at * wi) - (wr * b)
+          val res = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
+          out(j) = res
+          out(j + 1) = res
+          j += 2
+      DVec.fromSeq(out.toIndexedSeq)
+
+  /** Build the dense nonsymmetric result: permute the kernel's re/im, the right
+    * packed columns, and (when requested) the left packed columns by `outIdx` — the
+    * left columns move in the '''same lockstep''' as the right ones — compute
+    * per-eigenvalue residuals, and report all-converged diagnostics (a dense
+    * one-shot solve). For [[EigenVectors.LeftAndRight]] the reported residual is the
+    * worse of the right (`‖A v − λ v‖`) and left (`‖wᴴ A − λ wᴴ‖`) sides.
+    * Orthogonality error is `0.0` — nonsymmetric eigenvectors are not orthonormal.
     */
   private def assembleNonsymDense(
       a: DMat,
       kernel: DenseSpectralKernels.NonsymmetricEigen,
+      leftFull: Option[DMat],
       outIdx: Array[Int],
-      wantVectors: Boolean
+      wantRight: Boolean,
+      wantLeft: Boolean
   ): NonsymmetricEigenDecomposition =
     val cnt = outIdx.length
     val re = DVec.tabulate(cnt)(j => kernel.re(outIdx(j)))
     val im = DVec.tabulate(cnt)(j => kernel.im(outIdx(j)))
     val n = a.rows
-    val (vectors, residuals) =
-      if wantVectors then
-        val packed = kernel.vectors.get
-        val sel = DMat.tabulate(n, cnt)((r, c) => packed(r, outIdx(c)))
-        (sel, nonsymResiduals(v => a * v, re, im, sel))
-      else (DMat.zeros(n, 0), DVec.zeros(cnt))
+    val rightSel =
+      if wantRight then DMat.tabulate(n, cnt)((r, c) => kernel.vectors.get(r, outIdx(c)))
+      else DMat.zeros(n, 0)
+    val leftSel =
+      if wantLeft then Some(DMat.tabulate(n, cnt)((r, c) => leftFull.get(r, outIdx(c))))
+      else None
+    val residuals =
+      (wantRight, wantLeft) match
+        case (true, true) =>
+          val rr = nonsymResiduals(v => a * v, re, im, rightSel)
+          val lr = nonsymLeftResiduals(a.t, re, im, leftSel.get)
+          DVec.tabulate(cnt)(i => math.max(rr(i), lr(i)))
+        case (true, false) => nonsymResiduals(v => a * v, re, im, rightSel)
+        case (false, true) => nonsymLeftResiduals(a.t, re, im, leftSel.get)
+        case (false, false) => DVec.zeros(cnt)
     val diagnostics =
       SpectralDiagnostics(
         requested = cnt,
@@ -999,7 +1070,188 @@ object Eigen:
         iterations = 0,
         rank = None
       )
-    new NonsymmetricEigenDecomposition(re, im, vectors, None, diagnostics)
+    new NonsymmetricEigenDecomposition(re, im, rightSel, leftSel, diagnostics)
+
+  /** Relative pivot floor for the left-vector conditioning guard: reject when the
+    * embedded LU's smallest pivot is `≤ LeftVectorPivotFactor · 2n · largest pivot`.
+    * At `128·ε` it sits far above the `~ε` ratio a degenerate (defective) eigenbasis
+    * leaves and far below any diagonalizable basis' ratio.
+    */
+  private inline val LeftVectorPivotFactor = 128.0 * 2.220446049250313e-16
+
+  /** Relative left-residual ceiling for the backstop guard: reject when the worst
+    * `‖wᴴ A − λ wᴴ‖` exceeds `LeftVectorResidualTolerance · max(1, ‖A‖)`. Loose
+    * enough to admit honestly ill-conditioned bases, tight enough to catch a garbage
+    * (e.g. higher-order Jordan) basis whose residual is `O(1)`.
+    */
+  private inline val LeftVectorResidualTolerance = 1e-2
+
+  /** Recover the '''full''' left eigenvectors of `a` from its full right-eigenvector
+    * matrix `V` (the kernel's packed columns) via the biorthogonality identity: the
+    * left eigenvectors (`wᴴ A = λ wᴴ`) are the '''conjugated rows of `V⁻¹`'''. The
+    * complex `V⁻¹` is formed with the real `2n×2n` embedding
+    * `[[Vr, −Vi], [Vi, Vr]]` and gale's LU (no complex kernel tier), so `V⁻¹`'s row
+    * `i` — hence left vector `i` — pairs with right column `i` and eigenvalue `i`
+    * '''exactly by construction''' (no eigenvalue matching). Result is `n × n` in the
+    * real-Schur packing.
+    *
+    * '''Defective-input guards.''' A defective (or near-defective) `a` does '''not'''
+    * make the embedding exactly singular — the Francis kernel perturbs the
+    * repeated/parallel eigenvectors just enough that the LU sees only near-zero pivots
+    * and would silently return a degenerate (duplicated or garbage) left basis. Two
+    * guards reject those as `Left(SingularMatrix)` (a full set of left eigenvectors
+    * does not exist for a defective `a`): (1) a '''conditioning''' check on the
+    * embedded LU pivots ([[LeftVectorPivotFactor]]) — this catches
+    * duplicated/nilpotent bases whose per-vector residual is a deceptive `0`; and
+    * (2) a '''residual''' backstop ([[LeftVectorResidualTolerance]]) catching a
+    * garbage basis that slips past the pivot check. Inputs that pass both may still be
+    * ill-conditioned; their honest, larger residuals surface through `diagnostics`.
+    */
+  private def computeLeftVectors(
+      a: DMat,
+      kernel: DenseSpectralKernels.NonsymmetricEigen
+  ): Either[LinAlgError, DMat] =
+    val n = a.rows
+    val p = kernel.vectors.get
+    val wi = kernel.im
+    // Reconstruct the complex right-eigenvector matrix V = Vr + i·Vi from the packed
+    // real-Schur columns: a real column is real; a conjugate pair (k, k+1) is
+    // (v_re + i·v_im) at k and its conjugate at k+1.
+    val vr = Array.ofDim[Double](n, n)
+    val vi = Array.ofDim[Double](n, n)
+    var k = 0
+    while k < n do
+      if wi(k) == 0.0 then
+        var r = 0
+        while r < n do
+          vr(r)(k) = p(r, k)
+          vi(r)(k) = 0.0
+          r += 1
+        k += 1
+      else
+        var r = 0
+        while r < n do
+          val pk = p(r, k)
+          val pk1 = p(r, k + 1)
+          vr(r)(k) = pk
+          vi(r)(k) = pk1
+          vr(r)(k + 1) = pk
+          vi(r)(k + 1) = -pk1
+          r += 1
+        k += 2
+    val twoN = 2 * n
+    val embedded = DMat.tabulate(twoN, twoN): (i, j) =>
+      if i < n && j < n then vr(i)(j)
+      else if i < n then -vi(i)(j - n)
+      else if j < n then vi(i - n)(j)
+      else vr(i - n)(j - n)
+    DenseDecompositions.lu(embedded) match
+      case Left(error) => Left(error)
+      case Right(lu) =>
+        // Guard 1 (conditioning): the LU pivots are the U diagonal. A degenerate
+        // (defective) eigenbasis leaves a ~ε pivot ratio; reject well above it.
+        var minPivot = Double.MaxValue
+        var maxPivot = 0.0
+        var pivotArg = 0
+        var d = 0
+        while d < twoN do
+          val piv = math.abs(lu.packed(d, d))
+          if piv < minPivot then
+            minPivot = piv
+            pivotArg = d
+          if piv > maxPivot then maxPivot = piv
+          d += 1
+        if maxPivot == 0.0 || minPivot <= LeftVectorPivotFactor * twoN.toDouble * maxPivot then
+          Left(LinAlgError.SingularMatrix(pivotArg))
+        else
+          // Solve embedded · [Xr; Xi] = [I; 0] one column at a time; V⁻¹ = Xr + i·Xi.
+          val xr = Array.ofDim[Double](n, n)
+          val xi = Array.ofDim[Double](n, n)
+          var j = 0
+          var failure: Option[LinAlgError] = None
+          while j < n && failure.isEmpty do
+            lu.solve(DVec.tabulate(twoN)(idx => if idx == j then 1.0 else 0.0)) match
+              case Left(error) => failure = Some(error)
+              case Right(sol) =>
+                var i = 0
+                while i < n do
+                  xr(i)(j) = sol(i)
+                  xi(i)(j) = sol(n + i)
+                  i += 1
+            j += 1
+          failure match
+            case Some(error) => Left(error)
+            case None =>
+              val packed = packLeftVectors(n, wi, xr, xi)
+              // Guard 2 (residual backstop): a garbage basis that slipped past the
+              // pivot check has a large left residual on the full spectrum.
+              val residuals = nonsymLeftResiduals(a.t, kernel.re, kernel.im, packed)
+              var worst = 0.0
+              var i = 0
+              while i < residuals.length do
+                if residuals(i) > worst then worst = residuals(i)
+                i += 1
+              if worst > LeftVectorResidualTolerance * math.max(1.0, frobeniusNorm(a)) then
+                Left(LinAlgError.SingularMatrix(0))
+              else Right(packed)
+
+  /** The Frobenius norm `‖A‖_F`. */
+  private def frobeniusNorm(a: DMat): Double =
+    var sum = 0.0
+    var i = 0
+    while i < a.rows do
+      var j = 0
+      while j < a.cols do
+        val v = a(i, j)
+        sum += v * v
+        j += 1
+      i += 1
+    math.sqrt(sum)
+
+  /** Pack the left eigenvectors (conjugated rows of `V⁻¹ = Xr + i·Xi`) into the
+    * real-Schur convention, unit 2-norm. Left vector `i` is `conj(row i of V⁻¹)`, so
+    * its real part is row `i` of `Xr` and its imaginary part is `−(row i of Xi)`. A
+    * real eigenvalue keeps only the (real) real part; a conjugate pair stores the
+    * positive member's real part in column `i` and imaginary part in column `i+1`.
+    */
+  private def packLeftVectors(n: Int, wi: DVec, xr: Array[Array[Double]], xi: Array[Array[Double]]): DMat =
+    val out = Array.ofDim[Double](n, n)
+    var i = 0
+    while i < n do
+      if wi(i) == 0.0 then
+        var r = 0
+        var nrm = 0.0
+        while r < n do
+          val v = xr(i)(r)
+          out(r)(i) = v
+          nrm += v * v
+          r += 1
+        nrm = math.sqrt(nrm)
+        if nrm > 0.0 then
+          r = 0
+          while r < n do
+            out(r)(i) = out(r)(i) / nrm
+            r += 1
+        i += 1
+      else
+        var r = 0
+        var nrm = 0.0
+        while r < n do
+          val wRe = xr(i)(r)
+          val wIm = -xi(i)(r)
+          out(r)(i) = wRe
+          out(r)(i + 1) = wIm
+          nrm += wRe * wRe + wIm * wIm
+          r += 1
+        nrm = math.sqrt(nrm)
+        if nrm > 0.0 then
+          r = 0
+          while r < n do
+            out(r)(i) = out(r)(i) / nrm
+            out(r)(i + 1) = out(r)(i + 1) / nrm
+            r += 1
+        i += 2
+    DMat.tabulate(n, n)((r, c) => out(r)(c))
 
   // ===========================================================================
   // Arnoldi
