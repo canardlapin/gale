@@ -494,9 +494,11 @@ object Eigen:
     m
 
   /** A deterministic (LCG) start vector, or the caller's, normalized to unit
-    * length. Cross-platform reproducible: 32-bit `Int` arithmetic wraps
-    * identically on JVM and Scala.js, so the seed sequence — and therefore the
-    * Krylov iteration — is bit-for-bit portable.
+    * length. The seed sequence is bit-for-bit portable (32-bit `Int` arithmetic
+    * wraps identically on JVM and Scala.js); the Krylov iteration built on it is
+    * deterministic '''per platform''' but may differ between JVM and Scala.js in
+    * the last bits, because the dense kernels use the platform's fused
+    * multiply-add (`Math.fma` on the JVM, `a*b + c` on JS).
     */
   private def startVectorFor(provided: Option[DVec], n: Int): Either[LinAlgError, DVec] =
     provided match

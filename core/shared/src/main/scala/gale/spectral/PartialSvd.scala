@@ -449,8 +449,10 @@ object Svds:
     math.sqrt(sum)
 
   /** A deterministic (LCG) unit start vector in `R^n`, or the caller's normalized.
-    * 32-bit `Int` arithmetic wraps identically on JVM and Scala.js, so the seed
-    * sequence — and the whole bidiagonalization — is bit-for-bit portable.
+    * The seed sequence is bit-for-bit portable (32-bit `Int` wraps identically on
+    * JVM and Scala.js); the bidiagonalization built on it is deterministic '''per
+    * platform''' but may differ between JVM and Scala.js in the last bits — the
+    * dense kernels use the platform's fused multiply-add.
     */
   private def startVectorFor(provided: Option[DVec], n: Int): Either[LinAlgError, DVec] =
     provided match
