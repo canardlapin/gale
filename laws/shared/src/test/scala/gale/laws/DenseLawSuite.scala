@@ -136,6 +136,17 @@ class DenseLawSuite extends ScalaCheckSuite:
     }
   }
 
+  test("associativity law survives catastrophic cancellation (flake regression)") {
+    // A result entry that nearly cancels to ~0.1 out of ~2e9-magnitude
+    // intermediates: the two association orders legitimately differ by
+    // ~eps * intermediate (~1e-6), far above any result-relative tolerance.
+    // Locks the law's intermediate-magnitude tolerance scaling.
+    val a = Matrix.dense(1, 2)(1000.0, -1000.0)
+    val b = Matrix.dense(2, 2)(999.9, 999.9, 999.9, 999.9 - 1e-7)
+    val c = Matrix.dense(2, 1)(1000.0, 1000.0)
+    MatrixLaws.multiplicationAssociates(a, b, c)
+  }
+
   /** A stride-2 view of `x`'s values over a fresh backing buffer, built through
     * the public API: column 0 of an `n x 2` row-major matrix has row-stride 2.
     */

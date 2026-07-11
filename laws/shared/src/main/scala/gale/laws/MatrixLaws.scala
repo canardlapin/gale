@@ -59,6 +59,33 @@ object MatrixLaws extends Assertions:
   def matVecIsLinear(a: DMat, x: DVec, y: DVec): Unit =
     VecLaws.assertCloseRel(a * (x + y), (a * x) + (a * y))
 
-  /** Matrix multiplication is associative: `A (B C) == (A B) C`. */
+  /** Matrix multiplication is associative: `A (B C) == (A B) C`.
+    *
+    * The tolerance scales with the '''intermediate''' magnitude
+    * `maxAbs(A)·maxAbs(B)·maxAbs(C)·(inner dims)`, not with the result entry: a
+    * result entry that nearly cancels to zero out of large intermediates carries
+    * roundoff proportional to those intermediates, and the two association
+    * orders round differently. A result-relative tolerance (`rel·max(1, |e|)`)
+    * intermittently fails such draws — the source of a rare ScalaCheck flake
+    * before this scaling.
+    */
   def multiplicationAssociates(a: DMat, b: DMat, c: DMat): Unit =
-    assertCloseRel(a * (b * c), (a * b) * c)
+    val left = a * (b * c)
+    val right = (a * b) * c
+    val scale =
+      maxAbs(a) * maxAbs(b) * maxAbs(c) *
+        math.max(1, a.cols).toDouble * math.max(1, b.cols).toDouble
+    val tolerance = 1e-12 * math.max(1.0, scale)
+    assertClose(left, right, tolerance)
+
+  private def maxAbs(m: DMat): Double =
+    var out = 0.0
+    var i = 0
+    while i < m.rows do
+      var j = 0
+      while j < m.cols do
+        val v = math.abs(m(i, j))
+        if v > out then out = v
+        j += 1
+      i += 1
+    out
