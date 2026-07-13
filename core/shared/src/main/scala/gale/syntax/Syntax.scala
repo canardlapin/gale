@@ -1,5 +1,6 @@
 package gale.syntax
 
+import gale.backend.Backend
 import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.LinAlgError
@@ -73,8 +74,10 @@ object unicode:
     /** Matrix-vector product (alias of `a * x`). */
     def ×(x: DVec): DVec = a * x
 
-    /** Matrix-matrix product (alias of `a * b`). */
-    def ×(b: DMat): DMat = a * b
+    /** Matrix-matrix product (alias of `a * b`). Forwards the ambient `given Backend` so the
+      * alias stays a true synonym of `*` even when an accelerating backend is imported.
+      */
+    def ×(b: DMat)(using backend: Backend): DMat = a.*(b)(using backend)
 
   extension (x: DVec)
     /** Inner product (alias of `x dot y`). */

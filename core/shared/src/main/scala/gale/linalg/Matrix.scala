@@ -1,5 +1,6 @@
 package gale.linalg
 
+import gale.backend.Backend
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
@@ -215,7 +216,15 @@ final class DMat private[gale] (
   def asLinearOperator: DoubleLinearOperator =
     this
 
-  def *(that: DMat): DMat =
+  /** Matrix product `this * that`. The coarse gemm dispatch seam (doc §A.2): with no
+    * acceleration import the `given` resolves to [[gale.backend.Backend.pure]], whose
+    * `acceleratesGemm` is `false`, so the pure `DoubleKernels` path runs — byte-identical
+    * to before the seam. An imported accelerating backend routes the general product to
+    * `backend.denseDouble.gemm` once the work clears its measured `nativeGemmMinFlops`.
+    * The structural `AᵀA` fast-path stays on the dedicated pure symmetric kernel (backend
+    * `syrk` routing is a follow-up).
+    */
+  def *(that: DMat)(using backend: Backend): DMat =
     if cols != that.rows then
       throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(that.cols)), Shape(Rows(that.rows), Cols(that.cols)))
     val out = DMat.zeros(rows, that.cols)
@@ -234,6 +243,28 @@ final class DMat private[gale] (
         out.data,
         out.offset.value,
         out.rowStride.value
+      )
+    else if backend.acceleratesGemm &&
+      rows.toLong * that.cols.toLong * cols.toLong >= backend.thresholds.nativeGemmMinFlops
+    then
+      backend.denseDouble.gemm(
+        rows,
+        that.cols,
+        cols,
+        1.0,
+        data,
+        offset.value,
+        rowStride.value,
+        colStride.value,
+        that.data,
+        that.offset.value,
+        that.rowStride.value,
+        that.colStride.value,
+        0.0,
+        out.data,
+        out.offset.value,
+        out.rowStride.value,
+        out.colStride.value
       )
     else
       DoubleKernels.dgemm(

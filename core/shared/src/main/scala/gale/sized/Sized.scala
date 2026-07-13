@@ -1,5 +1,6 @@
 package gale.sized
 
+import gale.backend.Backend
 import gale.linalg.Cols
 import gale.linalg.DMat
 import gale.linalg.DVec
@@ -160,8 +161,12 @@ object SMat:
     /** Matrix-vector product (shape-checked: the vector must be `SVec[C]`). */
     def *(x: SVec[C]): SVec[R] = SVec.unsafe(m.toDMat * SVec.raw(x))
 
-    /** Matrix-matrix product (shape-checked: the right factor's rows must be `C`). */
-    def *[C2 <: Int](that: SMat[C, C2]): SMat[R, C2] = unsafe(m.toDMat * that.toDMat)
+    /** Matrix-matrix product (shape-checked: the right factor's rows must be `C`). Forwards
+      * the ambient `given Backend` to the underlying `DMat.*` so an imported accelerating
+      * backend routes through the sized layer too (it would otherwise capture `Backend.pure`).
+      */
+    def *[C2 <: Int](that: SMat[C, C2])(using backend: Backend): SMat[R, C2] =
+      unsafe(m.toDMat.*(that.toDMat)(using backend))
 
   // --- tiny fixed-size kernels: closed-form det / inverse (PRD § tiny kernels) ---
 

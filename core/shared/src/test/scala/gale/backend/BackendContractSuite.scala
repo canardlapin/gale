@@ -142,11 +142,11 @@ class BackendContractSuite extends munit.FunSuite:
       a.data, a.offset.value, a.rowStride.value,
       c.data, c.offset.value, c.rowStride.value
     )
-    // dsyrkRowMajor is assign-only and fills the UPPER triangle (i <= j); the
-    // symmetric partner (1,0) is left untouched (stays 0). AᵀA is symmetric, so the
-    // upper triangle carries the full information.
+    // dsyrkRowMajor computes the UPPER triangle then mirrors it into the lower, so
+    // the result is the FULL symmetric AᵀA (both triangles populated).
     assertEqualsDouble(c(0, 0), expected(0, 0), 1e-12)
     assertEqualsDouble(c(0, 1), expected(0, 1), 1e-12)
+    assertEqualsDouble(c(1, 0), expected(1, 0), 1e-12) // mirrored lower
     assertEqualsDouble(c(1, 1), expected(1, 1), 1e-12)
   }
 

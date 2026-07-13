@@ -276,6 +276,14 @@ resolves `summon[SpectralBackend]`, and `Backend` *may* expose
 `def spectral: Option[SpectralBackend]` so one module and one import satisfy both.
 This doc fixes that bridge:
 
+> **Compilation-unit note.** Because `Backend.spectral: Option[SpectralBackend]` and every
+> `SpectralBackend` op takes a `DMat`, and the gemm seam imports `Backend` into `gale.linalg`,
+> the three packages `gale.linalg` ↔ `gale.backend` ↔ `gale.spectral` form a reference cycle.
+> It is sound (they are one scalac compilation unit in `core`, and no object-init order depends
+> on the cycle — `PureBackend`/`SpectralBackend.none` initialize nothing across it), but it does
+> mean the three cannot be split into separately-compiled modules without breaking the A.5 bridge.
+
+
 - The FFM module (`gale-backend-jvm-blas-ffm`, or a `-lapack` sibling) provides
   **both** a `given Backend` (kernels/factorizations) and a `given SpectralBackend`
   (QZ/GSVD/dense-accel), and its `Backend.spectral` returns `Some(thatSpectral)`.

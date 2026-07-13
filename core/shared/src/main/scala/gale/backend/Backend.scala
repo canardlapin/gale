@@ -76,6 +76,10 @@ trait DenseDoubleKernel:
       cRowStride: Int,
       cColStride: Int
   ): Unit
+  /** `C(k×k) := AᵀA` for a row-major `A` (m rows × k cols). The result is the FULL
+    * symmetric matrix — an implementation must populate both triangles (the pure
+    * kernel computes the upper and mirrors it into the lower). Assign-only (`beta = 0`).
+    */
   def syrk(
       m: Int,
       k: Int,
@@ -86,6 +90,7 @@ trait DenseDoubleKernel:
       cOffset: Int,
       cRowStride: Int
   ): Unit
+end DenseDoubleKernel
 
 /** The always-present kernel set: forwards verbatim to [[gale.kernel.DoubleKernels]], so
   * it is the pure, portable, deterministic reference — and the only kernel set on JS.
@@ -175,6 +180,9 @@ object PureDenseDoubleKernel extends DenseDoubleKernel:
   * routes to the backend; below it (and on JS always) the pure kernel runs.
   */
 trait BackendThresholds:
+  // NB: the gemm seam compares against the element-count `rows*cols*shared` (not 2·m·n·k
+  // FLOPs), matching DoubleKernels' existing GemmBlockThreshold convention — so a value here
+  // is on the same scale as that constant.
   def nativeGemmMinFlops: Long           // the primary crossover; heap vs NativeDMat variants later
   def nativeGemvMinWork: Long            // standalone `A*x` only
   def nativeFactorizationMinSize: Int    // per-routine (LU/Cholesky/QR differ)
