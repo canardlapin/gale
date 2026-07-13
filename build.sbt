@@ -126,6 +126,25 @@ lazy val interopBreeze =
       )
     )
 
+// gale-backend-jvm-vector: an OPTIONAL, JVM-only acceleration module supplying a
+// `given Backend` whose dense `gemm` uses the JDK Vector API (jdk.incubator.vector)
+// for SIMD. The incubator module must be resolvable at BOTH compile time (the
+// in-process scalac in the sbt JVM — enabled by the repo-root `.jvmopts` carrying
+// `--add-modules=jdk.incubator.vector`, which affects the whole sbt launch) and run
+// time (the forked test JVM, via `Test / javaOptions` below). Nothing in core/laws
+// depends on this module, so the pure build is untouched.
+lazy val vectorBackend =
+  project
+    .in(file("backend-jvm-vector"))
+    .dependsOn(coreJVM)
+    .settings(
+      name := "gale-backend-jvm-vector",
+      scalacOptions ++= commonScalacOptions,
+      Test / fork := true,
+      Test / javaOptions += "--add-modules=jdk.incubator.vector",
+      libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+    )
+
 lazy val benchmarkSettings = Seq(
   scalacOptions ++= Seq(
     "-deprecation",
@@ -167,7 +186,7 @@ lazy val benchmarksJS =
 lazy val root =
   project
     .in(file("."))
-    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity, interopBreeze)
+    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity, interopBreeze, vectorBackend)
     .settings(
       name := "gale",
       publish / skip := true
@@ -182,6 +201,8 @@ addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/full
 addCommandAlias("parityTest", ";parity/test")
 // Breeze interop module (conversions + migration aids).
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
+// JVM-only Vector-API (SIMD) acceleration backend.
+addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")

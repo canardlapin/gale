@@ -5,6 +5,14 @@ object DoubleArray:
   private[gale] inline def alloc(length: Int): DoubleArray =
     new Array[Double](length)
 
+  /** Expose the raw backing `Array[Double]` without copying. The opaque type is
+    * transparent only inside `gale.platform`, so a JVM-only kernel (e.g. the
+    * Vector-API SIMD backend) that must hand the array to `DoubleVector.fromArray`
+    * calls through here. `private[gale]`, so it is invisible to userland — the
+    * caller owns not mutating storage it does not conceptually own.
+    */
+  private[gale] inline def asArray(d: DoubleArray): Array[Double] = d
+
   private[gale] def fromArray(values: Array[Double]): DoubleArray =
     values.clone()
 

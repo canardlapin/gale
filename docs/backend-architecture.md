@@ -53,6 +53,14 @@ Strategy blocks are sketches this document turns into a contract.
    pure.
 4. **Thresholded, benchmark-derived dispatch** — "Calling native code for vectors
    of length three is a bug, not an optimization." No hard-coded guesses.
+5. **Cross-OS, not just the dev machine.** gale runs on Linux, Windows, and macOS.
+   The FFM backend (`blas-ffm`) MUST NOT hardcode any one OS's BLAS: it discovers or
+   accepts a CBLAS library at runtime and looks up `cblas_dgemm`/… from it — macOS
+   Accelerate/vecLib, Linux OpenBLAS/reference/MKL, Windows OpenBLAS/MKL — with an
+   explicit given-import selection (Doctrine 8) and a documented candidate-probe order.
+   Accelerate is a convenient zero-install option on macOS, never a baked-in default.
+   FFM (`java.lang.foreign`, finalized in JDK 22) and the JDK Vector API are themselves
+   OS/arch-agnostic; native `thresholds` are measured per OS/BLAS-family.
 
 ---
 
