@@ -107,6 +107,25 @@ lazy val parity =
       )
     )
 
+// gale-interop-breeze (PRD: "Breeze conversion helpers and migration aids"): the
+// JVM-only bridge module where gale meets Breeze. Breeze is a COMPILE dependency
+// here because conversion IS this module's purpose — but nothing in core/laws
+// depends on it, so gale-core stays 100% Breeze-free. Same native Scala 3 artifact
+// (breeze_3) used by the parity and benchmark modules.
+lazy val interopBreeze =
+  project
+    .in(file("interop-breeze"))
+    .dependsOn(coreJVM)
+    .settings(
+      name := "gale-interop-breeze",
+      scalacOptions ++= commonScalacOptions,
+      Test / fork := false,
+      libraryDependencies ++= Seq(
+        "org.scalanlp"  %% "breeze" % breezeVersion,
+        "org.scalameta" %% "munit"  % munitVersion % Test
+      )
+    )
+
 lazy val benchmarkSettings = Seq(
   scalacOptions ++= Seq(
     "-deprecation",
@@ -148,7 +167,7 @@ lazy val benchmarksJS =
 lazy val root =
   project
     .in(file("."))
-    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity)
+    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity, interopBreeze)
     .settings(
       name := "gale",
       publish / skip := true
@@ -161,6 +180,8 @@ addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS")
 // Breeze parity harness (JVM-only correctness parity vs Scala Breeze 2.1.0).
 addCommandAlias("parityTest", ";parity/test")
+// Breeze interop module (conversions + migration aids).
+addCommandAlias("interopBreezeTest", ";interopBreeze/test")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
