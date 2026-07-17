@@ -53,13 +53,13 @@ class FfmBlasLoaderSuite extends munit.FunSuite:
         i += 1
     finally backend.close()
 
-  test("known optimized libraries get a conservative route; unknown BLAS stays disabled"):
+  test("only measured library families get automatic routes"):
     val accelerate = FfmBlasThresholds.forLibrary("Accelerate")
-    assertEquals(accelerate.nativeGemmMinFlops, 256L * 256L * 256L)
+    assertEquals(accelerate.nativeGemmMinFlops, 512L * 512L * 512L)
     assertEquals(accelerate.nativeLuMinSize, 128)
     assertEquals(accelerate.nativeCholeskyMinSize, Int.MaxValue)
     assertEquals(accelerate.nativeQrMinSize, Int.MaxValue)
-    assertEquals(FfmBlasThresholds.forLibrary("libopenblas.so").nativeGemmMinFlops, 256L * 256L * 256L)
+    assertEquals(FfmBlasThresholds.forLibrary("libopenblas.so").nativeGemmMinFlops, Long.MaxValue)
     assertEquals(FfmBlasThresholds.forLibrary("libopenblas.so").nativeLuMinSize, Int.MaxValue)
     assertEquals(FfmBlasThresholds.forLibrary("libblas.so.3").nativeGemmMinFlops, Long.MaxValue)
 

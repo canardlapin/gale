@@ -20,6 +20,9 @@ that run identically on the JVM (`Array[Double]`) and in the browser
 | `gale-backend-jvm-blas-ffm` | `backend-jvm-blas-ffm/` | Optional JDK 22+ runtime-discovered BLAS/LAPACK backend (Accelerate/OpenBLAS/reference/MKL). |
 | benchmarks | `benchmarks/jvm`, `benchmarks/js` | JMH (JVM) and a Scala.js smoke runner. Compile-checked in CI; not published. |
 
+See the [backend dashboard](benchmarks/dashboard.md) for the current conformance,
+dispatch, and platform-specific performance evidence.
+
 ### Package tour (`gale-core`)
 
 - `gale.linalg` — `Vec`/`DVec`, `MutableVec`/`MutableDVec`, `Matrix`/`DMat`,
@@ -78,10 +81,11 @@ dispatch automatically; generic/reference BLAS remains direct-callable but
 default-disabled until measured. When the selected library exposes the required
 Fortran LAPACK symbols, the same backend also advertises `NativeLapack` and
 provides typed LU, Cholesky, QR, and symmetric-eigen operations. Defaults are
-library-family-specific: the measured Accelerate route enables LU at `n >= 128`,
-while QR and Cholesky remain explicit opt-ins because their copy-inclusive
-crossovers were non-monotone. OpenBLAS/MKL factorization routes remain disabled
-until equivalent platform sweeps exist.
+library-family-specific: the measured Accelerate route enables square GEMM at
+`n >= 512` and LU at `n >= 128`, while GEMV, QR, and Cholesky remain explicit
+opt-ins because their copy-inclusive behavior lost or was non-monotone.
+OpenBLAS/MKL automatic routes remain disabled until equivalent platform sweeps
+exist; those libraries are still loadable and direct-callable.
 
 ## Continuous integration
 

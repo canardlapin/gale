@@ -56,3 +56,31 @@ calls: default LU routing improves solve, while default QR routing would regress
 least squares by 3.8x at n=128 and 2.8x at n=256. The benchmark harness forces
 all native thresholds to zero on purpose; these numbers are evidence for the
 defaults, not the behavior of the defaults themselves.
+
+### Allocation profile at n=128
+
+A focused one-fork JMH `-prof gc` run (3 warmups, 5 measurements) measured
+normalized JVM heap allocation. Native memory managed by FFM arenas is not
+included in this JVM-GC figure.
+
+| Scenario | Pure Gale | Forced FFM | Native overhead |
+| --- | ---: | ---: | ---: |
+| solve via LU | 133,387 B/op | 265,370 B/op | 1.99x |
+| least squares via QR | 897,452 B/op | 1,317,113 B/op | 1.47x |
+
+The native bridge trades allocation and copies for faster vendor computation.
+LU still wins wall time despite roughly doubling JVM allocation at this size;
+QR both allocates more and runs slower. Long-lived `NativeDMat` storage remains
+the explicit copy-free route for callers able to keep data off heap.
+
+### Declined-route dispatch control
+
+At n=32, the default backend declines both LU (`n < 128`) and QR (disabled), so
+the native-selected and pure-selected methods execute the same Gale algorithms.
+The standard 5 x 500 ms warmup exposed a fork-dependent LU compilation state;
+a longer 10 x 1 s warmup removed it. That warmed control measured 3.952 us/op
+with the native backend selected versus 3.905 us/op with `PureBackend` (1.2%
+overhead, overlapping error ranges). QR under the standard protocol measured
+20.865 versus 20.944 us/op. The dispatch gate is therefore performance-neutral
+once code is warm; the rejected short-warmup fork is retained as evidence that
+microbenchmarks of small factorizations need longer stabilization.

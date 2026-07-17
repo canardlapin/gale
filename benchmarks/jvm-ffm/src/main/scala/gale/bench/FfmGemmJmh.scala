@@ -3,7 +3,7 @@ package gale.bench
 import gale.backend.{Backend, PureBackend}
 import gale.backend.jvm.blas.{FfmBlasBackend, FfmBlasThresholds}
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
-import gale.linalg.{DMat, Matrix}
+import gale.linalg.{DMat, DVec, Matrix, Vec}
 
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
@@ -67,3 +67,36 @@ class FfmGemmJmh:
   def ffmNativeGemm(): NativeDMat =
     nativeBackend.gemm(nativeA, nativeB, nativeC)
     nativeC
+
+/** Heap-copy-inclusive standalone GEMV crossover. This deliberately enters the
+  * public matrix-vector facade and allocates the result on both routes.
+  */
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Warmup(iterations = 5, time = 500, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 8, time = 500, timeUnit = TimeUnit.MILLISECONDS)
+@Fork(2)
+@State(Scope.Benchmark)
+class FfmGemvJmh:
+  @Param(Array("64", "128", "256", "512", "1024", "2048"))
+  var n: Int = _
+
+  private var matrix: DMat = _
+  private var vector: DVec = _
+  private var nativeBackend: FfmBlasBackend = _
+
+  @Setup(Level.Trial)
+  def setup(): Unit =
+    matrix = Matrix.tabulate(n, n)((i, j) =>
+      ((i.toLong * 17 + j.toLong * 11 + 3) % 31 - 15).toDouble / 16.0
+    )
+    vector = Vec.tabulate(n)(i => ((i * 7) % 19 - 9).toDouble / 10.0)
+    nativeBackend = FfmBlasBackend
+      .load(thresholds = Some(FfmBlasThresholds(nativeGemvMinWork = 0L)))
+      .fold(throw _, identity)
+
+  @TearDown(Level.Trial)
+  def tearDown(): Unit = nativeBackend.close()
+
+  @Benchmark def pureGemv(): DVec = matrix.*(vector)(using PureBackend)
+  @Benchmark def ffmGemv(): DVec = matrix.*(vector)(using nativeBackend)

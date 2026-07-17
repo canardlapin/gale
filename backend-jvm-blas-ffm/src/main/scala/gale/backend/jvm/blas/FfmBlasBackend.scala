@@ -40,13 +40,14 @@ object FfmBlasThresholds:
       // Accelerate QR and Cholesky are non-monotone through this heap/FFM route;
       // keep both disabled unless a caller explicitly supplies thresholds.
       FfmBlasThresholds(
-        nativeGemmMinFlops = 256L * 256L * 256L,
+        nativeGemmMinFlops = 512L * 512L * 512L,
         nativeLuMinSize = 128
       )
     else if normalized.contains("openblas") || normalized.contains("mkl") then
-      // GEMM has portable evidence; factorization defaults require a sweep on
-      // the actual library family because copy cost and vendor kernels differ.
-      FfmBlasThresholds(nativeGemmMinFlops = 256L * 256L * 256L)
+      // Loadable and direct-callable, but no family-specific copy-inclusive
+      // sweep is committed yet. Do not project Accelerate thresholds onto a
+      // different vendor implementation.
+      FfmBlasThresholds()
     else FfmBlasThresholds()
 
 final case class BlasLibraryInfo(

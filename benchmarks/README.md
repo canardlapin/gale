@@ -1,5 +1,8 @@
 # Gale Benchmarks
 
+The current cross-backend summary and evidence links live in the
+[backend dashboard](dashboard.md).
+
 JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios:
 
 - `DenseKernelJmh` — `dot`, `axpy`, `gemv` over `n` in {256, 4096, 65536}.
@@ -39,6 +42,27 @@ it:
 ```bash
 sbt benchCompile
 ```
+
+## JDK 22 FFM benchmarks
+
+The separate `benchmarksFfm` project keeps JDK 22 FFM sources out of the JDK 21
+benchmark build:
+
+- `FfmGemmJmh` — heap-copy-inclusive GEMM plus a copy-free `NativeDMat` control.
+- `FfmGemvJmh` — heap-copy-inclusive standalone matrix-vector multiply.
+- `FfmLapackJmh` — LU, Cholesky, tall QR, and symmetric eigenvalues.
+- `FfmSolverScenarioJmh` — end-to-end dense solve and tall least squares.
+- `FfmDispatchJmh` — warmed cost of selecting and declining a native provider.
+
+```bash
+sbt "benchmarksFfm/Jmh/run .*FfmGemvJmh.*"
+sbt "benchmarksFfm/Jmh/run .*FfmLapackJmh.*"
+sbt "benchmarksFfm/Jmh/run -prof gc -p n=128 .*FfmSolverScenarioJmh.*"
+```
+
+All native crossover receipts include heap/native copies unless explicitly
+labelled `NativeDMat`. A backend is enabled by default only when a complete
+two-fork sweep supports a conservative threshold on that library family.
 
 ## Breeze comparison (paired gale-vs-Breeze)
 

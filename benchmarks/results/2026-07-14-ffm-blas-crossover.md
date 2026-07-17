@@ -1,5 +1,9 @@
 # FFM BLAS copy-inclusive crossover — Accelerate / JDK 22 (2026-07-14)
 
+> The focused one-fork dispatch conclusion below is superseded by the full
+> two-fork sweep added on 2026-07-17. That sweep exposed a severe n=256
+> discontinuity and moved the Accelerate default to `512^3`; see the addendum.
+
 ## Environment and protocol
 
 - Apple ARM64, macOS 14.3
@@ -20,9 +24,9 @@
 | 512 | 14,605.279 us | 2,881.599 us | 5.07x |
 
 The 512 native measurements were noisier than the smaller sizes but remained far
-below pure in every sample. The shipped Accelerate/OpenBLAS/MKL default is
-conservatively `256^3`, one full size step above the observed 128 crossover.
-Unknown/reference `libblas` candidates stay at `Long.MaxValue` until measured.
+below pure in every sample. This focused run originally suggested `256^3`; the
+authoritative follow-up below rejected that policy. Unknown/reference `libblas`
+candidates stay at `Long.MaxValue` until measured.
 
 The kernel also checks arithmetic intensity against the actual heap arrays copied.
 This closes the product-only threshold hole where a `1 x k` by `k x 1` operation
@@ -36,3 +40,20 @@ control at n=128 measured 74.131 us/op for copy-free `NativeDMat` GEMM, versus
 isolated copy-free-only sweep was erratic and implausibly slow; it was rejected
 rather than averaged into the result. The full two-fork harness is the required
 follow-up before assigning a separate copy-free automatic threshold.
+
+## Authoritative two-fork follow-up (2026-07-17)
+
+Protocol: 5 x 500 ms warmups, 8 x 500 ms measurements, 2 forks, one thread.
+
+| n | Pure Gale | Heap-copy FFM | NativeDMat control | Heap-copy speedup |
+| ---: | ---: | ---: | ---: | ---: |
+| 128 | 193.061 us | 126.083 us | 96.462 us | 1.53x |
+| 256 | 2,246.015 us | 9,083.703 us | 2,869.916 us | 0.25x |
+| 512 | 18,691.067 us | 6,582.583 us | 7,093.006 us | 2.84x |
+
+Accelerate is sharply non-monotone at n=256 in this run, including in the
+copy-free control. A lower-bound threshold therefore cannot safely capture the
+n=128 win without also routing the n=256 loss. The default is `512^3`, the first
+size after the discontinuity with a complete two-fork win. OpenBLAS and MKL no
+longer inherit this threshold: their automatic routes stay disabled until each
+library family has its own copy-inclusive sweep.

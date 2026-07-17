@@ -109,3 +109,39 @@ class FfmSolverScenarioJmh:
 
   @Benchmark def pureLeastSquares(): Any = tall.leastSquares(tallRhs)(using PureBackend)
   @Benchmark def ffmLeastSquares(): Any = tall.leastSquares(tallRhs)(using nativeBackend)
+
+/** Measures the cost of selecting but declining a native provider. At n=32 the
+  * default Accelerate LU threshold is not met and QR is default-disabled, so all
+  * four methods execute Gale's pure algorithms after their normal public dispatch.
+  */
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Warmup(iterations = 5, time = 500, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 8, time = 500, timeUnit = TimeUnit.MILLISECONDS)
+@Fork(2)
+@State(Scope.Benchmark)
+class FfmDispatchJmh:
+  private var square: DMat = _
+  private var tall: DMat = _
+  private var backend: FfmBlasBackend = _
+
+  @Setup(Level.Trial)
+  def setup(): Unit =
+    val n = 32
+    square = Matrix.tabulate(n, n)((i, j) =>
+      val base = (((i * 29 + j * 17 + 5) % 83).toDouble - 41.0) / 43.0
+      if i == j then base + n.toDouble else base
+    )
+    tall = Matrix.tabulate(2 * n, n)((i, j) =>
+      val base = math.cos((i + 1).toDouble * 0.017 + (j + 3).toDouble * 0.019)
+      if i == j then base + 2.0 else base
+    )
+    backend = FfmBlasBackend.load().fold(throw _, identity)
+
+  @TearDown(Level.Trial)
+  def tearDown(): Unit = backend.close()
+
+  @Benchmark def pureLu(): Any = square.lu(using PureBackend)
+  @Benchmark def declinedNativeLu(): Any = square.lu(using backend)
+  @Benchmark def pureQr(): Any = tall.qr(using PureBackend)
+  @Benchmark def declinedNativeQr(): Any = tall.qr(using backend)
