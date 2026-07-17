@@ -1,4 +1,5 @@
-import org.scalajs.linker.interface.ModuleKind
+import org.scalajs.linker.interface.{ESVersion, ModuleKind}
+import org.scalajs.jsenv.nodejs.NodeJSEnv
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
 import pl.project13.scala.sbt.JmhPlugin
 import sbtcrossproject.CrossPlugin.autoImport.*
@@ -20,9 +21,9 @@ lazy val munitVersion = "1.3.0"
 
 // Experimental WebAssembly output for Scala.js, toggled OFF by default so a plain
 // `sbt testAll` produces exactly today's JavaScript build. Set GALE_WASM=1 (or
-// true) to enable; running the tests then needs Node with an ES-module loader and
-// --experimental-wasm-exnref (see README). The env var is read once at load, so
-// the default build never touches the linker config.
+// true) to enable. The opt-in settings select ES2022 modules and pass Node's
+// --experimental-wasm-exnref runtime flag. The env var is read once at load, so
+// the default build never touches the linker or jsEnv config.
 lazy val wasmEnabled: Boolean =
   sys.env.get("GALE_WASM").exists(v => v == "1" || v.equalsIgnoreCase("true"))
 
@@ -30,8 +31,13 @@ lazy val jsWasmSettings: Seq[Def.Setting[_]] =
   if (wasmEnabled)
     Seq(
       scalaJSLinkerConfig ~= {
-        _.withExperimentalUseWebAssembly(true).withModuleKind(ModuleKind.ESModule)
-      }
+        _.withESFeatures(
+          _.withESVersion(ESVersion.ES2022).withUseWebAssembly(true)
+        ).withModuleKind(ModuleKind.ESModule)
+      },
+      jsEnv := new NodeJSEnv(
+        NodeJSEnv.Config().withArgs(List("--experimental-wasm-exnref"))
+      )
     )
   else Seq.empty
 
@@ -224,6 +230,7 @@ lazy val benchmarksJS =
       name := "gale-benchmarks-js",
       scalaJSUseMainModuleInitializer := true
     )
+    .settings(jsWasmSettings: _*)
 
 lazy val root =
   project

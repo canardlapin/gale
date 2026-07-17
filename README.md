@@ -105,22 +105,20 @@ exist; those libraries are still loadable and direct-callable.
 
 The Scala.js output can target WebAssembly instead of JavaScript. It is **off by
 default** — a plain `sbt testAll` produces exactly the JavaScript build. Set the
-`GALE_WASM` environment variable to opt in:
+`GALE_WASM` environment variable to opt in; the build configures ES2022 modules
+and Node's required exception-reference flag:
 
 ```sh
-GALE_WASM=1 sbt coreJS/Test/fastLinkJS   # link core's JS tests to Wasm
+GALE_WASM=1 sbt coreJS/test              # link and execute core tests as Wasm
+GALE_WASM=1 sbt benchSmokeJSFull         # execute the Wasm kernel profile
 ```
 
-Enabling the toggle switches the Scala.js linker to
-`withExperimentalUseWebAssembly(true)` and ES-module output. **Executing** the
-Wasm tests (not just linking them) additionally needs a recent Node.js
-(20+) whose V8 supports the exception-handling proposal, launched with the
-`--experimental-wasm-exnref` flag — configure it on the Scala.js `jsEnv`'s Node
-arguments (e.g. via `jsEnvInput` / `NodeJSEnv` args) before `coreJS/test`.
-
-The CI `wasm` job only performs the link check, since running requires that
-runtime flag; it is marked allow-failure so the experimental backend never gates
-the pipeline.
+The current Node 24 profile is a correctness success but a performance failure:
+Wasm is 23–43x slower than optimized JavaScript on the selected dense kernels.
+It therefore remains experimental and default-off. The CI `wasm` job executes
+both the core tests and the profile, but remains allow-failure while the Scala.js
+backend and V8 support mature. See the
+[Wasm profile receipt](benchmarks/results/2026-07-17-wasm-profile.md).
 
 ## Breeze replacement scope
 

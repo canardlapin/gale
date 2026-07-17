@@ -112,7 +112,7 @@ jobs:
         run: sbt nativeBackendTest blasFfmBackendTest benchFfmCompile
 
   wasm:
-    name: WebAssembly link (experimental)
+    name: WebAssembly tests and profile (experimental)
     runs-on: ubuntu-latest
     # Optional/allow-failure: the experimental Wasm backend must not gate CI.
     continue-on-error: true
@@ -129,7 +129,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Link the JS test bundle to WebAssembly
-        # A link check exercises the Wasm backend without needing the Node
-        # --experimental-wasm-exnref runtime flag that executing tests requires.
-        run: sbt coreJS/Test/fastLinkJS
+      - name: Execute core tests and optimized kernel profile as WebAssembly
+        # build.sbt supplies --experimental-wasm-exnref to the Node jsEnv.
+        run: sbt coreJS/test benchSmokeJSFull

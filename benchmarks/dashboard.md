@@ -12,7 +12,7 @@ it does not establish cross-machine speed.
 | Pure Gale | Scala.js / Node 22 | core + laws | required | active without an import |
 | Vector API | JVM 21/22 | shared backend conformance + backend suites | required on both JDKs | opt-in import; measured coarse ops only |
 | FFM BLAS/LAPACK | JVM 22 / OpenBLAS | shared backend conformance + native storage + loader/LAPACK suites | required | opt-in import; family-specific thresholds |
-| Scala.js Wasm | experimental linker | core link and kernel profile | allow-failure | explicit `GALE_WASM=1` only |
+| Scala.js Wasm | Node 22+ / experimental linker | 373 core tests + kernel profile | allow-failure | explicit `GALE_WASM=1` only |
 
 The FFM capability is conditional. `NativeBlas` requires a conforming CBLAS
 candidate; `NativeLapack` additionally requires all bound factorization and
@@ -40,6 +40,7 @@ as the backend's only oracle.
 | FFM symmetric eigen | 1.18–2.77x | real raw provider; no public backend-routed eigen facade yet |
 | OpenBLAS/MKL automatic routes | not measured here | loadable and explicit, but no borrowed Accelerate policy |
 | FFM/reference BLAS automatic routes | not measured | correctness does not imply performance |
+| Scala.js Wasm on Node 24 | 0.02–0.04x optimized JS | 23–43x slower; experimental/default-off |
 
 The declined-native control is neutral after adequate warmup: n=32 LU measured
 3.952 us/op with the FFM backend selected versus 3.905 pure, and QR measured
@@ -52,6 +53,7 @@ material warmed penalty below its threshold.
 - [FFM GEMM crossover](results/2026-07-14-ffm-blas-crossover.md)
 - [FFM GEMV crossover](results/2026-07-17-ffm-gemv-crossover.md)
 - [FFM LAPACK and solver scenarios](results/2026-07-17-ffm-lapack-crossover.md)
+- [Scala.js Wasm profile](results/2026-07-17-wasm-profile.md)
 - [Breeze equivalence guide](../docs/breeze-equivalence.md)
 
 ## Refresh commands
@@ -62,5 +64,5 @@ sbt nativeBackendTest blasFfmBackendTest benchFfmCompile  # JDK 22+
 sbt "benchmarksJVM/Jmh/run .*Vector.*Jmh.*"
 sbt "benchmarksFfm/Jmh/run .*FfmGemvJmh.*"
 sbt "benchmarksFfm/Jmh/run .*FfmLapackJmh.*"
-GALE_WASM=1 sbt coreJS/Test/fastLinkJS
+GALE_WASM=1 sbt coreJS/test benchSmokeJSFull
 ```
