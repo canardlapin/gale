@@ -8,7 +8,7 @@ import scalajscrossproject.ScalaJSCrossPlugin.autoImport.*
 
 ThisBuild / organization := "io.gale"
 ThisBuild / scalaVersion := "3.3.8"
-ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / version      := "1.0.0-SNAPSHOT"
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",

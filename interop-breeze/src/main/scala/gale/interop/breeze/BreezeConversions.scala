@@ -77,7 +77,7 @@ def toBreezeCopy(m: DMat): DenseMatrix[Double] =
   new DenseMatrix(rows, cols, out)
 
 /** Copy a Breeze `DenseMatrix` (any layout: column-major, transposed, or a slice)
-  * into a fresh contiguous row-major gale [[DMat]]. Reads through `bm(i, j)`.
+  * into a fresh contiguous row-major gale `DMat`. Reads through `bm(i, j)`.
   */
 def fromBreezeCopy(bm: DenseMatrix[Double]): DMat =
   val rows = bm.rows
@@ -90,9 +90,9 @@ def fromBreezeCopy(bm: DenseMatrix[Double]): DMat =
       out(i * cols + j) = bm(i, j) // row-major packing
       j += 1
     i += 1
-  Matrix.fromArrayUnsafe(rows, cols, out) // adopts the fresh array (public doorway)
+  Matrix.fromArrayCopy(rows, cols, out)
 
-/** A zero-copy gale [[DMat]] '''view''' over a Breeze matrix's storage. The result
+/** A zero-copy gale `DMat` '''view''' over a Breeze matrix's storage. The result
   * shares `bm.data`: writing through either handle is visible through the other.
   *
   * Breeze's `linearIndex` is `offset + col + row·majorStride` when transposed and
@@ -133,7 +133,7 @@ def toBreezeCopy(v: DVec): DenseVector[Double] =
   new DenseVector(out)
 
 /** Copy a Breeze `DenseVector` (any offset/stride) into a fresh contiguous gale
-  * [[DVec]].
+  * `DVec`.
   */
 def fromBreezeCopy(bv: DenseVector[Double]): DVec =
   val n   = bv.length
@@ -142,9 +142,9 @@ def fromBreezeCopy(bv: DenseVector[Double]): DVec =
   while i < n do
     out(i) = bv(i)
     i += 1
-  Vec.fromArrayUnsafe(out)
+  Vec.fromArrayCopy(out)
 
-/** A zero-copy gale [[DVec]] '''view''' over a Breeze vector's storage (shares
+/** A zero-copy gale `DVec` '''view''' over a Breeze vector's storage (shares
   * `bv.data`, aliases). Breeze and gale share the same `offset + i·stride` element
   * map. A reversed (negative-stride) Breeze vector cannot be viewed — gale requires
   * a positive stride — so use [[fromBreezeCopy]] there.
@@ -165,22 +165,22 @@ def fromBreezeView(bv: DenseVector[Double]): DVec =
 // Sparse (copy-only)
 // ===========================================================================
 
-/** Copy a gale [[CSR]] into a Breeze `CSCMatrix` (same matrix, column-compressed).
+/** Copy a gale `CSR` into a Breeze `CSCMatrix` (same matrix, column-compressed).
   * The gale side is canonicalized first, so the Breeze result is sorted and
   * duplicate-free.
   */
 def toBreezeCopy(m: CSR): CSCMatrix[Double] =
   buildBreezeCsc(m.rows, m.cols, m.canonicalize.toCOO)
 
-/** Copy a gale [[CSC]] into a Breeze `CSCMatrix` (same matrix). */
+/** Copy a gale `CSC` into a Breeze `CSCMatrix` (same matrix). */
 def toBreezeCopy(m: CSC): CSCMatrix[Double] =
   buildBreezeCsc(m.rows, m.cols, m.canonicalize.toCSR.toCOO)
 
-/** Copy a Breeze `CSCMatrix` into a gale [[CSC]]. */
+/** Copy a Breeze `CSCMatrix` into a gale `CSC`. */
 def fromBreezeToCsc(bm: CSCMatrix[Double]): CSC =
   breezeToCooBuilder(bm).toCSC()
 
-/** Copy a Breeze `CSCMatrix` into a gale [[CSR]]. */
+/** Copy a Breeze `CSCMatrix` into a gale `CSR`. */
 def fromBreezeToCsr(bm: CSCMatrix[Double]): CSR =
   breezeToCooBuilder(bm).toCSR()
 

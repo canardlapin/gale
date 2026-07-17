@@ -8,13 +8,12 @@ package userland
 import gale.linalg.*
 
 class InteropSuite extends munit.FunSuite:
-  test("Vec.fromArrayUnsafe adopts the array without copying") {
+  test("Vec.fromArrayCopy does not expose source storage") {
     val raw = Array(1.0, 2.0, 3.0)
-    val v = Vec.fromArrayUnsafe(raw)
+    val v = Vec.fromArrayCopy(raw)
     assertEquals(v.toSeq, Seq(1.0, 2.0, 3.0))
-    // Adoption contract: mutating the source array changes the vector.
     raw(0) = 9.0
-    assertEquals(v(0), 9.0)
+    assertEquals(v(0), 1.0)
   }
 
   test("DVec.toArray returns an independent copy") {
@@ -30,13 +29,13 @@ class InteropSuite extends munit.FunSuite:
     assertEquals(v.toArray.toSeq, Seq(2.0, 3.0, 4.0))
   }
 
-  test("Matrix.fromArrayUnsafe adopts row-major storage") {
+  test("Matrix.fromArrayCopy does not expose source storage") {
     val raw = Array(1.0, 2.0, 3.0, 4.0)
-    val m = Matrix.fromArrayUnsafe(2, 2, raw)
+    val m = Matrix.fromArrayCopy(2, 2, raw)
     assertEquals(m(0, 1), 2.0)
     assertEquals(m(1, 0), 3.0)
     raw(3) = 8.0
-    assertEquals(m(1, 1), 8.0)
+    assertEquals(m(1, 1), 4.0)
   }
 
   test("DMat.toArrayRowMajor returns an independent copy and materialises transposes") {

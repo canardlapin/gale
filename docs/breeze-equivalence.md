@@ -84,11 +84,13 @@ at `n=256` and 4.0% at `n=512`. Vector GEMV is 1.77–1.98x faster than pure Gal
 but remains 17–29% slower than Breeze VectorBLAS. These are competitive results,
 not a blanket claim that Gale is faster than Breeze.
 
-The optional JDK 22 FFM CBLAS backend materially accelerates large GEMM, including
-heap-copy cost: the focused Accelerate result was about 5.3x pure Gale at `n=256`
-and 5.1x at `n=512`. This is **not** yet evidence against Breeze configured with
-native BLAS/LAPACK. Native factorization comparisons require Gale's LAPACK provider
-and a direct same-library benchmark.
+The optional JDK 22 FFM backend materially accelerates selected large operations
+on the measured Accelerate route, including heap-copy cost: the authoritative
+two-fork result is 2.84x pure Gale for GEMM at `n=512`, and native-LU solve is
+1.53–1.60x at `n=128–256`. Accelerate was sharply non-monotone at `n=256`, so
+automatic GEMM begins at `512^3`; native QR, Cholesky, and GEMV remain default-off.
+This is **not** evidence against Breeze configured with native BLAS/LAPACK. That
+claim would require a direct same-library comparison.
 
 The JDK Vector backend dispatches contiguous GEMV/GEMM only from the measured
 128-square crossover. Transposed or otherwise strided operands retain the pure

@@ -214,7 +214,7 @@ object SMat:
     /** Inverse of a `3×3`, or `Left(SingularMatrix)` when singular (unrolled
       * adjugate transpose divided by the determinant).
       *
-      * '''Conditioning caveat.''' As with [[SMat.inverse2 the 2×2 case]], the
+      * '''Conditioning caveat.''' As with the `2×2` inverse overload, the
       * singularity test is '''exact''' (`det == 0` or non-finite); a near-singular
       * matrix yields a `Right` with a large-magnitude, roundoff-amplified inverse.
       * For ill-conditioned data, lower to `DMat` and solve via gale's LU/QR.

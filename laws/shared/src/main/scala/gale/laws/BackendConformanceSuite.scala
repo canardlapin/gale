@@ -5,7 +5,7 @@ import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
-/** Reusable, capability-driven conformance suite for optional [[Backend]] modules.
+/** Reusable, capability-driven conformance suite for optional `Backend` modules.
   *
   * The kernel checks use independently accumulated `BigDecimal` references rather
   * than Gale's pure kernel, so a defect shared by two implementations cannot make

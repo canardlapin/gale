@@ -12,7 +12,7 @@ trait LinearOperator[A]:
   def applyTo(x: Vec[A], into: MutableVec[A]): Either[LinAlgError, Unit]
 
 trait DoubleLinearOperator extends LinearOperator[Double]:
-  /** Primitive apply: `into := this * x`. Throws [[LinAlgError]] on dimension
+  /** Primitive apply: `into := this * x`. Throws `LinAlgError` on dimension
     * mismatch; the generic [[applyTo]] wraps this as a total form.
     */
   def applyTo(x: DVec, into: MutableDVec): Unit

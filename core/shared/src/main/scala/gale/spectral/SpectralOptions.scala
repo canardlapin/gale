@@ -7,7 +7,7 @@ import gale.solvers.SolverConfig
   *
   * Order legality depends on the problem type and is enforced at the solver
   * boundary (`Left(InvalidArgument)`), not here (§ Selection & ordering of
-  * `docs/spectral-parity.md`): the algebraic orders and [[BothEnds]] are
+  * `docs/spectral-parity.md`): the algebraic orders and `BothEnds` are
   * symmetric-only, the real-part orders are nonsymmetric-only, and the magnitude
   * orders are legal for both. Imaginary-part orders are deferred out of v0.3.5.
   * The order chooses *membership*; the output layout is fixed separately
@@ -34,7 +34,7 @@ enum SingularOrder:
   *
   * Supersedes the PRD's count-only `SpectralSelection`, which could not express
   * `eigh`'s subset-by-index / subset-by-value (§ 1, § 3 of the parity doc).
-  * [[IndexRange]] and [[ValueInterval]] are symmetric-only. Every case carries
+  * `IndexRange` and `ValueInterval` are symmetric-only. Every case carries
   * selection data only; all legality checks — `k` versus the dimension,
   * problem-type restrictions — belong to the solver and are returned as
   * `Left(InvalidArgument)`, never thrown here.
@@ -93,8 +93,8 @@ enum SpectralTarget:
   case ShiftInvert(sigma: Double, plan: LinearSolvePlan)
 
 /** Which eigenvectors a nonsymmetric solve returns. The symmetric API restricts
-  * itself to [[ValuesOnly]] versus vectors (left and right coincide for a
-  * symmetric matrix), so it never exposes [[Left]]/[[LeftAndRight]].
+  * itself to `ValuesOnly` versus vectors (left and right coincide for a
+  * symmetric matrix), so it never exposes `Left`/`LeftAndRight`.
   */
 enum EigenVectors:
   case ValuesOnly, Right, Left, LeftAndRight

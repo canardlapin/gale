@@ -128,8 +128,8 @@ object SpectralLaws extends Assertions:
     assert(err <= tol, s"columns not B-orthonormal: ‖XᵀBX − I‖ = $err")
 
   /** GSVD `U`/`V` orthonormality '''on the well-determined columns only''' — a
-    * [[GeneralizedSingularValue.Zero]] leaves its `U` column undetermined (zeroed),
-    * an [[GeneralizedSingularValue.Infinite]] its `V` column (the documented
+    * `GeneralizedSingularValue.Zero` leaves its `U` column undetermined (zeroed),
+    * a `GeneralizedSingularValue.Infinite` leaves its `V` column (the documented
     * contract).
     */
   def gsvdWellDeterminedOrthonormal(g: GeneralizedSVD, tol: Double): Unit =
@@ -194,7 +194,7 @@ object SpectralLaws extends Assertions:
         else assert(prev <= cur + tol, s"criterion not non-decreasing at $i: $prev > $cur")
       i += 1
 
-  /** GSVD ratios are non-increasing — which, since [[GeneralizedSingularValue]]'s
+  /** GSVD ratios are non-increasing — which, since `GeneralizedSingularValue`'s
     * value is `+∞` / finite / `0`, is exactly "Infinite first, descending, Zero
     * last".
     */

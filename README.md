@@ -23,6 +23,18 @@ that run identically on the JVM (`Array[Double]`) and in the browser
 See the [backend dashboard](benchmarks/dashboard.md) for the current conformance,
 dispatch, and platform-specific performance evidence.
 
+The [v1 compatibility and artifact policy](docs/release-policy.md) defines the
+published module set, supported runtimes, and the boundary of the 1.x stability
+promise.
+
+The [numerical, sparse, and backend contract](docs/numerical-contract.md) states
+accuracy/determinism guarantees, the sparse v1 boundary, and how to choose an
+accelerator without widening the Breeze-equivalence claim.
+
+The current [v1 acceptance audit](docs/v1-acceptance-audit.md) and
+[release evidence](docs/release-evidence.md) distinguish locally verified code
+readiness from the owner/remote steps still required for a public release.
+
 ### Package tour (`gale-core`)
 
 - `gale.linalg` — `Vec`/`DVec`, `MutableVec`/`MutableDVec`, `Matrix`/`DMat`,

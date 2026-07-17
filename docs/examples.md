@@ -422,14 +422,13 @@ differences, performance evidence, and deliberate exclusions—is documented in
 
 ## Accuracy & determinism
 
-Every dense kernel is written against a single strided inner loop shared by
-both platforms, but the two platforms use different fused-multiply-add
-semantics: the JVM uses `Math.fma`, Scala.js uses plain `a*b + c`. Results are
-therefore **bit-reproducible per platform** (the same JVM build always
-produces the same bits), but the JVM and a JS/browser build of the same
-computation may differ in the last one or two ulps. Treat cross-platform
-bit-identity as out of scope; treat within-platform determinism as
-guaranteed.
+Every pure dense kernel is written against a shared strided algorithm, but the
+platforms use different fused-multiply-add semantics: the JVM uses `Math.fma`,
+while Scala.js uses plain `a*b + c`. Results from the pure single-threaded route
+are deterministic for a fixed runtime and build, but JVM and browser results may
+differ in the last ulps. Native vendor libraries and future multithreaded routes
+may legally reassociate operations, so Gale does not promise bit identity from
+an accelerated backend.
 
 The failure model throughout is **Either-first**: structural or
 precondition violations (`NonSquareMatrix`, `SingularMatrix`,
@@ -451,14 +450,14 @@ Scala.js can also target WebAssembly instead of JavaScript, gated behind an
 opt-in environment variable so the default build is untouched:
 
 ```sh
-GALE_WASM=1 sbt coreJS/Test/fastLinkJS   # link core's JS tests to Wasm
+GALE_WASM=1 sbt coreJS/test
+GALE_WASM=1 sbt benchSmokeJSFull
 ```
 
-Running (not just linking) the Wasm output additionally needs a recent
-Node.js (20+) with V8's exception-handling proposal, launched with
-`--experimental-wasm-exnref`. See the README for the full toggle mechanics;
-the CI `wasm` job only performs the link check and is allow-failure, since
-the experimental backend never gates the pipeline.
+The build supplies Node's required `--experimental-wasm-exnref` flag. Wasm is
+correctness-tested but remains experimental and default-off: the current Node 24
+profile is 23–43x slower than optimized JavaScript. See the README and backend
+dashboard for the evidence; CI executes the tests/profile as allow-failure.
 
 ## Where the numbers come from
 

@@ -7,15 +7,15 @@ import gale.linalg.*
 import scala.scalajs.js.typedarray.Float64Array
 
 class InteropSuite extends munit.FunSuite:
-  test("Vec.fromFloat64ArrayUnsafe adopts the typed array without copying") {
+  test("Vec.fromFloat64ArrayCopy does not expose source storage") {
     val raw = new Float64Array(3)
     raw(0) = 1.0
     raw(1) = 2.0
     raw(2) = 3.0
-    val v = Vec.fromFloat64ArrayUnsafe(raw)
+    val v = Vec.fromFloat64ArrayCopy(raw)
     assertEquals(v.toSeq, Seq(1.0, 2.0, 3.0))
     raw(0) = 9.0
-    assertEquals(v(0), 9.0)
+    assertEquals(v(0), 1.0)
   }
 
   test("DVec.toFloat64Array returns an independent copy") {
@@ -33,16 +33,16 @@ class InteropSuite extends munit.FunSuite:
     assertEquals(out(2), 4.0)
   }
 
-  test("Matrix.fromFloat64ArrayUnsafe adopts row-major storage") {
+  test("Matrix.fromFloat64ArrayCopy does not expose source storage") {
     val raw = new Float64Array(4)
     raw(0) = 1.0
     raw(1) = 2.0
     raw(2) = 3.0
     raw(3) = 4.0
-    val m = Matrix.fromFloat64ArrayUnsafe(2, 2, raw)
+    val m = Matrix.fromFloat64ArrayCopy(2, 2, raw)
     assertEquals(m(1, 0), 3.0)
     raw(3) = 8.0
-    assertEquals(m(1, 1), 8.0)
+    assertEquals(m(1, 1), 4.0)
   }
 
   test("DMat.toFloat64Array returns a row-major copy that materialises transposes") {

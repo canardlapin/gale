@@ -24,8 +24,8 @@ final case class SolverConfig(
 
 /** How [[SolverConfig.tolerance]] is compared against the residual norm.
   *
-  * [[Absolute]] tests `||r|| <= tolerance` directly (the historical behaviour);
-  * [[RelativeToRhs]] tests `||r|| <= tolerance * ||b||`, i.e. a relative residual.
+  * `Absolute` tests `||r|| <= tolerance` directly (the historical behaviour);
+  * `RelativeToRhs` tests `||r|| <= tolerance * ||b||`, i.e. a relative residual.
   */
 enum ToleranceMode:
   case Absolute, RelativeToRhs

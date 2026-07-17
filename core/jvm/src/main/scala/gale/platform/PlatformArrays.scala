@@ -18,7 +18,7 @@ object DoubleArray:
 
   /** Adopt a raw `Array[Double]` as backing storage without copying. The caller
     * hands over ownership: it must not mutate `values` afterwards. Used by the
-    * JVM interop doorway and internally to avoid a redundant clone.
+    * implementation only to avoid a redundant clone of freshly allocated data.
     */
   private[gale] def adopt(values: Array[Double]): DoubleArray =
     values

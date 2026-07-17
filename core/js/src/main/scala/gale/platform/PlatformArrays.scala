@@ -19,7 +19,7 @@ object DoubleArray:
 
   /** Adopt a `Float64Array` as backing storage without copying. The caller
     * hands over ownership: it must not mutate `values` afterwards. Used by the
-    * JS interop doorway and internally to avoid a redundant copy.
+    * implementation only to avoid a redundant copy of freshly allocated data.
     */
   private[gale] def adopt(values: Float64Array): DoubleArray =
     values
@@ -34,7 +34,7 @@ object DoubleArray:
     out
 
   /** View an owned `DoubleArray` as its underlying `Float64Array` without
-    * copying, for the JS interop doorway. The argument must be a
+    * copying, for copy-only JS export. The argument must be a
     * freshly-allocated array the caller owns (e.g. from a `*OwnedCopy`).
     */
   private[gale] def asFloat64Array(owned: DoubleArray): Float64Array =

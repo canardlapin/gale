@@ -452,14 +452,14 @@ opaque type DoubleArray = scala.scalajs.js.typedarray.Float64Array
 opaque type IndexArray = scala.scalajs.js.typedarray.Int32Array
 ```
 
-Public unsafe interop helpers may exist, but only in platform-specific modules:
+Public platform interop is copy-only so it does not become a storage contract:
 
 ```scala
 // JVM only
-Matrix.fromArrayUnsafe(rows, cols, values: Array[Double])
+Matrix.fromArrayCopy(rows, cols, values: Array[Double])
 
 // JS only
-Matrix.fromFloat64ArrayUnsafe(rows, cols, values: Float64Array)
+Matrix.fromFloat64ArrayCopy(rows, cols, values: Float64Array)
 ```
 
 ## Type System Requirements

@@ -46,8 +46,8 @@ enum GeneralizedSingularValue:
   /** `c = 0` (`s = 1`): the generalized singular value is `0`. */
   case Zero
 
-  /** The numeric value: the ratio for [[Finite]], `+∞` for [[Infinite]], `0` for
-    * [[Zero]].
+  /** The numeric value: the ratio for `Finite`, `+∞` for `Infinite`, `0` for
+    * `Zero`.
     */
   def value: Double =
     this match

@@ -2,12 +2,11 @@ package gale.linalg
 
 import gale.platform.DoubleArray
 
-/** JVM-only interop between gale's dense types and raw `Array[Double]` storage.
+/** JVM-only copy interop between gale's dense types and `Array[Double]` values.
   *
-  * This is the single public doorway to gale's backing arrays: shared code keeps
-  * `Array[Double]` off its public surface, and callers that genuinely need raw
-  * interop reach for these platform-specific helpers. The `*Unsafe` constructors
-  * adopt the caller's array without copying; the exporters return fresh copies.
+  * Shared code keeps `Array[Double]` off its public surface. These platform
+  * helpers copy in and copy out, so the public API does not promise or expose
+  * gale's owned storage representation.
   *
   * SUBTLE CONTRACT: the `toArray` / `toArrayRowMajor` exporters below share their
   * names with the `private[gale]` members `DVec.toArray` / `DMat.toArrayRowMajor`.
@@ -21,20 +20,14 @@ import gale.platform.DoubleArray
   */
 
 extension (companion: Vec.type)
-  /** Wrap `values` as a vector without copying. The vector adopts the array, so
-    * the caller must not mutate `values` afterwards or the vector's contents
-    * change with it. Use [[Vec.apply]] / `DVec.fromSeq` when a copy is wanted.
-    */
-  def fromArrayUnsafe(values: Array[Double]): DVec =
-    DVec.fromDoubleArrayOwned(DoubleArray.adopt(values))
+  /** Copy `values` into an independently owned vector. */
+  def fromArrayCopy(values: Array[Double]): DVec =
+    DVec.fromDoubleArrayOwned(DoubleArray.fromArray(values))
 
 extension (companion: Matrix.type)
-  /** Wrap `values` (row-major) as a matrix without copying. The matrix adopts
-    * the array, so the caller must not mutate `values` afterwards. Use
-    * [[Matrix.dense]] when a copy is wanted.
-    */
-  def fromArrayUnsafe(rows: Int, cols: Int, values: Array[Double]): DMat =
-    DMat.fromDoubleArrayOwned(rows, cols, DoubleArray.adopt(values))
+  /** Copy row-major `values` into an independently owned matrix. */
+  def fromArrayCopy(rows: Int, cols: Int, values: Array[Double]): DMat =
+    DMat.fromDoubleArrayOwned(rows, cols, DoubleArray.fromArray(values))
 
 extension (v: DVec)
   /** Fresh `Array[Double]` copy of this vector's elements in logical order. */

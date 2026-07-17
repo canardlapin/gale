@@ -455,7 +455,8 @@ opaque type). The alternative is rejected on three verified grounds:
    members, with `userland.InteropSuite` as the canary. **`NativeDMat` is
    additive** — new type, new `toNative`/`toHeap` methods, none of which share a
    name with those members — so **that invariant is untouched (verified: the
-   interop files define only `fromArrayUnsafe`/`toArray`/`toArrayRowMajor`/
+   interop files define only copy-in/export helpers (`fromArrayCopy`, `toArray`,
+   `toArrayRowMajor`, and
    `toFloat64Array`).** A `DoubleArray` union would instead put native handling
    right through that shadowed surface.
 
