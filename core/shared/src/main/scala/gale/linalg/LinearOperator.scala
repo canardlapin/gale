@@ -1,5 +1,7 @@
 package gale.linalg
 
+import gale.backend.Backend
+
 trait LinearOperator[A]:
   def rows: Int
   def cols: Int
@@ -35,7 +37,7 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
     applyTo(x, out)
     out.asVec
 
-  def *(x: DVec): DVec =
+  def *(x: DVec)(using Backend): DVec =
     apply(x)
 
 object LinearOperator:

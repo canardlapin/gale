@@ -1,5 +1,6 @@
 package gale.sparse
 
+import gale.backend.Backend
 import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
@@ -76,7 +77,7 @@ final class Banded private[gale] (
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     tMulInto(x, into)
 
-  override def *(x: DVec): DVec =
+  override def *(x: DVec)(using Backend): DVec =
     val out = MutableDVec.zeros(rows)
     mulInto(x, out)
     out.asVec

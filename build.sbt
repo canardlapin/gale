@@ -136,12 +136,40 @@ lazy val interopBreeze =
 lazy val vectorBackend =
   project
     .in(file("backend-jvm-vector"))
-    .dependsOn(coreJVM)
+    .dependsOn(coreJVM, lawsJVM % "test->compile")
     .settings(
       name := "gale-backend-jvm-vector",
       scalacOptions ++= commonScalacOptions,
       Test / fork := true,
       Test / javaOptions += "--add-modules=jdk.incubator.vector",
+      libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+    )
+
+// JVM 22+ native storage. Kept separate so core and every Scala.js artifact stay
+// free of java.lang.foreign references.
+lazy val nativeBackend =
+  project
+    .in(file("backend-jvm-native"))
+    .dependsOn(coreJVM)
+    .settings(
+      name := "gale-backend-jvm-native",
+      scalacOptions ++= commonScalacOptions,
+      Test / fork := true,
+      Test / javaOptions += "--enable-native-access=ALL-UNNAMED",
+      libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+    )
+
+// JVM 22+ FFM CBLAS provider. Loading is explicit and confined to this optional
+// module; a core-only program never probes or loads a native library.
+lazy val blasFfmBackend =
+  project
+    .in(file("backend-jvm-blas-ffm"))
+    .dependsOn(nativeBackend, lawsJVM % "test->compile")
+    .settings(
+      name := "gale-backend-jvm-blas-ffm",
+      scalacOptions ++= commonScalacOptions,
+      Test / fork := true,
+      Test / javaOptions += "--enable-native-access=ALL-UNNAMED",
       libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
     )
 
@@ -158,11 +186,12 @@ lazy val benchmarkSettings = Seq(
 lazy val benchmarksJVM =
   project
     .in(file("benchmarks/jvm"))
-    .dependsOn(coreJVM)
+    .dependsOn(coreJVM, vectorBackend)
     .enablePlugins(JmhPlugin)
     .settings(benchmarkSettings)
     .settings(
       name := "gale-benchmarks-jvm",
+      Jmh / javaOptions += "--add-modules=jdk.incubator.vector",
       // Breeze in COMPILE scope here (not test) so the paired gale-vs-Breeze JMH
       // benchmarks can call it. This module is publish-skipped and is never a
       // dependency of core/laws, so gale-core stays 100% Breeze-free. Same native
@@ -170,6 +199,19 @@ lazy val benchmarksJVM =
       // the pure-Java F2J fallback here, which is deliberately the baseline the
       // benchmarks target (native-BLAS Breeze is a separate, deferred comparison).
       libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion
+    )
+
+// JDK 22+ copy-inclusive native crossover harness. Separate from benchmarksJVM
+// so the Vector backend's JDK 21 compatibility job never compiles FFM sources.
+lazy val benchmarksFfm =
+  project
+    .in(file("benchmarks/jvm-ffm"))
+    .dependsOn(coreJVM, blasFfmBackend)
+    .enablePlugins(JmhPlugin)
+    .settings(benchmarkSettings)
+    .settings(
+      name := "gale-benchmarks-jvm-ffm",
+      Jmh / javaOptions += "--enable-native-access=ALL-UNNAMED"
     )
 
 lazy val benchmarksJS =
@@ -186,7 +228,10 @@ lazy val benchmarksJS =
 lazy val root =
   project
     .in(file("."))
-    .aggregate(coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS, parity, interopBreeze, vectorBackend)
+    .aggregate(
+      coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS,
+      parity, interopBreeze, vectorBackend
+    )
     .settings(
       name := "gale",
       publish / skip := true
@@ -203,6 +248,9 @@ addCommandAlias("parityTest", ";parity/test")
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
+addCommandAlias("nativeBackendTest", ";nativeBackend/test")
+addCommandAlias("blasFfmBackendTest", ";blasFfmBackend/test")
+addCommandAlias("benchFfmCompile", ";benchmarksFfm/Jmh/compile")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")

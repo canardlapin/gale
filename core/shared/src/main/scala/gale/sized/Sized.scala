@@ -159,7 +159,8 @@ object SMat:
     def t: SMat[C, R] = unsafe(m.toDMat.t)
 
     /** Matrix-vector product (shape-checked: the vector must be `SVec[C]`). */
-    def *(x: SVec[C]): SVec[R] = SVec.unsafe(m.toDMat * SVec.raw(x))
+    def *(x: SVec[C])(using backend: Backend): SVec[R] =
+      SVec.unsafe(m.toDMat.*(SVec.raw(x))(using backend))
 
     /** Matrix-matrix product (shape-checked: the right factor's rows must be `C`). Forwards
       * the ambient `given Backend` to the underlying `DMat.*` so an imported accelerating
@@ -239,4 +240,3 @@ object SMat:
           (d * h - e * g) * inv, (b * g - a * h) * inv, (a * e - b * d) * inv
         )
         Right(unsafe(Matrix.dense(3, 3, values)))
-

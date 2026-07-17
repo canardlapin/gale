@@ -15,7 +15,7 @@ import gale.sparse.*
   */
 class BreezeConversionsSuite extends munit.FunSuite:
 
-  private def bits(x: Double): Long = java.lang.Double.doubleToLongBits(x)
+  private def bits(x: Double): Long = java.lang.Double.doubleToRawLongBits(x)
 
   /** Bit-exact scalar equality (conversions copy raw doubles, never recompute). */
   private def assertBits(a: Double, b: Double, clue: => String): Unit =
@@ -106,6 +106,19 @@ class BreezeConversionsSuite extends munit.FunSuite:
     assertBits(a(0, 0), original, "gale is unaffected by mutating its Breeze copy")
   }
 
+  test("dense copies preserve signed zero, infinities, and a NaN payload bit-for-bit") {
+    val payloadNaN = java.lang.Double.longBitsToDouble(0x7ff8000000000042L)
+    val b = new DenseMatrix[Double](
+      2,
+      3,
+      Array(0.0, -0.0, Double.PositiveInfinity, Double.NegativeInfinity, payloadNaN, 1.25)
+    )
+    val g = fromBreezeCopy(b)
+    val roundTrip = toBreezeCopy(g)
+    for i <- 0 until b.rows; j <- 0 until b.cols do
+      assertBits(roundTrip(i, j), b(i, j), s"special-value round trip ($i,$j)")
+  }
+
   // ---------------------------------------------------------------------------
   // Dense vector round trips + view
   // ---------------------------------------------------------------------------
@@ -132,6 +145,14 @@ class BreezeConversionsSuite extends munit.FunSuite:
     b(3) = before + 42.0
     assertBits(view(3), before + 42.0, "vector view aliases")
     assertBits(copy(3), before, "vector copy independent")
+  }
+
+  test("negative-stride Breeze vectors are copyable but cannot become Gale views") {
+    val reversed = new DenseVector[Double](Array(1.0, 2.0, 3.0, 4.0, 5.0), 4, -1, 5)
+    val copy = fromBreezeCopy(reversed)
+    assertEquals(copy.toSeq, Seq(5.0, 4.0, 3.0, 2.0, 1.0))
+    intercept[IllegalArgumentException]:
+      fromBreezeView(reversed)
   }
 
   // ---------------------------------------------------------------------------

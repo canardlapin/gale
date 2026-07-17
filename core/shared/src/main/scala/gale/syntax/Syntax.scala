@@ -72,7 +72,7 @@ object all:
 object unicode:
   extension (a: DMat)
     /** Matrix-vector product (alias of `a * x`). */
-    def ×(x: DVec): DVec = a * x
+    def ×(x: DVec)(using backend: Backend): DVec = a.*(x)(using backend)
 
     /** Matrix-matrix product (alias of `a * b`). Forwards the ambient `given Backend` so the
       * alias stays a true synonym of `*` even when an accelerating backend is imported.

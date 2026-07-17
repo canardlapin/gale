@@ -1,6 +1,7 @@
 package gale.linalg
 
 import gale.backend.Backend
+import gale.backend.PureBackend
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
@@ -139,14 +140,17 @@ final class DMat private[gale] (
       i += 1
     out
 
-  override def *(x: DVec): DVec =
+  override def *(x: DVec)(using backend: Backend): DVec =
     if cols != x.length then
       throw LinAlgError.VectorLengthMismatch(cols, x.length)
     val out = MutableDVec.zeros(rows)
     mulInto(x, out)
     out.asVec
 
-  def mulInto(x: DVec, y: MutableDVec): Unit =
+  def mulInto(x: DVec, y: MutableDVec)(using backend: Backend): Unit =
+    mulIntoWithBackend(x, y, backend)
+
+  private def mulIntoWithBackend(x: DVec, y: MutableDVec, backend: Backend): Unit =
     if cols != x.length then
       throw LinAlgError.VectorLengthMismatch(cols, x.length)
     if rows != y.length then
@@ -157,7 +161,26 @@ final class DMat private[gale] (
     val colStep = colStride.value
     val xStep = x.stride.value
     val yStep = y.stride.value
-    if colStep == 1 && xStep == 1 then
+    if backend.acceleratesGemv &&
+      rows.toLong * cols.toLong >= backend.thresholds.nativeGemvMinWork
+    then
+      backend.denseDouble.gemv(
+        rows,
+        cols,
+        1.0,
+        data,
+        offset.value,
+        rowStep,
+        colStep,
+        x.data,
+        x.offset.value,
+        xStep,
+        0.0,
+        y.data,
+        y.offset.value,
+        yStep
+      )
+    else if colStep == 1 && xStep == 1 then
       DoubleKernels.dgemvRowMajor(
         rows,
         cols,
@@ -208,10 +231,12 @@ final class DMat private[gale] (
       )
 
   override def applyTo(x: DVec, into: MutableDVec): Unit =
-    mulInto(x, into)
+    // LinearOperator application is also used inside iterative hot loops; keep that
+    // contract statically pure. The standalone `DMat * DVec` facade is the seam.
+    mulIntoWithBackend(x, into, PureBackend)
 
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
-    t.mulInto(x, into)
+    t.mulIntoWithBackend(x, into, PureBackend)
 
   def asLinearOperator: DoubleLinearOperator =
     this
@@ -221,8 +246,8 @@ final class DMat private[gale] (
     * `acceleratesGemm` is `false`, so the pure `DoubleKernels` path runs — byte-identical
     * to before the seam. An imported accelerating backend routes the general product to
     * `backend.denseDouble.gemm` once the work clears its measured `nativeGemmMinFlops`.
-    * The structural `AᵀA` fast-path stays on the dedicated pure symmetric kernel (backend
-    * `syrk` routing is a follow-up).
+    * The structural `AᵀA` fast-path routes to `backend.denseDouble.syrk` under the same
+    * gate, and stays on the dedicated pure symmetric kernel below it.
     */
   def *(that: DMat)(using backend: Backend): DMat =
     if cols != that.rows then
@@ -234,19 +259,29 @@ final class DMat private[gale] (
     // flops, unit-stride throughout). Detected structurally: `this` is exactly the
     // transpose view of `that`, and `that` has unit column stride.
     if isTransposeOf(that) && that.colStride.value == 1 then
-      DoubleKernels.dsyrkRowMajor(
-        that.rows,
-        that.cols,
-        that.data,
-        that.offset.value,
-        that.rowStride.value,
-        out.data,
-        out.offset.value,
-        out.rowStride.value
-      )
-    else if backend.acceleratesGemm &&
-      rows.toLong * that.cols.toLong * cols.toLong >= backend.thresholds.nativeGemmMinFlops
-    then
+      if backend.routesGemm(that.rows, that.cols, that.cols) then
+        backend.denseDouble.syrk(
+          that.rows,
+          that.cols,
+          that.data,
+          that.offset.value,
+          that.rowStride.value,
+          out.data,
+          out.offset.value,
+          out.rowStride.value
+        )
+      else
+        DoubleKernels.dsyrkRowMajor(
+          that.rows,
+          that.cols,
+          that.data,
+          that.offset.value,
+          that.rowStride.value,
+          out.data,
+          out.offset.value,
+          out.rowStride.value
+        )
+    else if backend.routesGemm(rows, that.cols, cols) then
       backend.denseDouble.gemm(
         rows,
         that.cols,
@@ -345,32 +380,70 @@ final class DMat private[gale] (
           i += 1
     out
 
-  def lu: Either[LinAlgError, LU] =
-    DenseDecompositions.lu(this)
+  /** The factorization dispatch gate in one place: the backend's provider, iff it
+    * accelerates factorizations and the work clears the routine's size threshold.
+    * (`acceleratesFactorizations` implies `denseFactorizations.isDefined`.) Structural
+    * validation stays in the facade, BEFORE this gate, so a provider only ever sees
+    * inputs the pure path would accept.
+    */
+  private def factorizationProvider(size: Int, minSize: Int)(using backend: Backend) =
+    if backend.acceleratesFactorizations && size >= minSize then backend.denseFactorizations
+    else None
 
-  def cholesky: Either[LinAlgError, Cholesky] =
-    DenseDecompositions.cholesky(this)
+  def lu(using backend: Backend): Either[LinAlgError, LU] =
+    if rows != cols then Left(LinAlgError.NonSquareMatrix(shape))
+    else
+      factorizationProvider(rows, backend.thresholds.nativeLuMinSize) match
+        case Some(provider) => provider.lu(this)
+        case None           => DenseDecompositions.lu(this)
 
-  def qr: QR =
-    DenseDecompositions.qr(this)
+  def cholesky(using backend: Backend): Either[LinAlgError, Cholesky] =
+    if rows != cols then Left(LinAlgError.NonSquareMatrix(shape))
+    else
+      factorizationProvider(rows, backend.thresholds.nativeCholeskyMinSize) match
+        case Some(provider) => provider.cholesky(this)
+        case None           => DenseDecompositions.cholesky(this)
 
-  def qrWith(workspace: DenseWorkspace): QR =
+  /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder
+    * path always succeeds. A provider that declines the input (`Left`) is therefore a
+    * fallback, not a failure: the pure path computes the answer instead.
+    */
+  def qr(using backend: Backend): QR =
+    factorizationProvider(math.max(rows, cols), backend.thresholds.nativeQrMinSize) match
+      case Some(provider) => provider.qr(this).getOrElse(DenseDecompositions.qr(this))
+      case None           => DenseDecompositions.qr(this)
+
+  /** QR into a caller-supplied workspace. This is the '''allocation-controlled''' facade:
+    * it always runs the pure kernels against `workspace` and never routes to a native
+    * provider (whose factor storage gale cannot place in the workspace) — routing would
+    * silently void the reuse contract the caller allocated for. Use [[qr]] for the
+    * backend-routed path.
+    */
+  def qrWith(workspace: DenseWorkspace)(using Backend): QR =
     DenseDecompositions.qr(this, workspace)
 
-  def leastSquares(b: DVec): Either[LinAlgError, DVec] =
+  def leastSquares(b: DVec)(using Backend): Either[LinAlgError, DVec] =
     qr.solveLeastSquares(b)
 
-  def rankEstimate: Int =
+  /** Rank from a QR factorization on the SAME dispatch policy as [[qr]]'s pure path
+    * (the ambient backend drives blocked QR's internal gemms), so `rankEstimate` and
+    * `qr.diagnostics.rank` agree under any imported gemm-accelerating backend.
+    */
+  def rankEstimate(using Backend): Int =
     DenseDecompositions.rankEstimate(this)
 
+  /** Deliberately pinned to the pure, deterministic LU path: the estimate is
+    * gemm-free, so an accelerating backend could not change its cost profile —
+    * only its reproducibility.
+    */
   def conditionEstimate: Either[LinAlgError, Double] =
     DenseDecompositions.conditionEstimate(this)
 
-  def det: Either[LinAlgError, Double] =
+  def det(using Backend): Either[LinAlgError, Double] =
     lu.flatMap(_.det)
 
-  def solve(b: DVec): Either[LinAlgError, DVec] =
-    DenseDecompositions.solve(this, b)
+  def solve(b: DVec)(using Backend): Either[LinAlgError, DVec] =
+    lu.flatMap(_.solve(b))
 
   private inline def index(row: Int, col: Int): Int =
     offset.value + row * rowStride.value + col * colStride.value

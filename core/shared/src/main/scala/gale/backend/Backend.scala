@@ -1,6 +1,7 @@
 package gale.backend
 
 import gale.kernel.DoubleKernels
+import gale.linalg.{Cholesky, DMat, LU, LinAlgError, QR}
 import gale.platform.DoubleArray
 import gale.spectral.SpectralBackend
 
@@ -91,6 +92,15 @@ trait DenseDoubleKernel:
       cRowStride: Int
   ): Unit
 end DenseDoubleKernel
+
+/** Optional whole-operation factorization provider. It is separate from the BLAS
+  * kernel surface because these operations return Gale's typed factor objects.
+  * Only a backend advertising [[Capability.NativeLapack]] may expose one.
+  */
+trait DenseDoubleFactorizations:
+  def lu(a: DMat): Either[LinAlgError, LU]
+  def cholesky(a: DMat): Either[LinAlgError, Cholesky]
+  def qr(a: DMat): Either[LinAlgError, QR]
 
 /** The always-present kernel set: forwards verbatim to [[gale.kernel.DoubleKernels]], so
   * it is the pure, portable, deterministic reference — and the only kernel set on JS.
@@ -186,6 +196,9 @@ trait BackendThresholds:
   def nativeGemmMinFlops: Long           // the primary crossover; heap vs NativeDMat variants later
   def nativeGemvMinWork: Long            // standalone `A*x` only
   def nativeFactorizationMinSize: Int    // per-routine (LU/Cholesky/QR differ)
+  def nativeLuMinSize: Int = nativeFactorizationMinSize
+  def nativeCholeskyMinSize: Int = nativeFactorizationMinSize
+  def nativeQrMinSize: Int = nativeFactorizationMinSize
 
 /** The pure path is always chosen, so every native crossover is effectively infinite. */
 object PureThresholds extends BackendThresholds:
@@ -197,7 +210,9 @@ object PureThresholds extends BackendThresholds:
   * `jvmThreads` sizes gale's one fixed compute pool (1 = single-threaded); `nativeThreads`
   * is pinned on the native library so a JVM pool and a native pool never oversubscribe.
   */
-final case class BackendConfig(jvmThreads: Int, nativeThreads: Int, allowNestedParallelism: Boolean = false)
+final case class BackendConfig(jvmThreads: Int, nativeThreads: Int, allowNestedParallelism: Boolean = false):
+  require(jvmThreads >= 1, s"jvmThreads must be positive, got $jvmThreads")
+  require(nativeThreads >= 1, s"nativeThreads must be positive, got $nativeThreads")
 object BackendConfig:
   /** The default: gale adds no parallelism, so it is safe embedded in a parallel host. */
   val singleThreaded: BackendConfig = BackendConfig(1, 1)
@@ -215,6 +230,7 @@ trait Backend:
   def denseDouble: DenseDoubleKernel
   def thresholds: BackendThresholds
   def config: BackendConfig
+  def denseFactorizations: Option[DenseDoubleFactorizations] = None
   /** The spectral half, if this backend also provides one (the bridge, §A.5). A backend
     * that advertises [[Capability.NativeLapack]] MUST provide it (A-R3).
     */
@@ -226,6 +242,30 @@ trait Backend:
     */
   final def acceleratesGemm: Boolean =
     capabilities.contains(Capability.NativeBlas) || capabilities.contains(Capability.Vectorized)
+
+  final def acceleratesGemv: Boolean = acceleratesGemm
+
+  /** The coarse gemm routing gate in one place (doc §A.2): route to this backend's
+    * `gemm`/`syrk` iff it accelerates gemm and the element-work `rows·cols·shared`
+    * clears `nativeGemmMinFlops` (element count, not 2·m·n·k FLOPs — see
+    * [[BackendThresholds]]). Every gemm-shaped seam must call this rather than
+    * re-spelling the predicate, so the routing policy cannot drift between sites.
+    */
+  final def routesGemm(rows: Int, cols: Int, shared: Int): Boolean =
+    acceleratesGemm && rows.toLong * cols.toLong * shared.toLong >= thresholds.nativeGemmMinFlops
+
+  final def acceleratesFactorizations: Boolean =
+    capabilities.contains(Capability.NativeLapack) &&
+      denseFactorizations.isDefined && spectral.exists(_.capabilities.nonEmpty)
+
+final case class BackendReport(
+    name: String,
+    capabilities: Set[Capability],
+    config: BackendConfig,
+    thresholds: BackendThresholds,
+    hasDenseFactorizations: Boolean,
+    hasSpectral: Boolean
+)
 
 /** The always-present pure backend: portable, deterministic, no acceleration. With no
   * acceleration import this is the only `given Backend`, so every coarse facade call takes
@@ -244,6 +284,39 @@ object Backend:
     */
   given pure: Backend = PureBackend
 
+  /** Snapshot the backend resolved at the call site for diagnostics and benchmarks. */
+  def current(using backend: Backend): BackendReport =
+    BackendReport(
+      backend.name,
+      backend.capabilities,
+      backend.config,
+      backend.thresholds,
+      backend.denseFactorizations.isDefined,
+      backend.spectral.isDefined
+    )
+
+  /** Executable conformance for cross-field capability invariants. */
+  def validationErrors(backend: Backend): List[String] =
+    val errors = List.newBuilder[String]
+    if backend.name.trim.isEmpty then errors += "backend name must be non-empty"
+    if backend.thresholds.nativeGemmMinFlops < 0L then errors += "nativeGemmMinFlops must be non-negative"
+    if backend.thresholds.nativeGemvMinWork < 0L then errors += "nativeGemvMinWork must be non-negative"
+    if backend.thresholds.nativeLuMinSize < 0 then errors += "nativeLuMinSize must be non-negative"
+    if backend.thresholds.nativeCholeskyMinSize < 0 then errors += "nativeCholeskyMinSize must be non-negative"
+    if backend.thresholds.nativeQrMinSize < 0 then errors += "nativeQrMinSize must be non-negative"
+    if backend.capabilities.contains(Capability.NativeLapack) && backend.denseFactorizations.isEmpty then
+      errors += "NativeLapack requires denseFactorizations"
+    if backend.capabilities.contains(Capability.NativeLapack) && !backend.spectral.exists(_.capabilities.nonEmpty) then
+      errors += "NativeLapack requires a spectral provider with at least one capability"
+    if backend.denseFactorizations.isDefined && !backend.capabilities.contains(Capability.NativeLapack) then
+      errors += "denseFactorizations requires NativeLapack capability"
+    errors.result()
+
+  def requireValid(backend: Backend): backend.type =
+    val errors = validationErrors(backend)
+    require(errors.isEmpty, errors.mkString(s"invalid backend '${backend.name}': ", "; ", ""))
+    backend
+
   /** Union the parts' capabilities and route the coarse dense-kernel surface to the first
     * part that accelerates `gemm` (earlier parts win), falling back to `primary`. Because
     * loop-called L1/L2 never routes at the facade, this whole-surface choice only affects
@@ -256,16 +329,25 @@ object Backend:
     else
       val parts: Seq[Backend] = primary +: rest
       val gemmProvider: Backend = parts.find(_.acceleratesGemm).getOrElse(primary)
+      val factorProvider: Backend = parts.find(_.acceleratesFactorizations).getOrElse(primary)
       new Backend:
         val name: String = parts.map(_.name).mkString("compose(", " + ", ")")
         val capabilities: Set[Capability] = parts.foldLeft(Set.empty[Capability])(_ ++ _.capabilities)
         val denseDouble: DenseDoubleKernel = gemmProvider.denseDouble
-        val thresholds: BackendThresholds = gemmProvider.thresholds
+        val thresholds: BackendThresholds = new BackendThresholds:
+          def nativeGemmMinFlops: Long = gemmProvider.thresholds.nativeGemmMinFlops
+          def nativeGemvMinWork: Long = gemmProvider.thresholds.nativeGemvMinWork
+          def nativeFactorizationMinSize: Int = factorProvider.thresholds.nativeFactorizationMinSize
+          override def nativeLuMinSize: Int = factorProvider.thresholds.nativeLuMinSize
+          override def nativeCholeskyMinSize: Int = factorProvider.thresholds.nativeCholeskyMinSize
+          override def nativeQrMinSize: Int = factorProvider.thresholds.nativeQrMinSize
         // Threading policy follows the PRIMARY deliberately: a composite is "primary,
         // augmented with the rest's capabilities/kernels", and §B makes threading a
         // process-level, construction-time concern the primary declares — not a
         // per-op property that should flip with which part serves gemm.
         val config: BackendConfig = primary.config
+        override val denseFactorizations: Option[DenseDoubleFactorizations] =
+          factorProvider.denseFactorizations
         override val spectral: Option[SpectralBackend] =
           val specs = parts.flatMap(_.spectral)
           if specs.isEmpty then None

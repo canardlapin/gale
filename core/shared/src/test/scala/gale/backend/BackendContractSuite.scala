@@ -43,13 +43,27 @@ class BackendContractSuite extends munit.FunSuite:
     val name: String = "fake-spectral"
     val capabilities: Set[SpectralCapability] = Set(SpectralCapability.GeneralizedNonsymmetricEigen)
 
+  private object FakeFactorizations extends DenseDoubleFactorizations:
+    def lu(a: DMat): Either[LinAlgError, LU] = DenseDecompositions.lu(a)
+    def cholesky(a: DMat): Either[LinAlgError, Cholesky] = DenseDecompositions.cholesky(a)
+    def qr(a: DMat): Either[LinAlgError, QR] = Right(DenseDecompositions.qr(a)(using PureBackend))
+
+  private object FakeLapackThresholds extends BackendThresholds:
+    def nativeGemmMinFlops: Long = Long.MaxValue
+    def nativeGemvMinWork: Long = Long.MaxValue
+    def nativeFactorizationMinSize: Int = 17
+    override def nativeLuMinSize: Int = 19
+    override def nativeCholeskyMinSize: Int = 23
+    override def nativeQrMinSize: Int = 29
+
   /** A backend that also provides the spectral half (the A.5 bridge). */
   private object FakeLapackBackend extends Backend:
     val name: String = "fake-lapack"
     val capabilities: Set[Capability] = Set(Capability.NativeLapack)
     val denseDouble: DenseDoubleKernel = PureDenseDoubleKernel
-    val thresholds: BackendThresholds = FakeThresholds
+    val thresholds: BackendThresholds = FakeLapackThresholds
     val config: BackendConfig = BackendConfig.singleThreaded
+    override val denseFactorizations: Option[DenseDoubleFactorizations] = Some(FakeFactorizations)
     override val spectral: Option[SpectralBackend] = Some(FakeSpectral)
 
   test("the default given Backend is PureBackend") {
@@ -74,6 +88,58 @@ class BackendContractSuite extends munit.FunSuite:
     assertEquals(BackendConfig.singleThreaded, BackendConfig(1, 1))
     assertEquals(BackendConfig.dedicated(8), BackendConfig(8, 8))
     assertEquals(BackendConfig.singleThreaded.allowNestedParallelism, false)
+    intercept[IllegalArgumentException](BackendConfig(0, 1))
+    intercept[IllegalArgumentException](BackendConfig(1, 0))
+  }
+
+  test("Backend.current reports the resolved backend without global state") {
+    val report = Backend.current(using FakeVectorBackend)
+    assertEquals(report.name, "fake-vector")
+    assert(report.capabilities.contains(Capability.Vectorized))
+    assertEquals(report.config, BackendConfig.singleThreaded)
+    assert(!report.hasDenseFactorizations)
+    assert(!report.hasSpectral)
+  }
+
+  test("NativeLapack conformance requires typed factorizations and spectral bridge") {
+    val missingBoth = new Backend:
+      val name = "invalid-lapack"
+      val capabilities = Set(Capability.NativeLapack)
+      val denseDouble = PureDenseDoubleKernel
+      val thresholds = FakeThresholds
+      val config = BackendConfig.singleThreaded
+    val errors = Backend.validationErrors(missingBoth)
+    assert(errors.exists(_.contains("denseFactorizations")))
+    assert(errors.exists(_.contains("spectral")))
+    intercept[IllegalArgumentException](Backend.requireValid(missingBoth))
+    val emptySpectral = new Backend:
+      val name = "empty-spectral-lapack"
+      val capabilities = Set(Capability.NativeLapack)
+      val denseDouble = PureDenseDoubleKernel
+      val thresholds = FakeThresholds
+      val config = BackendConfig.singleThreaded
+      override val denseFactorizations = Some(FakeFactorizations)
+      override val spectral = Some(SpectralBackend.none)
+    assert(Backend.validationErrors(emptySpectral).exists(_.contains("at least one capability")))
+    assert(!emptySpectral.acceleratesFactorizations)
+    assertEquals(Backend.validationErrors(FakeLapackBackend), Nil)
+    assert(FakeLapackBackend.acceleratesFactorizations)
+  }
+
+  test("conformance rejects negative thresholds and unadvertised factor providers") {
+    val invalid = new Backend:
+      val name = "invalid-thresholds"
+      val capabilities = Set.empty[Capability]
+      val denseDouble = PureDenseDoubleKernel
+      val config = BackendConfig.singleThreaded
+      val thresholds = new BackendThresholds:
+        def nativeGemmMinFlops = -1L
+        def nativeGemvMinWork = -2L
+        def nativeFactorizationMinSize = -3
+      override val denseFactorizations = Some(FakeFactorizations)
+    val errors = Backend.validationErrors(invalid)
+    assert(errors.count(_.contains("non-negative")) >= 3)
+    assert(errors.exists(_.contains("requires NativeLapack")))
   }
 
   test("compose: unions capabilities and routes the coarse surface to the accelerating part") {
@@ -109,6 +175,12 @@ class BackendContractSuite extends munit.FunSuite:
     val composed = Backend.compose(PureBackend, FakeLapackBackend)
     assert(composed.spectral.isDefined, "the composite must expose the spectral half")
     assert(composed.spectral.get.capabilities.contains(SpectralCapability.GeneralizedNonsymmetricEigen))
+    assert(composed.denseFactorizations.isDefined)
+    assert(composed.acceleratesFactorizations)
+    assertEquals(composed.thresholds.nativeGemmMinFlops, Long.MaxValue)
+    assertEquals(composed.thresholds.nativeLuMinSize, 19)
+    assertEquals(composed.thresholds.nativeCholeskyMinSize, 23)
+    assertEquals(composed.thresholds.nativeQrMinSize, 29)
   }
 
   test("PureBackend.denseDouble.gemm computes the same product as DMat.*") {

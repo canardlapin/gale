@@ -1,5 +1,6 @@
 package gale.linalg
 
+import gale.backend.Backend
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
@@ -184,10 +185,10 @@ object DenseDecompositions:
         )
       )
 
-  def qr(A: DMat): QR =
+  def qr(A: DMat)(using Backend): QR =
     qr(A, DenseWorkspace.forQR(A.rows, A.cols))
 
-  def qr(A: DMat, workspace: DenseWorkspace): QR =
+  def qr(A: DMat, workspace: DenseWorkspace)(using backend: Backend): QR =
     val m = A.rows
     val n = A.cols
     val r = A.toDoubleArrayCopyRowMajor
@@ -242,7 +243,7 @@ object DenseDecompositions:
       limit: Int,
       tau: DoubleArray,
       scratch: DoubleArray
-  ): Unit =
+  )(using backend: Backend): Unit =
     val block = DenseWorkspace.QrBlockSize
     val vtOffset = 0
     val wOffset = block * m
@@ -362,7 +363,7 @@ object DenseDecompositions:
       tOffset: Int,
       tempOffset: Int,
       tStride: Int
-  ): Unit =
+  )(using backend: Backend): Unit =
     var i = 0
     var j = 0
     while i < panelWidth do
@@ -422,7 +423,7 @@ object DenseDecompositions:
       wOffset: Int,
       tOffset: Int,
       tStride: Int
-  ): Unit =
+  )(using backend: Backend): Unit =
     val rowsRemaining = m - panelStart
     val trailingCols = n - panelEnd
 
@@ -438,7 +439,7 @@ object DenseDecompositions:
       j += 1
 
     // W := V^T C.
-    DoubleKernels.dgemm(
+    dispatchGemm(
       panelWidth, trailingCols, rowsRemaining,
       1.0,
       scratch, vtOffset, rowsRemaining, 1,
@@ -466,7 +467,7 @@ object DenseDecompositions:
       col += 1
 
     // C := C - V W.
-    DoubleKernels.dgemm(
+    dispatchGemm(
       rowsRemaining, trailingCols, panelWidth,
       -1.0,
       reflectors, panelStart * limit + panelStart, limit, 1,
@@ -474,6 +475,40 @@ object DenseDecompositions:
       1.0,
       r, panelStart * n + panelEnd, n, 1
     )
+
+  private def dispatchGemm(
+      rows: Int,
+      cols: Int,
+      shared: Int,
+      alpha: Double,
+      a: DoubleArray,
+      aOffset: Int,
+      aRowStride: Int,
+      aColStride: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      bRowStride: Int,
+      bColStride: Int,
+      beta: Double,
+      c: DoubleArray,
+      cOffset: Int,
+      cRowStride: Int,
+      cColStride: Int
+  )(using backend: Backend): Unit =
+    if backend.routesGemm(rows, cols, shared) then
+      backend.denseDouble.gemm(
+        rows, cols, shared, alpha,
+        a, aOffset, aRowStride, aColStride,
+        b, bOffset, bRowStride, bColStride,
+        beta, c, cOffset, cRowStride, cColStride
+      )
+    else
+      DoubleKernels.dgemm(
+        rows, cols, shared, alpha,
+        a, aOffset, aRowStride, aColStride,
+        b, bOffset, bRowStride, bColStride,
+        beta, c, cOffset, cRowStride, cColStride
+      )
 
   /** Rebuild the dense `m x m` orthogonal factor from the stored reflectors.
     *
@@ -511,8 +546,11 @@ object DenseDecompositions:
   def solve(A: DMat, b: DVec): Either[LinAlgError, DVec] =
     lu(A).flatMap(_.solve(b))
 
-  def rankEstimate(A: DMat): Int =
-    // QR always populates rank, so a single factorization suffices.
+  def rankEstimate(A: DMat)(using Backend): Int =
+    // QR always populates rank, so a single factorization suffices. The ambient
+    // backend is threaded through so the internal blocked-QR gemms route exactly
+    // as they do under the `DMat.qr` facade's pure path — one dispatch policy,
+    // one numerical answer.
     qr(A).diagnostics.rank.get
 
   /** 1-norm condition number estimate `||A||_1 * ||A^{-1}||_1`.

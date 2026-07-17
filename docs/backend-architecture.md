@@ -20,7 +20,9 @@ doc's reviewed mechanisms (`given` resolution with an always-present fallback, a
 `compose` combinator, the thread-safety requirement, conformance-by-laws), it
 cross-references rather than re-deciding.
 
-Design only; no code, one document.
+This began as the design record. Sections A–C now also describe the implemented
+contract, native storage, Vector provider, and first FFM CBLAS provider; §D keeps
+the remaining measurement roadmap.
 
 ## Status and provenance
 
@@ -31,14 +33,13 @@ Design only; no code, one document.
 | C | `gale-v0-5-native-dmat` | `NativeDMat` over FFM `MemorySegment` |
 | D | `gale-v0-5-blocked-gemm-roadmap` | Pure `gemm` stages → native crossover (feeds `gale-v0-5-native-thresholds`) |
 
-Downstream/sibling beads referenced: `gale-v0-5-blas-ffm` (the FFM BLAS/LAPACK
-backend that implements §A/§C), `gale-v0-5-vector-backend` (the JDK Vector API
+Downstream/sibling beads referenced: `gale-v0-5-blas-ffm` (the first FFM CBLAS
+backend implementing §A/§C), `gale-v0-5-vector-backend` (the JDK Vector API
 backend, the key §D pure lever), `gale-v0-5-native-thresholds` (fed by §D),
 `gale-epic-v0-5-acceleration` (the epic), and the scenario-benchmark bead (§D
-measurement). Verified against the tree at commit `8333bde`: **none** of
-`Backend`, `Capability`, `DenseDoubleKernel`, `BackendConfig`, `NativeDMat`, or a
-`Layout` type exist yet — the PRD § Backend Requirements / § Backend Performance
-Strategy blocks are sketches this document turns into a contract.
+measurement). The live implementation now resides in `gale.backend`,
+`backend-jvm-vector`, `backend-jvm-native`, and `backend-jvm-blas-ffm`; optional
+JVM modules remain outside the core/JS dependency graph.
 
 ## Shared constraints (inherited; not relitigated)
 
@@ -57,7 +58,9 @@ Strategy blocks are sketches this document turns into a contract.
    The FFM backend (`blas-ffm`) MUST NOT hardcode any one OS's BLAS: it discovers or
    accepts a CBLAS library at runtime and looks up `cblas_dgemm`/… from it — macOS
    Accelerate/vecLib, Linux OpenBLAS/reference/MKL, Windows OpenBLAS/MKL — with an
-   explicit given-import selection (Doctrine 8) and a documented candidate-probe order.
+   explicit given-import selection (Doctrine 8). The implemented probe order is:
+   `-Dgale.blas.library` / `GALE_BLAS_LIBRARY`, configured candidate list,
+   OpenBLAS, the platform BLAS (Accelerate or reference BLAS), then MKL.
    Accelerate is a convenient zero-install option on macOS, never a baked-in default.
    FFM (`java.lang.foreign`, finalized in JDK 22) and the JDK Vector API are themselves
    OS/arch-agnostic; native `thresholds` are measured per OS/BLAS-family.
@@ -172,17 +175,17 @@ set, not a global.
 **The two-level factorization model (how a `(using Backend)` driver dispatches).**
 A driver has two independent ways to use a backend:
 
-- **Whole-op replacement** — a `NativeLapack` backend's `denseDouble.luFactor` /
-  `choleskyFactor` / `qrFactor` replaces the entire factorization (LAPACK
-  `getrf`/`potrf`/`geqrf`). The pure hooks default to `PureFallback.*`, so a backend
-  that does *not* advertise `NativeLapack` leaves them pure.
+- **Whole-op replacement** — a `NativeLapack` backend's optional
+  `DenseDoubleFactorizations` provider replaces LU/Cholesky/QR and returns Gale's
+  typed factors. A backend that does *not* advertise `NativeLapack` has no provider.
 - **Internal-gemm routing** — a *pure but blocked* driver keeps its own algorithm and
   routes only its trailing-update `gemm` through the `(using Backend)` facade (the
   same `acceleratesGemm` test as `DMat.*`), so a `Vectorized` backend with no
   `luFactor` at all still accelerates the blocked driver's dominant flops.
 
 The driver takes whole-op replacement when the backend advertises the matching
-`Native*` factor capability and the size clears `nativeFactorizationMinSize`;
+`NativeLapack`, exposes a valid factorization and nonempty spectral provider, and
+the size clears the routine-specific threshold;
 otherwise it runs the pure blocked path with backend-routed internal gemm. A
 `Vectorized`-only backend never takes the first branch (it has no `luFactor`), only
 the second, and only for a blocked driver.
@@ -214,13 +217,11 @@ trait DenseDoubleKernel:
   def gemv(/* … */): Unit
   def gemm(/* … */): Unit
   def syrk(/* … */): Unit                            // a.t*a; pure keeps the half-flops dsyrkRowMajor
-  def trsm(/* … */): Either[LinAlgError, Unit]
-  // WHOLE-OP factorization hooks (two-level model, A.2.1): only a NativeLapack backend
-  // fills these; every other backend — incl. Vectorized — leaves the default, so the
-  // pure blocked driver runs and routes only its internal gemm through the seam.
-  def luFactor(/* … */): Either[LinAlgError, Unit]   = PureFallback.luFactor(/* … */)
-  def choleskyFactor(/* … */): Either[LinAlgError, Unit] = PureFallback.choleskyFactor(/* … */)
-  def qrFactor(/* … */): Either[LinAlgError, Unit]   = PureFallback.qrFactor(/* … */)
+
+trait DenseDoubleFactorizations:
+  def lu(a: DMat): Either[LinAlgError, LU]
+  def cholesky(a: DMat): Either[LinAlgError, Cholesky]
+  def qr(a: DMat): Either[LinAlgError, QR]
 
 trait BackendThresholds:                            // measured, per backend family (§D, PRD)
   def nativeGemmMinFlops: Long                       // the primary crossover (§D.4); two variants, heap vs NativeDMat
@@ -234,6 +235,7 @@ trait Backend:
   def denseDouble: DenseDoubleKernel
   def thresholds: BackendThresholds
   def config: BackendConfig                          // threading (§B); read at construction
+  def denseFactorizations: Option[DenseDoubleFactorizations] = None
   def spectral: Option[SpectralBackend] = None       // the bridge (A.5)
   /** Does this backend provide an accelerated `gemm`/`syrk`? The coarse gemm seam
     * (A.2) routes on THIS, not on `NativeBlas` alone, so a `Vectorized` backend
@@ -292,13 +294,16 @@ This doc fixes that bridge:
 > mean the three cannot be split into separately-compiled modules without breaking the A.5 bridge.
 
 
-- The FFM module (`gale-backend-jvm-blas-ffm`, or a `-lapack` sibling) provides
-  **both** a `given Backend` (kernels/factorizations) and a `given SpectralBackend`
-  (QZ/GSVD/dense-accel), and its `Backend.spectral` returns `Some(thatSpectral)`.
+- The first FFM module, `gale-backend-jvm-blas-ffm`, provides a `given Backend`
+  with `NativeBlas` only. A later `-lapack` provider must provide **both** typed
+  factorizations and a `given SpectralBackend` (QZ/GSVD/dense acceleration), and
+  its `Backend.spectral` returns `Some(thatSpectral)`. The BLAS module deliberately
+  does not over-advertise the stronger capability.
 - Resolution stays independent: kernel facades `summon[Backend]`, spectral facades
   `summon[SpectralBackend]`. The bridge is a *convenience* for code holding a
   `Backend` that wants its spectral half, and a *self-imposed advertising contract*:
   **a backend MUST NOT advertise `NativeLapack` unless it also provides `spectral`
+  with at least one real advertised spectral capability
   (A-R3)**. This is a rule on the module author, not an automatic implication —
   LAPACK-the-library has eig/SVD, but a module could bind only `getrf`/`potrf`/
   `geqrf` without `geev`/`gesdd`/`ggev`; A-R3 forbids advertising the capability in
@@ -310,11 +315,13 @@ This doc fixes that bridge:
 ### A.6 Conformance — reuse the laws, extend to kernels
 
 Consistent with the spectral doc (§2.6), conformance is **by law, not by
-bit-identity**. A `Backend`'s `denseDouble` conforms iff, over the shared
-ScalaCheck matrix generators, its results satisfy the existing `MatrixLaws` /
-`SolverLaws` bundles (associativity of `gemm` against the reference, factorization
-reconstruction `‖PA − LU‖`, `‖A − QR‖`, `‖A − LLᵀ‖`, triangular-solve residuals)
-within a documented tolerance. Kernels **may reassociate** (the FMA/vectorized
+bit-identity**. A `Backend`'s `denseDouble` conforms iff the reusable
+`gale.laws.BackendConformanceSuite` passes. Independent `BigDecimal` oracles
+exercise GEMM/GEMV/SYRK across offsets, padded leading dimensions, transpose
+storage, non-unit strides, `alpha`/`beta`, and both SYRK triangles; the suite does
+not self-confirm against a second Gale kernel. Advertised LAPACK providers also
+satisfy factor reconstruction (`‖PA − LU‖`, `‖A − QR‖`, `‖A − LLᵀ‖`) and solve
+residual laws within a documented tolerance. Kernels **may reassociate** (the FMA/vectorized
 paths already do vs older gale), so equality is law-equivalence, and
 **cross-platform determinism is per-platform** (the stance already committed in
 `110e041` after the FMA kernels). A `BackendConformanceSuite` in `gale-laws`
@@ -329,7 +336,7 @@ this is the same kit the spectral `SpectralBackendConformanceSuite` extends.
 | `DMat.*(that)` and `a.t*a` (syrk) gain `(using Backend)` | source-evolve | `Backend.pure` → `DoubleKernels.dgemm`/`dsyrkRowMajor`, byte-identical (A-R1) |
 | Factorization drivers `lu`/`qr`/`cholesky`/`solve`/`leastSquares` gain `(using Backend)` | source-evolve | `Backend.pure` → today's pure factorization |
 | **All L1/L2 sites** | untouched | static `DoubleKernels.*`, zero change |
-| `gale-backend-jvm-blas-ffm`: `given Backend` + `given SpectralBackend`, thresholds, FFM kernels | new module | absent unless imported (and absent on JS) |
+| `gale-backend-jvm-blas-ffm`: `given Backend`, runtime CBLAS discovery, thresholds, FFM GEMM/GEMV/SYRK | new module | absent unless imported (and absent on JS) |
 
 Pre-1.0, adding `(using Backend = pure)` to a shipped coarse method is acceptable
 source evolution (same stance as the spectral migration); the invariant is
@@ -480,9 +487,11 @@ final class NativeDMat private[backend] (
 
 ### C.3 Ownership and lifetime — Arena-scoped, explicit, checked
 
-- **`NativeDMat` is `AutoCloseable` and Arena-backed.** Its `MemorySegment` is
-  allocated from a caller-supplied `java.lang.foreign.Arena`. **Whoever owns the
-  Arena closes it**; `NativeDMat.close()` is a convenience that frees its segment.
+- **`NativeDMat` is `AutoCloseable` and Arena-backed.** `NativeDMat.allocate`
+  creates and owns an arena, so `close()` releases it. `allocateIn` / `toNative`
+  borrow a caller-supplied arena, so `close()` is a no-op and the caller closes
+  the arena. FFM segments cannot be freed independently of their arena; making
+  that ownership distinction explicit avoids a false per-segment-close promise.
 - **C-R1 (REQUIREMENT): use-after-free is a checked `IllegalStateException`, not
   undefined behaviour.** FFM already enforces this — a `MemorySegment` from a
   closed `Arena` throws on access — so the requirement is "rely on the Arena scope,
@@ -547,12 +556,13 @@ native storage, so there is nothing to stub.
   dot-product loop with FMA, honouring arbitrary strides.
 - `a.t * a` is routed to a dedicated assign-only **`dsyrkRowMajor`**.
 
-Measured (`benchmarks/results/2026-07-11-breeze-release-grade.md`, vs Breeze 2.1
-**pure-Java** netlib fallback): **gale is already ahead of pure Breeze on the
-whole gemm family** — Gemm 1.11–1.19x, GemmTall 1.03–1.47x, AtA 2.08–2.98x. So in
-the PRD's stage ladder `TinyUnrolledGemm → PureBlockedGemm → JvmVectorGemm →
-NativeBlasGemm`, gale sits solidly at **PureBlockedGemm**. The open question is
-which of the remaining stages earn their complexity, and where native takes over.
+The JDK 25 release-grade baseline
+(`benchmarks/results/2026-07-11-breeze-release-grade.md`) put Gale ahead of that
+Breeze pure-Java configuration on the whole GEMM family. That observation is
+runtime-conditional: when the Vector module is enabled on JDK 22, Breeze selects
+VectorBLAS and pure Gale trails it. The same-process JDK 22 receipt
+(`benchmarks/results/2026-07-17-breeze-jdk22-vector-enabled.md`) is the relevant
+control for the optional Vector backend.
 
 ### D.2 Further pure stages, ranked by expected value
 
@@ -568,6 +578,13 @@ D-2; D-4 is opt-in and policy-gated. Anything beyond D-2 competes with native an
 should defer to the crossover rule (D.4) rather than chase OpenBLAS in pure Scala
 (explicit PRD non-goal: "Beating OpenBLAS/BLIS/MKL/Accelerate on large GEMM is not
 a v1 goal").
+
+**Implementation update (2026-07-17):** D-2 landed as an optional backend. Its
+packed-column 3x3 dot-product GEMM is 1.43–1.67x faster than pure Gale from the
+128-square threshold and is within 7.4% of Breeze VectorBLAS at 256 and 4.0% at
+512 on the measured two-lane ARM/JDK 22 runtime. The four-output GEMV is
+1.77–1.98x faster than pure Gale but still trails Breeze VectorBLAS. D-1 remains
+a possible pure-kernel project, not a prerequisite for the working Vector route.
 
 ### D.3 Measurement protocol
 
@@ -601,13 +618,20 @@ including copies**. Consequences fixed here:
 
 1. **Two thresholds, both measured** — `nativeGemmMinFlops` for heap inputs
    (copy-inclusive) and a lower one for `NativeDMat` inputs (copy-free). The
-   backend exposes them via `BackendThresholds` (§A.3).
+   backend exposes the heap threshold via `BackendThresholds` (§A.3). The first
+   implementation exposes copy-free `FfmBlasBackend.gemm(NativeDMat, ...)`
+   explicitly; automatic native-matrix dispatch waits for its full two-fork sweep.
 2. **D-R1 (REQUIREMENT): thresholds are measured per platform and backend family,
    conservative by default** (PRD: "Measure native crossover thresholds instead of
    guessing them"; "Calling native code for vectors of length three is a bug").
    The default `nativeGemmMinFlops` is set *above* the measured crossover so
    borderline sizes stay on the already-competitive pure path and avoid native
    thread/copy complexity.
+   The shipped loader enables a conservative `256³` heap threshold only for known
+   optimized families (Accelerate, OpenBLAS, MKL); an unknown/reference `libblas`
+   defaults to `Long.MaxValue`. The FFM kernel also requires enough arithmetic per
+   copied element, preventing a very long dot-shaped `1×k` product from crossing a
+   cubic threshold while copying O(k) storage for only O(k) work.
 3. Below threshold, and on JS always, the tuned pure kernel (D.1, plus D-1/D-2
    when they land) runs. The pure path is never removed — it is the correctness
    reference (§A.6) and the whole of the JS product.

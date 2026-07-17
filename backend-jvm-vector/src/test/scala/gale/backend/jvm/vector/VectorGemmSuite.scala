@@ -13,7 +13,8 @@ import gale.platform.DoubleArray
   * can read the `private[gale]` `DMat.data` handle and drive the kernels directly.
   */
 class VectorGemmSuite extends munit.FunSuite:
-  private val Tol = 1e-9
+  private val AbsTol = 1e-12
+  private val RelTol = 1e-10
 
   // Deterministic, asymmetric fills (no RNG) — small integers so exact products are
   // representable and the SIMD-vs-pure gap is pure reassociation rounding.
@@ -54,12 +55,47 @@ class VectorGemmSuite extends munit.FunSuite:
       while j < expected.cols do
         val a = actual(i, j)
         val e = expected(i, j)
-        assert(
-          math.abs(a - e) <= Tol,
-          s"mismatch at ($i,$j): vector=$a pure=$e (|Δ|=${math.abs(a - e)})"
-        )
+        val tolerance = AbsTol + RelTol * math.max(math.abs(a), math.abs(e))
+        assert(a.isFinite == e.isFinite, s"finiteness mismatch at ($i,$j): vector=$a pure=$e")
+        assert(math.abs(a - e) <= tolerance,
+          s"mismatch at ($i,$j): vector=$a pure=$e (|Δ|=${math.abs(a - e)}, tol=$tolerance)")
         j += 1
       i += 1
+
+  private def runGemv(
+      kernel: DenseDoubleKernel,
+      a: DMat,
+      x: DVec,
+      alpha: Double,
+      beta: Double,
+      y: Array[Double],
+      yOffset: Int = 0,
+      yStride: Int = 1
+  ): Unit =
+    kernel.gemv(
+      a.rows,
+      a.cols,
+      alpha,
+      a.data,
+      a.offset.value,
+      a.rowStride.value,
+      a.colStride.value,
+      x.data,
+      x.offset.value,
+      x.stride.value,
+      beta,
+      DoubleArray.fromArray(y),
+      yOffset,
+      yStride
+    )
+
+  private def assertArrayClose(actual: Array[Double], expected: Array[Double])(using munit.Location): Unit =
+    assertEquals(actual.length, expected.length)
+    actual.indices.foreach { i =>
+      val tolerance = AbsTol + RelTol * math.max(math.abs(actual(i)), math.abs(expected(i)))
+      assert(math.abs(actual(i) - expected(i)) <= tolerance,
+        s"mismatch at $i: vector=${actual(i)} pure=${expected(i)}")
+    }
 
   /** Parity for `C := A·B` (alpha=1, beta=0 — exactly what the seam issues). */
   private def checkGemm(rows: Int, cols: Int, shared: Int)(using munit.Location): Unit =
@@ -96,6 +132,35 @@ class VectorGemmSuite extends munit.FunSuite:
     runGemm(PureDenseDoubleKernel, a, b, 2.5, -1.5, cPure)
     assertClose(cVec, cPure)
 
+  test("gemv parity: padded rows, scalar tail, and non-unit alpha/beta"):
+    val rows = 7
+    val cols = 11
+    val a = submatrixView(rows, cols, cols + 5)((i, j) => ((i * 17 + j * 7) % 13 - 6).toDouble / 3.0)
+    val x = Vec.tabulate(cols)(j => (j - 4).toDouble / 5.0)
+    val vectorY = Array.tabulate(rows)(i => i.toDouble - 2.0)
+    val pureY = vectorY.clone()
+    runGemv(VectorDenseDoubleKernel, a, x, 2.5, -1.25, vectorY)
+    runGemv(PureDenseDoubleKernel, a, x, 2.5, -1.25, pureY)
+    assertArrayClose(vectorY, pureY)
+
+  test("gemv parity: strided x/y and transposed A fall back to pure"):
+    val rows = 9
+    val cols = 6
+    val a = mkA(cols, rows).t
+    val xBacking = Array.fill(cols * 2)(Double.NaN)
+    var j = 0
+    while j < cols do
+      xBacking(j * 2) = (j - 3).toDouble
+      j += 1
+    val x = new DVec(
+      DoubleArray.fromArray(xBacking), Offset.unsafe(0), Length.unsafe(cols), Stride.unsafe(2)
+    )
+    val vectorY = Array.fill(rows * 3)(7.0)
+    val pureY = vectorY.clone()
+    runGemv(VectorDenseDoubleKernel, a, x, -0.75, 0.5, vectorY, yOffset = 1, yStride = 3)
+    runGemv(PureDenseDoubleKernel, a, x, -0.75, 0.5, pureY, yOffset = 1, yStride = 3)
+    assertArrayClose(vectorY, pureY)
+
   test("gemm parity: transposed (column-strided) B operand falls back to pure"):
     // A row-major matrix's transpose view has non-unit column stride, so the SIMD gemm
     // must route it to the pure kernel internally — result still correct.
@@ -126,9 +191,9 @@ class VectorGemmSuite extends munit.FunSuite:
 
   // --- end-to-end through the coarse gemm seam (Matrix.*) --------------------------
 
-  test("seam: above-threshold product routes to VectorBackend and matches pure"):
-    // 40*40*40 = 64000 >= VectorThresholds.nativeGemmMinFlops (32768) -> SIMD path.
-    val n = 40
+  test("seam: threshold-selected product under VectorBackend matches pure"):
+    // Two-or-more-lane runtimes route 128^3 to the measured packed SIMD kernel.
+    val n = 128
     val a = mkA(n, n)
     val b = mkB(n, n)
     val viaVector = a.*(b)(using VectorBackend)
@@ -136,13 +201,21 @@ class VectorGemmSuite extends munit.FunSuite:
     assertClose(viaVector, viaPure)
 
   test("seam: below-threshold product stays on the pure path under VectorBackend"):
-    // 8*8*8 = 512 < 32768 -> the seam takes the pure branch even under VectorBackend.
     val n = 8
     val a = mkA(n, n)
     val b = mkB(n, n)
     val viaVector = a.*(b)(using VectorBackend)
     val viaPure = a.*(b)(using PureBackend)
     assertClose(viaVector, viaPure)
+
+  test("seam: threshold-selected gemv under VectorBackend matches pure"):
+    val n = 128
+    val a = mkA(n, n)
+    val x = Vec.tabulate(n)(i => ((i * 7) % 11 - 5).toDouble)
+    val viaVector = a.*(x)(using VectorBackend)
+    val viaPure = a.*(x)(using PureBackend)
+    assertEquals(viaVector.length, viaPure.length)
+    assertArrayClose(viaVector.toSeq.toArray, viaPure.toSeq.toArray)
 
   test("seam: transposed operand above threshold is correct under VectorBackend"):
     val n = 40
@@ -156,6 +229,43 @@ class VectorGemmSuite extends munit.FunSuite:
     import gale.backend.jvm.vector.given
     assertEquals(summon[Backend].name, "jvm-vector")
     assert(summon[Backend].acceleratesGemm)
+
+  test("threshold requires at least two SIMD lanes"):
+    if VectorDenseDoubleKernel.preferredLaneCount >= 2 then
+      assertEquals(VectorThresholds.nativeGemmMinFlops, 128L * 128L * 128L)
+      assertEquals(VectorThresholds.nativeGemvMinWork, 128L * 128L)
+    else
+      assertEquals(VectorThresholds.nativeGemmMinFlops, Long.MaxValue)
+      assertEquals(VectorThresholds.nativeGemvMinWork, Long.MaxValue)
+
+  test("independent BigDecimal oracle across scale and long inner dimensions"):
+    val rng = new scala.util.Random(8675309L)
+    for scale <- Seq(1e-100, 1.0, 1e100) do
+      val rows = 5
+      val shared = 257
+      val cols = 7
+      val a = Matrix.tabulate(rows, shared)((_, _) => (rng.nextDouble() * 2.0 - 1.0) * scale)
+      val b = Matrix.tabulate(shared, cols)((_, _) => (rng.nextDouble() * 2.0 - 1.0) / scale)
+      // Drive the SIMD kernel directly: this shape is far below the seam threshold, so
+      // going through `a * b` would only ever validate the pure branch against the oracle.
+      val actual = DMat.zeros(rows, cols)
+      runGemm(VectorDenseDoubleKernel, a, b, 1.0, 0.0, actual)
+      var i = 0
+      while i < rows do
+        var j = 0
+        while j < cols do
+          var k = 0
+          var expected = BigDecimal(0)
+          while k < shared do
+            expected += BigDecimal(a(i, k)) * BigDecimal(b(k, j))
+            k += 1
+          val e = expected.toDouble
+          val tolerance = 5e-12 * math.max(1.0, math.abs(e))
+          assert(actual(i, j).isFinite, s"non-finite result at scale=$scale ($i,$j)")
+          assert(math.abs(actual(i, j) - e) <= tolerance,
+            s"BigDecimal mismatch at scale=$scale ($i,$j): ${actual(i, j)} vs $e")
+          j += 1
+        i += 1
 
   // --- review-hardening: cases the exact-integer fixtures above never exercise --------
 

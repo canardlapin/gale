@@ -1,5 +1,6 @@
 package gale.sparse
 
+import gale.backend.Backend
 import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
@@ -376,7 +377,7 @@ final class CSR private[gale] (
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     tMulInto(x, into)
 
-  override def *(x: DVec): DVec =
+  override def *(x: DVec)(using Backend): DVec =
     val out = MutableDVec.zeros(rows)
     mulInto(x, out)
     out.asVec
@@ -881,7 +882,7 @@ final class CSC private[gale] (
       yData(yOff + col * yStep) = acc
       col += 1
 
-  override def *(x: DVec): DVec =
+  override def *(x: DVec)(using Backend): DVec =
     val out = MutableDVec.zeros(rows)
     mulInto(x, out)
     out.asVec

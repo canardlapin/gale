@@ -408,6 +408,18 @@ val tallB  = DenseVector.tabulate(5)(i => 2.0 + 3.0 * i)
 val coeffs = BreezeMigration.leastSquares(tallA, tallB) // A \ b, overdetermined
 ```
 
+Matrix right-hand sides are supported as well. These overloads factor `A` once
+and reuse its LU or QR factors across all columns:
+
+```scala
+val manySolutions = BreezeMigration.solve(a, manyRightHandSides)
+val manyCoeffs    = BreezeMigration.leastSquares(tallA, manyResponseColumns)
+```
+
+The exact supported replacement boundary—including rank/condition-number
+differences, performance evidence, and deliberate exclusions—is documented in
+[`breeze-equivalence.md`](breeze-equivalence.md).
+
 ## Accuracy & determinism
 
 Every dense kernel is written against a single strided inner loop shared by

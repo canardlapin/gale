@@ -3,8 +3,10 @@ package gale.parity
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.LU as BreezeLU
 import breeze.linalg.cholesky
+import breeze.linalg.cond
 import breeze.linalg.det
 import breeze.linalg.qr
+import breeze.linalg.rank
 import gale.linalg.*
 import gale.parity.ParitySupport.*
 
@@ -161,4 +163,37 @@ class FactorizationParitySuite extends munit.FunSuite:
       val gx    = galeMatrix(aData).leastSquares(galeVector(bData)).orThrow
       val bx    = breezeMatrix(aData) \ breezeVector(bData)
       assertVecClose(gx, bx, solveTol, s"least squares ${m}x$n seed=$seed")
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rank / conditioning: shared semantic subset
+  // ---------------------------------------------------------------------------
+
+  test("rankEstimate agrees with Breeze rank on clear full-rank and deficient cases") {
+    val full = matrixData(12, 7, 71L)
+    val deficient = Array.tabulate(12, 7): (i, j) =>
+      // Use an exactly zero column, not a floating linear combination. Breeze's
+      // SVD rank cutoff and Gale's QR cutoff are deliberately different, so a
+      // numerically tiny singular value is outside the claimed overlap.
+      if j == 6 then 0.0 else full(i)(j)
+
+    for (label, data) <- Seq("full" -> full, "deficient" -> deficient) do
+      val galeRank = galeMatrix(data).rankEstimate
+      val breezeRank = rank(breezeMatrix(data))
+      assertEquals(galeRank, breezeRank, s"rank mismatch for $label matrix")
+  }
+
+  test("conditionEstimate agrees with Breeze cond where 1-norm and 2-norm coincide") {
+    // Breeze `cond` is exact SVD 2-norm conditioning. Gale deliberately returns
+    // a Hager/Higham 1-norm estimate. Diagonal matrices are the honest overlap:
+    // both condition numbers are max(|d|)/min(|d|).
+    for diagonal <- Seq(
+      Array(0.5, 1.0, 4.0, 25.0),
+      Array(-1000.0, 7.0, -2.0, 0.25)
+    ) do
+      val data = Array.tabulate(diagonal.length, diagonal.length): (i, j) =>
+        if i == j then diagonal(i) else 0.0
+      val galeCond = galeMatrix(data).conditionEstimate.orThrow
+      val breezeCond = cond(breezeMatrix(data))
+      assertScalarClose(galeCond, breezeCond, 1e-11, s"diagonal condition ${diagonal.mkString(",")}")
   }
