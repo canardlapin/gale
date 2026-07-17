@@ -96,7 +96,7 @@ jobs:
         run: sbt benchCompile
 
   ffm-blas-backend:
-    name: FFM BLAS backend (JDK 22 / OpenBLAS)
+    name: FFM BLAS/LAPACK backend (JDK 22 / OpenBLAS)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - name: Install OpenBLAS CBLAS runtime
         run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
-      - name: Test native storage and FFM BLAS conformance
+      - name: Test native storage and FFM BLAS/LAPACK conformance
         run: sbt nativeBackendTest blasFfmBackendTest benchFfmCompile
 
   wasm:

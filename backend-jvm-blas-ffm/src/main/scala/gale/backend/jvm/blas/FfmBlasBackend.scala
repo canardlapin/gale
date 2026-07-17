@@ -2,10 +2,12 @@ package gale.backend.jvm.blas
 
 import gale.backend.*
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
+import gale.linalg.{Cholesky, DMat, DVec, DenseDecompositions, FactorizationDiagnostics, LU, LinAlgError, Matrix, PivotVector, QR}
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.spectral.{RawSymmetricEigen, SpectralBackend, SpectralCapability}
 
-import java.lang.foreign.{Arena, MemorySegment}
+import java.lang.foreign.{Arena, MemorySegment, ValueLayout}
 import scala.util.control.NonFatal
 
 final case class BlasLoadError(message: String, cause: Throwable)
@@ -14,11 +16,17 @@ final case class BlasLoadError(message: String, cause: Throwable)
 /** Conservative heap-copy-inclusive defaults pending platform JMH sweeps. */
 final case class FfmBlasThresholds(
     nativeGemmMinFlops: Long = Long.MaxValue,
-    nativeGemvMinWork: Long = Long.MaxValue
+    nativeGemvMinWork: Long = Long.MaxValue,
+    override val nativeLuMinSize: Int = Int.MaxValue,
+    override val nativeCholeskyMinSize: Int = Int.MaxValue,
+    override val nativeQrMinSize: Int = Int.MaxValue
 ) extends BackendThresholds:
-  val nativeFactorizationMinSize: Int = Int.MaxValue
+  val nativeFactorizationMinSize: Int = math.min(nativeLuMinSize, math.min(nativeCholeskyMinSize, nativeQrMinSize))
   require(nativeGemmMinFlops >= 0L)
   require(nativeGemvMinWork >= 0L)
+  require(nativeLuMinSize >= 0)
+  require(nativeCholeskyMinSize >= 0)
+  require(nativeQrMinSize >= 0)
 
 object FfmBlasThresholds:
   /** Only known optimized families dispatch by default. An unknown/reference
@@ -26,13 +34,24 @@ object FfmBlasThresholds:
     */
   def forLibrary(name: String): FfmBlasThresholds =
     val normalized = name.toLowerCase(java.util.Locale.ROOT)
-    val optimized =
-      normalized.contains("accelerate") || normalized.contains("openblas") || normalized.contains("mkl")
-    if optimized then FfmBlasThresholds(nativeGemmMinFlops = 256L * 256L * 256L)
+    if normalized.contains("accelerate") then
+      // JDK 22 / Apple ARM64, two-fork copy-inclusive JMH (2026-07-17):
+      // LU wins from n=64 onward, so n=128 leaves one measured size of margin.
+      // Accelerate QR and Cholesky are non-monotone through this heap/FFM route;
+      // keep both disabled unless a caller explicitly supplies thresholds.
+      FfmBlasThresholds(
+        nativeGemmMinFlops = 256L * 256L * 256L,
+        nativeLuMinSize = 128
+      )
+    else if normalized.contains("openblas") || normalized.contains("mkl") then
+      // GEMM has portable evidence; factorization defaults require a sweep on
+      // the actual library family because copy cost and vendor kernels differ.
+      FfmBlasThresholds(nativeGemmMinFlops = 256L * 256L * 256L)
     else FfmBlasThresholds()
 
 final case class BlasLibraryInfo(
     name: String,
+    hasLapack: Boolean,
     hasThreadControl: Boolean,
     threadSetter: Option[String]
 )
@@ -44,14 +63,20 @@ final class FfmBlasBackend private[blas] (
 ) extends Backend, AutoCloseable:
   val libraryInfo: BlasLibraryInfo = BlasLibraryInfo(
     bindings.libraryName(),
+    bindings.hasLapack(),
     bindings.hasThreadControl(),
     Option(bindings.threadSetterName())
   )
   val name: String = s"jvm-blas-ffm:${libraryInfo.name}"
   val capabilities: Set[Capability] =
     Set(Capability.NativeBlas) ++
+      (if bindings.hasLapack() then Set(Capability.NativeLapack) else Set.empty) ++
       (if config.nativeThreads > 1 then Set(Capability.Multithreaded) else Set.empty)
   val denseDouble: DenseDoubleKernel = new FfmDenseDoubleKernel(bindings)
+  override val denseFactorizations: Option[DenseDoubleFactorizations] =
+    Option.when(bindings.hasLapack())(new FfmDenseDoubleFactorizations(bindings))
+  override val spectral: Option[SpectralBackend] =
+    Option.when(bindings.hasLapack())(new FfmLapackSpectralBackend(bindings, name))
 
   /** Copy-free explicit native GEMM. The output layout selects CBLAS row/column
     * major; operands in the other layout are represented with a transpose flag,
@@ -236,5 +261,159 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
   private inline def atOffset(segment: MemorySegment, offset: Int): MemorySegment =
     segment.asSlice(offset.toLong * java.lang.Double.BYTES)
 
-/** Explicit import point. Evaluating it loads the first conforming CBLAS candidate. */
+private object FfmLapackMemory:
+  def nativeDoubles(arena: Arena, length: Int): MemorySegment =
+    arena.allocate(math.max(1L, length.toLong * java.lang.Double.BYTES), java.lang.Double.BYTES)
+
+  def nativeInts(arena: Arena, length: Int): MemorySegment =
+    arena.allocate(math.max(1L, length.toLong * java.lang.Integer.BYTES), java.lang.Integer.BYTES)
+
+  def copyIn(values: Array[Double], arena: Arena): MemorySegment =
+    val target = nativeDoubles(arena, values.length)
+    if values.nonEmpty then target.asSlice(0L, values.length.toLong * java.lang.Double.BYTES).copyFrom(MemorySegment.ofArray(values))
+    target
+
+  def copyOut(source: MemorySegment, values: Array[Double]): Unit =
+    if values.nonEmpty then
+      MemorySegment.ofArray(values).copyFrom(source.asSlice(0L, values.length.toLong * java.lang.Double.BYTES))
+
+  def toColumnMajor(a: DMat): Array[Double] =
+    val out = new Array[Double](a.rows * a.cols)
+    var j = 0
+    while j < a.cols do
+      var i = 0
+      while i < a.rows do
+        out(j * a.rows + i) = a(i, j)
+        i += 1
+      j += 1
+    out
+
+  def fromColumnMajor(rows: Int, cols: Int, values: Array[Double]): DMat =
+    Matrix.tabulate(rows, cols)((i, j) => values(j * rows + i))
+
+private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extends DenseDoubleFactorizations:
+  import FfmLapackMemory.*
+
+  def lu(a: DMat): Either[LinAlgError, LU] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if a.rows == 0 then DenseDecompositions.lu(a)
+    else
+      val n = a.rows
+      val packedColumnMajor = toColumnMajor(a)
+      val arena = Arena.ofConfined()
+      try
+        val matrix = copyIn(packedColumnMajor, arena)
+        val ipiv = nativeInts(arena, n)
+        val info = bindings.dgetrf(n, n, matrix, n, ipiv)
+        if info < 0 then Left(LinAlgError.InvalidArgument(s"native dgetrf rejected argument ${-info}"))
+        else if info > 0 then Left(LinAlgError.SingularMatrix(info - 1))
+        else
+          copyOut(matrix, packedColumnMajor)
+          val permutation = Array.tabulate(n)(i => i)
+          var parity = 1
+          var k = 0
+          while k < n do
+            val pivot = ipiv.getAtIndex(ValueLayout.JAVA_INT, k.toLong) - 1
+            if pivot != k then
+              val tmp = permutation(k)
+              permutation(k) = permutation(pivot)
+              permutation(pivot) = tmp
+              parity = -parity
+            k += 1
+          Right(LU(
+            packed = fromColumnMajor(n, n, packedColumnMajor),
+            pivots = PivotVector.fromArray(permutation),
+            parity = parity,
+            diagnostics = FactorizationDiagnostics()
+          ))
+      finally arena.close()
+
+  def cholesky(a: DMat): Either[LinAlgError, Cholesky] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if a.rows == 0 then DenseDecompositions.cholesky(a)
+    else
+      val n = a.rows
+      val packedColumnMajor = toColumnMajor(a)
+      val arena = Arena.ofConfined()
+      try
+        val matrix = copyIn(packedColumnMajor, arena)
+        val info = bindings.dpotrf('L'.toByte, n, matrix, n)
+        if info < 0 then Left(LinAlgError.InvalidArgument(s"native dpotrf rejected argument ${-info}"))
+        else if info > 0 then Left(LinAlgError.NotPositiveDefinite(info - 1))
+        else
+          copyOut(matrix, packedColumnMajor)
+          val lower = Matrix.tabulate(n, n)((i, j) => if i >= j then packedColumnMajor(j * n + i) else 0.0)
+          Right(Cholesky(lower, FactorizationDiagnostics()))
+      finally arena.close()
+
+  def qr(a: DMat): Either[LinAlgError, QR] =
+    if a.rows == 0 || a.cols == 0 then Right(DenseDecompositions.qr(a)(using PureBackend))
+    else
+      val m = a.rows
+      val n = a.cols
+      val limit = math.min(m, n)
+      val packedColumnMajor = toColumnMajor(a)
+      val arena = Arena.ofConfined()
+      try
+        val matrix = copyIn(packedColumnMajor, arena)
+        val tauSegment = nativeDoubles(arena, limit)
+        val query = nativeDoubles(arena, 1)
+        val queryInfo = bindings.dgeqrf(m, n, matrix, m, tauSegment, query, -1)
+        if queryInfo != 0 then Left(LinAlgError.InvalidArgument(s"native dgeqrf workspace query failed with info=$queryInfo"))
+        else
+          val lwork = math.max(1, math.ceil(query.get(ValueLayout.JAVA_DOUBLE, 0L)).toInt)
+          val work = nativeDoubles(arena, lwork)
+          val info = bindings.dgeqrf(m, n, matrix, m, tauSegment, work, lwork)
+          if info != 0 then Left(LinAlgError.InvalidArgument(s"native dgeqrf failed with info=$info"))
+          else
+            copyOut(matrix, packedColumnMajor)
+            val tauArray = new Array[Double](limit)
+            copyOut(tauSegment, tauArray)
+            val reflectors = Matrix.tabulate(m, limit)((i, j) =>
+              if i < j then 0.0 else if i == j then 1.0 else packedColumnMajor(j * m + i)
+            )
+            val r = Matrix.tabulate(m, n)((i, j) => if i <= j then packedColumnMajor(j * m + i) else 0.0)
+            Right(QR(
+              reflectors,
+              DoubleArray.adopt(tauArray),
+              r,
+              FactorizationDiagnostics(rank = Some(DenseDecompositions.rankFromMatrix(r)))
+            ))
+      finally arena.close()
+
+private final class FfmLapackSpectralBackend(bindings: CblasBindings, backendName: String) extends SpectralBackend:
+  import FfmLapackMemory.*
+
+  val name: String = s"$backendName:lapack"
+  val capabilities: Set[SpectralCapability] = Set(SpectralCapability.DenseSymmetricEigen)
+
+  override def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if a.rows == 0 then Right(RawSymmetricEigen(DVec.zeros(0), DMat.zeros(0, 0)))
+    else
+      val n = a.rows
+      val packedColumnMajor = toColumnMajor(a)
+      val arena = Arena.ofConfined()
+      try
+        val matrix = copyIn(packedColumnMajor, arena)
+        val eigenvalues = nativeDoubles(arena, n)
+        val query = nativeDoubles(arena, 1)
+        val jobz = if wantVectors then 'V'.toByte else 'N'.toByte
+        val queryInfo = bindings.dsyev(jobz, 'L'.toByte, n, matrix, n, eigenvalues, query, -1)
+        if queryInfo != 0 then Left(LinAlgError.InvalidArgument(s"native dsyev workspace query failed with info=$queryInfo"))
+        else
+          val lwork = math.max(1, math.ceil(query.get(ValueLayout.JAVA_DOUBLE, 0L)).toInt)
+          val work = nativeDoubles(arena, lwork)
+          val info = bindings.dsyev(jobz, 'L'.toByte, n, matrix, n, eigenvalues, work, lwork)
+          if info < 0 then Left(LinAlgError.InvalidArgument(s"native dsyev rejected argument ${-info}"))
+          else if info > 0 then Left(LinAlgError.DidNotConverge(info, Double.NaN))
+          else
+            val values = new Array[Double](n)
+            copyOut(eigenvalues, values)
+            if wantVectors then copyOut(matrix, packedColumnMajor)
+            val vectors = if wantVectors then fromColumnMajor(n, n, packedColumnMajor) else DMat.zeros(n, 0)
+            Right(RawSymmetricEigen(DVec.fromArray(values), vectors))
+      finally arena.close()
+
+/** Explicit import point. Evaluating it loads the first conforming BLAS/LAPACK candidate. */
 given ffmBlasBackend: Backend = FfmBlasBackend.default

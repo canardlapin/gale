@@ -294,11 +294,12 @@ This doc fixes that bridge:
 > mean the three cannot be split into separately-compiled modules without breaking the A.5 bridge.
 
 
-- The first FFM module, `gale-backend-jvm-blas-ffm`, provides a `given Backend`
-  with `NativeBlas` only. A later `-lapack` provider must provide **both** typed
-  factorizations and a `given SpectralBackend` (QZ/GSVD/dense acceleration), and
-  its `Backend.spectral` returns `Some(thatSpectral)`. The BLAS module deliberately
-  does not over-advertise the stronger capability.
+- The FFM module, `gale-backend-jvm-blas-ffm`, always provides `NativeBlas` after
+  loading a conforming CBLAS library. It conditionally adds `NativeLapack` only
+  when `dgetrf`, `dpotrf`, `dgeqrf`, and `dsyev` are all discoverable. In that
+  case it provides Gale-typed LU/Cholesky/QR factors and a
+  `DenseSymmetricEigen` spectral provider through `Backend.spectral`. A BLAS-only
+  candidate remains usable without over-advertising the stronger capability.
 - Resolution stays independent: kernel facades `summon[Backend]`, spectral facades
   `summon[SpectralBackend]`. The bridge is a *convenience* for code holding a
   `Backend` that wants its spectral half, and a *self-imposed advertising contract*:

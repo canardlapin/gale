@@ -12,9 +12,9 @@ class FfmBlasLoaderSuite extends munit.FunSuite:
     try
       assert(backend.libraryInfo.name.nonEmpty)
       assert(backend.capabilities.contains(Capability.NativeBlas))
-      assert(!backend.capabilities.contains(Capability.NativeLapack))
-      assert(backend.denseFactorizations.isEmpty)
-      assert(backend.spectral.isEmpty)
+      assertEquals(backend.capabilities.contains(Capability.NativeLapack), backend.libraryInfo.hasLapack)
+      assertEquals(backend.denseFactorizations.isDefined, backend.libraryInfo.hasLapack)
+      assertEquals(backend.spectral.isDefined, backend.libraryInfo.hasLapack)
     finally backend.close()
 
   test("given import resolves to an FFM BLAS backend"):
@@ -54,8 +54,13 @@ class FfmBlasLoaderSuite extends munit.FunSuite:
     finally backend.close()
 
   test("known optimized libraries get a conservative route; unknown BLAS stays disabled"):
-    assertEquals(FfmBlasThresholds.forLibrary("Accelerate").nativeGemmMinFlops, 256L * 256L * 256L)
+    val accelerate = FfmBlasThresholds.forLibrary("Accelerate")
+    assertEquals(accelerate.nativeGemmMinFlops, 256L * 256L * 256L)
+    assertEquals(accelerate.nativeLuMinSize, 128)
+    assertEquals(accelerate.nativeCholeskyMinSize, Int.MaxValue)
+    assertEquals(accelerate.nativeQrMinSize, Int.MaxValue)
     assertEquals(FfmBlasThresholds.forLibrary("libopenblas.so").nativeGemmMinFlops, 256L * 256L * 256L)
+    assertEquals(FfmBlasThresholds.forLibrary("libopenblas.so").nativeLuMinSize, Int.MaxValue)
     assertEquals(FfmBlasThresholds.forLibrary("libblas.so.3").nativeGemmMinFlops, Long.MaxValue)
 
   test("copy-free NativeDMat GEMM supports row, column, and mixed layouts"):

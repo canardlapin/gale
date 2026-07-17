@@ -17,7 +17,7 @@ that run identically on the JVM (`Array[Double]`) and in the browser
 | `gale-laws` | `laws/` | Reusable, munit/ScalaCheck-backed **law bundles** (`VecLaws`, `MatrixLaws`, `SparseLaws`, `SolverLaws`) expressed against the public API. munit and ScalaCheck are *main* dependencies here — the bundles are library code you can call from your own tests. Depends on `gale-core`. |
 | `gale-backend-jvm-vector` | `backend-jvm-vector/` | Optional JDK Vector API GEMM backend with adaptive, measured dispatch. |
 | `gale-backend-jvm-native` | `backend-jvm-native/` | Optional JDK 22+ `NativeDMat` storage over FFM `MemorySegment`. |
-| `gale-backend-jvm-blas-ffm` | `backend-jvm-blas-ffm/` | Optional JDK 22+ runtime-discovered CBLAS backend (Accelerate/OpenBLAS/reference/MKL). |
+| `gale-backend-jvm-blas-ffm` | `backend-jvm-blas-ffm/` | Optional JDK 22+ runtime-discovered BLAS/LAPACK backend (Accelerate/OpenBLAS/reference/MKL). |
 | benchmarks | `benchmarks/jvm`, `benchmarks/js` | JMH (JVM) and a Scala.js smoke runner. Compile-checked in CI; not published. |
 
 ### Package tour (`gale-core`)
@@ -63,7 +63,7 @@ import gale.backend.jvm.vector.given
 val c = a * b
 ```
 
-On JDK 22+, opt into runtime-discovered native CBLAS with:
+On JDK 22+, opt into runtime-discovered native BLAS/LAPACK with:
 
 ```scala
 import gale.backend.jvm.blas.given
@@ -75,8 +75,13 @@ The FFM loader checks `-Dgale.blas.library=/absolute/path` and
 Accelerate), and MKL. Launch user applications with
 `--enable-native-access=ALL-UNNAMED`. Only known optimized library families
 dispatch automatically; generic/reference BLAS remains direct-callable but
-default-disabled until measured. The module advertises `NativeBlas`, not
-`NativeLapack`.
+default-disabled until measured. When the selected library exposes the required
+Fortran LAPACK symbols, the same backend also advertises `NativeLapack` and
+provides typed LU, Cholesky, QR, and symmetric-eigen operations. Defaults are
+library-family-specific: the measured Accelerate route enables LU at `n >= 128`,
+while QR and Cholesky remain explicit opt-ins because their copy-inclusive
+crossovers were non-monotone. OpenBLAS/MKL factorization routes remain disabled
+until equivalent platform sweeps exist.
 
 ## Continuous integration
 
@@ -88,7 +93,8 @@ default-disabled until measured. The module advertises `NativeBlas`, not
   merges.
 - **bench** — `benchCompile`.
 - **vector-backend** — Vector tests and JMH compilation on JDK 21 and 22.
-- **ffm-blas-backend** — native storage and FFM conformance on JDK 22 + OpenBLAS.
+- **ffm-blas-backend** — native storage and BLAS/LAPACK conformance plus JMH
+  compilation on JDK 22 + OpenBLAS.
 - **wasm** — an experimental WebAssembly link check, allow-failure (see below).
 
 ## Experimental WebAssembly (Scala.js)
