@@ -236,3 +236,17 @@ class DenseSvdSuite extends munit.FunSuite:
     fullChecks(a, s, 1e-9)
     assertClose(values(s), values(Svds.svd(a, SingularSelection.All).toOption.get), 1e-14)
   }
+
+  test("a DenseSvd-capable provider Left falls back to the pure kernel (S8 policy, no new failure mode)") {
+    // Advertises the capability but declines every call (the trait default is
+    // Left(UnsupportedOperation)) — the S7 seam must then compute pure, exactly
+    // like Eigen.symmetricSpectrum, never surface the provider's Left.
+    object DecliningSvdBackend extends SpectralBackend:
+      val name = "declining-svd"
+      val capabilities = Set(SpectralCapability.DenseSvd)
+    val a = randomMat(7, 4, 21L)
+    val viaDeclining = Svds.svd(a, SingularSelection.All)(using DecliningSvdBackend).toOption.get
+    val pure = Svds.svd(a, SingularSelection.All)(using SpectralBackend.none).toOption.get
+    assertClose(values(viaDeclining), values(pure), 1e-15) // same pure kernel → bit-identical
+    fullChecks(a, viaDeclining, 1e-9)
+  }

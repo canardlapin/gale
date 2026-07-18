@@ -92,6 +92,11 @@ on the measured Accelerate route, including heap-copy cost: the authoritative
 two-fork result is 2.84x pure Gale for GEMM at `n=512`, and native-LU solve is
 1.53–1.60x at `n=128–256`. Accelerate was sharply non-monotone at `n=256`, so
 automatic GEMM begins at `512^3`; native QR, Cholesky, and GEMV remain default-off.
+Dense symmetric eigen (`Eigen.eigSymmetric`, the seam behind the `eigSym`
+migration shim) routes to the native LAPACK provider from the measured `n=128`
+Accelerate crossover (1.63–2.77x at routed sizes) when its spectral `given` is
+imported; below the threshold, on unswept vendor families, and with no import it
+runs the pure kernel unchanged.
 This is **not** evidence against Breeze configured with native BLAS/LAPACK. That
 claim would require a direct same-library comparison.
 

@@ -2,7 +2,7 @@ package gale.backend.jvm.blas
 
 import gale.backend.{Capability, PureBackend}
 import gale.linalg.*
-import gale.spectral.SpectralCapability
+import gale.spectral.{Eigen, EigenSelection, SpectralBackend, SpectralCapability}
 
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
@@ -12,7 +12,8 @@ class FfmLapackSuite extends munit.FunSuite:
     .load(thresholds = Some(FfmBlasThresholds(
       nativeLuMinSize = 0,
       nativeCholeskyMinSize = 0,
-      nativeQrMinSize = 0
+      nativeQrMinSize = 0,
+      nativeSymmetricEigenMinSize = 0
     )))
     .fold(throw _, identity)
 
@@ -124,6 +125,32 @@ class FfmLapackSuite extends munit.FunSuite:
       backend.denseFactorizations.get.cholesky(clean).orThrow.lower,
       backend.denseFactorizations.get.cholesky(garbled).orThrow.lower
     )
+
+  test("S8 facade routing: eigSymmetric through the provider matches the pure kernel"):
+    requireLapack()
+    val spectral = backend.spectral.get
+    assertEquals(spectral.denseSymmetricEigenMinSize, 0) // this suite's explicit thresholds
+    assert(spectral.routesDenseSymmetricEigen(1))
+    val a = Matrix.tabulate(8, 8)((i, j) =>
+      if i == j then 5.0 + i else math.sin((i + 1.0) * (j + 2.0)) / 4.0
+    )
+    val sym = Matrix.tabulate(8, 8)((i, j) => 0.5 * (a(i, j) + a(j, i)))
+    val routed = Eigen.eigSymmetric(sym, EigenSelection.All)(using spectral).orThrow
+    val pure = Eigen.eigSymmetric(sym, EigenSelection.All)(using SpectralBackend.none).orThrow
+    assertEquals(routed.size, pure.size)
+    var i = 0
+    while i < pure.size do
+      assertEqualsDouble(routed.eigenvalues(i), pure.eigenvalues(i), 1e-10, s"eigenvalue $i")
+      i += 1
+    assert(routed.diagnostics.worstResidual < 1e-10)
+    assert(routed.diagnostics.orthogonalityError < 1e-10)
+
+  test("symmetric-eigen routing thresholds follow the documented family policy"):
+    // Accelerate: measured 2026-07-17 sweep, one measured size of margin (as LU).
+    assertEquals(FfmBlasThresholds.forLibrary("Accelerate framework").nativeSymmetricEigenMinSize, 128)
+    // Unswept families and the bare default never route the eigen facade.
+    assertEquals(FfmBlasThresholds.forLibrary("openblas").nativeSymmetricEigenMinSize, Int.MaxValue)
+    assertEquals(FfmBlasThresholds().nativeSymmetricEigenMinSize, Int.MaxValue)
 
   test("shared backend supports concurrent independent LAPACK calls"):
     requireLapack()

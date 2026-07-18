@@ -13,13 +13,18 @@ import scala.util.control.NonFatal
 final case class BlasLoadError(message: String, cause: Throwable)
     extends RuntimeException(message, cause)
 
-/** Conservative heap-copy-inclusive defaults pending platform JMH sweeps. */
+/** Conservative heap-copy-inclusive defaults pending platform JMH sweeps.
+  * `nativeSymmetricEigenMinSize` is the spectral analog of the factorization
+  * sizes: the S8 `Eigen.eigSymmetric` facade routes to the LAPACK spectral
+  * provider only from that matrix order upward (`Int.MaxValue` = never).
+  */
 final case class FfmBlasThresholds(
     nativeGemmMinFlops: Long = Long.MaxValue,
     nativeGemvMinWork: Long = Long.MaxValue,
     override val nativeLuMinSize: Int = Int.MaxValue,
     override val nativeCholeskyMinSize: Int = Int.MaxValue,
-    override val nativeQrMinSize: Int = Int.MaxValue
+    override val nativeQrMinSize: Int = Int.MaxValue,
+    nativeSymmetricEigenMinSize: Int = Int.MaxValue
 ) extends BackendThresholds:
   val nativeFactorizationMinSize: Int = math.min(nativeLuMinSize, math.min(nativeCholeskyMinSize, nativeQrMinSize))
   require(nativeGemmMinFlops >= 0L)
@@ -27,6 +32,7 @@ final case class FfmBlasThresholds(
   require(nativeLuMinSize >= 0)
   require(nativeCholeskyMinSize >= 0)
   require(nativeQrMinSize >= 0)
+  require(nativeSymmetricEigenMinSize >= 0)
 
 object FfmBlasThresholds:
   /** Only known optimized families dispatch by default. An unknown/reference
@@ -39,9 +45,16 @@ object FfmBlasThresholds:
       // LU wins from n=64 onward, so n=128 leaves one measured size of margin.
       // Accelerate QR and Cholesky are non-monotone through this heap/FFM route;
       // keep both disabled unless a caller explicitly supplies thresholds.
+      // Symmetric eigen (dsyev) wins at every measured size — 1.18x at n=64,
+      // 2.07x at 128, 1.63x at 256, 2.77x at 512 — but the speedup magnitude is
+      // non-monotone and the n=64 margin is as thin as LU's was (1.16x), so the
+      // same one-measured-size-of-margin rule applies: route from n=128, where
+      // every measured size wins by >= 1.63x, and leave the unswept n < 64
+      // region (where copy cost plausibly dominates) on the pure kernel.
       FfmBlasThresholds(
         nativeGemmMinFlops = 512L * 512L * 512L,
-        nativeLuMinSize = 128
+        nativeLuMinSize = 128,
+        nativeSymmetricEigenMinSize = 128
       )
     else if normalized.contains("openblas") || normalized.contains("mkl") then
       // Loadable and direct-callable, but no family-specific copy-inclusive
@@ -77,7 +90,14 @@ final class FfmBlasBackend private[blas] (
   override val denseFactorizations: Option[DenseDoubleFactorizations] =
     Option.when(bindings.hasLapack())(new FfmDenseDoubleFactorizations(bindings))
   override val spectral: Option[SpectralBackend] =
-    Option.when(bindings.hasLapack())(new FfmLapackSpectralBackend(bindings, name))
+    Option.when(bindings.hasLapack()):
+      // The spectral routing threshold rides on FfmBlasThresholds; a caller who
+      // supplies a foreign BackendThresholds expresses no spectral sweep, so the
+      // documented per-library family policy stays authoritative for it.
+      val eigenMinSize = thresholds match
+        case ffm: FfmBlasThresholds => ffm.nativeSymmetricEigenMinSize
+        case _                      => FfmBlasThresholds.forLibrary(bindings.libraryName()).nativeSymmetricEigenMinSize
+      new FfmLapackSpectralBackend(bindings, name, eigenMinSize)
 
   /** Copy-free explicit native GEMM. The output layout selects CBLAS row/column
     * major; operands in the other layout are represented with a transpose flag,
@@ -382,11 +402,16 @@ private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extend
             ))
       finally arena.close()
 
-private final class FfmLapackSpectralBackend(bindings: CblasBindings, backendName: String) extends SpectralBackend:
+private final class FfmLapackSpectralBackend(
+    bindings: CblasBindings,
+    backendName: String,
+    eigenMinSize: Int
+) extends SpectralBackend:
   import FfmLapackMemory.*
 
   val name: String = s"$backendName:lapack"
   val capabilities: Set[SpectralCapability] = Set(SpectralCapability.DenseSymmetricEigen)
+  override val denseSymmetricEigenMinSize: Int = eigenMinSize
 
   override def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
     if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
@@ -418,3 +443,12 @@ private final class FfmLapackSpectralBackend(bindings: CblasBindings, backendNam
 
 /** Explicit import point. Evaluating it loads the first conforming BLAS/LAPACK candidate. */
 given ffmBlasBackend: Backend = FfmBlasBackend.default
+
+/** Explicit spectral import point (the boundary doc's "value + given" module shape):
+  * the LAPACK spectral half of [[FfmBlasBackend.default]], routing the S7/S8 spectral
+  * facades. When the discovered library has no complete LAPACK symbol set this is
+  * [[SpectralBackend.none]] — availability is a registration responsibility, so the
+  * facades fall back to the pure kernels cleanly rather than failing at call time.
+  */
+given ffmSpectralBackend: SpectralBackend =
+  FfmBlasBackend.default.spectral.getOrElse(SpectralBackend.none)

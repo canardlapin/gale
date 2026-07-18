@@ -187,21 +187,29 @@ object Svds:
 
   /** Route the full dense SVD (already validated: positive dims, legal vector
     * flag): a [[SpectralCapability.DenseSvd]]-capable backend computes the raw
-    * factors, else the pure [[DenseSvdKernel]] does; either way the facade
-    * canonicalizes and assembles ([[assembleFullSvd]]). Kernel sweep exhaustion
-    * maps to `Left(DidNotConverge)` exactly like the dense eigen paths (no
-    * partial result to hand back).
+    * factors, and a provider `Left` falls back to the pure [[DenseSvdKernel]] —
+    * the S8 discipline (`Eigen.symmetricSpectrum`): routing is an optimization
+    * and must add no failure mode the pure-only path lacks, so after facade
+    * validation the call fails exactly when the pure kernel does. (A structural
+    * `Left` from a conforming provider is indistinguishable from a decline
+    * here by design; provider conformance is enforced by the laws suite, not
+    * by runtime signalling.) Either way the facade canonicalizes and assembles
+    * ([[assembleFullSvd]]). Pure-kernel sweep exhaustion maps to
+    * `Left(DidNotConverge)` exactly like the dense eigen paths (no partial
+    * result to hand back).
     */
   private def svdFullDense(a: DMat, wantVectors: Boolean)(using backend: SpectralBackend): Either[LinAlgError, SVD] =
+    def pure: Either[LinAlgError, RawSvd] =
+      DenseSvdKernel.svd(a, wantVectors) match
+        case Left(DenseSvdKernel.SvdKernelFailure.DidNotConverge(iters)) =>
+          // Dense path has no partial result to return, so exhaustion is a
+          // Left; residual is not measured on failure (reported as 0.0).
+          Left(LinAlgError.DidNotConverge(iters, 0.0))
+        case Right(factors) => Right(factors)
     val raw: Either[LinAlgError, RawSvd] =
-      if backend.capabilities.contains(SpectralCapability.DenseSvd) then backend.denseSvd(a, wantVectors)
-      else
-        DenseSvdKernel.svd(a, wantVectors) match
-          case Left(DenseSvdKernel.SvdKernelFailure.DidNotConverge(iters)) =>
-            // Dense path has no partial result to return, so exhaustion is a
-            // Left; residual is not measured on failure (reported as 0.0).
-            Left(LinAlgError.DidNotConverge(iters, 0.0))
-          case Right(factors) => Right(factors)
+      if backend.capabilities.contains(SpectralCapability.DenseSvd) then
+        backend.denseSvd(a, wantVectors).orElse(pure)
+      else pure
     raw.map(assembleFullSvd(a, _, wantVectors))
 
   /** Canonicalize raw full-SVD factors into the sealed [[SVD]]: enforce

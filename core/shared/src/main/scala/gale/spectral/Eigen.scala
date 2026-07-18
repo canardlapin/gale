@@ -58,7 +58,9 @@ object Eigen:
     * ([[EigenVectors.Right]]). See the three-argument overload for the vector-flag
     * and failure details.
     */
-  def eigSymmetric(a: DMat, selection: EigenSelection): Either[LinAlgError, EigenDecomposition] =
+  def eigSymmetric(a: DMat, selection: EigenSelection)(using
+      SpectralBackend
+  ): Either[LinAlgError, EigenDecomposition] =
     eigSymmetric(a, selection, EigenVectors.Right)
 
   /** Dense symmetric eigendecomposition of `a`. Only the '''lower triangle''' of
@@ -74,6 +76,24 @@ object Eigen:
     * [[EigenSelection.ValueInterval]] every eigenvalue in `(lower, upper]`. Output
     * is ascending regardless.
     *
+    * '''Backend routing (seam S8 of `docs/spectral-backend-boundary.md`).''' A
+    * [[SpectralCapability.DenseSymmetricEigen]]-capable `given SpectralBackend`
+    * whose [[SpectralBackend.denseSymmetricEigenMinSize]] the matrix order clears
+    * supplies the raw spectrum instead of the pure kernel
+    * ([[SpectralBackend.routesDenseSymmetricEigen]] is the one gate). Validation
+    * runs '''before''' the gate, so a provider never sees malformed input; the
+    * facade owns canonicalization regardless of engine — it re-imposes the
+    * ascending order (ties by raw index), realizes the selection, and re-derives
+    * residuals/orthogonality from the returned vectors. A provider `Left` is a
+    * '''decline, not a failure''': the pure kernel computes the answer instead
+    * (the `DMat.qr` fallback precedent — routing is an optimization and must add
+    * no failure mode), while a structurally malformed provider `Right` (wrong
+    * value count or vector shape) throws `LinAlgError.InvalidArgument` loudly, a
+    * conformance violation exactly as the S7 dense-SVD seam treats it. With no
+    * acceleration import the given resolves to [[SpectralBackend.none]]
+    * (capability-less), so this path is byte-identical to the pure v0.3.5
+    * behaviour.
+    *
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a symmetric problem
     * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
     * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or (in
@@ -83,7 +103,7 @@ object Eigen:
       a: DMat,
       selection: EigenSelection,
       vectors: EigenVectors
-  ): Either[LinAlgError, EigenDecomposition] =
+  )(using backend: SpectralBackend): Either[LinAlgError, EigenDecomposition] =
     if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
     else
       val n = a.rows
@@ -93,14 +113,66 @@ object Eigen:
           validateDenseSelection(selection, n) match
             case Left(error) => Left(error)
             case Right(()) =>
-              DenseSpectralKernels.symmetricEigen(a, wantVectors) match
-                case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
-                  // Dense path has no partial result to return, so exhaustion is a
-                  // Left; residual is not measured on failure (reported as 0.0).
-                  Left(LinAlgError.DidNotConverge(iters, 0.0))
-                case Right(kernel) =>
-                  val indices = denseSelectionIndices(selection, kernel.values, n)
-                  Right(assembleDense(a, kernel.values, kernel.vectors, indices, wantVectors))
+              symmetricSpectrum(a, n, wantVectors) match
+                case Left(error) => Left(error)
+                case Right((values, vecs)) =>
+                  val indices = denseSelectionIndices(selection, values, n)
+                  Right(assembleDense(a, values, vecs, indices, wantVectors))
+
+  /** The S8 dispatch seam: the full '''ascending''' symmetric spectrum (and full
+    * eigenvector matrix when wanted), from a routed backend or the pure kernel.
+    * The pure branch passes the kernel output through untouched (it is already
+    * ascending), so the no-import path stays byte-identical; a routed backend's
+    * raw factors go through [[canonicalizeRawSymmetric]]. A provider `Left`
+    * falls back to the pure kernel (decline, not failure — see the facade doc);
+    * the same policy governs the S7 dense-SVD seam (`Svds.svdFullDense`). The
+    * catch-all is deliberate: a structural `Left` from a conforming provider is
+    * indistinguishable from a decline here, and provider conformance is the
+    * laws suite's job, not runtime signalling's.
+    */
+  private def symmetricSpectrum(a: DMat, n: Int, wantVectors: Boolean)(using
+      backend: SpectralBackend
+  ): Either[LinAlgError, (DVec, Option[DMat])] =
+    def pure: Either[LinAlgError, (DVec, Option[DMat])] =
+      DenseSpectralKernels.symmetricEigen(a, wantVectors) match
+        case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
+          // Dense path has no partial result to return, so exhaustion is a
+          // Left; residual is not measured on failure (reported as 0.0).
+          Left(LinAlgError.DidNotConverge(iters, 0.0))
+        case Right(kernel) => Right((kernel.values, kernel.vectors))
+    if backend.routesDenseSymmetricEigen(n) then
+      backend.denseSymmetricEigen(a, wantVectors) match
+        case Left(_)    => pure
+        case Right(raw) => Right(canonicalizeRawSymmetric(raw, n, wantVectors, backend.name))
+    else pure
+
+  /** Canonicalize a backend's raw symmetric-eigen factors (facade-owned, § 2.5 of
+    * `docs/spectral-backend-boundary.md`): validate the shapes — `n` eigenvalues,
+    * and when vectors were requested an `n×(≥n)` vector matrix whose leading `n`
+    * columns are the eigenvectors — then impose the '''ascending''' eigenvalue
+    * order (ties by raw index), moving vector columns in lockstep. A malformed
+    * shape is a provider-contract violation and '''throws'''
+    * `LinAlgError.InvalidArgument` (the S7 loud-failure choice), never a silent
+    * fallback that would mask a broken provider.
+    */
+  private def canonicalizeRawSymmetric(
+      raw: RawSymmetricEigen,
+      n: Int,
+      wantVectors: Boolean,
+      backendName: String
+  ): (DVec, Option[DMat]) =
+    if raw.values.length != n || (wantVectors && (raw.vectors.rows != n || raw.vectors.cols < n)) then
+      throw LinAlgError.InvalidArgument(
+        s"spectral provider '$backendName' returned malformed symmetric-eigen factors: " +
+          s"values length ${raw.values.length}, vectors ${raw.vectors.rows}x${raw.vectors.cols} for n=$n " +
+          "(RawSymmetricEigen requires n values and, with vectors, at least the leading n columns)"
+      )
+    val order = (0 until n).sortBy(i => (raw.values(i), i)).toArray
+    val values = DVec.tabulate(n)(i => raw.values(order(i)))
+    val vectors =
+      if wantVectors then Some(DMat.tabulate(n, n)((r, c) => raw.vectors(r, order(c))))
+      else None
+    (values, vectors)
 
   // ===========================================================================
   // Iterative partial symmetric eigendecomposition (eigsh)
