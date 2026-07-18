@@ -68,6 +68,22 @@ sbt benchSmokeJSFull  # the same under fullOpt
 Per-platform, per-module tasks also work directly, e.g. `sbt coreJVM/test`,
 `sbt lawsJS/test`, `sbt "coreJS/testOnly gale.sparse.*"`.
 
+## Browser demo
+
+`demo/` is a small Scala.js page that runs a full PCA — seeded synthetic 5-D
+data, centering, scatter matrix, `Eigen.eigSymmetric`, top-2 projection — live
+in the browser on gale's ordinary public API, with per-run timing and a
+"Re-sample" button. Build and open it:
+
+```sh
+sbt demo/fastLinkJS   # or the alias: sbt demoBuild
+open demo/index.html
+```
+
+The demo links with `ModuleKind.NoModule`, so the emitted script
+(`demo/target/scala-3.3.8/gale-demo-fastopt/main.js`) loads from a plain
+`<script>` tag directly off `file://` — no local server or bundler needed.
+
 ## Optional acceleration backends
 
 No import uses Gale's pure JVM/JS kernels. On JDK 21 or 22, opt into the Vector

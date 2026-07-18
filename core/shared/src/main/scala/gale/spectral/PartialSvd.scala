@@ -10,11 +10,24 @@ import gale.linalg.MutableDVec
 import gale.linalg.Rows
 import gale.linalg.Shape
 
-/** Public partial singular value decomposition (`svds`, phase a of
-  * `docs/spectral-parity.md` § 3 / § 8).
+/** Public singular value decomposition — partial (`svds`, phase a of
+  * `docs/spectral-parity.md` § 3 / § 8) and, on the dense entry points, the
+  * '''full/economy''' SVD that phase a deferred.
   *
-  * v0.3.5 ships '''partial''' SVD only — full/economy dense SVD is deferred (it
-  * needs a bidiagonal-SVD kernel outside the phase-a plan, § 3). The `k` requested
+  * '''Full dense SVD''' ([[SingularSelection.All]], or `Count(k)` with
+  * `k = min(m, n)`, on the `DMat` overloads). Served by the
+  * [[DenseSvdKernel]] — Householder bidiagonalization plus Golub–Kahan–Reinsch
+  * implicit-shift QR with the Wilkinson shift — in '''economy''' shapes: `U`
+  * is `m×k`, `Vᵀ` is `k×n`, `k = min(m, n)`. This closes seam S7 of
+  * `docs/spectral-backend-boundary.md`: the facade takes a
+  * `using SpectralBackend` and routes to a
+  * [[SpectralCapability.DenseSvd]]-capable backend when one is imported; the
+  * pure kernel is the always-available default (so, unlike the other
+  * backend-scoped seams, no-import is a `Right`, not a `Left`). The operator
+  * (matrix-free) overload stays Count-only — a dense bidiagonal reduction
+  * needs the materialized matrix.
+  *
+  * '''Partial SVD.''' The `k < min(m, n)` requested
   * triplets are computed by '''Golub–Kahan–Lanczos bidiagonalization''' of `A`
   * (two-sided, with full reorthogonalization of both the left and right vector
   * sequences), whose small bidiagonal `B` is diagonalized by running the existing
@@ -56,29 +69,60 @@ import gale.linalg.Shape
 object Svds:
 
   // ===========================================================================
-  // Dense partial SVD
+  // Dense SVD (full via the bidiagonal kernel; partial via Golub–Kahan–Lanczos)
   // ===========================================================================
 
-  /** Partial SVD of the dense `a`, computing singular vectors ([[EigenVectors.Right]]).
+  /** SVD of the dense `a`, computing singular vectors ([[EigenVectors.Right]]).
     * See the three-argument overload for the vector flag and failure details.
     */
-  def svd(a: DMat, selection: SingularSelection): Either[LinAlgError, SVD] =
+  def svd(a: DMat, selection: SingularSelection)(using SpectralBackend): Either[LinAlgError, SVD] =
     svd(a, selection, EigenVectors.Right)
 
-  /** Partial SVD of the dense `a` — `A = U Σ Vᵀ` with the `k` singular triplets
-    * named by `selection`, `Σ` descending. `vectors` chooses
+  /** SVD of the dense `a` — `A = U Σ Vᵀ` with the singular triplets named by
+    * `selection`, `Σ` descending always. [[SingularSelection.All]] (and
+    * equivalently `Count(k)` with `k = min(m, n)`, whichever order — membership
+    * is the whole spectrum either way) computes the '''full/economy''' dense
+    * SVD through the bidiagonal kernel: `U` `m×k`, `Vᵀ` `k×n`,
+    * `k = min(m, n)`, routed to a [[SpectralCapability.DenseSvd]]-capable
+    * `backend` when one is in scope (seam S7) and to the pure
+    * [[DenseSvdKernel]] otherwise. A `Count` with `k < min(m, n)` runs the
+    * partial Golub–Kahan–Lanczos path. `vectors` chooses
     * [[EigenVectors.ValuesOnly]] versus [[EigenVectors.Right]] (there is no
-    * one-sided singular-vector mode in v0.3.5, § 8: vectors means '''both''' `U`
-    * and `V`, or neither; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are
+    * one-sided singular-vector mode, § 8: vectors means '''both''' `U` and
+    * `V`, or neither; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are
     * rejected). Uses the default [[SpectralOptions]]; for tolerance/subspace
-    * control drive the operator overload with `a` as the operator.
+    * control of the partial path drive the operator overload with `a` as the
+    * operator.
     *
-    * `Left` on: a non-positive dimension; `k ≤ 0` or `k ≥ min(m, n)` (full SVD is
-    * deferred — the message points there); [[SingularSelection.All]] (Count-only,
-    * per § 8); or an illegal vector flag.
+    * On the full path `rank` (and `diagnostics.rank`) counts the singular
+    * values above the default solve tolerance (`1e-10`) relative to `σ_max`,
+    * the same returned-set policy the [[SVD]] result type documents;
+    * `diagnostics.iterations` is `0` (a dense one-shot solve).
+    *
+    * `Left` on: a non-positive dimension; an illegal vector flag; `k ≤ 0` or
+    * `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
+    * exhaustion, `Left(DidNotConverge)` like the dense eigen paths.
     */
-  def svd(a: DMat, selection: SingularSelection, vectors: EigenVectors): Either[LinAlgError, SVD] =
-    svdPartial(a, a.rows, a.cols, selection, SpectralOptions(returnVectors = vectors))
+  def svd(a: DMat, selection: SingularSelection, vectors: EigenVectors)(using
+      backend: SpectralBackend
+  ): Either[LinAlgError, SVD] =
+    val m = a.rows
+    val n = a.cols
+    if m <= 0 || n <= 0 then Left(LinAlgError.InvalidArgument(s"dimensions must be positive, got ${m}x$n"))
+    else
+      validateVectors(vectors) match
+        case Left(error) => Left(error)
+        case Right(wantVectors) =>
+          val p = math.min(m, n)
+          selection match
+            case SingularSelection.All =>
+              svdFullDense(a, wantVectors)
+            case SingularSelection.Count(k, _) if k == p =>
+              svdFullDense(a, wantVectors)
+            case SingularSelection.Count(k, _) if k <= 0 || k > p =>
+              Left(LinAlgError.InvalidArgument(s"k=$k must be in [1, $p]"))
+            case _ =>
+              svdPartial(a, m, n, selection, SpectralOptions(returnVectors = vectors))
 
   // ===========================================================================
   // Operator (matrix-free) partial SVD
@@ -108,6 +152,131 @@ object Svds:
     svdPartial(op, rows, cols, selection, options)
 
   // ===========================================================================
+  // Full/economy dense SVD (seam S7) + pseudo-inverse
+  // ===========================================================================
+
+  /** Moore–Penrose pseudo-inverse of `a` (`n×m` for an `m×n` input) via the
+    * full/economy dense SVD: `A⁺ = V Σ⁺ Uᵀ` with `Σ⁺` inverting exactly the
+    * singular values above the cutoff and zeroing the rest.
+    *
+    * '''Cutoff convention''' (the MATLAB/SciPy `pinv` convention — also NumPy's
+    * `matrix_rank` formula, though NumPy's own `pinv` defaults to a fixed
+    * `rcond = 1e-15`): a singular value is treated as zero unless
+    * `σ_i > rcond · σ_max` with `rcond = max(m, n) · ε` (`ε = 2⁻⁵² ≈ 2.22e-16`)
+    * — i.e. the cutoff is `max(m, n) · ε · σ_max`, scale-aware per
+    * `docs/numerical-contract.md`. An
+    * all-zero `a` therefore yields the all-zero `A⁺` (its correct
+    * pseudo-inverse), never a division by zero.
+    *
+    * `Left` exactly when the underlying [[svd(a:gale\.linalg\.DMat*]] is: a
+    * non-positive dimension, or (in practice unreachable) kernel
+    * non-convergence.
+    */
+  def pinv(a: DMat)(using SpectralBackend): Either[LinAlgError, DMat] =
+    svd(a, SingularSelection.All, EigenVectors.Right).map: s =>
+      val m = a.rows
+      val n = a.cols
+      val p = s.size
+      val sigmaMax = if p > 0 then s.singularValues(0) else 0.0
+      val cutoff = math.max(m, n).toDouble * MachineEpsilon * sigmaMax
+      // W = V·Σ⁺ (n×p): W(i, l) = Vᵀ(l, i) / σ_l above the cutoff, else 0.
+      val w = DMat.tabulate(n, p): (i, l) =>
+        val sigma = s.singularValues(l)
+        if sigma > cutoff then s.vt(l, i) / sigma else 0.0
+      w * s.u.t
+
+  /** Route the full dense SVD (already validated: positive dims, legal vector
+    * flag): a [[SpectralCapability.DenseSvd]]-capable backend computes the raw
+    * factors, else the pure [[DenseSvdKernel]] does; either way the facade
+    * canonicalizes and assembles ([[assembleFullSvd]]). Kernel sweep exhaustion
+    * maps to `Left(DidNotConverge)` exactly like the dense eigen paths (no
+    * partial result to hand back).
+    */
+  private def svdFullDense(a: DMat, wantVectors: Boolean)(using backend: SpectralBackend): Either[LinAlgError, SVD] =
+    val raw: Either[LinAlgError, RawSvd] =
+      if backend.capabilities.contains(SpectralCapability.DenseSvd) then backend.denseSvd(a, wantVectors)
+      else
+        DenseSvdKernel.svd(a, wantVectors) match
+          case Left(DenseSvdKernel.SvdKernelFailure.DidNotConverge(iters)) =>
+            // Dense path has no partial result to return, so exhaustion is a
+            // Left; residual is not measured on failure (reported as 0.0).
+            Left(LinAlgError.DidNotConverge(iters, 0.0))
+          case Right(factors) => Right(factors)
+    raw.map(assembleFullSvd(a, _, wantVectors))
+
+  /** Canonicalize raw full-SVD factors into the sealed [[SVD]]: enforce
+    * `σ ≥ 0` (a negative raw value flips with its `Vᵀ` row — legal because
+    * `σ u vᵀ = (−σ) u (−v)ᵀ`), impose the '''descending''' order (§ 8, ties by
+    * raw index), and re-derive what is checkable — per-triplet two-sided
+    * residuals `max(‖A v − σ u‖, ‖Aᵀ u − σ v‖)`, the worse `U`/`V`
+    * orthogonality error, and `rank` at the default solve tolerance relative
+    * to `σ_max` (the returned-set policy [[SVD]] documents). Values-only
+    * results carry empty factors, zero residuals, and zero orthogonality
+    * error, mirroring [[Eigen]]'s dense assembly.
+    */
+  private def assembleFullSvd(a: DMat, raw: RawSvd, wantVectors: Boolean): SVD =
+    val m = a.rows
+    val n = a.cols
+    val p = raw.sigma.length
+    val sig = new Array[Double](p)
+    val flip = new Array[Boolean](p)
+    var i = 0
+    while i < p do
+      val s = raw.sigma(i)
+      if s < 0.0 then
+        sig(i) = -s
+        flip(i) = true
+      else sig(i) = s
+      i += 1
+    val order = sig.indices.sortBy(i => (-sig(i), i)).toArray
+    val values = DVec.tabulate(p)(i => sig(order(i)))
+    // Providers may return full square factors (LAPACK `jobz='A'`: `u` m×m,
+    // `vt` n×n); the leading `p` columns/rows are the economy factors either
+    // way, so slice rather than require exact economy shape. Fewer than `p`
+    // vectors is a provider-contract violation — fail loudly, never return
+    // silently empty factors to a caller that asked for vectors.
+    if wantVectors && (raw.u.cols < p || raw.vt.rows < p) then
+      throw LinAlgError.InvalidArgument(
+        s"spectral provider returned malformed SVD factors: u ${raw.u.rows}x${raw.u.cols}, " +
+          s"vt ${raw.vt.rows}x${raw.vt.cols} for p=$p (RawSvd requires at least the leading $p vectors)"
+      )
+    val (u, vt, residuals, orthoErr) =
+      if wantVectors then
+        val uMat = DMat.tabulate(m, p)((r, c) => raw.u(r, order(c)))
+        val vtMat = DMat.tabulate(p, n): (r, c) =>
+          val src = order(r)
+          if flip(src) then -raw.vt(src, c) else raw.vt(src, c)
+        val res = DVec.tabulate(p): c =>
+          val uCol = uMat.col(c)
+          val vRow = vtMat.row(c)
+          val sigma = values(c)
+          val rV = (a * vRow - uCol * sigma).norm2
+          val rU = (a.t * uCol - vRow * sigma).norm2
+          math.max(rV, rU)
+        (uMat, vtMat, res, math.max(orthogonalityError(uMat), orthogonalityError(vtMat.t)))
+      else (DMat.zeros(m, 0), DMat.zeros(0, n), DVec.zeros(p), 0.0)
+    val tol = SpectralOptions().tolerance
+    val sigmaMax = if p > 0 then values(0) else 0.0
+    var rank = 0
+    i = 0
+    while i < p do
+      if values(i) > tol * sigmaMax then rank += 1
+      i += 1
+    val diagnostics =
+      SpectralDiagnostics(
+        requested = p,
+        converged = p,
+        residuals = residuals,
+        orthogonalityError = orthoErr,
+        iterations = 0,
+        rank = Some(rank)
+      )
+    SVD(values, u, vt, rank, diagnostics)
+
+  /** IEEE machine epsilon for `Double` (2^-52), the `pinv` cutoff scale. */
+  private val MachineEpsilon: Double = 2.220446049250313e-16
+
+  // ===========================================================================
   // Core
   // ===========================================================================
 
@@ -126,7 +295,7 @@ object Svds:
         case SingularSelection.All =>
           Left(
             LinAlgError.InvalidArgument(
-              "partial SVD selects by Count(k, order); full/All SVD is deferred (docs/spectral-parity.md §3)"
+              "the operator (matrix-free) SVD selects by Count(k, order); use the dense matrix overload (SingularSelection.All) for the full SVD"
             )
           )
         case SingularSelection.Count(k, order) =>
@@ -137,7 +306,7 @@ object Svds:
               if k <= 0 || k >= p then
                 Left(
                   LinAlgError.InvalidArgument(
-                    s"k=$k must be in [1, ${p - 1}] for partial SVD; full SVD (k = min(m,n)) is deferred"
+                    s"k=$k must be in [1, ${p - 1}] for partial SVD; use the dense matrix overload for the full SVD (k = min(m,n))"
                   )
                 )
               else

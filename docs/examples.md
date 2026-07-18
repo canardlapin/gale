@@ -228,8 +228,11 @@ would split a pair returns the whole pair instead. `EigenVectors.Left` /
 from the full right-eigenvector matrix); the iterative (Arnoldi) path
 supports right vectors only.
 
-**Partial SVD** (`Svds`, v0.3.5 ships partial only — no full dense SVD yet;
-`k` must satisfy `0 < k < min(rows, cols)`):
+**SVD** (`Svds`): partial via `Count(k)` with `0 < k <= min(rows, cols)` on the
+iterative Golub–Kahan–Lanczos path (`k = min` and `SingularSelection.All` route
+to the dense kernel; the matrix-free operator overload stays partial-only), and
+full/economy dense via `SingularSelection.All` or the `DMat.svd` facade (v0.5;
+economy factors `U` m×k, `Vᵀ` k×n). `DMat.pinv` builds on it:
 
 ```scala
 import gale.spectral.{Svds, SingularSelection, SingularOrder, EigenVectors}

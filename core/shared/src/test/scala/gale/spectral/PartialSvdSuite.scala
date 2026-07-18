@@ -275,13 +275,16 @@ class PartialSvdSuite extends munit.FunSuite:
   test("svd structural violations return Left") {
     val a = randomMat(10, 6, 5L)
 
-    // k out of range: k <= 0 and k >= min(m,n).
+    // k out of range: k <= 0 and k > min(m,n).
     assert(Svds.svd(a, SingularSelection.Count(0, SingularOrder.Largest)).isLeft)
-    assert(Svds.svd(a, SingularSelection.Count(6, SingularOrder.Largest)).isLeft) // k >= min(10,6)=6
-    // All is deferred (Count-only).
-    Svds.svd(a, SingularSelection.All) match
+    assert(Svds.svd(a, SingularSelection.Count(7, SingularOrder.Largest)).isLeft) // k > min(10,6)=6
+    // k = min(m,n) and All are served by the dense bidiagonal kernel now.
+    assert(Svds.svd(a, SingularSelection.Count(6, SingularOrder.Largest)).isRight)
+    assert(Svds.svd(a, SingularSelection.All).isRight)
+    // The operator (matrix-free) path stays Count-only: All is still rejected.
+    Svds.svd(a.asLinearOperator, 10, 6, SingularSelection.All, SpectralOptions()) match
       case Left(_: LinAlgError.InvalidArgument) => ()
-      case other                                => fail(s"expected InvalidArgument for All, got $other")
+      case other                                => fail(s"expected InvalidArgument for operator All, got $other")
     // illegal vector flags.
     assert(Svds.svd(a, SingularSelection.Count(2, SingularOrder.Largest), EigenVectors.Left).isLeft)
     assert(Svds.svd(a, SingularSelection.Count(2, SingularOrder.Largest), EigenVectors.LeftAndRight).isLeft)

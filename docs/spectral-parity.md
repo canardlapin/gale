@@ -130,9 +130,9 @@ LAPACK: `gesvd` / `gesdd`. `A = U Σ Vᵀ`, singular values descending.
 
 | Capability | MATLAB | SciPy | gale v0.3.5 plan | Notes |
 |---|---|---|---|---|
-| Singular values only | `svd(A)` (descending) | `svdvals(A)` / `svd(A, compute_uv=False)` | **deferred** | See scope note — full dense SVD needs a bidiagonal-SVD kernel not in the phase-a plan. |
-| Full SVD | `[U,S,V]=svd(A)` (`U` m×m, `V` n×n) | `svd(A, full_matrices=True)` → `(U, s, Vh)` | **deferred** | PRD "Later: Full dense SVD". |
-| Economy / thin SVD | `svd(A,'econ')`, `svd(A,0)` | `svd(A, full_matrices=False)` | **deferred** | — |
+| Singular values only | `svd(A)` (descending) | `svdvals(A)` / `svd(A, compute_uv=False)` | **in** (v0.5) | Dense Golub–Kahan–Reinsch kernel, values-only assembly. |
+| Full SVD | `[U,S,V]=svd(A)` (`U` m×m, `V` n×n) | `svd(A, full_matrices=True)` → `(U, s, Vh)` | **in — economy factors** (v0.5) | `Svds.svd(a, All)` / `DMat.svd`; gale returns economy `U` m×k, `Vᵀ` k×n (k = min(m,n)), not full square factors. |
+| Economy / thin SVD | `svd(A,'econ')`, `svd(A,0)` | `svd(A, full_matrices=False)` | **in** (v0.5) | The shipped shape. |
 | LAPACK driver choice | (internal) | `lapack_driver='gesdd'\|'gesvd'` | **out** | Not public surface. |
 | Partial SVD (top/bottom `k`) | `svds` | `svds` | **in-a** | See § 6 — this is the SVD gale actually ships in v0.3.5. |
 

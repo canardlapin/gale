@@ -261,7 +261,7 @@ into the named frozen type):
 |---|---|---|---|
 | `denseSymmetricEigen` | `RawSymmetricEigen` | `EigenDecomposition` | acceleration of dense `Eigen.eigSymmetric` |
 | `denseNonsymmetricEigen` | `RawNonsymmetricEigen` | `NonsymmetricEigenDecomposition` | acceleration of dense `Eigen.eigNonsymmetric` (all four vector modes, including left, already pure — § 3 S3) |
-| `denseSvd` | `RawSvd` | `SVD` (full dense — itself still "deferred" in pure) | full dense SVD (parity § 3) |
+| `denseSvd` | `RawSvd` | `SVD` (full dense — pure Golub–Kahan–Reinsch kernel ships as of v0.5) | acceleration of full dense SVD (parity § 3) |
 | `generalizedNonsymmetricEigen` | `RawGeneralizedEigen` | **`GeneralizedEigenDecomposition`** (new, § 1.3) | parity § 5 — QZ |
 | `rankDeficientGsvd` | `RawGsvd` | `GeneralizedSVD` | parity § 9 — rank-deficient GSVD |
 | `shiftInvertOperator` | `DoubleLinearOperator` | consumed by the existing Lanczos/Arnoldi loop | parity § 6–7 — targeted selection |
@@ -605,7 +605,7 @@ backend needed), or it is **out**. Loci are given by method, not line number
 | S4 | `Eigen.eigNonsymmetric(op, …)` iterative, left vectors: `validateArnoldiVectors` rejects `Left`/`LeftAndRight` | `Left(UnsupportedOperation("… a Krylov basis for A gives no left vectors; use the dense eigNonsymmetric"))` | two-sided Krylov, or `Aᵀ`-Arnoldi re-pairing — **the genuine left-vector seam** | **ARPACK-class** / **pure-deferrable** (not a dense-LAPACK seam) |
 | S5 | **QZ / generalized nonsymmetric eigen — no facade exists** (parity § 5; type present, § 0.2) | *no entry point*; parity doc specifies `Left(UnsupportedOperation)` | `generalizedNonsymmetricEigen(a, b, vectors)` → new `GeneralizedEigenDecomposition` | **FFM LAPACK** (`ggev`; `gges`+`tgsen` if `GeneralizedSchur`) |
 | S6 | `Svds.gsvd(a, b, vectors)` rank-deficient pencil (`m+p < n`, or measured `rank < n`) | `Left(RankDeficient(rank, n))` | `rankDeficientGsvd(a, b, wantVectors)` → `GeneralizedSVD` with `Infinite`/`Zero` | **FFM LAPACK** (`ggsvd3`: `ggsvp3` + `tgsja`) |
-| S7 | Full **dense** SVD (parity § 3, "deferred"; only partial ships) | *no dense entry point* | `denseSvd(a, wantVectors)` → `SVD` | **FFM LAPACK** (`gesdd`/`gesvd`) — coverage + acceleration |
+| S7 | Full **dense** SVD (parity § 3) — CLOSED for coverage in v0.5: the pure Golub–Kahan–Reinsch kernel ships behind `Svds.svd(a, All)` / `DMat.svd` | pure dense kernel computes (economy factors) | `denseSvd(a, wantVectors)` → `SVD` | **FFM LAPACK** (`gesdd`/`gesvd`) — acceleration only |
 | S8 | Accelerated dense symmetric/nonsymmetric eig for production scale (PRD Backend Performance Strategy) | pure kernels run (correct, slower) | `denseSymmetricEigen` / `denseNonsymmetricEigen` | **FFM LAPACK** (`syevr`/`geev`) |
 | S9 | Iterative **generalized** eigen (`B`-inner-product Lanczos, large/sparse; parity § 6 "in-b", no operator facade shipped) | *no operator facade* | `IterativeGeneralized` provider, or pure B-Lanczos | **Pure-deferrable** (small) / **ARPACK-class** (large) |
 | S10 | Complex shift σ (off the real axis; parity § Explicitly OUT) | n/a — `SpectralTarget.sigma` is `Double` | would need complex solves / complex tier | **Out** (§ 4) |

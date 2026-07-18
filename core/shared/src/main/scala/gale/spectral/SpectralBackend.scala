@@ -17,7 +17,12 @@ final case class RawSymmetricEigen(values: DVec, vectors: DMat)
 /** Raw nonsymmetric eigendecomposition, real-Schur SoA as `geev`/`dgeev` emit. */
 final case class RawNonsymmetricEigen(re: DVec, im: DVec, rightPacked: DMat, leftPacked: Option[DMat])
 
-/** Raw SVD triplets in any order — the facade fixes the descending layout. */
+/** Raw SVD triplets in any order — the facade fixes the descending layout.
+  * Shape contract: for an `m×n` input with `p = min(m, n)`, `u` must carry AT
+  * LEAST the leading `p` singular vectors as columns (`u.cols >= p`; a full
+  * `m×m` LAPACK `jobz='A'` factor is fine) and `vt` at least the leading `p`
+  * rows; the facade slices the leading block and discards any excess.
+  */
 final case class RawSvd(sigma: DVec, u: DMat, vt: DMat)
 
 /** Raw generalized (QZ) eigendecomposition — the projective `(α, β)` SoA spectrum
