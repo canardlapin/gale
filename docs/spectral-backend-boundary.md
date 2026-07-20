@@ -299,6 +299,7 @@ final class GeneralizedEigenDecomposition private[spectral] (
   def eigenvector(i: Int): (DVec, DVec)                // decode packing exactly like the nonsymmetric type
   def leftEigenvector(i: Int): (DVec, DVec)
   def requireConverged: Either[LinAlgError, GeneralizedEigenDecomposition]
+  def requireExtremeCertified: Either[LinAlgError, GeneralizedEigenDecomposition]
 ```
 
 **Canonical-order machinery this container needs (D-b).** The parity doc's
@@ -355,7 +356,7 @@ semantics); the backend inherits the rule, it does not get to invent a new one.
 | Structural precondition (non-square, shape disagreement, empty) | same `Left` variant as pure (`NonSquareMatrix`, `DimensionMismatch`, `InvalidArgument`) | **The facade validates shape *before* calling the backend** — a backend never sees malformed input, so these never originate inside a backend. |
 | `B` not positive-definite (generalized symmetric-definite acceleration) | `Left(NotPositiveDefinite)` | Facade's Cholesky gate runs first, exactly as today. |
 | Rank-deficient pencil, now *computed* (QZ / GSVD backend) | `Right` with `Infinite`/`Zero` typed values (GSVD) or `β = 0` infinite eigenvalues (QZ) + `diagnostics.rank` | The `Left(RankDeficient)` seam becomes a `Right`: the backend's whole job is to *handle* the case the pure path refused. Facade returns `Left(RankDeficient)` only if **no** rank-deficient-capable backend is present. |
-| Backend ran, did not fully converge (iterative / ARPACK-class) | `Right(partial result)`, `allConverged = false` | Same as `SolverResult.NotConverged` / pure Lanczos. Never a `Left`. `requireConverged` is the caller's opt-in throw. |
+| Backend ran, did not fully converge (iterative / ARPACK-class) | `Right(partial result)`, `allConverged = false` | Same as `SolverResult.NotConverged` / pure Lanczos. Never a `Left`. `requireConverged` is the caller's residual-policy throw; `requireExtremeCertified` additionally enforces certified spectral membership. |
 | LAPACK `info < 0` (illegal argument to the native routine) | `Left(InvalidArgument("<backend> reported illegal argument N to <routine>"))` | Indicates a gale↔backend marshalling bug; surfaces as `InvalidArgument`, and is a conformance failure (§ 2.6), not a user-facing normal path. |
 | Native library unavailable / fails to load | **cannot occur at call time** | Availability is a *registration* responsibility (§ 2.2): if the native library cannot load, the module does not provide its `given`, so resolution falls back to `none` and the call is a clean `Left(UnsupportedOperation)`. A registered backend must not throw for environmental reasons mid-call. |
 

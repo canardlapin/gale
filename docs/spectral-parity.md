@@ -437,15 +437,18 @@ partial result, is meaningful):**
   `Zero`/`Infinite` generalized-value cases — a `Right`, mirroring
   `conditionEstimate`'s `Right(∞)`.
 
-**Convenience throwers.** As `SolverResult.orThrow` raises `DidNotConverge`, the
-spectral results provide `requireConverged: Either[LinAlgError, Self]` (→
-`DidNotConverge(iterations, worstResidual)` when `!allConverged`) and an
-`.orThrow`-style shortcut, so users who want fail-fast behavior opt in explicitly
-rather than the total API deciding for them.
+**Typed enforcement helpers.** `requireConverged` preserves the historical
+residual policy: it returns `DidNotConverge(iterations, worstResidual)` when
+`!allConverged` but accepts `ResidualConverged`. `requireExtremeCertified` is the
+strict policy: it accepts only `ExtremeCertified`, returns `DidNotConverge` for
+`NotConverged`, and returns the distinct typed error
+`SpectralExtremeNotCertified` when residuals converged without a global
+extremality certificate. The strict helper enforces a certificate already present
+in the diagnostics; it does not create one.
 
 **One-line rule:** *structural violations are `Left`; non-convergence and
-degeneracy are `Right` + diagnostics, with an explicit `requireConverged` for
-callers who want the throw.*
+degeneracy are `Right` + diagnostics, with explicit residual-only or
+extreme-certified enforcement selected by the caller.*
 
 ---
 
@@ -508,9 +511,10 @@ the PRD's sketch.
     `residuals: DVec` (per-pair), `orthogonalityError: Double`, `iterations: Int`,
     `rank: Option[Int]`, `extremalityCertified: Boolean`, and derived
     `convergenceStatus: NotConverged | ResidualConverged | ExtremeCertified`.
-    Plus residual-based `requireConverged: Either[LinAlgError, Self]` on each
-    result. Directly mirrors `FactorizationDiagnostics` + `SolverResult` while
-    making the stronger spectral-membership claim explicit.
+    Plus residual-based `requireConverged` and strict
+    `requireExtremeCertified: Either[LinAlgError, Self]` on each result. Directly
+    mirrors `FactorizationDiagnostics` + `SolverResult` while making the stronger
+    spectral-membership claim explicit.
 
 ### Explicitly OUT of v0.3.5 (with rationale)
 

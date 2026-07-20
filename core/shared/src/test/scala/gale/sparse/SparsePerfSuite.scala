@@ -57,7 +57,7 @@ class SparsePerfSuite extends munit.FunSuite:
     assertEquals(sum.toDense().valuesRowMajor, sum.toCSC.toCSR.toDense().valuesRowMajor)
   }
 
-  test("CSR.mapValues preserves structure and prunes zeros without re-sorting") {
+  test("CSR.mapValues preserves structure and explicit zeros without re-sorting") {
     val a = sample
     val dense = a.toDense()
 
@@ -76,8 +76,12 @@ class SparsePerfSuite extends munit.FunSuite:
       Matrix.tabulate(a.rows, a.cols)((i, j) => if dense(i, j) != 0.0 then dense(i, j) + 10.0 else 0.0).valuesRowMajor
     )
 
-    // Everything maps to zero -> empty structure.
-    assertEquals(a.mapValues(_ * 0.0).nnz, 0)
+    // Numeric updates retain the pattern even when every stored value becomes
+    // zero; only the explicitly structure-changing prune removes those entries.
+    val zeroed = a.mapValues(_ * 0.0)
+    assertEquals(zeroed.nnz, a.nnz)
+    assertEquals(zeroed.pattern, a.pattern)
+    assertEquals(zeroed.pruneZeros.nnz, 0)
   }
 
   // ---- K4: direct CSC kernels ---------------------------------------------

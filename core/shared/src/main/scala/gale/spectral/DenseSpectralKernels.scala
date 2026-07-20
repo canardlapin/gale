@@ -2,6 +2,9 @@ package gale.spectral
 
 import gale.linalg.DMat
 import gale.linalg.DVec
+import gale.linalg.DenseWorkspace
+import gale.linalg.LinAlgError
+import gale.linalg.ScratchRequirement
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
@@ -98,7 +101,7 @@ private[gale] object DenseSpectralKernels:
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n) // EISPACK convention: e(0)=0, e(i)=T(i-1,i)
-    tred2(n, work, d, e, wantQ)
+    tred2(n, work, 0, d, e, 0, wantQ)
     val offLen = math.max(n - 1, 0)
     val off = DoubleArray.alloc(offLen)
     var k = 0
@@ -143,7 +146,24 @@ private[gale] object DenseSpectralKernels:
       e(i) = offDiagonal(i - 1)
       i += 1
     val z = if wantVectors then Some(identityRowMajor(n)) else None
-    solveTridiagonal(n, d, e, z, maxSweepsPerValue)
+    solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
+
+  /** Primitive scratch required by [[symmetricEigenWith]]. Values-only execution
+    * reuses the n² reduction matrix plus the length-n off-diagonal; when vectors
+    * are returned, the n² matrix is result storage and only the off-diagonal is
+    * scratch.
+    */
+  def symmetricEigenRequirement(
+      order: Int,
+      wantVectors: Boolean
+  ): Either[LinAlgError, ScratchRequirement] =
+    if order < 0 then
+      Left(LinAlgError.InvalidArgument(s"symmetric eigen order must be non-negative, got $order"))
+    else
+      val doubles =
+        if wantVectors then order.toLong
+        else order.toLong * order.toLong + order.toLong
+      ScratchRequirement.checked(doubles, 0L)
 
   /** Dense symmetric eigendecomposition `A V = V diag(λ)` with `λ` ascending and
     * `V` orthonormal (columns aligned with `values`). Composes
@@ -161,10 +181,35 @@ private[gale] object DenseSpectralKernels:
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n)
-    tred2(n, work, d, e, wantVectors)
+    tred2(n, work, 0, d, e, 0, wantVectors)
     // `work` now holds Q (when accumulating); tql2 rotates it into V.
     val z = if wantVectors then Some(work) else None
-    solveTridiagonal(n, d, e, z, maxSweepsPerValue)
+    solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
+
+  /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own
+    * their storage; reduction and off-diagonal scratch come from `workspace` and
+    * are safe to overwrite on the next call.
+    */
+  def symmetricEigenWith(
+      a: DMat,
+      wantVectors: Boolean,
+      workspace: DenseWorkspace,
+      maxSweepsPerValue: Int = 30
+  ): Either[SpectralKernelFailure, SymmetricEigen] =
+    val n = a.rows
+    require(a.cols == n, "symmetricEigenWith requires a square matrix")
+    val requirement = symmetricEigenRequirement(n, wantVectors) match
+      case Left(error)  => throw error
+      case Right(value) => value
+    val scratch = workspace.doubles(requirement)
+    val work = if wantVectors then DoubleArray.alloc(n * n) else scratch
+    val workOffset = 0
+    val eOffset = if wantVectors then 0 else n * n
+    symmetrizeLowerInto(a, n, work, workOffset)
+    val d = DoubleArray.alloc(n)
+    tred2(n, work, workOffset, d, scratch, eOffset, wantVectors)
+    val z = if wantVectors then Some(work) else None
+    solveTridiagonal(n, d, scratch, eOffset, z, maxSweepsPerValue)
 
   /** Symmetric Householder tridiagonalization (EISPACK `tred2`), in place on the
     * `n x n` row-major `a`.
@@ -178,7 +223,15 @@ private[gale] object DenseSpectralKernels:
     * eliminated, so `A`'s upper triangle is never consulted. Householder norms
     * are formed on the explicitly `scale`-normalized row to avoid overflow.
     */
-  private def tred2(n: Int, a: DoubleArray, d: DoubleArray, e: DoubleArray, accumulate: Boolean): Unit =
+  private def tred2(
+      n: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      d: DoubleArray,
+      e: DoubleArray,
+      eOffset: Int,
+      accumulate: Boolean
+  ): Unit =
     // Reduce from the last row inward; row i is eliminated against columns 0..i-1.
     var i = n - 1
     while i >= 1 do
@@ -188,60 +241,60 @@ private[gale] object DenseSpectralKernels:
       if l > 0 then
         var k = 0
         while k <= l do
-          scale += math.abs(a(i * n + k))
+          scale += math.abs(a(aOffset + i * n + k))
           k += 1
         if scale == 0.0 then
           // Row already reduced; its off-diagonal is the lone stored entry.
-          e(i) = a(i * n + l)
+          e(eOffset + i) = a(aOffset + i * n + l)
         else
           k = 0
           while k <= l do
-            val v = a(i * n + k) / scale
-            a(i * n + k) = v
+            val v = a(aOffset + i * n + k) / scale
+            a(aOffset + i * n + k) = v
             h += v * v
             k += 1
-          val f0 = a(i * n + l)
+          val f0 = a(aOffset + i * n + l)
           val g0 = if f0 >= 0.0 then -math.sqrt(h) else math.sqrt(h)
-          e(i) = scale * g0
+          e(eOffset + i) = scale * g0
           h -= f0 * g0
-          a(i * n + l) = f0 - g0
+          a(aOffset + i * n + l) = f0 - g0
           var f = 0.0
           var j = 0
           while j <= l do
             if accumulate then
-              a(j * n + i) = a(i * n + j) / h
+              a(aOffset + j * n + i) = a(aOffset + i * n + j) / h
             // g = (A u)_j using only the lower triangle.
             var g = 0.0
             var kk = 0
             while kk <= j do
-              g += a(j * n + kk) * a(i * n + kk)
+              g += a(aOffset + j * n + kk) * a(aOffset + i * n + kk)
               kk += 1
             kk = j + 1
             while kk <= l do
-              g += a(kk * n + j) * a(i * n + kk)
+              g += a(aOffset + kk * n + j) * a(aOffset + i * n + kk)
               kk += 1
-            e(j) = g / h
-            f += e(j) * a(i * n + j)
+            e(eOffset + j) = g / h
+            f += e(eOffset + j) * a(aOffset + i * n + j)
             j += 1
           val hh = f / (h + h)
           j = 0
           while j <= l do
-            val fj = a(i * n + j)
-            val gj = e(j) - hh * fj
-            e(j) = gj
+            val fj = a(aOffset + i * n + j)
+            val gj = e(eOffset + j) - hh * fj
+            e(eOffset + j) = gj
             var kk = 0
             while kk <= j do
-              val idx = j * n + kk
-              a(idx) = a(idx) - (fj * e(kk) + gj * a(i * n + kk))
+              val idx = aOffset + j * n + kk
+              a(idx) = a(idx) - (fj * e(eOffset + kk) + gj * a(aOffset + i * n + kk))
               kk += 1
             j += 1
       else
-        e(i) = a(i * n + l)
+        e(eOffset + i) = a(aOffset + i * n + l)
       d(i) = h
       i -= 1
 
     if accumulate then d(0) = 0.0
-    e(0) = 0.0
+    e(eOffset) = 0.0
     i = 0
     while i < n do
       if accumulate then
@@ -252,23 +305,23 @@ private[gale] object DenseSpectralKernels:
             var g = 0.0
             var k = 0
             while k <= l do
-              g += a(i * n + k) * a(k * n + j)
+              g += a(aOffset + i * n + k) * a(aOffset + k * n + j)
               k += 1
             k = 0
             while k <= l do
-              val idx = k * n + j
-              a(idx) = a(idx) - g * a(k * n + i)
+              val idx = aOffset + k * n + j
+              a(idx) = a(idx) - g * a(aOffset + k * n + i)
               k += 1
             j += 1
-        d(i) = a(i * n + i)
-        a(i * n + i) = 1.0
+        d(i) = a(aOffset + i * n + i)
+        a(aOffset + i * n + i) = 1.0
         var j = 0
         while j <= l do
-          a(j * n + i) = 0.0
-          a(i * n + j) = 0.0
+          a(aOffset + j * n + i) = 0.0
+          a(aOffset + i * n + j) = 0.0
           j += 1
       else
-        d(i) = a(i * n + i)
+        d(i) = a(aOffset + i * n + i)
       i += 1
 
   /** Implicit-shift tridiagonal QL solver with Wilkinson shifts (EISPACK `tql2`).
@@ -285,6 +338,7 @@ private[gale] object DenseSpectralKernels:
       n: Int,
       d: DoubleArray,
       e: DoubleArray,
+      eOffset: Int,
       z: Option[DoubleArray],
       maxSweeps: Int
   ): Either[SpectralKernelFailure, SymmetricEigen] =
@@ -293,9 +347,9 @@ private[gale] object DenseSpectralKernels:
     // Renumber the subdiagonal down by one (e(i-1) := e(i)), EISPACK convention.
     var i = 1
     while i < n do
-      e(i - 1) = e(i)
+      e(eOffset + i - 1) = e(eOffset + i)
       i += 1
-    e(n - 1) = 0.0
+    e(eOffset + n - 1) = 0.0
 
     var l = 0
     while l < n do
@@ -307,7 +361,7 @@ private[gale] object DenseSpectralKernels:
         var found = false
         while m < n - 1 && !found do
           val dd = math.abs(d(m)) + math.abs(d(m + 1))
-          if math.abs(e(m)) <= Epsilon * dd then found = true
+          if math.abs(e(eOffset + m)) <= Epsilon * dd then found = true
           else m += 1
         if m == l then
           continue = false
@@ -316,23 +370,23 @@ private[gale] object DenseSpectralKernels:
             return Left(SpectralKernelFailure.DidNotConverge(iter))
           iter += 1
           // Wilkinson-shifted implicit QL step on the block [l..m].
-          var g = (d(l + 1) - d(l)) / (2.0 * e(l))
+          var g = (d(l + 1) - d(l)) / (2.0 * e(eOffset + l))
           var r = pythag(g, 1.0)
-          g = d(m) - d(l) + e(l) / (g + sign(r, g))
+          g = d(m) - d(l) + e(eOffset + l) / (g + sign(r, g))
           var s = 1.0
           var c = 1.0
           var p = 0.0
           var innerZero = false
           var iBt = m - 1
           while iBt >= l && !innerZero do
-            var f = s * e(iBt)
-            val b = c * e(iBt)
+            var f = s * e(eOffset + iBt)
+            val b = c * e(eOffset + iBt)
             r = pythag(f, g)
-            e(iBt + 1) = r
+            e(eOffset + iBt + 1) = r
             if r == 0.0 then
               // Recover from underflow: deflate and restart the sweep.
               d(iBt + 1) = d(iBt + 1) - p
-              e(m) = 0.0
+              e(eOffset + m) = 0.0
               innerZero = true
             else
               s = f / r
@@ -355,8 +409,8 @@ private[gale] object DenseSpectralKernels:
             ()
           else
             d(l) = d(l) - p
-            e(l) = g
-            e(m) = 0.0
+            e(eOffset + l) = g
+            e(eOffset + m) = 0.0
       l += 1
 
     sortAscending(n, d, z)
@@ -1034,16 +1088,22 @@ private[gale] object DenseSpectralKernels:
     */
   private def symmetrizedLowerRowMajor(a: DMat, n: Int): DoubleArray =
     val out = DoubleArray.alloc(n * n)
+    symmetrizeLowerInto(a, n, out, 0)
+    out
+
+  /** Copy the lower triangle of `a`, mirrored across the diagonal, into the
+    * row-major `n x n` region beginning at `outOffset`.
+    */
+  private def symmetrizeLowerInto(a: DMat, n: Int, out: DoubleArray, outOffset: Int): Unit =
     var i = 0
     while i < n do
       var j = 0
       while j <= i do
         val v = a(i, j)
-        out(i * n + j) = v
-        out(j * n + i) = v
+        out(outOffset + i * n + j) = v
+        out(outOffset + j * n + i) = v
         j += 1
       i += 1
-    out
 
   /** A fresh `n x n` row-major identity array. */
   private def identityRowMajor(n: Int): DoubleArray =

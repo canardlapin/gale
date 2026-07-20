@@ -269,6 +269,9 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
       trapped.diagnostics.convergenceStatus,
       SpectralConvergenceStatus.ResidualConverged
     )
+    trapped.requireExtremeCertified match
+      case Left(_: LinAlgError.SpectralExtremeNotCertified) => ()
+      case other => fail(s"expected SpectralExtremeNotCertified, got $other")
 
     val fullSpace = Eigen
       .eigSymmetric(
@@ -284,6 +287,7 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
       fullSpace.diagnostics.convergenceStatus,
       SpectralConvergenceStatus.ExtremeCertified
     )
+    assert(fullSpace.requireExtremeCertified.isRight)
   }
 
   test("block krylov: repeated eigenspace converges without an n-dimensional projection") {

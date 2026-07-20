@@ -27,6 +27,13 @@ final case class EigenDecomposition private[spectral] (
   def requireConverged: Either[LinAlgError, EigenDecomposition] =
     diagnostics.requireConverged(this)
 
+  /** `Right(this)` only when the requested global spectral extreme is
+    * independently certified. See
+    * [[SpectralDiagnostics.requireExtremeCertified]].
+    */
+  def requireExtremeCertified: Either[LinAlgError, EigenDecomposition] =
+    diagnostics.requireExtremeCertified(this)
+
 /** The result of a '''nonsymmetric''' eigenproblem, whose real input may have
   * complex eigenvalues in conjugate pairs (§ 2, § 7).
   *
@@ -134,6 +141,13 @@ final class NonsymmetricEigenDecomposition private[spectral] (
     */
   def requireConverged: Either[LinAlgError, NonsymmetricEigenDecomposition] =
     diagnostics.requireConverged(this)
+
+  /** `Right(this)` only when the requested global spectral extreme is
+    * independently certified. See
+    * [[SpectralDiagnostics.requireExtremeCertified]].
+    */
+  def requireExtremeCertified: Either[LinAlgError, NonsymmetricEigenDecomposition] =
+    diagnostics.requireExtremeCertified(this)
 
   /** Decode column(s) of a packed real-Schur eigenvector matrix at index `i` into
     * explicit `(realPart, imaginaryPart)` vectors. The imaginary part is a fresh

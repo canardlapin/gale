@@ -113,6 +113,13 @@ final class GeneralizedEigenDecomposition private[spectral] (
   def requireConverged: Either[LinAlgError, GeneralizedEigenDecomposition] =
     diagnostics.requireConverged(this)
 
+  /** `Right(this)` only when the requested global spectral extreme is
+    * independently certified. See
+    * [[SpectralDiagnostics.requireExtremeCertified]].
+    */
+  def requireExtremeCertified: Either[LinAlgError, GeneralizedEigenDecomposition] =
+    diagnostics.requireExtremeCertified(this)
+
   private def decode(packed: DMat, what: String, i: Int): (DVec, DVec) =
     if packed.cols == 0 then throw LinAlgError.UnsupportedOperation(what)
     val imag = alphaIm(i)

@@ -4,10 +4,12 @@ import gale.linalg.Cols
 import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.DenseDecompositions
+import gale.linalg.DenseWorkspace
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.linalg.MutableDVec
 import gale.linalg.Rows
+import gale.linalg.ScratchRequirement
 import gale.linalg.Shape
 import gale.linalg.TriangularSolve
 
@@ -118,6 +120,52 @@ object Eigen:
                 case Right((values, vecs)) =>
                   val indices = denseSelectionIndices(selection, values, n)
                   Right(assembleDense(a, values, vecs, indices, wantVectors))
+
+  /** Primitive scratch required by [[eigSymmetricWith]] for an `order x order`
+    * dense symmetric problem. This is a checked, allocation-free query; left and
+    * left-and-right vector flags are rejected with the same public contract as
+    * [[eigSymmetric]].
+    */
+  def symmetricScratchRequirement(
+      order: Int,
+      vectors: EigenVectors = EigenVectors.Right
+  ): Either[LinAlgError, ScratchRequirement] =
+    validateVectors(vectors).flatMap: wantVectors =>
+      DenseSpectralKernels.symmetricEigenRequirement(order, wantVectors)
+
+  /** Allocation-controlled pure dense symmetric eigendecomposition computing
+    * right eigenvectors. The workspace owns only overwriteable primitive
+    * scratch; every returned value and vector owns its storage.
+    */
+  def eigSymmetricWith(
+      a: DMat,
+      selection: EigenSelection,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, EigenDecomposition] =
+    eigSymmetricWith(a, selection, EigenVectors.Right, workspace)
+
+  /** Allocation-controlled pure dense symmetric eigendecomposition. This route
+    * deliberately bypasses optional providers: reuse of the caller's workspace
+    * is part of the method contract, whereas provider scratch ownership is not.
+    * The ordinary [[eigSymmetric]] facade retains backend routing unchanged.
+    */
+  def eigSymmetricWith(
+      a: DMat,
+      selection: EigenSelection,
+      vectors: EigenVectors,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, EigenDecomposition] =
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else
+      val n = a.rows
+      validateVectors(vectors).flatMap: wantVectors =>
+        validateDenseSelection(selection, n).flatMap: _ =>
+          DenseSpectralKernels.symmetricEigenWith(a, wantVectors, workspace) match
+            case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
+              Left(LinAlgError.DidNotConverge(iters, 0.0))
+            case Right(kernel) =>
+              val indices = denseSelectionIndices(selection, kernel.values, n)
+              Right(assembleDense(a, kernel.values, kernel.vectors, indices, wantVectors))
 
   /** The S8 dispatch seam: the full '''ascending''' symmetric spectrum (and full
     * eigenvector matrix when wanted), from a routed backend or the pure kernel.

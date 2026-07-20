@@ -385,15 +385,134 @@ final class DMat private[gale] (
     * gate, and stays on the dedicated pure symmetric kernel below it.
     */
   def *(that: DMat)(using backend: Backend): DMat =
-    if cols != that.rows then
-      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(that.cols)), Shape(Rows(that.rows), Cols(that.cols)))
+    requireProductShape(that)
     val out = DMat.zeros(rows, that.cols)
+    gemmToStorage(
+      that,
+      out.data,
+      out.offset.value,
+      out.rowStride.value,
+      out.colStride.value,
+      alpha = 1.0,
+      beta = 0.0,
+      backend = backend
+    )
+    out
+
+  /** General matrix product into caller-owned single-owner storage:
+    * `destination := alpha * this * that + beta * destination`.
+    *
+    * `beta == 0.0` is replacement semantics: every destination element is
+    * assigned without reading its old value, so pre-existing NaN or infinity
+    * cannot poison the result. Any nonzero `beta` is accumulation semantics and
+    * reads the previous destination. Inputs may be row-major, transposed, or
+    * strided; the destination is the open contiguous row-major storage owned by
+    * a [[DMatBuilder]]. No intermediate matrix is allocated.
+    */
+  def gemmInto(
+      that: DMat,
+      destination: DMatBuilder,
+      alpha: Double = 1.0,
+      beta: Double = 0.0
+  )(using backend: Backend): Unit =
+    val out = destination.writableData
+    requireProductShape(that)
+    requireDestinationShape(destination, rows, that.cols)
+    if DoubleArray.sameStorage(data, out) || DoubleArray.sameStorage(that.data, out) then
+      throw LinAlgError.UnsupportedOperation("aliased gemmInto destination")
+    gemmToStorage(
+      that,
+      out,
+      outOffset = 0,
+      outRowStride = destination.cols,
+      outColStride = 1,
+      alpha = alpha,
+      beta = beta,
+      backend = backend
+    )
+
+  /** Fused elementwise replacement:
+    * `destination := alpha * this + beta * that`.
+    *
+    * Unlike GEMM's `beta`, both coefficients scale immutable inputs; the old
+    * destination is never read. A zero coefficient also suppresses reading its
+    * corresponding input, so `0 * NaN` cannot contaminate the result. Structural
+    * aliasing with either input is rejected even though public builders normally
+    * make such an alias impossible.
+    */
+  def linearCombinationInto(
+      that: DMat,
+      destination: DMatBuilder,
+      alpha: Double,
+      beta: Double
+  ): Unit =
+    val out = destination.writableData
+    requireSameShape(that)
+    requireDestinationShape(destination, rows, cols)
+    if DoubleArray.sameStorage(data, out) || DoubleArray.sameStorage(that.data, out) then
+      throw LinAlgError.UnsupportedOperation("aliased linearCombinationInto destination")
+
+    val aData = data
+    val bData = that.data
+    val aRowStride = rowStride.value
+    val aColStride = colStride.value
+    val bRowStride = that.rowStride.value
+    val bColStride = that.colStride.value
+    var row = 0
+    var write = 0
+    if alpha == 0.0 && beta == 0.0 then
+      while write < rows * cols do
+        out(write) = 0.0
+        write += 1
+    else if beta == 0.0 then
+      while row < rows do
+        var aIndex = offset.value + row * aRowStride
+        var col = 0
+        while col < cols do
+          out(write) = alpha * aData(aIndex)
+          write += 1
+          aIndex += aColStride
+          col += 1
+        row += 1
+    else if alpha == 0.0 then
+      while row < rows do
+        var bIndex = that.offset.value + row * bRowStride
+        var col = 0
+        while col < cols do
+          out(write) = beta * bData(bIndex)
+          write += 1
+          bIndex += bColStride
+          col += 1
+        row += 1
+    else
+      while row < rows do
+        var aIndex = offset.value + row * aRowStride
+        var bIndex = that.offset.value + row * bRowStride
+        var col = 0
+        while col < cols do
+          out(write) = alpha * aData(aIndex) + beta * bData(bIndex)
+          write += 1
+          aIndex += aColStride
+          bIndex += bColStride
+          col += 1
+        row += 1
+
+  private def gemmToStorage(
+      that: DMat,
+      out: DoubleArray,
+      outOffset: Int,
+      outRowStride: Int,
+      outColStride: Int,
+      alpha: Double,
+      beta: Double,
+      backend: Backend
+  ): Unit =
     // `Aᵀ · A` with a row-major `A` (the common Gram/normal-equations product):
     // a general gemm would traverse the transposed left operand column-strided and
     // cache-hostile, so route it to the dedicated symmetric rank-k kernel (half the
     // flops, unit-stride throughout). Detected structurally: `this` is exactly the
     // transpose view of `that`, and `that` has unit column stride.
-    if isTransposeOf(that) && that.colStride.value == 1 then
+    if isTransposeOf(that) && that.colStride.value == 1 && alpha == 1.0 && beta == 0.0 then
       if backend.routesGemm(that.rows, that.cols, that.cols) then
         backend.denseDouble.syrk(
           that.rows,
@@ -401,9 +520,9 @@ final class DMat private[gale] (
           that.data,
           that.offset.value,
           that.rowStride.value,
-          out.data,
-          out.offset.value,
-          out.rowStride.value
+          out,
+          outOffset,
+          outRowStride
         )
       else
         DoubleKernels.dsyrkRowMajor(
@@ -412,16 +531,16 @@ final class DMat private[gale] (
           that.data,
           that.offset.value,
           that.rowStride.value,
-          out.data,
-          out.offset.value,
-          out.rowStride.value
+          out,
+          outOffset,
+          outRowStride
         )
     else if backend.routesGemm(rows, that.cols, cols) then
       backend.denseDouble.gemm(
         rows,
         that.cols,
         cols,
-        1.0,
+        alpha,
         data,
         offset.value,
         rowStride.value,
@@ -430,18 +549,18 @@ final class DMat private[gale] (
         that.offset.value,
         that.rowStride.value,
         that.colStride.value,
-        0.0,
-        out.data,
-        out.offset.value,
-        out.rowStride.value,
-        out.colStride.value
+        beta,
+        out,
+        outOffset,
+        outRowStride,
+        outColStride
       )
     else
       DoubleKernels.dgemm(
         rows,
         that.cols,
         cols,
-        1.0,
+        alpha,
         data,
         offset.value,
         rowStride.value,
@@ -450,13 +569,26 @@ final class DMat private[gale] (
         that.offset.value,
         that.rowStride.value,
         that.colStride.value,
-        0.0,
-        out.data,
-        out.offset.value,
-        out.rowStride.value,
-        out.colStride.value
+        beta,
+        out,
+        outOffset,
+        outRowStride,
+        outColStride
       )
-    out
+
+  private def requireProductShape(that: DMat): Unit =
+    if cols != that.rows then
+      throw LinAlgError.DimensionMismatch(
+        Shape(Rows(cols), Cols(that.cols)),
+        Shape(Rows(that.rows), Cols(that.cols))
+      )
+
+  private def requireDestinationShape(destination: DMatBuilder, expectedRows: Int, expectedCols: Int): Unit =
+    if destination.rows != expectedRows || destination.cols != expectedCols then
+      throw LinAlgError.DimensionMismatch(
+        Shape(Rows(expectedRows), Cols(expectedCols)),
+        Shape(Rows(destination.rows), Cols(destination.cols))
+      )
 
   /** True when `this` is exactly the transpose view of `that` — same backing
     * storage and offset, swapped shape and strides — so `this * that` is `AᵀA`.

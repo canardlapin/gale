@@ -73,6 +73,14 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
       Stride.unsafe(1)
     )
 
+  /** Validated internal doorway for allocation-free destination kernels. Public
+    * callers never receive the storage handle; a closed builder is rejected
+    * before any kernel can write it.
+    */
+  private[gale] def writableData: DoubleArray =
+    requireOpen()
+    data
+
   private def requireOpen(): Unit =
     if !open then
       throw LinAlgError.UnsupportedOperation("DMatBuilder is closed after result()")

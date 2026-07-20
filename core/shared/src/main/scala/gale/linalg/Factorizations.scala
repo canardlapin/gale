@@ -112,8 +112,13 @@ final case class LU private[gale] (
     pivots: PivotVector,
     parity: Int,
     diagnostics: FactorizationDiagnostics
-):
+) extends ExactSolveFactor:
+  def size: Int = packed.rows
+
   def solve(b: DVec): Either[LinAlgError, DVec] =
+    DenseDecompositions.solve(this, b)
+
+  def solve(b: DMat): Either[LinAlgError, DMat] =
     DenseDecompositions.solve(this, b)
 
   def det: Either[LinAlgError, Double] =
@@ -131,7 +136,9 @@ final case class Cholesky private[gale] (
     lower: DMat,
     diagnostics: FactorizationDiagnostics,
     options: CholeskyOptions = CholeskyOptions.Default
-):
+) extends ExactSolveFactor:
+  def size: Int = lower.rows
+
   def solve(b: DVec): Either[LinAlgError, DVec] =
     DenseDecompositions.solve(this, b)
 
@@ -154,7 +161,11 @@ final case class QR private[gale] (
     diagnostics: FactorizationDiagnostics,
     columnPermutation: ColumnPermutation,
     options: QROptions
-):
+) extends LeastSquaresFactor:
+  def observationCount: Int = reflectors.rows
+
+  def coefficientCount: Int = r.cols
+
   /** The orthogonal factor `Q` (`m x m`), materialised from the stored
     * reflectors on first access and cached thereafter.
     */
@@ -289,7 +300,10 @@ object DenseDecompositions:
     // tau(k) = 2 / (v_k · v_k). No m x m Q is formed here; it is rebuilt on demand.
     val reflectors = DoubleArray.alloc(m * limit)
     val tau = DoubleArray.alloc(limit)
-    val scratch = workspace.work(DenseWorkspace.qrWorkSize(m, n))
+    val requirement = DenseWorkspace.qrRequirement(m, n) match
+      case Left(error)  => throw error
+      case Right(value) => value
+    val scratch = workspace.doubles(requirement)
     val permutation = Array.tabulate(n)(i => i)
 
     if options.pivoting == QRPivoting.Column then
@@ -827,6 +841,66 @@ object DenseDecompositions:
         Left(LinAlgError.SingularMatrix(info))
       else
         Right(DVec.fromDoubleArrayOwned(x))
+
+  def solve(lu: LU, b: DMat): Either[LinAlgError, DMat] =
+    val n = lu.packed.rows
+    if lu.packed.cols != n then
+      Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    else if b.rows != n then
+      Left(
+        LinAlgError.DimensionMismatch(
+          Shape(Rows(n), Cols(b.cols)),
+          b.shape
+        )
+      )
+    else
+      val rhsCols = b.cols
+      val packed = lu.packed
+      val packedData = packed.data
+      val packedOffset = packed.offset.value
+      val packedRowStride = packed.rowStride.value
+      val packedColStride = packed.colStride.value
+      val values = DoubleArray.alloc(n * rhsCols)
+      var row = 0
+      while row < n do
+        val sourceRow = lu.pivots(row)
+        var rhs = 0
+        while rhs < rhsCols do
+          values(row * rhsCols + rhs) = b(sourceRow, rhs)
+          rhs += 1
+        row += 1
+
+      var rhs = 0
+      while rhs < rhsCols do
+        DoubleKernels.dtrsv(
+          n,
+          lower = true,
+          unit = true,
+          0.0,
+          packedData,
+          packedOffset,
+          packedRowStride,
+          packedColStride,
+          values,
+          rhs,
+          rhsCols
+        )
+        val info = DoubleKernels.dtrsv(
+          n,
+          lower = false,
+          unit = false,
+          0.0,
+          packedData,
+          packedOffset,
+          packedRowStride,
+          packedColStride,
+          values,
+          rhs,
+          rhsCols
+        )
+        if info >= 0 then return Left(LinAlgError.SingularMatrix(info))
+        rhs += 1
+      Right(DMat.fromDoubleArrayOwned(n, rhsCols, values))
 
   def solve(cholesky: Cholesky, b: DVec): Either[LinAlgError, DVec] =
     val n = cholesky.lower.rows

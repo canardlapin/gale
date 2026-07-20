@@ -54,3 +54,10 @@ final case class GeneralizedSVD private[spectral] (
   /** `Right(this)` when the (dense one-shot) decomposition is complete. */
   def requireConverged: Either[LinAlgError, GeneralizedSVD] =
     diagnostics.requireConverged(this)
+
+  /** `Right(this)` only when the requested global generalized singular spectrum
+    * is independently certified. See
+    * [[SpectralDiagnostics.requireExtremeCertified]].
+    */
+  def requireExtremeCertified: Either[LinAlgError, GeneralizedSVD] =
+    diagnostics.requireExtremeCertified(this)

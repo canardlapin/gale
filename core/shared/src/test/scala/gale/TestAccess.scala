@@ -63,9 +63,17 @@ object TestAccess:
   def workBacking(workspace: DenseWorkspace): DoubleArray =
     workspace.workBacking
 
+  /** The reusable index scratch buffer behind a workspace. */
+  def indexBacking(workspace: DenseWorkspace): IndexArray =
+    workspace.indexBacking
+
   /** True when both handles refer to the same underlying storage. */
   def sameStorage(a: DoubleArray, b: DoubleArray): Boolean =
     DoubleArray.sameStorage(a, b)
+
+  /** True when both index handles refer to the same underlying storage. */
+  def sameIndexStorage(a: IndexArray, b: IndexArray): Boolean =
+    a.asInstanceOf[AnyRef] eq b.asInstanceOf[AnyRef]
 
   /** Raw dense storage handles for view-versus-copy ownership assertions. */
   def dmatStorage(matrix: DMat): DoubleArray =

@@ -83,3 +83,21 @@ final case class SpectralDiagnostics(
   def requireConverged[A](result: A): Either[LinAlgError, A] =
     if allConverged then Right(result)
     else Left(LinAlgError.DidNotConverge(iterations, worstResidual))
+
+  /** Require both residual convergence and an independent certificate that the
+    * result belongs to the requested global spectral extreme.
+    *
+    * A residual failure returns [[gale.linalg.LinAlgError.DidNotConverge]]. A
+    * residual-converged result without an extremality certificate returns the
+    * distinct typed error
+    * [[gale.linalg.LinAlgError.SpectralExtremeNotCertified]]. This method only
+    * enforces an existing certificate; it never manufactures one.
+    */
+  def requireExtremeCertified[A](result: A): Either[LinAlgError, A] =
+    convergenceStatus match
+      case SpectralConvergenceStatus.NotConverged =>
+        Left(LinAlgError.DidNotConverge(iterations, worstResidual))
+      case SpectralConvergenceStatus.ResidualConverged =>
+        Left(LinAlgError.SpectralExtremeNotCertified(iterations, worstResidual))
+      case SpectralConvergenceStatus.ExtremeCertified =>
+        Right(result)

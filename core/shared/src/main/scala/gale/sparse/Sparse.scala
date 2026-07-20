@@ -433,6 +433,27 @@ final class CSR private[gale] (
   def nnz: Int =
     values.length
 
+  /** Immutable compressed structure shared with this matrix. No pointer or
+    * index storage is copied or exposed.
+    */
+  lazy val pattern: CSRPattern =
+    new CSRPattern(new CompressedPatternStorage(rowPtr, colIdx), rows, cols)
+
+  /** Replace all stored values without changing structure. The input is copied
+    * exactly once; explicit zeros remain stored until [[pruneZeros]] or [[prune]].
+    */
+  def rebind(values: DVec): Either[LinAlgError, CSR] =
+    pattern.bind(values)
+
+  def rebind(values: Array[Double]): Either[LinAlgError, CSR] =
+    pattern.bind(values)
+
+  /** O(1) exact symbolic-plan compatibility check: dimensions and immutable
+    * compressed backing identity must match the pattern used during analysis.
+    */
+  private[sparse] def sharesPatternStorage(pattern: CSRPattern): Boolean =
+    rows == pattern.rows && cols == pattern.cols && pattern.storage.sharesArrays(rowPtr, colIdx)
+
   /** Visit every physically stored CSR entry exactly once in deterministic
     * row-major storage order, without exposing pointer/index/value arrays.
     */
@@ -619,38 +640,16 @@ final class CSR private[gale] (
     mapValues(_ * alpha)
 
   def mapValues(f: Double => Double): CSR =
-    // Structure is preserved: map the stored values in one pass and compact out
-    // any that map to zero, keeping the existing (sorted) column order. No COO
-    // rebuild and no re-sort.
-    val rPtr = rowPtr
-    val cIdx = colIdx
+    // A numeric-only update shares the immutable structure and retains explicit
+    // zeros. Structural compaction is deliberately restricted to prune/pruneZeros.
     val vData = values
     val n = vData.length
-    val outColIdx = new Array[Int](n)
-    val outValues = new Array[Double](n)
-    val outRowPtr = new Array[Int](rows + 1)
-    var write = 0
-    var row = 0
-    while row < rows do
-      outRowPtr(row) = write
-      var p = rPtr(row)
-      val end = rPtr(row + 1)
-      while p < end do
-        val value = f(vData(p))
-        if value != 0.0 then
-          outColIdx(write) = cIdx(p)
-          outValues(write) = value
-          write += 1
-        p += 1
-      row += 1
-    outRowPtr(rows) = write
-    new CSR(
-      rows,
-      cols,
-      toIndexArray(outRowPtr, rows + 1),
-      toIndexArray(outColIdx, write),
-      toDoubleArray(outValues, write)
-    )
+    val outValues = DoubleArray.alloc(n)
+    var p = 0
+    while p < n do
+      outValues(p) = f(vData(p))
+      p += 1
+    new CSR(rows, cols, rowPtr, colIdx, outValues)
 
   def zipValues(that: CSR)(f: (Double, Double) => Double): CSR =
     requireSameShape(that)
@@ -854,14 +853,6 @@ final class CSR private[gale] (
     */
   def prune(absBelow: Double): CSR =
     require(absBelow >= 0.0, "prune threshold must be non-negative")
-    // Reuse mapValues' compaction: mapping a dropped entry to 0.0 removes it.
-    mapValues(v => if math.abs(v) > absBelow then v else 0.0)
-
-  /** Fully canonicalize: sort columns within each row, sum duplicate columns, and
-    * drop entries that are (or sum to) zero. The result satisfies
-    * [[hasCanonicalFormat]] and preserves the sum-semantics matrix.
-    */
-  def canonicalize: CSR =
     val rPtr = rowPtr
     val cIdx = colIdx
     val vData = values
@@ -869,9 +860,65 @@ final class CSR private[gale] (
     val outColIdx = new Array[Int](n)
     val outValues = new Array[Double](n)
     val outRowPtr = new Array[Int](rows + 1)
-    // Per-row scratch, sized to the widest possible row (the whole nnz).
-    val colBuf = new Array[Int](n)
-    val valBuf = new Array[Double](n)
+    var write = 0
+    var row = 0
+    while row < rows do
+      outRowPtr(row) = write
+      var p = rPtr(row)
+      val end = rPtr(row + 1)
+      while p < end do
+        val value = vData(p)
+        if math.abs(value) > absBelow then
+          outColIdx(write) = cIdx(p)
+          outValues(write) = value
+          write += 1
+        p += 1
+      row += 1
+    outRowPtr(rows) = write
+    new CSR(
+      rows,
+      cols,
+      toIndexArray(outRowPtr, rows + 1),
+      toIndexArray(outColIdx, write),
+      toDoubleArray(outValues, write)
+    )
+
+  /** Fully canonicalize: sort columns within each row, sum duplicate columns, and
+    * drop entries that are (or sum to) zero. The result satisfies
+    * [[hasCanonicalFormat]] and preserves the sum-semantics matrix.
+    */
+  def canonicalize: CSR =
+    val requirement = canonicalizeScratchRequirement match
+      case Left(error)  => throw error
+      case Right(value) => value
+    canonicalizeWith(DenseWorkspace.forRequirement(requirement))
+
+  /** Primitive scratch required by [[canonicalizeWith]]. Both regions are sized
+    * to `nnz`, the widest possible row, and can be reused by later calls.
+    */
+  def canonicalizeScratchRequirement: Either[LinAlgError, ScratchRequirement] =
+    ScratchRequirement.checked(nnz.toLong, nnz.toLong)
+
+  /** Canonicalize using caller-owned primitive scratch. The returned CSR owns
+    * its values and indices; neither result storage nor input storage aliases
+    * the workspace, so a subsequent call cannot mutate an earlier result.
+    */
+  def canonicalizeWith(workspace: DenseWorkspace): CSR =
+    val requirement = canonicalizeScratchRequirement match
+      case Left(error)  => throw error
+      case Right(value) => value
+    val colBuf = workspace.indices(requirement)
+    val valBuf = workspace.doubles(requirement)
+    canonicalizeUsing(colBuf, valBuf)
+
+  private def canonicalizeUsing(colBuf: IndexArray, valBuf: DoubleArray): CSR =
+    val rPtr = rowPtr
+    val cIdx = colIdx
+    val vData = values
+    val n = vData.length
+    val outColIdx = new Array[Int](n)
+    val outValues = new Array[Double](n)
+    val outRowPtr = new Array[Int](rows + 1)
     var write = 0
     var row = 0
     while row < rows do
@@ -884,7 +931,7 @@ final class CSR private[gale] (
         colBuf(k) = cIdx(start + k)
         valBuf(k) = vData(start + k)
         k += 1
-      insertionSortRange(colBuf, valBuf, 0, width)
+      insertionSortPlatformRange(colBuf, valBuf, 0, width)
       var p = 0
       while p < width do
         val c = colBuf(p)
@@ -922,6 +969,21 @@ final class CSC private[gale] (
     with DoubleLinearOperator:
   def nnz: Int =
     values.length
+
+  /** Immutable compressed structure shared with this matrix. No pointer or
+    * index storage is copied or exposed.
+    */
+  lazy val pattern: CSCPattern =
+    new CSCPattern(new CompressedPatternStorage(colPtr, rowIdx), rows, cols)
+
+  /** Replace all stored values without changing structure. The input is copied
+    * exactly once; explicit zeros remain stored until [[pruneZeros]] or [[prune]].
+    */
+  def rebind(values: DVec): Either[LinAlgError, CSC] =
+    pattern.bind(values)
+
+  def rebind(values: Array[Double]): Either[LinAlgError, CSC] =
+    pattern.bind(values)
 
   def apply(row: Int, col: Int): Double =
     toCSR(row, col)
@@ -1448,6 +1510,28 @@ private def toDoubleArray(src: Array[Double], length: Int): DoubleArray =
   * so summed duplicates are deterministic.
   */
 private def insertionSortRange(keys: Array[Int], vals: Array[Double], start: Int, end: Int): Unit =
+  var i = start + 1
+  while i < end do
+    val k = keys(i)
+    val v = vals(i)
+    var j = i - 1
+    while j >= start && keys(j) > k do
+      keys(j + 1) = keys(j)
+      vals(j + 1) = vals(j)
+      j -= 1
+    keys(j + 1) = k
+    vals(j + 1) = v
+    i += 1
+
+/** Platform-array counterpart of [[insertionSortRange]], used by reusable
+  * workspace storage on both the JVM and Scala.js.
+  */
+private def insertionSortPlatformRange(
+    keys: IndexArray,
+    vals: DoubleArray,
+    start: Int,
+    end: Int
+): Unit =
   var i = start + 1
   while i < end do
     val k = keys(i)

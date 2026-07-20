@@ -18,6 +18,9 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
   `-prof gc` for bytes/op.
 - `SparseInteropJmh` — boxed `COO.entries` versus reusable primitive COO/CSR
   traversal over 1,024 and 16,384 stored entries; use `-prof gc` for bytes/op.
+- `AllocationArchitectureJmh` — dense destination, factorization workspace,
+  spectral scratch, and sparse structure/value allocation baselines over `n` in
+  {64, 128}; use `-prof gc` and compare the paired allocating/reuse scenarios.
 
 Each benchmark uses 2 forks with 5x500ms warmup and 5x500ms measurement.
 
@@ -43,6 +46,7 @@ SpMV should report near-zero `gc.alloc.rate.norm`):
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=4096 gale.bench.DenseKernelJmh.dot"
 sbt "benchmarksJVM/Jmh/run -prof gc .*DenseTransformJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc .*SparseInteropJmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc -p n=128 gale.bench.AllocationArchitectureJmh.*"
 ```
 
 Verify the whole suite compiles (annotation processing included) without running
@@ -129,5 +133,9 @@ sbt benchSmokeJS        # fastLinkJS
 sbt benchSmokeJSFull    # fullLinkJS (optimised) run
 ```
 
-The benchmark harness is intentionally small. It exists to keep performance
-regressions visible while the kernel layer is still taking shape.
+The runner reports explicit owned-result, destination/workspace reuse, immutable
+pattern reuse, and symbolic-plan analysis/reuse counts per operation. Those are
+public-contract construction counters, not a claim about every allocation
+performed by the JavaScript engine. The benchmark harness is intentionally
+small: it keeps performance and construction regressions visible while the
+kernel layer is still taking shape.

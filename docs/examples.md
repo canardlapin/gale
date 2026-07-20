@@ -232,6 +232,22 @@ val partial = Eigen.eigSymmetric(
 partial.foreach(d => println(d.requireConverged))
 ```
 
+`requireConverged` preserves the residual-based compatibility contract: it can
+accept a Ritz pair that converged inside the explored Krylov space. A downstream
+caller that must prove membership in the requested global extreme should use the
+strict helper and handle its distinct certification failure:
+
+```scala
+import gale.linalg.LinAlgError
+
+partial.flatMap(_.requireExtremeCertified) match
+  case Right(certified) => println(certified.eigenvalues.toSeq)
+  case Left(_: LinAlgError.DidNotConverge) => println("residuals did not converge")
+  case Left(_: LinAlgError.SpectralExtremeNotCertified) =>
+    println("residuals converged, but the requested extreme is not certified")
+  case Left(other) => println(other.getMessage)
+```
+
 **Nonsymmetric eigendecomposition.** A real input can have complex
 eigenvalues in conjugate pairs; the result never exposes gale's internal
 packing directly — read it through the typed accessors. A 2x2 rotation

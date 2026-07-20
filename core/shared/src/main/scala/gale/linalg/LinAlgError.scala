@@ -35,3 +35,12 @@ object LinAlgError:
 
   final case class DidNotConverge(iterations: Int, residual: Double)
       extends LinAlgError(s"solver did not converge after $iterations iterations; residual=$residual")
+
+  /** Every requested spectral pair passed its residual test, but the solver did
+    * not certify that those pairs belong to the requested global spectral
+    * extreme.
+    */
+  final case class SpectralExtremeNotCertified(iterations: Int, residual: Double)
+      extends LinAlgError(
+        s"spectral residuals converged after $iterations iterations, but membership in the requested extreme is not certified; residual=$residual"
+      )

@@ -33,3 +33,10 @@ final case class SVD private[spectral] (
     */
   def requireConverged: Either[LinAlgError, SVD] =
     diagnostics.requireConverged(this)
+
+  /** `Right(this)` only when the requested global singular-spectrum extreme is
+    * independently certified. See
+    * [[SpectralDiagnostics.requireExtremeCertified]].
+    */
+  def requireExtremeCertified: Either[LinAlgError, SVD] =
+    diagnostics.requireExtremeCertified(this)

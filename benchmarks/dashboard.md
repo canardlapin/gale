@@ -1,6 +1,6 @@
 # Backend conformance and performance dashboard
 
-Last refreshed: 2026-07-19. Performance numbers are evidence for the named
+Last refreshed: 2026-07-20. Performance numbers are evidence for the named
 machine, JDK, and native library only. CI proves compatibility and conformance;
 it does not establish cross-machine speed.
 
@@ -49,6 +49,7 @@ material warmed penalty below its threshold.
 
 ## Evidence index
 
+- [Reusable-architecture allocation baseline](results/2026-07-20-faer-nalgebra-allocation-baseline.md)
 - [Scalafim migration workloads](results/2026-07-19-scalafim-migration.md)
 - [Vector versus Breeze, JDK 22](results/2026-07-17-breeze-jdk22-vector-enabled.md)
 - [FFM GEMM crossover](results/2026-07-14-ffm-blas-crossover.md)
