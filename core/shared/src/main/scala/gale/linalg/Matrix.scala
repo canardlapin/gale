@@ -408,6 +408,13 @@ final class DMat private[gale] (
         case Some(provider) => provider.cholesky(this)
         case None           => DenseDecompositions.cholesky(this)
 
+  /** Cholesky with an explicit absolute pivot tolerance. Explicit numerical
+    * policy is handled by the portable implementation because native provider
+    * contracts do not currently expose a matching tolerance parameter.
+    */
+  def cholesky(options: CholeskyOptions)(using Backend): Either[LinAlgError, Cholesky] =
+    DenseDecompositions.cholesky(this, options)
+
   /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder
     * path always succeeds. A provider that declines the input (`Left`) is therefore a
     * fallback, not a failure: the pure path computes the answer instead.
@@ -416,6 +423,13 @@ final class DMat private[gale] (
     factorizationProvider(math.max(rows, cols), backend.thresholds.nativeQrMinSize) match
       case Some(provider) => provider.qr(this).getOrElse(DenseDecompositions.qr(this))
       case None           => DenseDecompositions.qr(this)
+
+  /** QR with explicit pivoting and rank policy. Explicit policy uses the
+    * portable factorization so every platform and backend observes the same
+    * permutation and rank decision.
+    */
+  def qr(options: QROptions)(using Backend): QR =
+    DenseDecompositions.qr(this, options)
 
   /** QR into a caller-supplied workspace. This is the '''allocation-controlled''' facade:
     * it always runs the pure kernels against `workspace` and never routes to a native
@@ -426,8 +440,20 @@ final class DMat private[gale] (
   def qrWith(workspace: DenseWorkspace)(using Backend): QR =
     DenseDecompositions.qr(this, workspace)
 
+  def qrWith(options: QROptions, workspace: DenseWorkspace)(using Backend): QR =
+    DenseDecompositions.qr(this, options, workspace)
+
   def leastSquares(b: DVec)(using Backend): Either[LinAlgError, DVec] =
     qr.solveLeastSquares(b)
+
+  def leastSquares(b: DVec, options: QROptions)(using Backend): Either[LinAlgError, DVec] =
+    qr(options).solveLeastSquares(b)
+
+  def leastSquares(b: DMat)(using Backend): Either[LinAlgError, DMat] =
+    qr.solveLeastSquares(b)
+
+  def leastSquares(b: DMat, options: QROptions)(using Backend): Either[LinAlgError, DMat] =
+    qr(options).solveLeastSquares(b)
 
   /** Rank from a QR factorization on the SAME dispatch policy as [[qr]]'s pure path
     * (the ambient backend drives blocked QR's internal gemms), so `rankEstimate` and
@@ -536,7 +562,7 @@ object DMat:
   /** Reject shapes whose element count is negative or overflows an Int index,
     * so we never allocate a wrapped-around buffer while claiming the full shape.
     */
-  private def requireStorable(rows: Int, cols: Int): Unit =
+  private[gale] def requireStorable(rows: Int, cols: Int): Unit =
     require(rows >= 0 && cols >= 0, "rows and cols must be non-negative")
     if rows.toLong * cols.toLong > Int.MaxValue.toLong then
       throw LinAlgError.InvalidArgument(
@@ -553,6 +579,12 @@ object DMat:
       Stride.unsafe(if cols == 0 then 1 else cols),
       Stride.unsafe(1)
     )
+
+  /** Allocate a single-owner row-major builder whose [[DMatBuilder.result]]
+    * transfers storage into an immutable matrix without copying.
+    */
+  def newBuilder(rows: Int, cols: Int): DMatBuilder =
+    DMatBuilder.zeros(rows, cols)
 
   def eye(size: Int): DMat =
     require(size >= 0, "size must be non-negative")
@@ -608,6 +640,9 @@ object DMat:
 object Matrix:
   def zeros(rows: Int, cols: Int): DMat =
     DMat.zeros(rows, cols)
+
+  def newBuilder(rows: Int, cols: Int): DMatBuilder =
+    DMat.newBuilder(rows, cols)
 
   def eye(size: Int): DMat =
     DMat.eye(size)

@@ -8,7 +8,8 @@ import gale.platform.PlatformMath.fma
 
 final case class FactorizationDiagnostics(
     info: Int = 0,
-    rank: Option[Int] = None
+    rank: Option[Int] = None,
+    rankTolerance: Option[Double] = None
 ):
   def isSuccess: Boolean =
     info == 0
@@ -46,6 +47,66 @@ object PivotVector:
   private[gale] def fromArray(values: Array[Int]): PivotVector =
     new PivotVector(values.clone())
 
+enum QRPivoting:
+  case Disabled
+  case Column
+
+final case class QROptions(
+    pivoting: QRPivoting = QRPivoting.Disabled,
+    rankTolerance: Option[Double] = None
+):
+  require(
+    rankTolerance.forall(value => value >= 0.0 && value.isFinite),
+    "QR rank tolerance must be finite and non-negative"
+  )
+
+object QROptions:
+  val Default: QROptions =
+    QROptions()
+
+final case class CholeskyOptions(pivotTolerance: Double = 0.0):
+  require(
+    pivotTolerance >= 0.0 && pivotTolerance.isFinite,
+    "Cholesky pivot tolerance must be finite and non-negative"
+  )
+
+object CholeskyOptions:
+  val Default: CholeskyOptions =
+    CholeskyOptions()
+
+/** For pivoted QR, `apply(i)` is the original input column represented by
+  * factor column `i`, so `Q * R == A(:, columnPermutation)`.
+  */
+final class ColumnPermutation private (private val values: Array[Int]):
+  def length: Int =
+    values.length
+
+  def apply(index: Int): Int =
+    if index < 0 || index >= values.length then
+      throw LinAlgError.IndexOutOfBounds(index, values.length)
+    values(index)
+
+  def isIdentity: Boolean =
+    var i = 0
+    while i < values.length do
+      if values(i) != i then return false
+      i += 1
+    true
+
+  def toArray: Array[Int] =
+    values.clone()
+
+  def toIndexSeq: IndexedSeq[Int] =
+    values.toIndexedSeq
+
+object ColumnPermutation:
+  def identity(size: Int): ColumnPermutation =
+    require(size >= 0, "permutation size must be non-negative")
+    new ColumnPermutation(Array.tabulate(size)(i => i))
+
+  private[gale] def fromArray(values: Array[Int]): ColumnPermutation =
+    new ColumnPermutation(values.clone())
+
 final case class LU private[gale] (
     packed: DMat,
     pivots: PivotVector,
@@ -68,9 +129,13 @@ final case class LU private[gale] (
   */
 final case class Cholesky private[gale] (
     lower: DMat,
-    diagnostics: FactorizationDiagnostics
+    diagnostics: FactorizationDiagnostics,
+    options: CholeskyOptions = CholeskyOptions.Default
 ):
   def solve(b: DVec): Either[LinAlgError, DVec] =
+    DenseDecompositions.solve(this, b)
+
+  def solve(b: DMat): Either[LinAlgError, DMat] =
     DenseDecompositions.solve(this, b)
 
 /** Householder QR of an `m x n` matrix, stored compactly.
@@ -86,7 +151,9 @@ final case class QR private[gale] (
     reflectors: DMat,
     tau: DoubleArray,
     r: DMat,
-    diagnostics: FactorizationDiagnostics
+    diagnostics: FactorizationDiagnostics,
+    columnPermutation: ColumnPermutation,
+    options: QROptions
 ):
   /** The orthogonal factor `Q` (`m x m`), materialised from the stored
     * reflectors on first access and cached thereafter.
@@ -96,6 +163,21 @@ final case class QR private[gale] (
 
   def solveLeastSquares(b: DVec): Either[LinAlgError, DVec] =
     DenseDecompositions.solveLeastSquares(this, b)
+
+  def solveLeastSquares(b: DMat): Either[LinAlgError, DMat] =
+    DenseDecompositions.solveLeastSquares(this, b)
+
+  def applyQ(b: DMat): Either[LinAlgError, DMat] =
+    DenseDecompositions.applyQ(this, b, transpose = false)
+
+  def applyQT(b: DMat): Either[LinAlgError, DMat] =
+    DenseDecompositions.applyQ(this, b, transpose = true)
+
+  def residualize(b: DMat): Either[LinAlgError, DMat] =
+    DenseDecompositions.residualize(this, b)
+
+  def normalizedCovariance: Either[LinAlgError, DMat] =
+    DenseDecompositions.normalizedCovariance(this)
 
 object DenseDecompositions:
   def lu(A: DMat): Either[LinAlgError, LU] =
@@ -156,6 +238,9 @@ object DenseDecompositions:
       )
 
   def cholesky(A: DMat): Either[LinAlgError, Cholesky] =
+    cholesky(A, CholeskyOptions.Default)
+
+  def cholesky(A: DMat, options: CholeskyOptions): Either[LinAlgError, Cholesky] =
     if A.rows != A.cols then
       Left(LinAlgError.NonSquareMatrix(A.shape))
     else
@@ -171,7 +256,7 @@ object DenseDecompositions:
             sum -= lower(i * n + k) * lower(j * n + k)
             k += 1
           if i == j then
-            if sum <= 0.0 || sum.isNaN then
+            if sum <= options.pivotTolerance || sum.isNaN then
               return Left(LinAlgError.NotPositiveDefinite(i))
             lower(i * n + j) = math.sqrt(sum)
           else
@@ -181,14 +266,21 @@ object DenseDecompositions:
       Right(
         Cholesky(
           lower = DMat.fromDoubleArrayOwned(n, n, lower),
-          diagnostics = FactorizationDiagnostics(info = 0)
+          diagnostics = FactorizationDiagnostics(info = 0),
+          options = options
         )
       )
 
   def qr(A: DMat)(using Backend): QR =
-    qr(A, DenseWorkspace.forQR(A.rows, A.cols))
+    qr(A, QROptions.Default, DenseWorkspace.forQR(A.rows, A.cols))
+
+  def qr(A: DMat, options: QROptions)(using Backend): QR =
+    qr(A, options, DenseWorkspace.forQR(A.rows, A.cols))
 
   def qr(A: DMat, workspace: DenseWorkspace)(using backend: Backend): QR =
+    qr(A, QROptions.Default, workspace)
+
+  def qr(A: DMat, options: QROptions, workspace: DenseWorkspace)(using backend: Backend): QR =
     val m = A.rows
     val n = A.cols
     val r = A.toDoubleArrayCopyRowMajor
@@ -198,19 +290,64 @@ object DenseDecompositions:
     val reflectors = DoubleArray.alloc(m * limit)
     val tau = DoubleArray.alloc(limit)
     val scratch = workspace.work(DenseWorkspace.qrWorkSize(m, n))
+    val permutation = Array.tabulate(n)(i => i)
 
-    if DenseWorkspace.usesBlockedQR(m, n) then
+    if options.pivoting == QRPivoting.Column then
+      factorPivotedQR(r, m, n, reflectors, limit, tau, scratch, permutation)
+    else if DenseWorkspace.usesBlockedQR(m, n) then
       factorBlockedQR(r, m, n, reflectors, limit, tau, scratch)
     else
       factorUnblockedQR(r, m, n, reflectors, limit, tau, scratch)
 
-    val rank = rankFromUpperTriangular(r, m, n)
+    val rankTolerance = options.rankTolerance.getOrElse(rankToleranceFromUpperTriangular(r, m, n))
+    val rank = rankFromUpperTriangular(r, m, n, rankTolerance)
     QR(
       reflectors = DMat.fromDoubleArrayOwned(m, limit, reflectors),
       tau = tau,
       r = DMat.fromDoubleArrayOwned(m, n, r),
-      diagnostics = FactorizationDiagnostics(info = 0, rank = Some(rank))
+      diagnostics = FactorizationDiagnostics(
+        info = 0,
+        rank = Some(rank),
+        rankTolerance = Some(rankTolerance)
+      ),
+      columnPermutation = ColumnPermutation.fromArray(permutation),
+      options = options
     )
+
+  /** Rank-revealing unblocked QR with exact recomputation of each trailing
+    * column norm before pivot selection. The extra work is intentional: this
+    * path is the portable correctness reference used for statistical designs,
+    * while the default unpivoted path retains the blocked fast kernel.
+    */
+  private def factorPivotedQR(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      scratch: DoubleArray,
+      permutation: Array[Int]
+  ): Unit =
+    var k = 0
+    while k < limit do
+      var pivot = k
+      var bestNorm = -1.0
+      var col = k
+      while col < n do
+        val norm = DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+        if norm > bestNorm then
+          bestNorm = norm
+          pivot = col
+        col += 1
+      if pivot != k then
+        swapColumns(r, m, n, k, pivot)
+        val original = permutation(k)
+        permutation(k) = permutation(pivot)
+        permutation(pivot) = original
+      factorHouseholder(r, m, n, reflectors, limit, tau, k)
+      applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
+      k += 1
 
   /** Small-shape QR: scalar Householder generation with row-major rank-1
     * updates. Keeping this path avoids compact-WY setup overhead where Gale is
@@ -717,6 +854,49 @@ object DenseDecompositions:
         else
           Right(DVec.fromDoubleArrayOwned(x))
 
+  def solve(cholesky: Cholesky, b: DMat): Either[LinAlgError, DMat] =
+    val n = cholesky.lower.rows
+    if cholesky.lower.cols != n then
+      Left(LinAlgError.NonSquareMatrix(cholesky.lower.shape))
+    else if b.rows != n then
+      Left(
+        LinAlgError.DimensionMismatch(
+          Shape(Rows(n), Cols(b.cols)),
+          b.shape
+        )
+      )
+    else
+      val rhsCols = b.cols
+      val x = b.toDoubleArrayCopyRowMajor
+      val lower = cholesky.lower
+      var row = 0
+      while row < n do
+        val diagonal = lower(row, row)
+        var rhs = 0
+        while rhs < rhsCols do
+          var value = x(row * rhsCols + rhs)
+          var k = 0
+          while k < row do
+            value -= lower(row, k) * x(k * rhsCols + rhs)
+            k += 1
+          x(row * rhsCols + rhs) = value / diagonal
+          rhs += 1
+        row += 1
+      row = n - 1
+      while row >= 0 do
+        val diagonal = lower(row, row)
+        var rhs = 0
+        while rhs < rhsCols do
+          var value = x(row * rhsCols + rhs)
+          var k = row + 1
+          while k < n do
+            value -= lower(k, row) * x(k * rhsCols + rhs)
+            k += 1
+          x(row * rhsCols + rhs) = value / diagonal
+          rhs += 1
+        row -= 1
+      Right(DMat.fromDoubleArrayOwned(n, rhsCols, x))
+
   def solveLeastSquares(qr: QR, b: DVec): Either[LinAlgError, DVec] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
@@ -759,7 +939,7 @@ object DenseDecompositions:
         // the shared kernel. `y` holds Qᵀb over its first n entries; copy those
         // into an owned length-n buffer and solve in place. A diagonal at or below
         // the rank tolerance marks rank deficiency at that column.
-        val tolerance = rankToleranceFromMatrix(qr.r)
+        val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
         val rData = qr.r.data
         val rOff = qr.r.offset.value
         val rRowStep = qr.r.rowStride.value
@@ -768,9 +948,165 @@ object DenseDecompositions:
         DoubleKernels.dcopy(n, y, 0, 1, x, 0, 1)
         val info = DoubleKernels.dtrsv(n, lower = false, unit = false, tolerance, rData, rOff, rRowStep, rColStep, x, 0, 1)
         if info >= 0 then
-          Left(LinAlgError.RankDeficient(info, n))
-        else
+          Left(LinAlgError.RankDeficient(rank, n))
+        else if qr.columnPermutation.isIdentity then
           Right(DVec.fromDoubleArrayOwned(x))
+        else
+          val unpermuted = DoubleArray.alloc(n)
+          var pivoted = 0
+          while pivoted < n do
+            unpermuted(qr.columnPermutation(pivoted)) = x(pivoted)
+            pivoted += 1
+          Right(DVec.fromDoubleArrayOwned(unpermuted))
+
+  def solveLeastSquares(qr: QR, b: DMat): Either[LinAlgError, DMat] =
+    val m = qr.reflectors.rows
+    val n = qr.r.cols
+    if qr.r.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else if m < n then
+      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else
+      val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
+      if rank < n then
+        Left(LinAlgError.RankDeficient(rank, n))
+      else
+        val rhsCols = b.cols
+        val transformed = b.toDoubleArrayCopyRowMajor
+        applyReflectorsLeft(qr, transformed, rhsCols, transpose = true)
+        val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
+        val rData = qr.r.data
+        val rOff = qr.r.offset.value
+        val rRowStep = qr.r.rowStride.value
+        val rColStep = qr.r.colStride.value
+        var rhs = 0
+        while rhs < rhsCols do
+          val info = DoubleKernels.dtrsv(
+            n,
+            lower = false,
+            unit = false,
+            tolerance,
+            rData,
+            rOff,
+            rRowStep,
+            rColStep,
+            transformed,
+            rhs,
+            rhsCols
+          )
+          if info >= 0 then return Left(LinAlgError.RankDeficient(rank, n))
+          rhs += 1
+
+        val coefficients = DoubleArray.alloc(n * rhsCols)
+        var pivoted = 0
+        while pivoted < n do
+          val original = qr.columnPermutation(pivoted)
+          rhs = 0
+          while rhs < rhsCols do
+            coefficients(original * rhsCols + rhs) = transformed(pivoted * rhsCols + rhs)
+            rhs += 1
+          pivoted += 1
+        Right(DMat.fromDoubleArrayOwned(n, rhsCols, coefficients))
+
+  def applyQ(qr: QR, b: DMat, transpose: Boolean): Either[LinAlgError, DMat] =
+    val m = qr.reflectors.rows
+    if b.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else
+      val out = b.toDoubleArrayCopyRowMajor
+      applyReflectorsLeft(qr, out, b.cols, transpose)
+      Right(DMat.fromDoubleArrayOwned(b.rows, b.cols, out))
+
+  def residualize(qr: QR, b: DMat): Either[LinAlgError, DMat] =
+    val m = qr.reflectors.rows
+    if b.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else
+      val out = b.toDoubleArrayCopyRowMajor
+      applyReflectorsLeft(qr, out, b.cols, transpose = true)
+      val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
+      var row = 0
+      while row < rank do
+        var col = 0
+        while col < b.cols do
+          out(row * b.cols + col) = 0.0
+          col += 1
+        row += 1
+      applyReflectorsLeft(qr, out, b.cols, transpose = false)
+      Right(DMat.fromDoubleArrayOwned(b.rows, b.cols, out))
+
+  def normalizedCovariance(qr: QR): Either[LinAlgError, DMat] =
+    val n = qr.r.cols
+    val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
+    if qr.r.rows < n then
+      Left(LinAlgError.UnsupportedOperation("normalized covariance requires rows >= columns"))
+    else if rank < n then
+      Left(LinAlgError.RankDeficient(rank, n))
+    else
+      val invR = DoubleArray.alloc(n * n)
+      var rhs = 0
+      while rhs < n do
+        var row = n - 1
+        while row >= 0 do
+          var value = if row == rhs then 1.0 else 0.0
+          var col = row + 1
+          while col < n do
+            value -= qr.r(row, col) * invR(col * n + rhs)
+            col += 1
+          invR(row * n + rhs) = value / qr.r(row, row)
+          row -= 1
+        rhs += 1
+
+      val covariance = DoubleArray.alloc(n * n)
+      var pivotedRow = 0
+      while pivotedRow < n do
+        var pivotedCol = 0
+        while pivotedCol < n do
+          var value = 0.0
+          var k = 0
+          while k < n do
+            value = fma(invR(pivotedRow * n + k), invR(pivotedCol * n + k), value)
+            k += 1
+          val originalRow = qr.columnPermutation(pivotedRow)
+          val originalCol = qr.columnPermutation(pivotedCol)
+          covariance(originalRow * n + originalCol) = value
+          pivotedCol += 1
+        pivotedRow += 1
+      Right(DMat.fromDoubleArrayOwned(n, n, covariance))
+
+  private def applyReflectorsLeft(
+      qr: QR,
+      values: DoubleArray,
+      valueCols: Int,
+      transpose: Boolean
+  ): Unit =
+    val m = qr.reflectors.rows
+    val limit = qr.reflectors.cols
+    val reflectors = qr.reflectors.data
+    val tau = qr.tau
+    var k = if transpose then 0 else limit - 1
+    val end = if transpose then limit else -1
+    val step = if transpose then 1 else -1
+    while k != end do
+      val beta = tau(k)
+      if beta != 0.0 then
+        var col = 0
+        while col < valueCols do
+          var dot = 0.0
+          var row = k
+          while row < m do
+            dot = fma(reflectors(row * limit + k), values(row * valueCols + col), dot)
+            row += 1
+          dot *= beta
+          row = k
+          while row < m do
+            val index = row * valueCols + col
+            values(index) = fma(-dot, reflectors(row * limit + k), values(index))
+            row += 1
+          col += 1
+      k += step
 
   def det(lu: LU): Either[LinAlgError, Double] =
     val n = lu.packed.rows
@@ -794,6 +1130,22 @@ object DenseDecompositions:
       values(j) = tmp
       col += 1
 
+  private def swapColumns(
+      values: DoubleArray,
+      rows: Int,
+      cols: Int,
+      c1: Int,
+      c2: Int
+  ): Unit =
+    var row = 0
+    while row < rows do
+      val i = row * cols + c1
+      val j = row * cols + c2
+      val tmp = values(i)
+      values(i) = values(j)
+      values(j) = tmp
+      row += 1
+
   private def identityArray(size: Int): DoubleArray =
     val out = DoubleArray.alloc(size * size)
     var i = 0
@@ -807,6 +1159,14 @@ object DenseDecompositions:
 
   private def rankFromUpperTriangular(values: DoubleArray, rows: Int, cols: Int): Int =
     val tolerance = rankToleranceFromUpperTriangular(values, rows, cols)
+    rankFromUpperTriangular(values, rows, cols, tolerance)
+
+  private def rankFromUpperTriangular(
+      values: DoubleArray,
+      rows: Int,
+      cols: Int,
+      tolerance: Double
+  ): Int =
     val limit = math.min(rows, cols)
     var rank = 0
     var i = 0

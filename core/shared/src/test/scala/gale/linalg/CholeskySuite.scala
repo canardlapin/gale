@@ -39,6 +39,36 @@ class CholeskySuite extends munit.FunSuite:
     assert(rectangular.cholesky.left.exists(_.isInstanceOf[LinAlgError.NonSquareMatrix]))
   }
 
+  test("Cholesky solves matrix right-hand sides in one result") {
+    val A = Matrix.dense(3, 3)(
+      6.0, 2.0, 1.0,
+      2.0, 5.0, 2.0,
+      1.0, 2.0, 4.0
+    )
+    val expected = Matrix.dense(3, 2)(
+      1.0, -2.0,
+      3.0, 0.5,
+      -1.0, 4.0
+    )
+
+    val actual = A.cholesky.orThrow.solve(A * expected).orThrow
+
+    assertMatrixClose(actual, expected, 1e-11)
+  }
+
+  test("explicit Cholesky pivot tolerance rejects numerically tiny pivots") {
+    val A = Matrix.dense(2, 2)(
+      1.0, 0.0,
+      0.0, 1.0e-14
+    )
+
+    assert(A.cholesky.isRight)
+    assertEquals(
+      A.cholesky(CholeskyOptions(pivotTolerance = 1.0e-12)),
+      Left(LinAlgError.NotPositiveDefinite(1))
+    )
+  }
+
   private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double): Unit =
     assertEquals(actual.rows, expected.rows)
     assertEquals(actual.cols, expected.cols)

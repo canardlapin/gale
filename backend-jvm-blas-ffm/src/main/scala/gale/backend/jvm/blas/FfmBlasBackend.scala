@@ -2,7 +2,7 @@ package gale.backend.jvm.blas
 
 import gale.backend.*
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
-import gale.linalg.{Cholesky, DMat, DVec, DenseDecompositions, FactorizationDiagnostics, LU, LinAlgError, Matrix, PivotVector, QR}
+import gale.linalg.{Cholesky, ColumnPermutation, DMat, DVec, DenseDecompositions, FactorizationDiagnostics, LU, LinAlgError, Matrix, PivotVector, QR, QROptions}
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 import gale.spectral.{RawSymmetricEigen, SpectralBackend, SpectralCapability}
@@ -398,7 +398,12 @@ private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extend
               reflectors,
               DoubleArray.adopt(tauArray),
               r,
-              FactorizationDiagnostics(rank = Some(DenseDecompositions.rankFromMatrix(r)))
+              FactorizationDiagnostics(
+                rank = Some(DenseDecompositions.rankFromMatrix(r)),
+                rankTolerance = Some(DenseDecompositions.rankToleranceFromMatrix(r))
+              ),
+              ColumnPermutation.identity(n),
+              QROptions.Default
             ))
       finally arena.close()
 

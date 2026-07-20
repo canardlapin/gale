@@ -1,6 +1,6 @@
 # Backend conformance and performance dashboard
 
-Last refreshed: 2026-07-17. Performance numbers are evidence for the named
+Last refreshed: 2026-07-19. Performance numbers are evidence for the named
 machine, JDK, and native library only. CI proves compatibility and conformance;
 it does not establish cross-machine speed.
 
@@ -49,6 +49,7 @@ material warmed penalty below its threshold.
 
 ## Evidence index
 
+- [Scalafim migration workloads](results/2026-07-19-scalafim-migration.md)
 - [Vector versus Breeze, JDK 22](results/2026-07-17-breeze-jdk22-vector-enabled.md)
 - [FFM GEMM crossover](results/2026-07-14-ffm-blas-crossover.md)
 - [FFM GEMV crossover](results/2026-07-17-ffm-gemv-crossover.md)
@@ -64,5 +65,6 @@ sbt nativeBackendTest blasFfmBackendTest benchFfmCompile  # JDK 22+
 sbt "benchmarksJVM/Jmh/run .*Vector.*Jmh.*"
 sbt "benchmarksFfm/Jmh/run .*FfmGemvJmh.*"
 sbt "benchmarksFfm/Jmh/run .*FfmLapackJmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.ScalafimMigrationJmh.*"
 GALE_WASM=1 sbt coreJS/test benchSmokeJSFull
 ```

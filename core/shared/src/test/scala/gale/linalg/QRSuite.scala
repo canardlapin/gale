@@ -184,6 +184,96 @@ class QRSuite extends munit.FunSuite:
     assertMatrixRelative(qr.q.t * qr.q, Matrix.eye(3), rel = 5e-14, abs = 5e-14)
   }
 
+  test("column-pivoted QR reconstructs the permuted input and unpermutes coefficients") {
+    val A = Matrix.dense(4, 3)(
+      1.0e-3, 0.0, 0.0,
+      0.0, 10.0, 0.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 0.0
+    )
+    val expected = Vec(2.0, -3.0, 4.0)
+    val options = QROptions(pivoting = QRPivoting.Column)
+
+    val qr = A.qr(options)
+    val permutedInput = Matrix.tabulate(A.rows, A.cols): (row, col) =>
+      A(row, qr.columnPermutation(col))
+    val actual = qr.solveLeastSquares(A * expected).orThrow
+
+    assert(!qr.columnPermutation.isIdentity)
+    assertMatrixClose(qr.q * qr.r, permutedInput, 1e-11)
+    assertVectorClose(actual, expected, 1e-10)
+    assertEquals(qr.diagnostics.rank, Some(3))
+  }
+
+  test("caller rank tolerance controls the explicit rank decision") {
+    val A = Matrix.dense(3, 2)(
+      1.0, 0.0,
+      0.0, 1.0e-8,
+      0.0, 0.0
+    )
+
+    val automatic = A.qr(QROptions(pivoting = QRPivoting.Column))
+    val thresholded = A.qr(
+      QROptions(
+        pivoting = QRPivoting.Column,
+        rankTolerance = Some(1.0e-6)
+      )
+    )
+
+    assertEquals(automatic.diagnostics.rank, Some(2))
+    assertEquals(thresholded.diagnostics.rank, Some(1))
+    assertEquals(thresholded.diagnostics.rankTolerance, Some(1.0e-6))
+    assert(thresholded.solveLeastSquares(Vec(1.0, 1.0e-8, 0.0)).left.exists(_.isInstanceOf[LinAlgError.RankDeficient]))
+  }
+
+  test("pivoted QR solves matrix right-hand sides and exposes Q applications") {
+    val A = Matrix.dense(5, 3)(
+      1.0, 0.0, 2.0,
+      1.0, 1.0, -1.0,
+      1.0, 2.0, 0.5,
+      1.0, 3.0, 1.5,
+      1.0, 4.0, -0.5
+    )
+    val expected = Matrix.dense(3, 2)(
+      1.0, -2.0,
+      0.5, 3.0,
+      -1.0, 4.0
+    )
+    val observations = A * expected
+    val qr = A.qr(QROptions(pivoting = QRPivoting.Column))
+
+    val actual = qr.solveLeastSquares(observations).orThrow
+    val transformed = qr.applyQT(observations).orThrow
+
+    assertMatrixClose(actual, expected, 1e-10)
+    assertMatrixClose(transformed, qr.q.t * observations, 1e-10)
+    assertMatrixClose(qr.applyQ(transformed).orThrow, observations, 1e-10)
+  }
+
+  test("QR residualization and normalized covariance satisfy independent identities") {
+    val A = Matrix.dense(5, 2)(
+      1.0, 0.0,
+      1.0, 1.0,
+      1.0, 2.0,
+      1.0, 3.0,
+      1.0, 4.0
+    )
+    val data = Matrix.dense(5, 2)(
+      2.0, 1.0,
+      -1.0, 3.0,
+      0.5, -2.0,
+      4.0, 0.0,
+      1.0, 5.0
+    )
+    val qr = A.qr(QROptions(pivoting = QRPivoting.Column))
+
+    val residual = qr.residualize(data).orThrow
+    val covariance = qr.normalizedCovariance.orThrow
+
+    assertMatrixClose(A.t * residual, Matrix.zeros(A.cols, data.cols), 1e-10)
+    assertMatrixClose((A.t * A) * covariance, Matrix.eye(A.cols), 1e-10)
+  }
+
   private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double): Unit =
     assertEquals(actual.rows, expected.rows)
     assertEquals(actual.cols, expected.cols)
@@ -193,6 +283,13 @@ class QRSuite extends munit.FunSuite:
       while j < actual.cols do
         assert(math.abs(actual(i, j) - expected(i, j)) < tolerance)
         j += 1
+      i += 1
+
+  private def assertVectorClose(actual: DVec, expected: DVec, tolerance: Double): Unit =
+    assertEquals(actual.length, expected.length)
+    var i = 0
+    while i < actual.length do
+      assert(math.abs(actual(i) - expected(i)) <= tolerance, s"index $i: ${actual(i)} != ${expected(i)}")
       i += 1
 
   private def assertMatrixRelative(actual: DMat, expected: DMat, rel: Double, abs: Double): Unit =
