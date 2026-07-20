@@ -123,6 +123,9 @@ final class KroneckerLinearOperator private[linalg] (
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     LinearOperator.applyKronecker(left.adjoint, right.adjoint, x, into)
 
+  override def adjoint: KroneckerLinearOperator =
+    new KroneckerLinearOperator(left.adjoint, right.adjoint, cols, rows)
+
 object LinearOperator:
   def fromFunction(rowsValue: Int, colsValue: Int)(f: (DVec, MutableDVec) => Unit): DoubleLinearOperator =
     require(rowsValue >= 0 && colsValue >= 0, "operator shape must be non-negative")
