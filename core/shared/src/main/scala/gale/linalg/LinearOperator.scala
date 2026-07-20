@@ -105,6 +105,24 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
   def restrictColumns(indices: IndexedSeq[Int]): Either[LinAlgError, DoubleLinearOperator] =
     LinearOperator.restrictColumns(this, indices)
 
+/** Matrix-free Kronecker product `left ⊗ right`.
+  *
+  * Vectors use the same block ordering as [[DMat.kron]]: the right factor's
+  * coordinate varies fastest. Construction is total because the product shape
+  * is checked before it is narrowed to `Int`.
+  */
+final class KroneckerLinearOperator private[linalg] (
+    val left: DoubleLinearOperator,
+    val right: DoubleLinearOperator,
+    override val rows: Int,
+    override val cols: Int
+) extends DoubleLinearOperator:
+  override def applyTo(x: DVec, into: MutableDVec): Unit =
+    LinearOperator.applyKronecker(left, right, x, into)
+
+  override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
+    LinearOperator.applyKronecker(left.adjoint, right.adjoint, x, into)
+
 object LinearOperator:
   def fromFunction(rowsValue: Int, colsValue: Int)(f: (DVec, MutableDVec) => Unit): DoubleLinearOperator =
     require(rowsValue >= 0 && colsValue >= 0, "operator shape must be non-negative")
@@ -208,6 +226,18 @@ object LinearOperator:
       override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
         operator.transposeApplyTo(x, into)
         into *= alpha
+
+  /** Matrix-free Kronecker product `left ⊗ right`, ordered identically to
+    * [[DMat.kron]]. Neither factor nor the product is materialized.
+    */
+  def kronecker(
+      left: DoubleLinearOperator,
+      right: DoubleLinearOperator
+  ): Either[LinAlgError, KroneckerLinearOperator] =
+    for
+      rows <- checkedProduct(left.rows, right.rows, "Kronecker operator row count")
+      cols <- checkedProduct(left.cols, right.cols, "Kronecker operator column count")
+    yield new KroneckerLinearOperator(left, right, rows, cols)
 
   def restrictRows(
       operator: DoubleLinearOperator,
@@ -430,6 +460,50 @@ object LinearOperator:
       throw LinAlgError.VectorLengthMismatch(expectedInput, input.length)
     if output.length != expectedOutput then
       throw LinAlgError.VectorLengthMismatch(expectedOutput, output.length)
+
+  private[linalg] def applyKronecker(
+      left: DoubleLinearOperator,
+      right: DoubleLinearOperator,
+      input: DVec,
+      output: MutableDVec
+  ): Unit =
+    val inputOuter = left.cols
+    val inputInner = right.cols
+    val outputOuter = left.rows
+    val outputInner = right.rows
+    requireApplicationShape(input, output, inputOuter * inputInner, outputOuter * outputInner)
+    output.clear()
+
+    val innerResults = Array.fill(inputOuter)(MutableDVec.zeros(outputInner))
+    var outer = 0
+    while outer < inputOuter do
+      val segment = input.slice(outer * inputInner, (outer + 1) * inputInner)
+      right.applyTo(segment, innerResults(outer))
+      outer += 1
+
+    val acrossOuter = MutableDVec.zeros(inputOuter)
+    val transformed = MutableDVec.zeros(outputOuter)
+    var inner = 0
+    while inner < outputInner do
+      outer = 0
+      while outer < inputOuter do
+        acrossOuter(outer) = innerResults(outer)(inner)
+        outer += 1
+      left.applyTo(acrossOuter.asVec, transformed)
+      outer = 0
+      while outer < outputOuter do
+        output(outer * outputInner + inner) = transformed(outer)
+        outer += 1
+      inner += 1
+
+  private def checkedProduct(left: Int, right: Int, label: String): Either[LinAlgError, Int] =
+    if left < 0 || right < 0 then
+      Left(LinAlgError.InvalidArgument(s"$label requires non-negative factors, got $left and $right"))
+    else
+      val product = left.toLong * right.toLong
+      if product > Int.MaxValue.toLong then
+        Left(LinAlgError.InvalidArgument(s"$label $product exceeds ${Int.MaxValue}"))
+      else Right(product.toInt)
 
   private def prefixOffsets(sizes: IndexedSeq[Int]): IndexedSeq[Int] =
     val out = Array.ofDim[Int](sizes.length + 1)

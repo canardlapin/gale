@@ -105,6 +105,33 @@ class LinearOperatorSuite extends munit.FunSuite:
     assertVectorClose(blocked.adjoint(input), dense.t * input, 1e-12)
   }
 
+  test("Kronecker operators match dense products without materialization") {
+    val left = Matrix.dense(2, 3)(
+      1.0, 2.0, -1.0,
+      0.5, 0.0, 3.0
+    )
+    val right = Matrix.dense(3, 2)(
+      2.0, 0.0,
+      -1.0, 4.0,
+      0.5, 1.0
+    )
+    val operator = LinearOperator.kronecker(left, right).orThrow
+    val dense = left.kron(right)
+    val input = Vec(1.0, -2.0, 0.5, 3.0, -1.0, 2.0)
+    val dualInput = Vec(1.0, 0.0, -1.0, 2.0, 0.5, -0.5)
+
+    assertEquals((operator.rows, operator.cols), (dense.rows, dense.cols))
+    assertVectorClose(operator(input), dense * input, 1e-12)
+    assertVectorClose(operator.adjoint(dualInput), dense.t * dualInput, 1e-12)
+  }
+
+  test("Kronecker operator rejects an unstorable vector shape") {
+    val huge = LinearOperator.fromFunctions(Int.MaxValue, 1)((_, _) => (), (_, _) => ())
+    val small = LinearOperator.fromFunctions(2, 1)((_, _) => (), (_, _) => ())
+
+    assert(LinearOperator.kronecker(huge, small).left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
+  }
+
   private def assertVectorClose(actual: DVec, expected: DVec, tolerance: Double): Unit =
     assertEquals(actual.length, expected.length)
     var i = 0
