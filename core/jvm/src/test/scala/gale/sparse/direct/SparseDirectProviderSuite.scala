@@ -38,18 +38,29 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         col += 1
       row += 1
 
-  private final class TestWorkspace(val provider: SparseDirectProvider) extends SparseDirectWorkspace:
+  private trait TrackedResource extends SparseDirectResource:
     private var closed = false
-    def isClosed: Boolean = closed
-    def close(): Unit = closed = true
+    private var closeCount = 0
+    final def isClosed: Boolean = closed
+    final def closeCalls: Int = closeCount
+    final def close(): Unit =
+      if !closed then
+        closed = true
+        closeCount += 1
+
+  private final class TestWorkspace(val provider: SparseDirectProvider)
+      extends SparseDirectWorkspace,
+        TrackedResource
 
   private final class TestAnalysis(
       val provider: TestProvider,
       val pattern: CSRPattern,
       val factorization: SparseDirectFactorization,
-      val ordering: SparseDirectOrdering
-  ) extends SparseDirectSymbolicAnalysis:
-    private var closed = false
+      val ordering: SparseDirectOrdering,
+      numericProvider: Option[TestProvider] = None,
+      onFactorCreated: TestFactor => Unit = _ => ()
+  ) extends SparseDirectSymbolicAnalysis,
+        TrackedResource:
     val columnPermutation: Permutation = identityPermutation(pattern.cols)
     val diagnostics: SparseSymbolicDiagnostics =
       SparseSymbolicDiagnostics(
@@ -61,9 +72,6 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         deterministic = true
       )
 
-    def isClosed: Boolean = closed
-    def close(): Unit = closed = true
-
     def factorNumeric(
         matrix: CSR,
         workspace: SparseDirectWorkspace
@@ -72,17 +80,19 @@ class SparseDirectProviderSuite extends munit.FunSuite:
       val dense = matrix.toDense()
       DenseDecompositions.lu(dense).flatMap: normal =>
         DenseDecompositions.lu(dense.t).map: transpose =>
-          new TestFactor(provider, normal, transpose, dense.rows)
+          val factor = new TestFactor(numericProvider.getOrElse(provider), normal, transpose, dense.rows)
+          onFactorCreated(factor)
+          factor
 
   private final class TestFactor(
       val provider: TestProvider,
       normal: LU,
       transpose: LU,
       val inputRows: Int
-  ) extends SparseDirectNumericFactor:
+  ) extends SparseDirectNumericFactor,
+        TrackedResource:
     val inputCols: Int = inputRows
     val factorization: SparseDirectFactorization = SparseDirectFactorization.LU
-    private var closed = false
     val solveCalls = new AtomicInteger(0)
     val rowPermutation: Permutation = Sparse.permutation(normal.pivots.toIndexSeq*)
     val columnPermutation: Permutation = identityPermutation(inputCols)
@@ -96,8 +106,6 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         reciprocalConditionEstimate = None
       )
 
-    def isClosed: Boolean = closed
-    def close(): Unit = closed = true
     def rhsRows(operation: SparseSolveOperation): Int = inputRows
     def solutionRows(operation: SparseSolveOperation): Int = inputRows
 
@@ -286,6 +294,7 @@ class SparseDirectProviderSuite extends munit.FunSuite:
 
   test("facade rejects a provider that returns a handle owned by another provider") {
     val delegate = new TestProvider
+    var rejectedAnalysis: Option[TestAnalysis] = None
     val malformed = new SparseDirectProvider:
       val name: String = "malformed-owner"
       val capabilities: Set[SparseDirectCapability] = Set(SparseDirectCapability.LU)
@@ -297,9 +306,52 @@ class SparseDirectProviderSuite extends munit.FunSuite:
           ordering: SparseDirectOrdering,
           workspace: SparseDirectWorkspace
       ): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
-        Right(new TestAnalysis(delegate, pattern, factorization, ordering))
+        val analysis = new TestAnalysis(delegate, pattern, factorization, ordering)
+        rejectedAnalysis = Some(analysis)
+        Right(analysis)
 
     val matrix = csr(2, 2, (0, 0, 1.0), (1, 1, 1.0))
     val workspace = SparseDirect.newWorkspace()(using malformed).toOption.get
     assert(SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using malformed).isLeft)
+    assert(rejectedAnalysis.exists(_.isClosed))
+    assertEquals(rejectedAnalysis.map(_.closeCalls), Some(1))
+  }
+
+  test("facade closes every provider-created resource rejected by returned-handle validation") {
+    val provider = new TestProvider
+    val otherProvider = new TestProvider
+
+    val wrongWorkspace = new TestWorkspace(otherProvider)
+    val malformedWorkspaceProvider = new SparseDirectProvider:
+      val name: String = "malformed-workspace-owner"
+      val capabilities: Set[SparseDirectCapability] = Set(SparseDirectCapability.LU)
+      val config: BackendConfig = BackendConfig.singleThreaded
+      def createWorkspace(): Either[LinAlgError, SparseDirectWorkspace] = Right(wrongWorkspace)
+      def analyze(
+          pattern: CSRPattern,
+          factorization: SparseDirectFactorization,
+          ordering: SparseDirectOrdering,
+          workspace: SparseDirectWorkspace
+      ): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
+        Left(LinAlgError.UnsupportedOperation("not used"))
+
+    assert(SparseDirect.newWorkspace()(using malformedWorkspaceProvider).isLeft)
+    assert(wrongWorkspace.isClosed)
+    assertEquals(wrongWorkspace.closeCalls, 1)
+
+    val matrix = csr(2, 2, (0, 0, 2.0), (1, 1, 3.0))
+    val workspace = SparseDirect.newWorkspace()(using provider).toOption.get
+    var rejectedFactor: Option[TestFactor] = None
+    val analysis = new TestAnalysis(
+      provider,
+      matrix.pattern,
+      SparseDirectFactorization.LU,
+      SparseDirectOrdering.Natural,
+      numericProvider = Some(otherProvider),
+      onFactorCreated = factor => rejectedFactor = Some(factor)
+    )
+
+    assert(SparseDirect.factor(analysis, matrix, workspace).isLeft)
+    assert(rejectedFactor.exists(_.isClosed))
+    assertEquals(rejectedFactor.map(_.closeCalls), Some(1))
   }

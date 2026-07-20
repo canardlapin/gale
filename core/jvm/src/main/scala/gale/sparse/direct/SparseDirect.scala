@@ -5,6 +5,7 @@ import gale.linalg.*
 import gale.sparse.CSR
 import gale.sparse.CSRPattern
 import gale.sparse.Permutation
+import scala.util.control.NonFatal
 
 /** Sparse factorization families a JVM provider may explicitly implement. */
 enum SparseDirectFactorization:
@@ -224,11 +225,12 @@ object SparseDirect:
       Left(LinAlgError.InvalidArgument(validation.mkString("invalid sparse-direct provider: ", "; ", "")))
     else
       provider.createWorkspace().flatMap: workspace =>
-        if !(workspace.provider eq provider) then
-          Left(LinAlgError.InvalidArgument("sparse-direct workspace belongs to a different provider"))
-        else if workspace.isClosed then
-          Left(LinAlgError.InvalidArgument("sparse-direct provider returned a closed workspace"))
-        else Right(workspace)
+        acceptReturnedResource(workspace):
+          if !(workspace.provider eq provider) then
+            Left(LinAlgError.InvalidArgument("sparse-direct workspace belongs to a different provider"))
+          else if workspace.isClosed then
+            Left(LinAlgError.InvalidArgument("sparse-direct provider returned a closed workspace"))
+          else Right(())
 
   def analyze(
       pattern: CSRPattern,
@@ -238,7 +240,8 @@ object SparseDirect:
   )(using provider: SparseDirectProvider): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
     validateAnalysisRequest(pattern, factorization, ordering, workspace, provider).flatMap: _ =>
       provider.analyze(pattern, factorization, ordering, workspace).flatMap: analysis =>
-        validateAnalysisResult(analysis, pattern, factorization, provider).map(_ => analysis)
+        acceptReturnedResource(analysis):
+          validateAnalysisResult(analysis, pattern, factorization, provider)
 
   def factor(
       analysis: SparseDirectSymbolicAnalysis,
@@ -251,7 +254,8 @@ object SparseDirect:
     else
       validateWorkspace(workspace, analysis.provider).flatMap: _ =>
         analysis.factorNumeric(matrix, workspace).flatMap: factor =>
-          validateNumericResult(factor, analysis).map(_ => factor)
+          acceptReturnedResource(factor):
+            validateNumericResult(factor, analysis)
 
   def solve(
       factor: SparseDirectNumericFactor,
@@ -462,6 +466,19 @@ object SparseDirect:
       Left(LinAlgError.InvalidArgument("sparse-direct workspace belongs to a different provider"))
     else if workspace.isClosed then closed("workspace")
     else Right(())
+
+  /** A provider-created resource is provisionally owned by the facade until its
+    * returned-handle contract passes. Rejected resources must not escape or leak.
+    */
+  private def acceptReturnedResource[R <: SparseDirectResource](
+      resource: R
+  )(validation: => Either[LinAlgError, Unit]): Either[LinAlgError, R] =
+    validation match
+      case Right(()) => Right(resource)
+      case Left(error) =>
+        try resource.close()
+        catch case NonFatal(closeFailure) => error.addSuppressed(closeFailure)
+        Left(error)
 
   private def closed(resource: String): Either[LinAlgError, Nothing] =
     Left(LinAlgError.UnsupportedOperation(s"closed sparse-direct $resource"))

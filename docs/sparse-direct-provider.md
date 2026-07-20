@@ -85,7 +85,10 @@ storage nor a mutable aliased array may escape.
 Provider, workspace, analysis, and factor ownership is validated by object
 identity. A workspace created by one provider cannot be passed to another.
 `close()` is idempotent; every facade call rejects a closed resource with a typed
-error before entering provider code.
+error before entering provider code. A workspace, symbolic analysis, or numeric
+factor returned by provider code is provisionally owned by the facade until its
+returned-handle validation passes; Gale closes the resource before returning a
+typed error when that validation rejects it.
 
 A shared provider must be safe for concurrent invocation and fixes its
 `BackendConfig` at construction. Symbolic analyses and numeric factors may be
