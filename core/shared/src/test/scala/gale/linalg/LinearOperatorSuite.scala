@@ -121,6 +121,7 @@ class LinearOperatorSuite extends munit.FunSuite:
     val dualInput = Vec(1.0, 0.0, -1.0, 2.0, 0.5, -0.5)
 
     assertEquals((operator.rows, operator.cols), (dense.rows, dense.cols))
+    assert(operator.adjoint.isInstanceOf[KroneckerLinearOperator])
     assertVectorClose(operator(input), dense * input, 1e-12)
     assertVectorClose(operator.adjoint(dualInput), dense.t * dualInput, 1e-12)
   }
