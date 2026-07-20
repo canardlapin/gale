@@ -23,11 +23,12 @@ trait Matrix[A] extends LinearOperator[A]:
 /** A dense `Double` matrix: a rows×cols window over platform storage described by
   * an offset and independent (strictly positive) row and column strides.
   *
-  *   - '''Views vs copies.''' [[row]], [[col]], and [[t]] (transpose) are `O(1)`
-  *     aliasing views sharing the backing storage — `t` just swaps the strides.
-  *     [[updated]] and the `Array`/`Seq` exporters return independent data. `DMat`
-  *     exposes no element mutators; the write path is `mulInto`-style APIs that
-  *     take a caller-supplied [[MutableDVec]] destination.
+  *   - '''Views vs copies.''' [[row]], [[col]], [[slice]], and [[t]] (transpose)
+  *     are `O(1)` aliasing views sharing the backing storage — `t` just swaps the
+  *     strides. [[gatherRows]], [[gatherColumns]], [[updated]], and [[toBuilder]]
+  *     return independently owned data. `DMat` exposes no element mutators; the
+  *     write path is `mulInto`-style APIs that take a caller-supplied
+  *     [[MutableDVec]] destination.
   *   - '''Positive strides only,''' arbitrary otherwise: element `(i, j)` lives at
   *     `offset + i*rowStride + j*colStride`, so row-major, column-major, and
   *     strided submatrix layouts are all valid inputs to the kernels.
@@ -93,12 +94,106 @@ final class DMat private[gale] (
       rowStride
     )
 
+  /** Contiguous half-open row/column window as an `O(1)` strided view.
+    *
+    * The result aliases this matrix storage and retains its row/column strides;
+    * use [[gatherRows]], [[gatherColumns]], or [[toBuilder]] when an owned copy is
+    * required. Empty windows are supported.
+    */
+  def slice(rowFrom: Int, rowUntil: Int, colFrom: Int, colUntil: Int): DMat =
+    if rowFrom < 0 || rowUntil < rowFrom || rowUntil > rows ||
+      colFrom < 0 || colUntil < colFrom || colUntil > cols
+    then
+      throw LinAlgError.InvalidArgument(
+        s"invalid matrix slice rows [$rowFrom, $rowUntil), columns [$colFrom, $colUntil) for ${rows}x${cols}"
+      )
+    new DMat(
+      data,
+      Offset.unsafe(offset.value + rowFrom * rowStride.value + colFrom * colStride.value),
+      Rows.unsafe(rowUntil - rowFrom),
+      Cols.unsafe(colUntil - colFrom),
+      rowStride,
+      colStride
+    )
+
+  /** Gather rows in caller-specified order into one independently owned,
+    * contiguous row-major matrix. Repeated indices repeat rows.
+    */
+  def gatherRows(indices: IndexedSeq[Int]): DMat =
+    var i = 0
+    while i < indices.length do
+      checkRow(indices(i))
+      i += 1
+    val out = DMatBuilder.zeros(indices.length, cols)
+    var row = 0
+    while row < indices.length do
+      val sourceRow = indices(row)
+      var col = 0
+      while col < cols do
+        out(row, col) = apply(sourceRow, col)
+        col += 1
+      row += 1
+    out.result()
+
+  /** Gather columns in caller-specified order into one independently owned,
+    * contiguous row-major matrix. Repeated indices repeat columns.
+    */
+  def gatherColumns(indices: IndexedSeq[Int]): DMat =
+    var i = 0
+    while i < indices.length do
+      checkCol(indices(i))
+      i += 1
+    val out = DMatBuilder.zeros(rows, indices.length)
+    var row = 0
+    while row < rows do
+      var col = 0
+      while col < indices.length do
+        out(row, col) = apply(row, indices(col))
+        col += 1
+      row += 1
+    out.result()
+
   def updated(row: Int, col: Int, value: Double): DMat =
     checkRow(row)
     checkCol(col)
     val out = toDoubleArrayCopyRowMajor
     out(row * cols + col) = value
     DMat.fromDoubleArrayOwned(rows, cols, out)
+
+  /** One owned logical row-major copy, ready for in-place construction edits.
+    * Calling [[DMatBuilder.result]] transfers that storage without another copy.
+    */
+  def toBuilder: DMatBuilder =
+    DMatBuilder.from(this)
+
+  /** Add `amount` to every element on the main diagonal, returning one owned
+    * copy. Rectangular matrices update `min(rows, cols)` diagonal elements.
+    */
+  def addToDiagonal(amount: Double): DMat =
+    val out = toBuilder
+    var i = 0
+    while i < math.min(rows, cols) do
+      out(i, i) = out(i, i) + amount
+      i += 1
+    out.result()
+
+  /** Average a square matrix with its transpose:
+    * `B(i,j) = 0.5*A(i,j) + 0.5*A(j,i)`.
+    *
+    * The explicit name distinguishes this from lower- or upper-triangle
+    * symmetrization conventions used by factorization kernels.
+    */
+  def symmetrizedAverage: DMat =
+    if rows != cols then throw LinAlgError.NonSquareMatrix(shape)
+    val out = DMatBuilder.zeros(rows, cols)
+    var i = 0
+    while i < rows do
+      var j = 0
+      while j < cols do
+        out(i, j) = 0.5 * apply(i, j) + 0.5 * apply(j, i)
+        j += 1
+      i += 1
+    out.result()
 
   private[gale] def toArrayRowMajor: Array[Double] =
     val out = new Array[Double](rows * cols)
@@ -127,6 +222,42 @@ final class DMat private[gale] (
         j += 1
       i += 1
     builder.result()
+
+  /** Visit logical elements in row-major order without allocating an
+    * intermediate collection. The callback receives primitive `Double` values.
+    */
+  def foreachRowMajor(f: Double => Unit): Unit =
+    var i = 0
+    while i < rows do
+      var j = 0
+      var aij = offset.value + i * rowStride.value
+      while j < cols do
+        f(data(aij))
+        aij += colStride.value
+        j += 1
+      i += 1
+
+  /** Copy logical elements into caller-owned primitive storage in row-major
+    * order. No Gale backing storage is exposed or adopted.
+    */
+  def copyRowMajorTo(destination: Array[Double], destinationOffset: Int = 0): Unit =
+    val required = rows.toLong * cols.toLong
+    val end = destinationOffset.toLong + required
+    if destinationOffset < 0 || end > destination.length.toLong then
+      throw LinAlgError.InvalidArgument(
+        s"destination range [$destinationOffset, $end) does not fit array length ${destination.length}"
+      )
+    var write = destinationOffset
+    var i = 0
+    while i < rows do
+      var j = 0
+      var aij = offset.value + i * rowStride.value
+      while j < cols do
+        destination(write) = data(aij)
+        write += 1
+        aij += colStride.value
+        j += 1
+      i += 1
 
   /** Contiguous row-major platform copy owned by the caller (offset 0,
     * colStride 1). One copy, even from a strided or transposed view.
@@ -586,6 +717,10 @@ object DMat:
   def newBuilder(rows: Int, cols: Int): DMatBuilder =
     DMatBuilder.zeros(rows, cols)
 
+  /** Create a builder containing one owned logical row-major copy of `matrix`. */
+  def builderFrom(matrix: DMat): DMatBuilder =
+    DMatBuilder.from(matrix)
+
   def eye(size: Int): DMat =
     require(size >= 0, "size must be non-negative")
     val out = zeros(size, size)
@@ -643,6 +778,9 @@ object Matrix:
 
   def newBuilder(rows: Int, cols: Int): DMatBuilder =
     DMat.newBuilder(rows, cols)
+
+  def builderFrom(matrix: DMat): DMatBuilder =
+    DMat.builderFrom(matrix)
 
   def eye(size: Int): DMat =
     DMat.eye(size)

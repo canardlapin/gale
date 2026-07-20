@@ -180,34 +180,30 @@ object Eigen:
 
   /** Partial symmetric eigendecomposition of the operator `op` (an `n x n`
     * symmetric matrix or matrix-free operator), computing the `k` eigenpairs at
-    * the extreme named by the selection's order via Lanczos with '''full
-    * reorthogonalization''' over a '''growing''' Krylov subspace.
+    * the extreme named by the selection's order through a multiplicity-safe
+    * '''block Krylov''' method.
     *
-    * Full reorthogonalization makes the method robust at `O(n·m²)` cost for a
-    * subspace of size `m` (portable-correctness first; implicit restarting is a
-    * later optimization). Starting from `m = subspaceDimension.getOrElse(min(n,
-    * max(2k+1, 20)))` (clamped to `[k+1, n]`), each step builds an `m`-step
-    * Lanczos factorization from a '''fixed''' start vector, solves the projected
-    * tridiagonal with the shared QL/QR kernel, forms Ritz pairs `θ, y = V s`, and
-    * measures the true residual `‖op·y − θ y‖`. A pair is converged when that
-    * residual is `≤ tolerance · max(1, max|θ|)`. If the wanted pairs have not all
-    * converged, the subspace '''grows''' (same start vector — a lossless
-    * refinement whose extreme Ritz values improve by Cauchy interlacing and which
-    * is exact at `m = n`; per-pair residuals are not guaranteed monotone under a
-    * `maxIterations` truncation), up to `maxIterations` growth steps or a full
-    * `m = n` subspace (whose Ritz values are the exact spectrum).
-    * Well-separated extremes converge cheaply; tightly clustered or interior
-    * targets (the classic slow case for plain Lanczos, e.g.
-    * [[EigenOrder.SmallestMagnitude]] across zero) may only converge as `m`
-    * approaches `n`, or return partial — shift-invert is the deferred remedy.
+    * The initial block is at least `k` vectors wide: a caller-supplied
+    * [[SpectralOptions.startVector]] is its first column and deterministic
+    * orthogonal probes fill the remainder. Every Rayleigh-Ritz solve therefore
+    * retains independent directions inside a repeated eigenspace instead of
+    * collapsing it to one root as single-vector Lanczos does. Wanted Ritz vectors
+    * are soft-locked across thick restarts, all bases are fully reorthogonalized,
+    * and an invariant Krylov component is replenished from its orthogonal
+    * complement rather than being mistaken for complete convergence.
     *
-    * '''Multiplicity caveat.''' Single-vector Lanczos resolves at most one
-    * eigenvector per '''distinct''' eigenvalue: a repeated eigenvalue is returned
-    * once, its multiplicity silently collapsed, and the result can still report
-    * `allConverged = true` (each returned pair genuinely has a tiny residual).
-    * With a degenerate extreme, the returned set is the top-`k` of the
-    * '''distinct''' spectrum, not the top-`k` with multiplicity — plain `eigsh`
-    * shares this limitation. Use the dense API when multiplicities matter.
+    * [[EigenSelection.Count]] counts algebraic multiplicity. On convergence the
+    * result contains exactly `k` orthonormal eigenvectors, including the required
+    * number of directions from repeated eigenspaces; the particular basis within
+    * such an eigenspace is intentionally unspecified. `allConverged` can only be
+    * true when all `k` selected Ritz pairs satisfy the true residual test.
+    *
+    * `subspaceDimension` is the initial dense Rayleigh-Ritz projection size,
+    * clamped to `[k+1, n]`; its default remains `min(n, max(2k+1, 20))`.
+    * A non-converged restart grows that size toward `n`, while
+    * `maxIterations` bounds the number of thick restarts. The input remains matrix-free: only
+    * `op.applyTo` is used, while the projected subproblem is dense. Smallest-
+    * magnitude targets can still converge slowly without shift-invert.
     *
     * Non-convergence is a `Right`: the result holds only the converged pairs
     * (ascending), with `SpectralDiagnostics.converged < requested` and per-pair
@@ -234,7 +230,7 @@ object Eigen:
         Left(LinAlgError.UnsupportedOperation(s"shift-invert / targeted selection ($t)"))
       case None =>
         selection match
-          case count: EigenSelection.Count => eigSymmetricLanczos(op, n, count.k, count.order, options)
+          case count: EigenSelection.Count => eigSymmetricBlockKrylov(op, n, count.k, count.order, options)
           case other =>
             Left(
               LinAlgError.InvalidArgument(
@@ -242,7 +238,7 @@ object Eigen:
               )
             )
 
-  private def eigSymmetricLanczos(
+  private def eigSymmetricBlockKrylov(
       op: DoubleLinearOperator,
       n: Int,
       k: Int,
@@ -269,7 +265,8 @@ object Eigen:
               else
                 startVectorFor(options.startVector, n) match
                   case Left(error) => Left(error)
-                  case Right(v0)   => runLanczos(op, n, k, order, options, wantVectors, v0)
+                  case Right(v0) =>
+                    BlockSymmetricEigen.solve(op, n, k, order, options, wantVectors, v0)
 
   // ===========================================================================
   // Dense nonsymmetric eigendecomposition (eig)
@@ -717,168 +714,7 @@ object Eigen:
     EigenDecomposition(selValues, selVectors, diagnostics)
 
   // ===========================================================================
-  // Lanczos
-  // ===========================================================================
-
-  private def runLanczos(
-      op: DoubleLinearOperator,
-      n: Int,
-      k: Int,
-      order: EigenOrder,
-      options: SpectralOptions,
-      wantVectors: Boolean,
-      v0: DVec
-  ): Either[LinAlgError, EigenDecomposition] =
-    val ncv0 = math.min(n, math.max(options.subspaceDimension.getOrElse(math.max(2 * k + 1, 20)), k + 1))
-    val maxSteps = math.max(options.maxIterations, 1)
-    val tol = options.tolerance
-    val growBy = math.max(k, 16)
-
-    var m = ncv0
-    var step = 0
-    var done = false
-    var failure: Option[LinAlgError] = None
-    // The latest build's result. Growing from a fixed start vector improves the
-    // extreme Ritz values (Cauchy interlacing) and is exact at m = n; per-pair
-    // convergence is not strictly monotone, so under a maxIterations truncation
-    // the final build is the reported one, not a guaranteed best-so-far.
-    var result: EigenDecomposition = assembleRitz(n, k, Array.empty, Array.empty, Array.empty, wantVectors, 0)
-
-    while step < maxSteps && !done && failure.isEmpty do
-      val (basis, alpha, betaSub, mEff) = buildLanczos(op, n, v0, m)
-      val diag = DVec.tabulate(mEff)(i => alpha(i))
-      val off = DVec.tabulate(math.max(mEff - 1, 0))(i => betaSub(i))
-      DenseSpectralKernels.symmetricTridiagonalEigen(diag, off, wantVectors = true) match
-        case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
-          // The projected tridiagonal is tiny; failing it is a genuine numerical
-          // breakdown, not partial convergence — surface it rather than loop.
-          failure = Some(LinAlgError.DidNotConverge(iters, 0.0))
-        case Right(proj) =>
-          val theta = proj.values
-          val s = proj.vectors.get
-          val anorm = math.max(1.0, maxAbs(theta))
-          val wanted = selectExtremeIndices(theta, math.min(k, mEff), order)
-          val ritz = wanted.map(col => ritzVector(basis, s, col, n, mEff))
-          val residuals = wanted.indices.map(w => trueResidual(op, ritz(w), theta(wanted(w)))).toArray
-          val convergedSlots = wanted.indices.filter(w => residuals(w) <= tol * anorm).toArray
-          result = assembleRitz(
-            n,
-            k,
-            convergedSlots.map(w => theta(wanted(w))),
-            convergedSlots.map(w => ritz(w)),
-            convergedSlots.map(w => residuals(w)),
-            wantVectors,
-            step + 1
-          )
-          val fullyConverged = convergedSlots.length == wanted.length && wanted.length == k
-          // A happy breakdown (mEff < m) means the Krylov space is invariant — the
-          // full information reachable from this start — so growing cannot help.
-          if fullyConverged || mEff < m || m >= n then done = true
-          else m = math.min(n, m + growBy)
-      step += 1
-
-    failure match
-      case Some(error) => Left(error)
-      case None        => Right(result)
-
-  /** Build an `ncv`-step Lanczos factorization from the unit start vector, with
-    * full reorthogonalization (classical Gram–Schmidt twice) against all prior
-    * basis vectors. Returns `(basis, alpha, betaSub, m)` where `m <= ncv` is the
-    * number of vectors actually built (`m < ncv` marks a happy breakdown — an
-    * invariant subspace), `alpha(0..m-1)` the tridiagonal diagonal, and
-    * `betaSub(0..m-2)` its subdiagonal.
-    */
-  private def buildLanczos(
-      op: DoubleLinearOperator,
-      n: Int,
-      v0: DVec,
-      ncv: Int
-  ): (Array[DVec], Array[Double], Array[Double], Int) =
-    val basis = new Array[DVec](ncv)
-    val alpha = new Array[Double](ncv)
-    val betaSub = new Array[Double](ncv)
-    var current = v0
-    var previous: DVec = null
-    var betaPrev = 0.0
-    var m = 0
-    var j = 0
-    var breakdown = false
-    while j < ncv && !breakdown do
-      basis(j) = current
-      val w = MutableDVec.zeros(n)
-      op.applyTo(current, w)
-      val a = current.dot(w.asVec)
-      alpha(j) = a
-      w.axpyInPlace(-a, current)
-      if previous != null then w.axpyInPlace(-betaPrev, previous)
-      reorthogonalize(w, basis, j + 1)
-      reorthogonalize(w, basis, j + 1)
-      val beta = w.asVec.norm2
-      m = j + 1
-      if j < ncv - 1 then
-        if beta <= 1e-12 * math.max(1.0, math.abs(a)) then breakdown = true
-        else
-          betaSub(j) = beta
-          previous = current
-          betaPrev = beta
-          current = (w.asVec * (1.0 / beta)).copy
-      j += 1
-    (basis, alpha, betaSub, m)
-
-  /** `w := (I − V Vᵀ) w` against the first `count` basis columns. */
-  private def reorthogonalize(w: MutableDVec, basis: Array[DVec], count: Int): Unit =
-    var i = 0
-    while i < count do
-      val c = basis(i).dot(w.asVec)
-      w.axpyInPlace(-c, basis(i))
-      i += 1
-
-  /** The Ritz vector `V s(:,col)`, normalized to unit 2-norm. */
-  private def ritzVector(basis: Array[DVec], s: DMat, col: Int, n: Int, m: Int): DVec =
-    val y = MutableDVec.zeros(n)
-    var j = 0
-    while j < m do
-      y.axpyInPlace(s(j, col), basis(j))
-      j += 1
-    val nrm = y.asVec.norm2
-    if nrm > 0.0 then (y.asVec * (1.0 / nrm)).copy else y.asVec.copy
-
-  /** True residual `‖op·y − θ y‖` of a Ritz pair. */
-  private def trueResidual(op: DoubleLinearOperator, y: DVec, theta: Double): Double =
-    val w = MutableDVec.zeros(y.length)
-    op.applyTo(y, w)
-    w.axpyInPlace(-theta, y)
-    w.asVec.norm2
-
-  /** Assemble the iterative result from the converged Ritz pairs, ascending. */
-  private def assembleRitz(
-      n: Int,
-      requestedK: Int,
-      values: Array[Double],
-      vectors: Array[DVec],
-      residuals: Array[Double],
-      wantVectors: Boolean,
-      iterations: Int
-  ): EigenDecomposition =
-    val order = values.indices.sortBy(i => (values(i), i)).toArray
-    val sortedValues = DVec.tabulate(order.length)(i => values(order(i)))
-    val sortedResiduals = DVec.tabulate(order.length)(i => residuals(order(i)))
-    val (vectorsMat, orthoErr) =
-      if wantVectors && order.nonEmpty then
-        val mat = DMat.tabulate(n, order.length)((r, c) => vectors(order(c))(r))
-        (mat, orthogonalityError(mat))
-      else (DMat.zeros(n, 0), 0.0)
-    val diagnostics =
-      SpectralDiagnostics(
-        requested = requestedK,
-        converged = order.length,
-        residuals = sortedResiduals,
-        orthogonalityError = orthoErr,
-        iterations = iterations,
-        rank = None
-      )
-    EigenDecomposition(sortedValues, vectorsMat, diagnostics)
-
+  // Block Krylov implementation lives in BlockSymmetricEigen.
   // ===========================================================================
   // Shared numeric helpers
   // ===========================================================================
@@ -903,15 +739,6 @@ object Eigen:
         j += 1
       i += 1
     math.sqrt(sum)
-
-  private def maxAbs(v: DVec): Double =
-    var m = 0.0
-    var i = 0
-    while i < v.length do
-      val a = math.abs(v(i))
-      if a > m then m = a
-      i += 1
-    m
 
   /** A deterministic (LCG) start vector, or the caller's, normalized to unit
     * length. The seed sequence is bit-for-bit portable (32-bit `Int` arithmetic

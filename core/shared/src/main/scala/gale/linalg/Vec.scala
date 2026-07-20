@@ -49,8 +49,27 @@ final class DVec private[gale] (
       stride
     )
 
+  /** Gather elements in caller-specified order into one independently owned
+    * contiguous vector. Repeated indices repeat values.
+    */
+  def gather(indices: IndexedSeq[Int]): DVec =
+    var i = 0
+    while i < indices.length do
+      checkIndex(indices(i))
+      i += 1
+    val out = DVecBuilder.zeros(indices.length)
+    i = 0
+    while i < indices.length do
+      out(i) = apply(indices(i))
+      i += 1
+    out.result()
+
   def copy: DVec =
     DVec.fromDoubleArrayOwned(toDoubleArrayOwnedCopy)
+
+  /** One owned logical copy, ready for in-place construction edits. */
+  def toBuilder: DVecBuilder =
+    DVecBuilder.from(this)
 
   /** Immutable copy of this vector's elements in logical order. */
   def toSeq: Seq[Double] =
@@ -63,6 +82,33 @@ final class DVec private[gale] (
       xi += stride.value
       i += 1
     builder.result()
+
+  /** Visit logical elements without allocating an intermediate collection. */
+  def foreachValue(f: Double => Unit): Unit =
+    var i = 0
+    var xi = offset.value
+    while i < length do
+      f(data(xi))
+      xi += stride.value
+      i += 1
+
+  /** Copy logical elements into caller-owned primitive storage. No Gale backing
+    * storage is exposed or adopted.
+    */
+  def copyTo(destination: Array[Double], destinationOffset: Int = 0): Unit =
+    val end = destinationOffset.toLong + length.toLong
+    if destinationOffset < 0 || end > destination.length.toLong then
+      throw LinAlgError.InvalidArgument(
+        s"destination range [$destinationOffset, $end) does not fit array length ${destination.length}"
+      )
+    var write = destinationOffset
+    var i = 0
+    var xi = offset.value
+    while i < length do
+      destination(write) = data(xi)
+      write += 1
+      xi += stride.value
+      i += 1
 
   private[gale] def toArray: Array[Double] =
     val out = new Array[Double](length)
@@ -160,7 +206,7 @@ final class DVec private[gale] (
   * copy and permanently closes the builder, so no mutable alias survives through
   * the public API.
   */
-final class DVecBuilder private (val length: Int, private val data: DoubleArray):
+final class DVecBuilder private (val length: Int, private[gale] val data: DoubleArray):
   private var open = true
 
   def apply(index: Int): Double =
@@ -199,6 +245,10 @@ object DVecBuilder:
     require(length >= 0, "length must be non-negative")
     new DVecBuilder(length, DoubleArray.alloc(length))
 
+  /** Initialize from one owned logical copy of a contiguous or strided vector. */
+  def from(vector: DVec): DVecBuilder =
+    new DVecBuilder(vector.length, vector.toDoubleArrayOwnedCopy)
+
 object DVec:
   def zeros(length: Int): DVec =
     require(length >= 0, "length must be non-negative")
@@ -225,6 +275,9 @@ object DVec:
     */
   def newBuilder(length: Int): DVecBuilder =
     DVecBuilder.zeros(length)
+
+  def builderFrom(vector: DVec): DVecBuilder =
+    DVecBuilder.from(vector)
 
   def fromSeq(values: Seq[Double]): DVec =
     val out = zeros(values.length)
@@ -259,6 +312,9 @@ object Vec:
 
   def newBuilder(length: Int): DVecBuilder =
     DVec.newBuilder(length)
+
+  def builderFrom(vector: DVec): DVecBuilder =
+    DVec.builderFrom(vector)
 
 extension (alpha: Double)
   def *(x: DVec): DVec =

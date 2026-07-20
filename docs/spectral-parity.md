@@ -192,9 +192,10 @@ mirroring the existing `UnsupportedOperation` precedent.
 
 ## 6. Partial symmetric eigen (`eigsh`)
 
-Lanczos with implicit restarting — SciPy wraps ARPACK (IRLM); MATLAB `eigs`
-replaced ARPACK with Krylov–Schur in R2017b. Constraint: `k < n`. `ncv` (Lanczos
-vectors) with `k < ncv ≤ n`, default `min(n, max(2k+1, 20))`.
+Block Krylov with soft locking, thick restarting, and full reorthogonalization.
+SciPy wraps ARPACK (IRLM); MATLAB `eigs` replaced ARPACK with Krylov–Schur in
+R2017b. Constraint: `k < n`. The initial `ncv` satisfies `k < ncv ≤ n`, defaults
+to `min(n, max(2k+1, 20))`, and grows toward `n` across non-converged restarts.
 
 | Capability | MATLAB `eigs` | SciPy `eigsh` | gale v0.3.5 plan | Notes |
 |---|---|---|---|---|
@@ -205,13 +206,21 @@ vectors) with `k < ncv ≤ n`, default `min(n, max(2k+1, 20))`.
 | Shift-invert near σ | `sigma` scalar (auto-factorizes `A-σB`) | `sigma=σ, mode='normal'` (+`'buckling'`/`'cayley'`) | **in-a** `SpectralTarget.ShiftInvert(σ, plan)` (σ **real**) | gale requires an **explicit** `LinearSolvePlan`; it never auto-factorizes. `'buckling'`/`'cayley'` modes **deferred**. |
 | Generalized `A x = λ B x` | `eigs(A,B,k)` | `eigsh(A, k, M=B)` (`B` SPD) | **in-b** | Needs `B`-inner-product Lanczos; grouped with generalized eigen (phase b). |
 | Matrix-free operator | `eigs(Afun,n,...)` | `LinearOperator` | **in-a** | gale already has `DoubleLinearOperator` with `applyTo`. |
-| Start vector / subspace / tol / maxiter | `StartVector`, `SubspaceDimension`, `Tolerance`, `MaxIterations` | `v0`, `ncv`, `tol`, `maxiter` | **in-a** `SpectralOptions` | gale default `ncv = min(n, max(2k+1, 20))` (SciPy's), documented. |
+| Start vector / subspace / tol / maxiter | `StartVector`, `SubspaceDimension`, `Tolerance`, `MaxIterations` | `v0`, `ncv`, `tol`, `maxiter` | **in-a** `SpectralOptions` | The caller vector is the first block column; deterministic orthogonal probes fill a block at least `k` wide. Default initial `ncv = min(n, max(2k+1, 20))`. |
 | Convergence reporting | `[V,D,flag]` (`flag` 0/1) | raises `ArpackNoConvergence` (carries partial results) | **in-a** `Right(result + SpectralDiagnostics)` | See § Convergence. Never a `Left` for non-convergence. |
 
 **Ordering guarantee.** As in § 1, partial symmetric results are returned
 **ascending-algebraic**, matching `eigsh` (which sorts ascending; MATLAB `eigs`
 does not rigorously document its within-set order). This is deliberately stronger
 than either ecosystem.
+
+**Multiplicity guarantee.** `Count(k, order)` counts algebraic multiplicity.
+Repeated Ritz roots retain independent orthonormal directions from their
+eigenspace; convergence and tests are defined by per-pair residuals and the
+returned subspace projector, never by a particular basis inside a repeated
+eigenspace. A result cannot report `allConverged` unless all `k` requested pairs
+meet the residual criterion. Exact Krylov breakdown replenishes the orthogonal
+complement rather than silently substituting another distinct root.
 
 ---
 
@@ -506,12 +515,12 @@ the PRD's sketch.
 - **`'nobalance'`, driver selection, one-sided singular-vector modes** — internal
   or niche knobs, not public surface.
 - **LOBPCG / PROPACK solver families** — SciPy `svds`/`eigsh` alternative engines;
-  gale uses Lanczos/Arnoldi. Reference only.
+  gale uses block Krylov/Arnoldi. Reference only.
 - **Polynomial / quadratic eigenproblems (`polyeig`)** — out of the linear
   spectral scope entirely.
-- **Implicit restarting sophistication (Krylov–Schur / thick restart)** — a
-  robustness *quality goal*, not an API commitment; the initial pure Lanczos/
-  Arnoldi may use a simpler restart. Deferred, not part of the type surface.
+- **Nonsymmetric Krylov–Schur sophistication** — the symmetric path now uses a
+  thick-restarted block method; a corresponding Arnoldi/Krylov–Schur upgrade is
+  still a robustness goal, not part of the public type surface.
 - **`smallestnz` singular selection** — folded into rank reporting rather than a
   distinct order mode.
 - **Pure generalized nonsymmetric (QZ) and hard rank-deficient GSVD** — API +

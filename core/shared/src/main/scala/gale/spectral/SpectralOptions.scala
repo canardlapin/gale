@@ -104,11 +104,14 @@ enum EigenVectors:
   *
   *   - `tolerance` / `maxIterations` share [[gale.solvers.SolverConfig]]'s
   *     defaults.
-  *   - `subspaceDimension` is the Lanczos/Arnoldi basis size (`ncv`/`p`). `None`
-  *     means the solver computes the default `min(n, max(2k+1, 20))` at the call
-  *     site, where `n` and `k` are known.
-  *   - `startVector` seeds the Krylov iteration (`v0`); `None` uses an internal
-  *     default.
+  *   - `subspaceDimension` is the initial block-Krylov/Arnoldi basis size
+  *     (`ncv`/`p`). `None` means the solver computes the default
+  *     `min(n, max(2k+1, 20))` at the call site, where `n` and `k` are known.
+  *     The symmetric solver grows this projection across thick restarts when
+  *     needed; the option is not a hard memory cap.
+  *   - `startVector` seeds the first block column (`v0`); `None` uses an internal
+  *     default. The multiplicity-safe symmetric solver fills the other block
+  *     columns with deterministic orthogonal probes.
   *   - `returnVectors` selects which vectors to compute.
   */
 final case class SpectralOptions(

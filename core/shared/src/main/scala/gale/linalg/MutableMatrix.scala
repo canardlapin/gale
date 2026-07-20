@@ -11,7 +11,7 @@ import gale.platform.DoubleArray.*
   * backing storage to the returned matrix without copying and permanently
   * closes the builder, preventing mutable aliasing through the public API.
   */
-final class DMatBuilder private (val rows: Int, val cols: Int, private val data: DoubleArray):
+final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val data: DoubleArray):
   private var open = true
 
   def size: Int =
@@ -89,3 +89,10 @@ object DMatBuilder:
   def zeros(rows: Int, cols: Int): DMatBuilder =
     DMat.requireStorable(rows, cols)
     new DMatBuilder(rows, cols, DoubleArray.alloc(rows * cols))
+
+  /** Initialize a builder from exactly one owned logical row-major copy.
+    * Strided and transposed inputs are normalized without exposing their backing
+    * storage; [[DMatBuilder.result]] then transfers this copy without recopying.
+    */
+  def from(matrix: DMat): DMatBuilder =
+    new DMatBuilder(matrix.rows, matrix.cols, matrix.toDoubleArrayCopyRowMajor)

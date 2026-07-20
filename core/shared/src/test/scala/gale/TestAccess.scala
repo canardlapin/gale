@@ -67,6 +67,19 @@ object TestAccess:
   def sameStorage(a: DoubleArray, b: DoubleArray): Boolean =
     DoubleArray.sameStorage(a, b)
 
+  /** Raw dense storage handles for view-versus-copy ownership assertions. */
+  def dmatStorage(matrix: DMat): DoubleArray =
+    matrix.data
+
+  def dvecStorage(vector: DVec): DoubleArray =
+    vector.data
+
+  def dmatBuilderStorage(builder: DMatBuilder): DoubleArray =
+    builder.data
+
+  def dvecBuilderStorage(builder: DVecBuilder): DoubleArray =
+    builder.data
+
   /** A CSR matrix's row-pointer array, as an immutable sequence. */
   def rowPtr(csr: CSR): Seq[Int] =
     indexArraySeq(csr.rowPtr)

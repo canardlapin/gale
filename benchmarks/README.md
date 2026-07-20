@@ -11,6 +11,13 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
 - `SpmvJmh` — CSR sparse matrix-vector product at 1% density over `n` in
   {1024, 16384}.
 - `SolverJmh` — conjugate gradient on a 2D Laplacian (64x64 grid, 4096x4096 SPD).
+- `BlockSymmetricEigenJmh` — matrix-free block Krylov with an eight-dimensional
+  repeated top eigenspace over `n` in {128, 512, 2048}.
+- `DenseTransformJmh` — boxed matrix/vector exports versus direct primitive
+  copies from transposed and strided views over 1,024 and 16,384 values; use
+  `-prof gc` for bytes/op.
+- `SparseInteropJmh` — boxed `COO.entries` versus reusable primitive COO/CSR
+  traversal over 1,024 and 16,384 stored entries; use `-prof gc` for bytes/op.
 
 Each benchmark uses 2 forks with 5x500ms warmup and 5x500ms measurement.
 
@@ -34,6 +41,8 @@ SpMV should report near-zero `gc.alloc.rate.norm`):
 
 ```bash
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=4096 gale.bench.DenseKernelJmh.dot"
+sbt "benchmarksJVM/Jmh/run -prof gc .*DenseTransformJmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc .*SparseInteropJmh.*"
 ```
 
 Verify the whole suite compiles (annotation processing included) without running

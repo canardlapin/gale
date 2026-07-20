@@ -11,6 +11,24 @@ import scala.collection.mutable.ArrayBuffer
 enum DuplicatePolicy:
   case Sum, Last, Error
 
+/** Policy for non-finite values entering a sparse builder.
+  *
+  * [[SparseValuePolicy.AllowNonFinite]] is the explicit default and preserves
+  * Gale's historical behavior: `NaN` and infinities are stored verbatim.
+  * [[SparseValuePolicy.RequireFinite]] makes a
+  * checked ingestion boundary reject them with `Left(InvalidArgument)` (and the
+  * legacy throwing [[COOBuilder.add]] surface throws that same error).
+  */
+enum SparseValuePolicy:
+  case AllowNonFinite, RequireFinite
+
+/** Allocation-free callback for stored sparse entries. Unlike
+  * `(Int, Int, Double) => Unit`, this dedicated SAM has a primitive JVM method
+  * signature and never constructs a tuple or [[COOEntry]].
+  */
+trait SparseEntryConsumer:
+  def apply(row: Int, col: Int, value: Double): Unit
+
 trait SparseMatrix[A] extends Matrix[A]:
   def nnz: Int
   def density: Double =
@@ -30,13 +48,19 @@ final class COO private[gale] (
   def nnz: Int =
     entryValues.length
 
+  /** Visit every physically stored COO triplet exactly once in storage order.
+    * Duplicates, explicit zeros, and allowed non-finite values are not changed.
+    */
+  def foreachStoredEntry(consumer: SparseEntryConsumer): Unit =
+    var i = 0
+    while i < nnz do
+      consumer(rowIndices(i), colIndices(i), entryValues(i))
+      i += 1
+
   def entries: Seq[COOEntry] =
     val builder = Vector.newBuilder[COOEntry]
     builder.sizeHint(nnz)
-    var i = 0
-    while i < nnz do
-      builder += COOEntry(rowIndices(i), colIndices(i), entryValues(i))
-      i += 1
+    foreachStoredEntry((row, col, value) => builder += COOEntry(row, col, value))
     builder.result()
 
   /** Value at `(row, col)`, summing every stored entry at that coordinate.
@@ -150,7 +174,7 @@ final class COO private[gale] (
     * sort/sum, then prunes zeros so cancellations disappear too.
     */
   def canonicalize: COO =
-    val builder = new COOBuilder(rows, cols)
+    val builder = Sparse.coo(rows, cols)
     var i = 0
     while i < nnz do
       builder.add(rowIndices(i), colIndices(i), entryValues(i))
@@ -185,9 +209,11 @@ object COO:
   ): COO =
     new COO(rows, cols, rowIndices, colIndices, values, canonical)
 
-final class COOBuilder private[gale] (val rows: Int, val cols: Int):
-  require(rows >= 0 && cols >= 0, "sparse matrix shape must be non-negative")
-
+final class COOBuilder private[gale] (
+    val rows: Int,
+    val cols: Int,
+    val valuePolicy: SparseValuePolicy
+):
   private val rowIndices = ArrayBuffer.empty[Int]
   private val colIndices = ArrayBuffer.empty[Int]
   private val entryValues = ArrayBuffer.empty[Double]
@@ -196,26 +222,39 @@ final class COOBuilder private[gale] (val rows: Int, val cols: Int):
     entryValues.length
 
   def add(row: Int, col: Int, value: Double): COOBuilder =
-    if row < 0 || row >= rows then
-      throw LinAlgError.IndexOutOfBounds(row, rows)
-    if col < 0 || col >= cols then
-      throw LinAlgError.IndexOutOfBounds(col, cols)
-    rowIndices += row
-    colIndices += col
-    entryValues += value
-    this
+    tryAdd(row, col, value) match
+      case Left(error) => throw error
+      case Right(())   => this
+
+  /** Total streaming add. On failure the builder is unchanged. */
+  def tryAdd(row: Int, col: Int, value: Double): Either[LinAlgError, Unit] =
+    if row < 0 || row >= rows then Left(LinAlgError.IndexOutOfBounds(row, rows))
+    else if col < 0 || col >= cols then Left(LinAlgError.IndexOutOfBounds(col, cols))
+    else if valuePolicy == SparseValuePolicy.RequireFinite && !value.isFinite then
+      Left(LinAlgError.InvalidArgument(s"non-finite sparse value $value at ($row, $col)"))
+    else
+      rowIndices += row
+      colIndices += col
+      entryValues += value
+      Right(())
 
   def canonicalize(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): COOBuilder =
-    val coo = toCOO(duplicates)
-    rowIndices.clear()
-    colIndices.clear()
-    entryValues.clear()
-    coo.entries.foreach { entry =>
-      rowIndices += entry.row
-      colIndices += entry.col
-      entryValues += entry.value
-    }
-    this
+    tryCanonicalize(duplicates) match
+      case Left(error) => throw error
+      case Right(())   => this
+
+  /** Checked in-place canonicalization. Mutation happens only after duplicate
+    * validation succeeds, so a `Left` leaves the original triplets intact.
+    */
+  def tryCanonicalize(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, Unit] =
+    tryToCOO(duplicates).map: coo =>
+      rowIndices.clear()
+      colIndices.clear()
+      entryValues.clear()
+      coo.foreachStoredEntry: (row, col, value) =>
+        rowIndices += row
+        colIndices += col
+        entryValues += value
 
   def pruneZeros: COOBuilder =
     prune(absBelow = 0.0)
@@ -252,49 +291,117 @@ final class COOBuilder private[gale] (val rows: Int, val cols: Int):
     sortedIndices && !hasDuplicates
 
   def toCOO(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): COO =
-    val entries =
-      rowIndices.indices
-        .map(i => COOEntry(rowIndices(i), colIndices(i), entryValues(i)))
-        .toArray
-        .sortWith { (a, b) =>
-          a.row < b.row || (a.row == b.row && a.col < b.col)
-        }
-    val rowsOut = ArrayBuffer.empty[Int]
-    val colsOut = ArrayBuffer.empty[Int]
-    val valuesOut = ArrayBuffer.empty[Double]
-    var i = 0
-    while i < entries.length do
-      val row = entries(i).row
-      val col = entries(i).col
-      var value = entries(i).value
-      var j = i + 1
-      while j < entries.length && entries(j).row == row && entries(j).col == col do
+    tryToCOO(duplicates) match
+      case Left(error) => throw error
+      case Right(coo)  => coo
+
+  /** Total canonical COO finalization. Sorting is a stable primitive-index
+    * mergesort, so [[DuplicatePolicy.Last]] retains insertion-order semantics
+    * without allocating boxed [[COOEntry]] values.
+    */
+  def tryToCOO(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, COO] =
+    val order = stableCoordinateOrder()
+    val rowsOut = new Array[Int](nnz)
+    val colsOut = new Array[Int](nnz)
+    val valuesOut = new Array[Double](nnz)
+    var read = 0
+    var write = 0
+    while read < order.length do
+      val first = order(read)
+      val row = rowIndices(first)
+      val col = colIndices(first)
+      var value = entryValues(first)
+      var next = read + 1
+      while next < order.length &&
+          rowIndices(order(next)) == row && colIndices(order(next)) == col
+      do
         duplicates match
-          case DuplicatePolicy.Sum =>
-            value += entries(j).value
-          case DuplicatePolicy.Last =>
-            value = entries(j).value
+          case DuplicatePolicy.Sum  => value += entryValues(order(next))
+          case DuplicatePolicy.Last => value = entryValues(order(next))
           case DuplicatePolicy.Error =>
-            throw LinAlgError.InvalidArgument(s"duplicate sparse entry at ($row, $col)")
-        j += 1
-      rowsOut += row
-      colsOut += col
-      valuesOut += value
-      i = j
-    COO(
-      rows,
-      cols,
-      IndexArray.fromArray(rowsOut.toArray),
-      IndexArray.fromArray(colsOut.toArray),
-      DoubleArray.fromArray(valuesOut.toArray),
-      canonical = true
+            return Left(LinAlgError.InvalidArgument(s"duplicate sparse entry at ($row, $col)"))
+        next += 1
+      rowsOut(write) = row
+      colsOut(write) = col
+      valuesOut(write) = value
+      write += 1
+      read = next
+    Right(
+      COO(
+        rows,
+        cols,
+        IndexArray.fromArray(rowsOut.take(write)),
+        IndexArray.fromArray(colsOut.take(write)),
+        DoubleArray.fromArray(valuesOut.take(write)),
+        canonical = true
+      )
     )
 
   def toCSR(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): CSR =
     toCOO(duplicates).toCSR
 
+  /** Total canonical CSR finalization under the existing duplicate policy. */
+  def tryToCSR(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, CSR] =
+    if rows == Int.MaxValue then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"CSR row-pointer length ${rows.toLong + 1L} exceeds ${Int.MaxValue}"
+        )
+      )
+    else tryToCOO(duplicates).map(_.toCSR.pruneZeros)
+
   def toCSC(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): CSC =
     toCOO(duplicates).toCSC
+
+  def tryToCSC(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, CSC] =
+    if cols == Int.MaxValue then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"CSC column-pointer length ${cols.toLong + 1L} exceeds ${Int.MaxValue}"
+        )
+      )
+    else
+      // Compress the transpose by original column, then reinterpret it back as
+      // CSC. This avoids allocating an original-row-sized CSR pointer and makes
+      // the checked CSC path total even when rows == Int.MaxValue.
+      tryToCOO(duplicates).map(coo => coo.t.toCSR.pruneZeros.t)
+
+  /** Stable row-major ordering of insertion indices, implemented over primitive
+    * arrays so canonicalization does not construct a boxed triplet collection.
+    */
+  private def stableCoordinateOrder(): Array[Int] =
+    val order = Array.tabulate(nnz)(identity)
+    val scratch = new Array[Int](nnz)
+
+    def lessOrEqual(left: Int, right: Int): Boolean =
+      val leftRow = rowIndices(left)
+      val rightRow = rowIndices(right)
+      leftRow < rightRow ||
+        (leftRow == rightRow && colIndices(left) <= colIndices(right))
+
+    def sort(from: Int, until: Int): Unit =
+      if until - from > 1 then
+        val middle = from + (until - from) / 2
+        sort(from, middle)
+        sort(middle, until)
+        var left = from
+        var right = middle
+        var out = from
+        while left < middle || right < until do
+          if right >= until || (left < middle && lessOrEqual(order(left), order(right))) then
+            scratch(out) = order(left)
+            left += 1
+          else
+            scratch(out) = order(right)
+            right += 1
+          out += 1
+        var i = from
+        while i < until do
+          order(i) = scratch(i)
+          i += 1
+
+    sort(0, nnz)
+    order
 
   private def hasDuplicates: Boolean =
     var i = 1
@@ -303,6 +410,17 @@ final class COOBuilder private[gale] (val rows: Int, val cols: Int):
         return true
       i += 1
     false
+
+object COOBuilder:
+  /** Total builder factory. Invalid shapes are values, not thrown exceptions. */
+  def checked(
+      rows: Int,
+      cols: Int,
+      valuePolicy: SparseValuePolicy = SparseValuePolicy.AllowNonFinite
+  ): Either[LinAlgError, COOBuilder] =
+    if rows < 0 || cols < 0 then
+      Left(LinAlgError.InvalidArgument(s"sparse matrix shape must be non-negative, got ${rows}x${cols}"))
+    else Right(new COOBuilder(rows, cols, valuePolicy))
 
 final class CSR private[gale] (
     val rows: Int,
@@ -314,6 +432,19 @@ final class CSR private[gale] (
     with DoubleLinearOperator:
   def nnz: Int =
     values.length
+
+  /** Visit every physically stored CSR entry exactly once in deterministic
+    * row-major storage order, without exposing pointer/index/value arrays.
+    */
+  def foreachStoredEntry(consumer: SparseEntryConsumer): Unit =
+    var row = 0
+    while row < rows do
+      var p = rowPtr(row)
+      val end = rowPtr(row + 1)
+      while p < end do
+        consumer(row, colIdx(p), values(p))
+        p += 1
+      row += 1
 
   /** Value at `(row, col)`: the stored value whose column matches, or `0.0`.
     *
@@ -1233,7 +1364,19 @@ object CSC:
 
 object Sparse:
   def coo(rows: Int, cols: Int): COOBuilder =
-    new COOBuilder(rows, cols)
+    require(rows >= 0 && cols >= 0, "sparse matrix shape must be non-negative")
+    new COOBuilder(rows, cols, SparseValuePolicy.AllowNonFinite)
+
+  /** End-to-end total COO ingestion entry point. The default explicitly allows
+    * non-finite values for backward compatibility; pass `RequireFinite` at file
+    * or network boundaries that reject them.
+    */
+  def cooChecked(
+      rows: Int,
+      cols: Int,
+      valuePolicy: SparseValuePolicy = SparseValuePolicy.AllowNonFinite
+  ): Either[LinAlgError, COOBuilder] =
+    COOBuilder.checked(rows, cols, valuePolicy)
 
   def diagonal(values: Double*): Diagonal =
     new Diagonal(DoubleArray.fromArray(values.toArray))

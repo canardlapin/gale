@@ -58,8 +58,38 @@ val dot   = v.dot(Vec(1.0, 0.0, 0.0))
 val norm  = v.norm2
 ```
 
-`row`/`col`/`t` are `O(1)` aliasing views over the same backing storage;
-`copy`, `updated`, and the `Seq`/`Array` exporters return independent data.
+`row`/`col`/`t` and contiguous `slice(rowFrom, rowUntil, colFrom, colUntil)` are
+`O(1)` aliasing views over the same backing storage. Gathers and builders are
+owned copies:
+
+```scala
+val window = A.slice(0, 2, 1, 3)                 // strided view
+val rows   = A.gatherRows(IndexedSeq(1, 0, 1))   // owned, repeats preserved
+val cols   = A.gatherColumns(IndexedSeq(2, 0))   // owned
+
+val edit = A.toBuilder                           // exactly one owned copy
+edit(0, 0) = 10.0
+val changed = edit.result()                      // ownership transfer, no recopy
+
+val ridge = A.addToDiagonal(1e-6)                // owned copy
+val symmetric = Matrix.dense(2, 2)(1, 3, 5, 2).symmetrizedAverage
+```
+
+For unboxed export or streaming, copy into caller-owned primitive storage or
+traverse logical row-major order without constructing a `Seq`:
+
+```scala
+val data = new Array[Double](A.rows * A.cols)
+A.copyRowMajorTo(data)
+A.foreachRowMajor(value => println(value))
+
+val vectorData = new Array[Double](v.length)
+v.copyTo(vectorData)
+v.foreachValue(value => println(value))
+```
+
+`copy`, `updated`, gathers, builders, and primitive copy methods return or fill
+independent data; Gale never exposes an adoptable backing array.
 `DMat`/`DVec` arithmetic (`+`, `-`, `*`) throws `LinAlgError` on a shape
 mismatch — these are primitive operators, not the `Either`-returning solve
 tier described next.
@@ -182,8 +212,10 @@ full.foreach { d =>
 ```
 
 Only the matrix's lower triangle is read (the same convention as `cholesky`).
-A partial, iterative solve (`eigsh`-style Lanczos) is available for a large or
-matrix-free operator, restricted to `EigenSelection.Count` with `k < n`:
+A partial, iterative solve (`eigsh`-style block Krylov with thick restarting) is
+available for a large or matrix-free operator, restricted to
+`EigenSelection.Count` with `k < n`. Counts include repeated eigenvalues; bases
+inside repeated eigenspaces are intentionally unspecified:
 
 ```scala
 import gale.spectral.{Eigen, EigenSelection, EigenOrder, SpectralOptions}
@@ -287,13 +319,40 @@ val y = csr * Vec.fill(3)(1.0) // sparse mat-vec, DVec result
 ```
 
 `COOBuilder.toCSR`/`toCSC`/`toCOO` all take a `DuplicatePolicy` (`Sum`
-default, `Last`, or `Error`). A `COO`/`CSR`/`CSC` value's `.canonicalize`
+default, `Last`, or `Error`) and retain the legacy throwing convenience
+surface. File/network ingestion can stay total from shape through finalization:
+
+```scala
+import gale.sparse.{DuplicatePolicy, Sparse, SparseValuePolicy}
+
+val checkedCsr = for
+  builder <- Sparse.cooChecked(3, 3, SparseValuePolicy.RequireFinite)
+  _ <- builder.tryAdd(0, 0, 2.0)
+  _ <- builder.tryAdd(0, 1, -1.0)
+  _ <- builder.tryAdd(1, 0, -1.0)
+  csr <- builder.tryToCSR(DuplicatePolicy.Error)
+yield csr
+```
+
+`AllowNonFinite` is the explicit default for backward compatibility;
+`RequireFinite` rejects `NaN` and infinities. Checked CSR/CSC finalization is
+canonical: coordinates are sorted, the selected duplicate policy is applied,
+and explicit or cancelled zeros are dropped. A `COO`/`CSR`/`CSC` value's `.canonicalize`
 sorts, sums duplicates, and prunes exact zeros; `.hasCanonicalFormat` tells
 you whether that work is already done. `CSR`/`CSC` support `+`, `-`, `*`
 (scalar), `mapValues`, `zipValues`, `.t` (a zero-copy reinterpretation
 between the two formats), `.toDense(maxEntries)`, `.diagonal`, `.trace`.
 `Sparse.diagonal(...)`, `Sparse.identity(n)`, `Sparse.zero(rows, cols)`, and
 `Sparse.permutation(...)` build the structural special cases directly.
+
+COO and CSR entries can be serialized without allocating `Seq[COOEntry]` or
+exposing backing arrays:
+
+```scala
+csr.foreachStoredEntry { (row, col, value) =>
+  println(s"$row $col $value")
+}
+```
 
 Matrix Market I/O (`gale.sparse.MatrixMarket`, `coordinate real general`
 only):

@@ -9,13 +9,13 @@ object MatrixMarket:
     val builder = new StringBuilder
     builder.append(Header).append('\n')
     builder.append(A.rows).append(' ').append(A.cols).append(' ').append(A.nnz).append('\n')
-    A.toCOO.entries.foreach { entry =>
+    A.foreachStoredEntry { (row, col, value) =>
       builder
-        .append(entry.row + 1)
+        .append(row + 1)
         .append(' ')
-        .append(entry.col + 1)
+        .append(col + 1)
         .append(' ')
-        .append(entry.value)
+        .append(value)
         .append('\n')
     }
     builder.toString
