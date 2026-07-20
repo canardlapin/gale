@@ -153,6 +153,52 @@ final class DVec private[gale] (
     if index < 0 || index >= length then
       throw LinAlgError.IndexOutOfBounds(index, length)
 
+/** Single-owner construction buffer for an immutable [[DVec]].
+  *
+  * The builder is the primitive-loop construction seam for callers that already
+  * know the vector length. [[result]] transfers the backing storage without a
+  * copy and permanently closes the builder, so no mutable alias survives through
+  * the public API.
+  */
+final class DVecBuilder private (val length: Int, private val data: DoubleArray):
+  private var open = true
+
+  def apply(index: Int): Double =
+    requireOpen()
+    checkIndex(index)
+    data(index)
+
+  def update(index: Int, value: Double): Unit =
+    requireOpen()
+    checkIndex(index)
+    data(index) = value
+
+  def fill(value: Double): Unit =
+    requireOpen()
+    var i = 0
+    while i < length do
+      data(i) = value
+      i += 1
+
+  /** Transfer this builder's storage to an immutable vector without copying. */
+  def result(): DVec =
+    requireOpen()
+    open = false
+    DVec.fromDoubleArrayOwned(data)
+
+  private def requireOpen(): Unit =
+    if !open then
+      throw LinAlgError.UnsupportedOperation("DVecBuilder is closed after result()")
+
+  private def checkIndex(index: Int): Unit =
+    if index < 0 || index >= length then
+      throw LinAlgError.IndexOutOfBounds(index, length)
+
+object DVecBuilder:
+  def zeros(length: Int): DVecBuilder =
+    require(length >= 0, "length must be non-negative")
+    new DVecBuilder(length, DoubleArray.alloc(length))
+
 object DVec:
   def zeros(length: Int): DVec =
     require(length >= 0, "length must be non-negative")
@@ -173,6 +219,12 @@ object DVec:
       out.data(i) = f(i)
       i += 1
     out
+
+  /** Allocate a single-owner builder whose [[DVecBuilder.result]] transfers its
+    * storage into an immutable vector without copying.
+    */
+  def newBuilder(length: Int): DVecBuilder =
+    DVecBuilder.zeros(length)
 
   def fromSeq(values: Seq[Double]): DVec =
     val out = zeros(values.length)
@@ -204,6 +256,9 @@ object Vec:
 
   def tabulate(length: Int)(f: Int => Double): DVec =
     DVec.tabulate(length)(f)
+
+  def newBuilder(length: Int): DVecBuilder =
+    DVec.newBuilder(length)
 
 extension (alpha: Double)
   def *(x: DVec): DVec =
