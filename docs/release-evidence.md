@@ -5,8 +5,9 @@ on `main`; its parent is `393cc60`. All commands below ran against the candidate
 working tree before that evidence commit was created.
 
 This record certifies local engineering gates. It does not claim that a public
-`1.0.0` was published, that remote CI ran on the evidence commit, or that the
-remaining owner-controlled release metadata exists.
+`1.0.0` was published or that remote CI ran on the evidence commit. Apache-2.0,
+the canonical GitHub repository, and POM provenance metadata were subsequently
+owner-selected on 2026-07-19.
 
 ## Environment
 
@@ -74,9 +75,8 @@ inspection found no benchmark, parity, or vendor checkout content in published
 core/backend/laws artifacts. The interop artifact contains only its intentional
 `gale.interop.breeze` classes and declared Breeze dependency.
 
-The generated core POM has no forbidden compile dependency. It currently lacks
-license, homepage, SCM, and developer metadata; that is recorded as a blocker,
-not silently accepted.
+The generated core POM has no forbidden compile dependency. The build now adds
+Apache-2.0, homepage, SCM, and developer metadata to every published module.
 
 ## Performance evidence
 
@@ -101,15 +101,12 @@ The important shipped decisions are conservative:
 
 Engineering acceptance: **pass** for this local candidate.
 
-Public release disposition: **not releasable yet**. Required external/owner
-actions are:
+Public release disposition: **not releasable yet**. Remaining actions are:
 
-1. choose the project license and add root `LICENSE` plus POM license metadata;
-2. choose/configure the canonical SCM remote, homepage, developer metadata, and
-   publishing destination;
-3. run required remote CI on the exact release commit, including JDK 21 Vector
+1. configure the binary publishing destination, credentials, and signing policy;
+2. run required remote CI on the exact release commit, including JDK 21 Vector
    and Linux/OpenBLAS JDK 22 FFM jobs;
-4. replace `1.0.0-SNAPSHOT` with `1.0.0`, build/sign/publish the same artifact
+3. replace `1.0.0-SNAPSHOT` with `1.0.0`, build/sign/publish the same artifact
    set in the documented JDK 21/JDK 22 passes, and tag that exact commit.
 
-No tag, push, signing, or publication was performed by this audit.
+No release tag, signing, or binary publication was performed by this audit.

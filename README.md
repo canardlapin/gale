@@ -33,7 +33,8 @@ accelerator without widening the Breeze-equivalence claim.
 
 The current [v1 acceptance audit](docs/v1-acceptance-audit.md) and
 [release evidence](docs/release-evidence.md) distinguish locally verified code
-readiness from the owner/remote steps still required for a public release.
+readiness from the binary-publication and remote-CI steps still required for a
+public release. Gale is licensed under [Apache-2.0](LICENSE).
 
 ### Package tour (`gale-core`)
 

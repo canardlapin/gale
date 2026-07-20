@@ -9,6 +9,23 @@ import scalajscrossproject.ScalaJSCrossPlugin.autoImport.*
 ThisBuild / organization := "io.gale"
 ThisBuild / scalaVersion := "3.3.8"
 ThisBuild / version      := "1.0.0-SNAPSHOT"
+ThisBuild / homepage     := Some(url("https://github.com/bbuchsbaum/gale"))
+ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/bbuchsbaum/gale"),
+    "scm:git:https://github.com/bbuchsbaum/gale.git",
+    Some("scm:git:git@github.com:bbuchsbaum/gale.git")
+  )
+)
+ThisBuild / developers := List(
+  Developer(
+    id = "bbuchsbaum",
+    name = "Brad Buchsbaum",
+    email = "brad.buchsbaum@gmail.com",
+    url = url("https://github.com/bbuchsbaum")
+  )
+)
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",

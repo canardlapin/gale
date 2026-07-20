@@ -81,7 +81,9 @@ A public release requires all of the following in addition to green tests:
 - clean source, binary, and documentation artifacts for every intended module;
 - the acceptance and release-evidence records for the exact release commit.
 
-The repository currently has no owner-selected project license or configured
-SCM remote. Those are real publication blockers; this policy deliberately does
-not guess them. Local `publishLocal` is useful packaging evidence but is not a
-public release.
+The owner selected Apache-2.0 and `https://github.com/bbuchsbaum/gale` as the
+canonical SCM repository on 2026-07-19. The root `LICENSE` and generated POMs
+carry that provenance. Binary publication still requires a configured
+destination, credentials, signing policy, and remote CI on the exact release
+commit. Local `publishLocal` is useful packaging evidence but is not a public
+release.
