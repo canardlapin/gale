@@ -219,8 +219,13 @@ Repeated Ritz roots retain independent orthonormal directions from their
 eigenspace; convergence and tests are defined by per-pair residuals and the
 returned subspace projector, never by a particular basis inside a repeated
 eigenspace. A result cannot report `allConverged` unless all `k` requested pairs
-meet the residual criterion. Exact Krylov breakdown replenishes the orthogonal
-complement rather than silently substituting another distinct root.
+meet the residual criterion. For a matrix-free partial solve, that residual
+criterion establishes convergence only within the explored Krylov space; it does
+not prove that an invariant starting subspace contains the requested global
+extreme. `diagnostics.convergenceStatus` distinguishes `ResidualConverged` from
+`ExtremeCertified`; the latter currently requires a full-space reduction. Exact
+Krylov breakdown replenishes the orthogonal complement rather than silently
+substituting another distinct root.
 
 ---
 
@@ -413,8 +418,13 @@ result):**
 **`Right(result + SpectralDiagnostics)` — convergence & degeneracy (result, or
 partial result, is meaningful):**
 
-- **Full convergence:** `Right(result)`, `diagnostics.allConverged = true`, every
-  per-pair residual below tolerance.
+- **Residual convergence:** `Right(result)`, `diagnostics.allConverged = true`,
+  every per-pair residual below tolerance. For iterative partial solvers this is
+  explicitly convergence in the explored subspace, with
+  `convergenceStatus = ResidualConverged`, not a universal extremality proof.
+- **Extreme-certified convergence:** `convergenceStatus = ExtremeCertified`
+  additionally proves membership in the requested spectral extreme. Gale
+  currently issues this status only for full-space reductions.
 - **Partial convergence:** `Right(result containing only the converged pairs)`,
   `diagnostics.allConverged = false`, `requested`/`converged` counts recorded,
   per-pair residuals recorded. This is the typed analogue of
@@ -496,8 +506,11 @@ the PRD's sketch.
 13. **`SpectralDiagnostics`** — the diagnostics contract that makes non-convergence
     a `Right`: `requested: Int`, `converged: Int`, `allConverged: Boolean`,
     `residuals: DVec` (per-pair), `orthogonalityError: Double`, `iterations: Int`,
-    `rank: Option[Int]`. Plus `requireConverged: Either[LinAlgError, Self]` on each
-    result. Directly mirrors `FactorizationDiagnostics` + `SolverResult`.
+    `rank: Option[Int]`, `extremalityCertified: Boolean`, and derived
+    `convergenceStatus: NotConverged | ResidualConverged | ExtremeCertified`.
+    Plus residual-based `requireConverged: Either[LinAlgError, Self]` on each
+    result. Directly mirrors `FactorizationDiagnostics` + `SolverResult` while
+    making the stronger spectral-membership claim explicit.
 
 ### Explicitly OUT of v0.3.5 (with rationale)
 

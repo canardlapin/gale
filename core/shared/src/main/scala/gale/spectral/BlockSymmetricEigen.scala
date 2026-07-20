@@ -69,7 +69,8 @@ private[spectral] object BlockSymmetricEigen:
       k,
       Array.empty[RitzPair],
       wantVectors,
-      iterations = 0
+      iterations = 0,
+      extremalityCertified = false
     )
 
     while restart < maxRestarts && !done && failure.isEmpty do
@@ -85,7 +86,14 @@ private[spectral] object BlockSymmetricEigen:
             ritzPair(basis, eigen.values(index), projectedVectors, index)
           val scale = math.max(1.0, maxAbs(eigen.values))
           val converged = pairs.filter(_.residualNorm <= tolerance * scale)
-          result = assemble(n, k, converged, wantVectors, restart + 1)
+          result = assemble(
+            n,
+            k,
+            converged,
+            wantVectors,
+            restart + 1,
+            extremalityCertified = basis.vectors.length == n
+          )
 
           val fullyConverged = pairs.length == k && converged.length == k
           // A full orthonormal basis makes the Rayleigh-Ritz problem equivalent
@@ -307,7 +315,8 @@ private[spectral] object BlockSymmetricEigen:
       requested: Int,
       pairs: Array[RitzPair],
       wantVectors: Boolean,
-      iterations: Int
+      iterations: Int,
+      extremalityCertified: Boolean
   ): EigenDecomposition =
     val order = pairs.indices.sortBy(i => (pairs(i).value, i)).toArray
     val values = DVec.tabulate(order.length)(i => pairs(order(i)).value)
@@ -322,7 +331,8 @@ private[spectral] object BlockSymmetricEigen:
       residuals = residuals,
       orthogonalityError = if wantVectors then orthogonalityError(vectors) else 0.0,
       iterations = iterations,
-      rank = None
+      rank = None,
+      extremalityCertified = extremalityCertified
     )
     EigenDecomposition(values, vectors, diagnostics)
 

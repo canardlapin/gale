@@ -43,6 +43,13 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
         into(i) = d(i) * x(i)
         i += 1
 
+  /** Reproduces BlockSymmetricEigen's portable deterministic probe stream. */
+  private def deterministicProbe(n: Int, stream: Int): DVec =
+    var state = 123456789 ^ (stream * 0x9e3779b9)
+    DVec.tabulate(n): _ =>
+      state = state * 1103515245 + 12345
+      ((state >>> 9) & 0x7fffff).toDouble / 0x800000.toDouble * 2.0 - 1.0
+
   private def values(d: EigenDecomposition): IndexedSeq[Double] =
     (0 until d.eigenvalues.length).map(d.eigenvalues(_))
 
@@ -225,6 +232,58 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     assertEquals(repeatedColumns.length, 2)
     val expected = DMat.tabulate(5, 5)((i, j) => if i == j && i < 2 then 1.0 else 0.0)
     assertProjectorClose(projector(result.eigenvectors, repeatedColumns), expected, 1e-8)
+  }
+
+  test("block krylov: residual convergence does not certify a hidden spectral extreme") {
+    val n = 8
+    val start = DVec.tabulate(n)(_ => 1.0)
+    val q0 = start * (1.0 / start.norm2)
+    val probe = deterministicProbe(n, stream = 1)
+    val q1Raw = probe - q0 * q0.dot(probe)
+    val q1 = q1Raw * (1.0 / q1Raw.norm2)
+
+    // Analytic spectrum: 0.8 on q0, 0.9 on q1, and 2.0 on their
+    // six-dimensional orthogonal complement. The supplied start and Gale's
+    // deterministic second block probe therefore span an invariant plane that
+    // hides the requested largest algebraic eigenvalue.
+    val op = LinearOperator.fromFunction(n, n): (x, into) =>
+      val c0 = q0.dot(x)
+      val c1 = q1.dot(x)
+      var i = 0
+      while i < n do
+        into(i) = 2.0 * x(i) - 1.2 * c0 * q0(i) - 1.1 * c1 * q1(i)
+        i += 1
+
+    val trapped = Eigen
+      .eigSymmetric(
+        op,
+        n,
+        EigenSelection.Count(1, EigenOrder.LargestAlgebraic),
+        SpectralOptions(startVector = Some(start), subspaceDimension = Some(2))
+      )
+      .toOption
+      .get
+    assertClose(values(trapped), IndexedSeq(0.9), 1e-12)
+    assert(trapped.diagnostics.allConverged)
+    assertEquals(
+      trapped.diagnostics.convergenceStatus,
+      SpectralConvergenceStatus.ResidualConverged
+    )
+
+    val fullSpace = Eigen
+      .eigSymmetric(
+        op,
+        n,
+        EigenSelection.Count(1, EigenOrder.LargestAlgebraic),
+        SpectralOptions(startVector = Some(start), subspaceDimension = Some(n))
+      )
+      .toOption
+      .get
+    assertClose(values(fullSpace), IndexedSeq(2.0), 1e-12)
+    assertEquals(
+      fullSpace.diagnostics.convergenceStatus,
+      SpectralConvergenceStatus.ExtremeCertified
+    )
   }
 
   test("block krylov: repeated eigenspace converges without an n-dimensional projection") {

@@ -367,12 +367,15 @@ in the native provider, not a modelled outcome).
 ### 1.5 Diagnostics obligations — the facade re-derives, the backend counts
 
 `SpectralDiagnostics(requested, converged, residuals, orthogonalityError,
-iterations, rank)` must be **honest**. To make honesty structural rather than
-trusted, the boundary splits responsibility:
+iterations, rank, extremalityCertified)` must be **honest**. To make honesty
+structural rather than trusted, the boundary splits responsibility:
 
 - **The facade computes `residuals` and `orthogonalityError`** from the vectors
   the backend returned, using **the same mathematics the `SpectralLaws`
   residual/orthogonality checks use** — but implementing that arithmetic itself.
+- **The facade sets `extremalityCertified`** only when the backend result comes
+  from a full-space reduction (or a future backend supplies a separately
+  validated extremality certificate). Ritz residuals alone never set it.
   The facade **cannot import `SpectralLaws`**: `gale-laws` depends on
   `gale-core`, not the reverse (a core→laws import would be circular), and the
   law functions are throwing `Unit` assertions, not residual-returning

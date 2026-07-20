@@ -277,7 +277,8 @@ object Svds:
         residuals = residuals,
         orthogonalityError = orthoErr,
         iterations = 0,
-        rank = Some(rank)
+        rank = Some(rank),
+        extremalityCertified = true
       )
     SVD(values, u, vt, rank, diagnostics)
 
@@ -848,7 +849,8 @@ object Svds:
         residuals = residOut,
         orthogonalityError = orthoErr,
         iterations = 0,
-        rank = Some(n)
+        rank = Some(n),
+        extremalityCertified = true
       )
     GeneralizedSVD(u, v, x, cOut, sOut, valuesOut, diagnostics)
 
@@ -916,6 +918,7 @@ object Svds:
         residuals = residOut,
         orthogonalityError = orthoErr,
         iterations = 0,
-        rank = Some(n)
+        rank = Some(n),
+        extremalityCertified = true
       )
     GeneralizedSVD(u, v, x, cOut, sOut, valuesOut, diagnostics)

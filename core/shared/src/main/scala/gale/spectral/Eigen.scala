@@ -195,8 +195,12 @@ object Eigen:
     * [[EigenSelection.Count]] counts algebraic multiplicity. On convergence the
     * result contains exactly `k` orthonormal eigenvectors, including the required
     * number of directions from repeated eigenspaces; the particular basis within
-    * such an eigenspace is intentionally unspecified. `allConverged` can only be
-    * true when all `k` selected Ritz pairs satisfy the true residual test.
+    * such an eigenspace is intentionally unspecified. `allConverged` means all
+    * `k` selected Ritz pairs satisfy the true residual test in the explored
+    * Krylov space. It does not certify that an invariant start exposed the
+    * requested global extreme; inspect
+    * [[SpectralDiagnostics.convergenceStatus]] for the explicit
+    * `ResidualConverged` versus `ExtremeCertified` distinction.
     *
     * `subspaceDimension` is the initial dense Rayleigh-Ritz projection size,
     * clamped to `[k+1, n]`; its default remains `min(n, max(2k+1, 20))`.
@@ -709,7 +713,8 @@ object Eigen:
         residuals = residuals,
         orthogonalityError = orthoErr,
         iterations = 0,
-        rank = None
+        rank = None,
+        extremalityCertified = true
       )
     EigenDecomposition(selValues, selVectors, diagnostics)
 
@@ -1009,7 +1014,8 @@ object Eigen:
         residuals = residuals,
         orthogonalityError = 0.0,
         iterations = 0,
-        rank = None
+        rank = None,
+        extremalityCertified = true
       )
     new NonsymmetricEigenDecomposition(re, im, rightSel, leftSel, diagnostics)
 
@@ -1532,7 +1538,8 @@ object Eigen:
         residuals = residuals,
         orthogonalityError = orthoErr,
         iterations = 0,
-        rank = None
+        rank = None,
+        extremalityCertified = true
       )
     EigenDecomposition(selValues, x, diagnostics)
 
@@ -1722,7 +1729,8 @@ object Eigen:
           residuals = residuals,
           orthogonalityError = 0.0,
           iterations = 0,
-          rank = Some(finite)
+          rank = Some(finite),
+          extremalityCertified = true
         )
       Right(new GeneralizedEigenDecomposition(aRe, aIm, bt, rightSel, leftSel, diagnostics))
 

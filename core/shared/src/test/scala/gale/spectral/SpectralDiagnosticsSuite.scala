@@ -12,13 +12,19 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
       iterations = iterations
     )
 
-  test("allConverged and worstResidual derive from the counts and residuals") {
+  test("convergence status separates residual convergence from extreme certification") {
     val full = diagnostics(3, 3, Seq(1e-12, 2e-12, 5e-13), 4)
     assert(full.allConverged)
+    assertEquals(full.convergenceStatus, SpectralConvergenceStatus.ResidualConverged)
     assertEqualsDouble(full.worstResidual, 2e-12, 0.0)
+
+    val certified = full.copy(extremalityCertified = true)
+    assert(certified.allConverged)
+    assertEquals(certified.convergenceStatus, SpectralConvergenceStatus.ExtremeCertified)
 
     val partial = diagnostics(3, 2, Seq(1e-12, 9e-3), 7)
     assert(!partial.allConverged)
+    assertEquals(partial.convergenceStatus, SpectralConvergenceStatus.NotConverged)
     assertEqualsDouble(partial.worstResidual, 9e-3, 0.0)
 
     assertEqualsDouble(diagnostics(0, 0, Nil, 0).worstResidual, 0.0, 0.0)
