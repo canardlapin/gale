@@ -80,7 +80,8 @@ Gale v1 supports:
 - dense conversion with an explicit maximum-entry guard;
 - Matrix Market `coordinate real general` read/write;
 - matrix-free `LinearOperator` use with CG, BiCGSTAB, restarted GMRES, CGNR, and
-  LSQR, plus Jacobi preconditioning.
+  LSQR, plus Jacobi preconditioning; repeated CG solves can use caller-owned
+  `CgWorkspace` storage through `cgWith`.
 
 `rebind`, `mapValues`, scalar multiplication, and symbolic-plan numeric replay
 are structure-preserving: they retain every stored position, including explicit

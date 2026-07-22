@@ -46,6 +46,48 @@ object SolverResult:
   final case class NotConverged(x: DVec, iterations: Int, residual: Double) extends SolverResult:
     val converged: Boolean = false
 
+/** Caller-owned storage for repeated conjugate-gradient solves of one fixed
+  * dimension.
+  *
+  * [[solution]] is an immutable-facing view of mutable workspace storage. It is
+  * allocation-free to read, but a later [[IterativeSolvers.cgWith]] call using
+  * this workspace overwrites the values visible through earlier views. Use
+  * [[solutionCopy]] when a result must outlive workspace reuse.
+  */
+final class CgWorkspace private (val size: Int):
+  private[solvers] val x = MutableDVec.zeros(size)
+  private[solvers] val ax = MutableDVec.zeros(size)
+  private[solvers] val r = MutableDVec.zeros(size)
+  private[solvers] val z = MutableDVec.zeros(size)
+  private[solvers] val p = MutableDVec.zeros(size)
+  private[solvers] val ap = MutableDVec.zeros(size)
+
+  private[solvers] val xView = x.asVec
+  private[solvers] val rView = r.asVec
+  private[solvers] val zView = z.asVec
+  private[solvers] val pView = p.asVec
+  private[solvers] val apView = ap.asVec
+
+  private var iterationCount = 0
+  private var residualValue = Double.PositiveInfinity
+  private var convergedValue = false
+
+  def solution: DVec = xView
+  def solutionCopy: DVec = xView.copy
+  def iterations: Int = iterationCount
+  def residual: Double = residualValue
+  def converged: Boolean = convergedValue
+
+  private[solvers] def finish(iterations: Int, residual: Double, converged: Boolean): Unit =
+    iterationCount = iterations
+    residualValue = residual
+    convergedValue = converged
+
+object CgWorkspace:
+  def apply(size: Int): CgWorkspace =
+    require(size >= 0, "CG workspace size must be non-negative")
+    new CgWorkspace(size)
+
 trait Preconditioner:
   def solve(r: DVec, into: MutableVec[Double]): Unit
 
@@ -254,6 +296,77 @@ object IterativeSolvers:
       p += z.asVec
       rzOld = rzNew
     SolverResult.NotConverged(x.asVec, iteration, residual)
+
+  /** Allocation-controlled conjugate gradient using caller-owned workspace.
+    *
+    * The recurrence, tolerance modes, preconditioner semantics, and breakdown
+    * behavior match [[cg]]. The returned object is the supplied workspace; its
+    * [[CgWorkspace.solution]] view is overwritten by the next solve using the
+    * same workspace.
+    */
+  def cgWith(
+      A: DoubleLinearOperator,
+      b: DVec,
+      workspace: CgWorkspace,
+      config: SolverConfig = SolverConfig(),
+      preconditioner: Preconditioner = Preconditioner.Identity,
+      initial: Option[DVec] = None,
+      toleranceMode: ToleranceMode = ToleranceMode.Absolute
+  ): CgWorkspace =
+    requireSquare(A)
+    if b.length != A.rows then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(A.rows), Cols(1)), Shape(Rows(b.length), Cols(1)))
+    if workspace.size != A.cols then
+      throw LinAlgError.VectorLengthMismatch(A.cols, workspace.size)
+
+    initial match
+      case None => workspace.x.clear()
+      case Some(guess) =>
+        if guess.length != A.cols then
+          throw LinAlgError.VectorLengthMismatch(A.cols, guess.length)
+        workspace.x := guess
+
+    val tolerance = effectiveTolerance(toleranceMode, config.tolerance, b)
+    A.applyTo(workspace.xView, workspace.ax)
+    var i = 0
+    while i < A.rows do
+      workspace.r(i) = b(i) - workspace.ax(i)
+      i += 1
+    var residual = workspace.rView.norm2
+    if residual <= tolerance then
+      workspace.finish(0, residual, converged = true)
+      return workspace
+
+    preconditioner.solve(workspace.rView, workspace.z)
+    workspace.p := workspace.zView
+    var rzOld = workspace.rView.dot(workspace.zView)
+    var iteration = 0
+    while iteration < config.maxIterations do
+      A.applyTo(workspace.pView, workspace.ap)
+      val denominator = workspace.pView.dot(workspace.apView)
+      if denominator == 0.0 then
+        workspace.finish(iteration, residual, converged = false)
+        return workspace
+      val alpha = rzOld / denominator
+      workspace.x.axpyInPlace(alpha, workspace.pView)
+      workspace.r.axpyInPlace(-alpha, workspace.apView)
+      residual = workspace.rView.norm2
+      iteration += 1
+      if residual <= tolerance then
+        workspace.finish(iteration, residual, converged = true)
+        return workspace
+      preconditioner.solve(workspace.rView, workspace.z)
+      val rzNew = workspace.rView.dot(workspace.zView)
+      if rzOld == 0.0 then
+        workspace.finish(iteration, residual, converged = false)
+        return workspace
+      val beta = rzNew / rzOld
+      workspace.p *= beta
+      workspace.p += workspace.zView
+      rzOld = rzNew
+
+    workspace.finish(iteration, residual, converged = false)
+    workspace
 
   def bicgstab(
       A: DoubleLinearOperator,
@@ -600,6 +713,17 @@ def cg(
     toleranceMode: ToleranceMode = ToleranceMode.Absolute
 ): SolverResult =
   IterativeSolvers.cg(A, b, config, preconditioner, initial, toleranceMode)
+
+def cgWith(
+    A: DoubleLinearOperator,
+    b: DVec,
+    workspace: CgWorkspace,
+    config: SolverConfig = SolverConfig(),
+    preconditioner: Preconditioner = Preconditioner.Identity,
+    initial: Option[DVec] = None,
+    toleranceMode: ToleranceMode = ToleranceMode.Absolute
+): CgWorkspace =
+  IterativeSolvers.cgWith(A, b, workspace, config, preconditioner, initial, toleranceMode)
 
 def bicgstab(
     A: DoubleLinearOperator,

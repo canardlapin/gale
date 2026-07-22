@@ -169,12 +169,21 @@ result match
 // A preconditioned solve:
 val jacobi = Preconditioner.Jacobi(A)
 val precond = bicgstab(A, b, preconditioner = jacobi)
+
+// Repeated same-size CG solves without full-vector allocation per call:
+val workspace = CgWorkspace(A.cols)
+cgWith(A, b, workspace, config = SolverConfig(tolerance = 1e-10))
+val currentSolution = workspace.solution     // allocation-free aliasing view
+val retainedSolution = workspace.solutionCopy // independent owned copy
 ```
 
 `SolverResult` is `Converged` or `NotConverged` (both carry `x`, `iterations`,
 `residual`); `.converged: Boolean` distinguishes them, and `.orThrow` (a
 throwing convenience, best kept to scripts/tests) unwraps to `x` or raises
-`LinAlgError.DidNotConverge`.
+`LinAlgError.DidNotConverge`. `cgWith` instead writes diagnostics and the
+solution into the supplied `CgWorkspace`. Its `solution` view changes when the
+workspace is reused; call `solutionCopy` only when the result must outlive that
+reuse.
 
 ## Spectral
 
