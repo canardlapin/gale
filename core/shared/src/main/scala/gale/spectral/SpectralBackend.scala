@@ -11,6 +11,12 @@ import gale.linalg.LinAlgError
   * type (`private[spectral]` constructor after migration step 0), imposing gale's
   * ordering/packing and re-deriving residuals; a backend never builds a result
   * type (§ 1.2 of `docs/spectral-backend-boundary.md`).
+  *
+  * Shape contract (seam S8): for an `n×n` input, `values` must carry exactly `n`
+  * eigenvalues (any order — the facade sorts ascending), and when vectors were
+  * requested `vectors` must carry AT LEAST the leading `n` eigenvector columns
+  * over `n` rows ([[RawSvd]]'s slack rule; excess columns are sliced). The facade
+  * rejects a malformed carrier loudly as a conformance violation.
   */
 final case class RawSymmetricEigen(values: DVec, vectors: DMat)
 
@@ -104,6 +110,29 @@ trait SpectralBackend:
   def name: String
   def capabilities: Set[SpectralCapability]
 
+  /** Measured routing crossover for [[denseSymmetricEigen]] — the spectral analog
+    * of `gale.backend.BackendThresholds`' per-routine factorization sizes: the S8
+    * facade (`Eigen.eigSymmetric`) routes the dense symmetric eigendecomposition
+    * to this backend only when the matrix order `n` is at least this. Default `0`:
+    * a capability-advertising backend routes at every size (capability alone
+    * gates, as the S7 dense-SVD seam does). A backend family without a committed,
+    * copy-inclusive measured sweep should override with `Int.MaxValue` (never
+    * routed by default) rather than project another family's crossover — the
+    * `FfmBlasThresholds.forLibrary` discipline. Irrelevant when
+    * [[SpectralCapability.DenseSymmetricEigen]] is not advertised.
+    */
+  def denseSymmetricEigenMinSize: Int = 0
+
+  /** The S8 routing gate in one place (the `Backend.routesGemm` discipline): route
+    * the dense symmetric eigendecomposition to this backend iff it advertises
+    * [[SpectralCapability.DenseSymmetricEigen]] and `n` clears
+    * [[denseSymmetricEigenMinSize]]. Every symmetric-eigen seam must call this
+    * rather than re-spelling the predicate, so the routing policy cannot drift
+    * between sites.
+    */
+  final def routesDenseSymmetricEigen(n: Int): Boolean =
+    capabilities.contains(SpectralCapability.DenseSymmetricEigen) && n >= denseSymmetricEigenMinSize
+
   // Every operation defaults to Left(UnsupportedOperation); a backend overrides
   // only the ones it supports and lists exactly those in `capabilities`.
   def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
@@ -155,6 +184,13 @@ object SpectralBackend:
 
       private def first(cap: SpectralCapability): Option[SpectralBackend] =
         parts.find(_.capabilities.contains(cap))
+
+      // The routing threshold follows the part that would SERVE the operation
+      // (first capable wins), so the gate and the dispatch agree by construction.
+      override def denseSymmetricEigenMinSize: Int =
+        first(SpectralCapability.DenseSymmetricEigen)
+          .map(_.denseSymmetricEigenMinSize)
+          .getOrElse(Int.MaxValue)
 
       override def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
         first(SpectralCapability.DenseSymmetricEigen) match

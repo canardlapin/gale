@@ -36,9 +36,18 @@ Times are microseconds per operation. Speedup is pure Gale divided by FFM.
 LU has a stable measured win, so the Accelerate default is conservatively
 `nativeLuMinSize = 128`. Cholesky and QR are not monotone: a single lower-bound
 threshold cannot safely describe either route. Both therefore remain disabled
-by default and available through explicit `FfmBlasThresholds` overrides. The
-symmetric-eigen provider is real and conforming, but Gale does not yet expose a
-backend-routed public eigen facade, so no automatic threshold is claimed.
+by default and available through explicit `FfmBlasThresholds` overrides.
+
+Symmetric eigen wins at every measured size, but the speedup magnitude is not
+monotone (2.07x at n=128 dips to 1.63x at n=256), so no single size marks a
+"stable and monotone" crossover; the smallest always-winning measured size is
+n=64 at only 1.18x — the same thin-margin regime in which the LU sweep declined
+to trust its 1.16x. The Accelerate default is therefore the LU rule applied
+verbatim: `nativeSymmetricEigenMinSize = 128`, leaving one measured size of
+margin above the unswept n < 64 region while every routed size wins by at least
+1.63x. The `Eigen.eigSymmetric` facade routes through this threshold (seam S8 of
+`docs/spectral-backend-boundary.md`); unswept vendor families stay at
+`Int.MaxValue` (never routed) per the `FfmBlasThresholds.forLibrary` policy.
 
 ## End-to-end scenarios
 
