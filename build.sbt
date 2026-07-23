@@ -232,6 +232,25 @@ lazy val benchmarksJS =
     )
     .settings(jsWasmSettings: _*)
 
+// gale-demo: a browser-only PCA demo page (publish-skipped, never aggregated
+// into the default build). Linked with ModuleKind.NoModule so the emitted
+// script runs from a plain <script> tag over file:// — open demo/index.html
+// directly after linking, no local server or bundler required. scalajs-dom is
+// the only JS dependency.
+lazy val demo =
+  project
+    .in(file("demo"))
+    .enablePlugins(ScalaJSPlugin)
+    .dependsOn(coreJS)
+    .settings(
+      name           := "gale-demo",
+      publish / skip := true,
+      scalacOptions ++= commonScalacOptions,
+      scalaJSUseMainModuleInitializer := true,
+      scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.NoModule) },
+      libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
+    )
+
 lazy val root =
   project
     .in(file("."))
@@ -260,4 +279,6 @@ addCommandAlias("blasFfmBackendTest", ";blasFfmBackend/test")
 addCommandAlias("benchFfmCompile", ";benchmarksFfm/Jmh/compile")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
+// Browser PCA demo: link, then open demo/index.html in a browser.
+addCommandAlias("demoBuild", ";demo/fastLinkJS")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gale — PCA in the browser</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --surface: #fcfcfb;
+      --text-primary: #0b0b0b;
+      --text-secondary: #52514e;
+      --border: #e4e3df;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #1a1a19;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --border: #333331;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--surface);
+      color: var(--text-primary);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    p.sub { color: var(--text-secondary); margin: 0 0 20px; }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .controls button {
+      font: inherit;
+      padding: 6px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .controls button:hover { border-color: var(--text-secondary); }
+    .timing {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .legend {
+      display: flex;
+      gap: 18px;
+      margin: 12px 0 4px;
+      font-size: 0.9rem;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .readout {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>gale — PCA running live in your browser</h1>
+    <p class="sub">
+      A synthetic 5-D dataset (three Gaussian clusters, seeded generator) is
+      created in-page, then centered, its scatter matrix eigendecomposed with
+      <code>Eigen.eigSymmetric</code>, and projected onto the top two principal
+      components — all by <strong>gale</strong> compiled to JavaScript via
+      Scala.js. Press <em>Re-sample</em> to regenerate the data and re-run the
+      whole pipeline.
+    </p>
+    <div id="app"></div>
+    <noscript>This demo requires JavaScript.</noscript>
+  </main>
+  <!-- Produced by `sbt demo/fastLinkJS` (ModuleKind.NoModule, so a plain
+       script tag works over file://). -->
+  <script src="target/scala-3.3.8/gale-demo-fastopt/main.js"></script>
+</body>
+</html>
