@@ -27,7 +27,10 @@ word "equivalence."
 | `rank` | `rankEstimate` | full-rank and clearly deficient differential cases | Same result on well-separated rank decisions; algorithms and tolerance rules differ. |
 | `cond` | `conditionEstimate` | exact overlap tests on diagonal matrices | **Not the same general quantity:** Breeze uses exact SVD 2-norm; Gale estimates the 1-norm condition number. |
 | `eigSym` | `Eigen.eigSymmetric` | eigenvalue, sign-aware vector, and repeated-eigenspace parity | Equivalent dense symmetric result and ascending order. Native Gale reads the lower triangle; the migration shim first applies Breeze's symmetry guard. |
-| `svd` extremes | `Svds.svd` partial largest/smallest | tall + wide differential tests | Partial SVD only; Gale does not claim public full dense SVD equivalence. |
+| `svd` extremes | `Svds.svd` partial largest/smallest | tall + wide differential tests | Partial top-k/bottom-k without forming the full decomposition; values to ~1e-7 on the differential fixtures. |
+| `svd` full | `A.svd` / `Svds.svd(A, SingularSelection.All)` | full-spectrum differential tests + core reconstruction/orthonormality suites | Economy shapes only (`U` m×k, `Vᵀ` k×n, k = min(m, n)) versus Breeze's full square factors; values agree to ~1e-9, vectors up to sign for well-separated singular values. |
+| `pinv` | `A.pinv: Either[...]` | Moore–Penrose condition suite + full-rank differential tests | Elementwise agreement ~1e-8 on full-rank fixtures. Cutoff is NumPy's default `max(m, n)·eps·sigma_max`, which is not Breeze's policy: near the rank boundary the two libraries may truncate differently. |
+| `kron` | `A.kron(B)` | rectangular differential tests | Same values to ~1e-12 (plain products; no algorithmic freedom). |
 | `CSCMatrix * vector` | `CSR`, `CSC`, `Banded`, `Diagonal` matvec | rectangular transpose differential tests | Equivalent stored-matrix action; formats and canonicalization APIs differ. |
 | dense/sparse conversion | `gale.interop.breeze.*` | bit-exact special-value and aliasing tests | Gale to Breeze always copies. Breeze to Gale may be an explicit zero-copy view when strides are positive. |
 
@@ -106,8 +109,7 @@ Gale does not claim replacement coverage for:
 - probability distributions, optimization, statistics, signal processing,
   plotting, machine learning, tensors, or other Breeze modules;
 - general complex matrix storage and arithmetic;
-- public full dense SVD, pseudo-inverse, sparse direct factorization, or a complete
-  native LAPACK implementation;
+- sparse direct factorization or a complete native LAPACK implementation;
 - identical exception classes, pivot choices, reflector signs, eigenvector signs,
   or bit-identical results when legal algorithms reassociate floating-point work;
 - performance superiority over a native-enabled Breeze installation until a

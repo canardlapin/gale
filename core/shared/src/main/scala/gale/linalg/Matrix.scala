@@ -5,6 +5,10 @@ import gale.backend.PureBackend
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.spectral.SVD
+import gale.spectral.SingularSelection
+import gale.spectral.SpectralBackend
+import gale.spectral.Svds
 import scala.annotation.targetName
 
 trait Matrix[A] extends LinearOperator[A]:
@@ -444,6 +448,74 @@ final class DMat private[gale] (
 
   def solve(b: DVec)(using Backend): Either[LinAlgError, DVec] =
     lu.flatMap(_.solve(b))
+
+  /** Full (economy) singular value decomposition `A = U Σ Vᵀ`: singular values
+    * '''descending''', `U` `m×k`, `Vᵀ` `k×n` with `k = min(m, n)`. The spectral
+    * dispatch gate follows `docs/spectral-backend-boundary.md` (seam S7): a
+    * [[gale.spectral.SpectralCapability.DenseSvd]]-capable `given SpectralBackend`
+    * computes the raw factors, and with no import the pure bidiagonal kernel runs —
+    * unlike the kernel-`Backend` factorization gates there is no size threshold, and
+    * canonical order, residuals, and rank are always the facade's. `Left` on an
+    * empty dimension or (in practice unreachable) kernel non-convergence.
+    */
+  def svd(using SpectralBackend): Either[LinAlgError, SVD] =
+    Svds.svd(this, SingularSelection.All)
+
+  /** Moore–Penrose pseudo-inverse (`n×m` for an `m×n` matrix) via the economy
+    * [[svd]], on the same spectral dispatch gate. Singular values at or below
+    * NumPy's default cutoff `max(m, n) · ε · σ_max` are treated as zero (see
+    * [[gale.spectral.Svds.pinv]] for the exact convention), so a rank-deficient —
+    * even all-zero — matrix pseudo-inverts cleanly rather than failing. `Left`
+    * exactly when [[svd]] is.
+    */
+  def pinv(using SpectralBackend): Either[LinAlgError, DMat] =
+    Svds.pinv(this)
+
+  /** Kronecker product `this ⊗ that`: the `(m·p)×(n·q)` block matrix whose
+    * `(i, j)` block is `this(i, j) * that`. Total on every shape (including
+    * empty operands) like the other structural products; the only throw is the
+    * standard storable-size guard when the result would exceed `Int.MaxValue`
+    * elements. Strided/transposed views are read through their strides — no
+    * copy of either operand.
+    */
+  def kron(that: DMat): DMat =
+    val outRowsL = rows.toLong * that.rows.toLong
+    val outColsL = cols.toLong * that.cols.toLong
+    if outRowsL > Int.MaxValue.toLong || outColsL > Int.MaxValue.toLong || outRowsL * outColsL > Int.MaxValue.toLong
+    then
+      throw LinAlgError.InvalidArgument(
+        s"Kronecker product size ${outRowsL}x$outColsL exceeds ${Int.MaxValue} storable elements"
+      )
+    val bRows = that.rows
+    val bCols = that.cols
+    val outCols = outColsL.toInt
+    val out = DMat.zeros(outRowsL.toInt, outCols)
+    val outData = out.data
+    val bData = that.data
+    val bBase = that.offset.value
+    val bRowStep = that.rowStride.value
+    val bColStep = that.colStride.value
+    var i = 0
+    while i < rows do
+      var j = 0
+      while j < cols do
+        val aij = data(index(i, j))
+        val blockRow = i * bRows
+        val blockCol = j * bCols
+        var p = 0
+        while p < bRows do
+          var outIdx = (blockRow + p) * outCols + blockCol
+          var bIdx = bBase + p * bRowStep
+          var q = 0
+          while q < bCols do
+            outData(outIdx) = aij * bData(bIdx)
+            outIdx += 1
+            bIdx += bColStep
+            q += 1
+          p += 1
+        j += 1
+      i += 1
+    out
 
   private inline def index(row: Int, col: Int): Int =
     offset.value + row * rowStride.value + col * colStride.value
