@@ -81,7 +81,7 @@ A public release requires all of the following in addition to green tests:
 - clean source, binary, and documentation artifacts for every intended module;
 - the acceptance and release-evidence records for the exact release commit.
 
-The owner selected Apache-2.0 and `https://github.com/bbuchsbaum/gale` as the
+The owner selected Apache-2.0 and `https://github.com/canardlapin/gale` as the
 canonical SCM repository on 2026-07-19. The root `LICENSE` and generated POMs
 carry that provenance. Binary publication still requires a configured
 destination, credentials, signing policy, and remote CI on the exact release

@@ -6,24 +6,24 @@ import sbtcrossproject.CrossPlugin.autoImport.*
 import sbtcrossproject.CrossProject
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport.*
 
-ThisBuild / organization := "io.gale"
+ThisBuild / organization := "io.github.canardlapin"
 ThisBuild / scalaVersion := "3.3.8"
 ThisBuild / version      := "1.0.0-SNAPSHOT"
-ThisBuild / homepage     := Some(url("https://github.com/bbuchsbaum/gale"))
+ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
 ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
-    url("https://github.com/bbuchsbaum/gale"),
-    "scm:git:https://github.com/bbuchsbaum/gale.git",
-    Some("scm:git:git@github.com:bbuchsbaum/gale.git")
+    url("https://github.com/canardlapin/gale"),
+    "scm:git:https://github.com/canardlapin/gale.git",
+    Some("scm:git:git@github.com:canardlapin/gale.git")
   )
 )
 ThisBuild / developers := List(
   Developer(
-    id = "bbuchsbaum",
-    name = "Brad Buchsbaum",
-    email = "brad.buchsbaum@gmail.com",
-    url = url("https://github.com/bbuchsbaum")
+    id = "canardlapin",
+    name = "canardlapin",
+    email = "307091466+canardlapin@users.noreply.github.com",
+    url = url("https://github.com/canardlapin")
   )
 )
 
@@ -73,7 +73,8 @@ lazy val core: CrossProject =
     .in(file("core"))
     .settings(commonSettings)
     .settings(
-      name := "gale-core"
+      name := "gale-core",
+      description := "Cross-platform linear algebra for Scala 3: dense and sparse matrices, factorizations, and solvers on shared strided kernels."
     )
     .jsSettings(jsWasmSettings: _*)
 
@@ -87,6 +88,7 @@ lazy val laws: CrossProject =
     .dependsOn(core)
     .settings(
       name := "gale-laws",
+      description := "Reusable munit/ScalaCheck law bundles for gale's public API.",
       scalacOptions ++= commonScalacOptions,
       Test / fork := false,
       libraryDependencies ++= Seq(
@@ -141,6 +143,7 @@ lazy val interopBreeze =
     .dependsOn(coreJVM)
     .settings(
       name := "gale-interop-breeze",
+      description := "Breeze interoperability for gale (JVM).",
       scalacOptions ++= commonScalacOptions,
       Test / fork := false,
       libraryDependencies ++= Seq(
@@ -162,6 +165,7 @@ lazy val vectorBackend =
     .dependsOn(coreJVM, lawsJVM % "test->compile")
     .settings(
       name := "gale-backend-jvm-vector",
+      description := "Optional JDK Vector API GEMM backend for gale, with measured adaptive dispatch.",
       scalacOptions ++= commonScalacOptions,
       Test / fork := true,
       Test / javaOptions += "--add-modules=jdk.incubator.vector",
@@ -176,6 +180,7 @@ lazy val nativeBackend =
     .dependsOn(coreJVM)
     .settings(
       name := "gale-backend-jvm-native",
+      description := "Optional JDK 22+ off-heap matrix storage for gale over FFM MemorySegment.",
       scalacOptions ++= commonScalacOptions,
       Test / fork := true,
       Test / javaOptions += "--enable-native-access=ALL-UNNAMED",
@@ -190,6 +195,7 @@ lazy val blasFfmBackend =
     .dependsOn(nativeBackend, lawsJVM % "test->compile")
     .settings(
       name := "gale-backend-jvm-blas-ffm",
+      description := "Optional JDK 22+ runtime-discovered BLAS/LAPACK backend for gale via FFM.",
       scalacOptions ++= commonScalacOptions,
       Test / fork := true,
       Test / javaOptions += "--enable-native-access=ALL-UNNAMED",
