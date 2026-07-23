@@ -1,6 +1,7 @@
 package gale.spectral
 
 import gale.linalg.DMat
+import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
@@ -79,6 +80,12 @@ class DenseSvdSuite extends munit.FunSuite:
     assert(reconstructionError(a, s) < tol, s"reconstruction ${reconstructionError(a, s)}")
     assert(orthoError(s.u) < tol, s"U ortho ${orthoError(s.u)}")
     assert(orthoError(s.vt.t) < tol, s"V ortho ${orthoError(s.vt.t)}")
+
+  private final class RawSvdProvider(raw: (DMat, Boolean) => RawSvd) extends SpectralBackend:
+    val name = "raw-svd-test"
+    val capabilities = Set(SpectralCapability.DenseSvd)
+    override def denseSvd(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSvd] =
+      Right(raw(a, wantVectors))
 
   // --- known spectra ---------------------------------------------------------
 
@@ -249,4 +256,42 @@ class DenseSvdSuite extends munit.FunSuite:
     val pure = Svds.svd(a, SingularSelection.All)(using SpectralBackend.none).toOption.get
     assertClose(values(viaDeclining), values(pure), 1e-15) // same pure kernel → bit-identical
     fullChecks(a, viaDeclining, 1e-9)
+  }
+
+  test("full-square provider factors are sliced to economy shape") {
+    val tall = rectDiag(4, 2, Seq(3.0, 1.0))
+    val tallProvider = RawSvdProvider((_, _) => RawSvd(DVec.fromSeq(Seq(3.0, 1.0)), Matrix.eye(4), Matrix.eye(2)))
+    fullChecks(tall, Svds.svd(tall, SingularSelection.All)(using tallProvider).toOption.get, 1e-12)
+
+    val wide = rectDiag(2, 4, Seq(3.0, 1.0))
+    val wideProvider = RawSvdProvider((_, _) => RawSvd(DVec.fromSeq(Seq(3.0, 1.0)), Matrix.eye(2), Matrix.eye(4)))
+    fullChecks(wide, Svds.svd(wide, SingularSelection.All)(using wideProvider).toOption.get, 1e-12)
+  }
+
+  test("malformed provider factors fail loudly before assembly") {
+    val a = rectDiag(4, 3, Seq(4.0, 2.0, 1.0))
+    val sigma = DVec.fromSeq(Seq(4.0, 2.0, 1.0))
+
+    val malformed =
+      Seq(
+        RawSvd(DVec.fromSeq(Seq(4.0, 2.0)), Matrix.eye(4), Matrix.eye(3)),
+        RawSvd(sigma, DMat.zeros(3, 3), Matrix.eye(3)),
+        RawSvd(sigma, DMat.zeros(4, 2), Matrix.eye(3)),
+        RawSvd(sigma, DMat.zeros(4, 3), DMat.zeros(2, 3)),
+        RawSvd(sigma, DMat.zeros(4, 3), DMat.zeros(3, 4))
+      )
+
+    malformed.foreach: raw =>
+      val error = intercept[LinAlgError.InvalidArgument]:
+        Svds.svd(a, SingularSelection.All)(using RawSvdProvider((_, _) => raw))
+      assert(error.getMessage.contains("malformed SVD factors"))
+  }
+
+  test("values-only providers must still return the complete spectrum") {
+    val a = rectDiag(4, 3, Seq(4.0, 2.0, 1.0))
+    val provider =
+      RawSvdProvider((_, _) => RawSvd(DVec.fromSeq(Seq(4.0, 2.0)), DMat.zeros(0, 0), DMat.zeros(0, 0)))
+
+    intercept[LinAlgError.InvalidArgument]:
+      Svds.svd(a, SingularSelection.All, EigenVectors.ValuesOnly)(using provider)
   }

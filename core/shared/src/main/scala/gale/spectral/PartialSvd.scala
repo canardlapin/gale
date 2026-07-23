@@ -225,7 +225,17 @@ object Svds:
   private def assembleFullSvd(a: DMat, raw: RawSvd, wantVectors: Boolean): SVD =
     val m = a.rows
     val n = a.cols
-    val p = raw.sigma.length
+    val p = math.min(m, n)
+    val malformedValues = raw.sigma.length != p
+    val malformedVectors =
+      wantVectors &&
+        (raw.u.rows != m || raw.u.cols < p || raw.vt.rows < p || raw.vt.cols != n)
+    if malformedValues || malformedVectors then
+      throw LinAlgError.InvalidArgument(
+        s"spectral provider returned malformed SVD factors: sigma length ${raw.sigma.length}, " +
+          s"u ${raw.u.rows}x${raw.u.cols}, vt ${raw.vt.rows}x${raw.vt.cols} for input ${m}x$n " +
+          s"(RawSvd requires $p values and, with vectors, u ${m}x(>=$p), vt (>=$p)x$n)"
+      )
     val sig = new Array[Double](p)
     val flip = new Array[Boolean](p)
     var i = 0
@@ -240,14 +250,8 @@ object Svds:
     val values = DVec.tabulate(p)(i => sig(order(i)))
     // Providers may return full square factors (LAPACK `jobz='A'`: `u` m×m,
     // `vt` n×n); the leading `p` columns/rows are the economy factors either
-    // way, so slice rather than require exact economy shape. Fewer than `p`
-    // vectors is a provider-contract violation — fail loudly, never return
-    // silently empty factors to a caller that asked for vectors.
-    if wantVectors && (raw.u.cols < p || raw.vt.rows < p) then
-      throw LinAlgError.InvalidArgument(
-        s"spectral provider returned malformed SVD factors: u ${raw.u.rows}x${raw.u.cols}, " +
-          s"vt ${raw.vt.rows}x${raw.vt.cols} for p=$p (RawSvd requires at least the leading $p vectors)"
-      )
+    // way, so slice the permitted slack after validating every load-bearing
+    // dimension above.
     val (u, vt, residuals, orthoErr) =
       if wantVectors then
         val uMat = DMat.tabulate(m, p)((r, c) => raw.u(r, order(c)))

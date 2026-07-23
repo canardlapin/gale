@@ -24,10 +24,12 @@ final case class RawSymmetricEigen(values: DVec, vectors: DMat)
 final case class RawNonsymmetricEigen(re: DVec, im: DVec, rightPacked: DMat, leftPacked: Option[DMat])
 
 /** Raw SVD triplets in any order — the facade fixes the descending layout.
-  * Shape contract: for an `m×n` input with `p = min(m, n)`, `u` must carry AT
-  * LEAST the leading `p` singular vectors as columns (`u.cols >= p`; a full
-  * `m×m` LAPACK `jobz='A'` factor is fine) and `vt` at least the leading `p`
-  * rows; the facade slices the leading block and discards any excess.
+  * Shape contract: for an `m×n` input with `p = min(m, n)`, `sigma.length`
+  * must be exactly `p`. When vectors were requested, `u` must have `m` rows
+  * and at least the leading `p` singular-vector columns (`u.cols >= p`; a full
+  * `m×m` LAPACK `jobz='A'` factor is fine), while `vt` must have at least the
+  * leading `p` rows and exactly `n` columns. The facade slices the leading
+  * economy block and discards only the permitted excess columns/rows.
   */
 final case class RawSvd(sigma: DVec, u: DMat, vt: DMat)
 
