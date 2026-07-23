@@ -41,7 +41,9 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
       throw LinAlgError.VectorLengthMismatch(cols, x.length)
     val out = MutableDVec.zeros(rows)
     applyTo(x, out)
-    out.asVec
+    // Implementations receive the destination and may retain it. Snapshot the
+    // result so a user-defined operator cannot mutate an immutable return value.
+    out.toVec
 
   def *(x: DVec)(using Backend): DVec =
     apply(x)

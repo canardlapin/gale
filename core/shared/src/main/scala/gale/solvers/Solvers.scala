@@ -49,10 +49,10 @@ object SolverResult:
 /** Caller-owned storage for repeated conjugate-gradient solves of one fixed
   * dimension.
   *
-  * [[solution]] is an immutable-facing view of mutable workspace storage. It is
-  * allocation-free to read, but a later [[IterativeSolvers.cgWith]] call using
-  * this workspace overwrites the values visible through earlier views. Use
-  * [[solutionCopy]] when a result must outlive workspace reuse.
+  * [[solution]] returns an immutable snapshot that remains stable across later
+  * workspace reuse. [[unsafeSolutionView]] is the explicitly borrowed,
+  * allocation-free alternative; a later [[IterativeSolvers.cgWith]] call using
+  * this workspace overwrites values visible through that view.
   */
 final class CgWorkspace private (val size: Int):
   private[solvers] val x = MutableDVec.zeros(size)
@@ -72,8 +72,19 @@ final class CgWorkspace private (val size: Int):
   private var residualValue = Double.PositiveInfinity
   private var convergedValue = false
 
-  def solution: DVec = xView
+  /** Independently owned solution snapshot, stable across workspace reuse. */
+  def solution: DVec = xView.copy
+
+  /** Explicit synonym for [[solution]] for callers that prefer to name the copy. */
   def solutionCopy: DVec = xView.copy
+
+  /** Borrow the workspace's live solution storage without allocating.
+    *
+    * The returned value is not an immutable snapshot: every subsequent solve
+    * using this workspace may change its observed elements. It must not be
+    * retained when stable value semantics are required.
+    */
+  def unsafeSolutionView: DVec = xView
   def iterations: Int = iterationCount
   def residual: Double = residualValue
   def converged: Boolean = convergedValue
@@ -94,7 +105,8 @@ trait Preconditioner:
   def apply(r: DVec): DVec =
     val out = MutableDVec.zeros(r.length)
     solve(r, out)
-    out.asVec
+    // A user-defined preconditioner may retain `into`; return an owned snapshot.
+    out.toVec
 
 object Preconditioner:
   object Identity extends Preconditioner:
@@ -273,16 +285,17 @@ object IterativeSolvers:
     val z = MutableDVec.zeros(A.rows)
     preconditioner.solve(r.asVec, z)
     val p = z.asVec.mutableCopy
+    val ap = MutableDVec.zeros(A.rows)
     var rzOld = r.asVec.dot(z.asVec)
     var iteration = 0
     while iteration < config.maxIterations do
-      val ap = A * p.asVec
-      val denom = p.asVec.dot(ap)
+      A.applyTo(p.asVec, ap)
+      val denom = p.asVec.dot(ap.asVec)
       if denom == 0.0 then
         return SolverResult.NotConverged(x.asVec, iteration, residual)
       val alpha = rzOld / denom
       x.axpyInPlace(alpha, p.asVec)
-      r.axpyInPlace(-alpha, ap)
+      r.axpyInPlace(-alpha, ap.asVec)
       residual = r.asVec.norm2
       iteration += 1
       if residual <= tol then
@@ -300,9 +313,10 @@ object IterativeSolvers:
   /** Allocation-controlled conjugate gradient using caller-owned workspace.
     *
     * The recurrence, tolerance modes, preconditioner semantics, and breakdown
-    * behavior match [[cg]]. The returned object is the supplied workspace; its
-    * [[CgWorkspace.solution]] view is overwritten by the next solve using the
-    * same workspace.
+    * behavior match [[cg]]. The returned object is the supplied workspace;
+    * [[CgWorkspace.solution]] returns a stable copy, while
+    * [[CgWorkspace.unsafeSolutionView]] is overwritten by the next solve using
+    * the same workspace.
     */
   def cgWith(
       A: DoubleLinearOperator,
@@ -381,10 +395,15 @@ object IterativeSolvers:
       throw LinAlgError.DimensionMismatch(Shape(Rows(A.rows), Cols(1)), Shape(Rows(b.length), Cols(1)))
     val tol = effectiveTolerance(toleranceMode, config.tolerance, b)
     val x = initialGuess(initial, A.cols)
-    val r = (b - (A * x.asVec)).mutableCopy
+    val ax = MutableDVec.zeros(A.rows)
+    A.applyTo(x.asVec, ax)
+    val r = (b - ax.asVec).mutableCopy
     val rHat = r.toVec
     val p = MutableDVec.zeros(A.cols)
+    val pHat = MutableDVec.zeros(A.cols)
+    val sHat = MutableDVec.zeros(A.cols)
     val v = MutableDVec.zeros(A.rows)
+    val t = MutableDVec.zeros(A.rows)
     var rhoOld = 1.0
     var alpha = 1.0
     var omega = 1.0
@@ -404,8 +423,8 @@ object IterativeSolvers:
       p += r.asVec
       // Left preconditioning: apply M^{-1} to the search direction before A.
       // With Identity this is a copy, recovering the unpreconditioned recurrence.
-      val pHat = preconditioner(p.asVec)
-      A.applyTo(pHat, v)
+      preconditioner.solve(p.asVec, pHat)
+      A.applyTo(pHat.asVec, v)
       val denom = rHat.dot(v.asVec)
       if denom == 0.0 then
         return SolverResult.NotConverged(x.asVec, iteration, residual)
@@ -413,19 +432,19 @@ object IterativeSolvers:
       val s = r.asVec - (v.asVec * alpha)
       val sNorm = s.norm2
       if sNorm <= tol then
-        x.axpyInPlace(alpha, pHat)
+        x.axpyInPlace(alpha, pHat.asVec)
         return SolverResult.Converged(x.asVec, iteration + 1, sNorm)
-      val sHat = preconditioner(s)
-      val t = A * sHat
-      val tt = t.dot(t)
+      preconditioner.solve(s, sHat)
+      A.applyTo(sHat.asVec, t)
+      val tt = t.asVec.dot(t.asVec)
       if tt == 0.0 then
         return SolverResult.NotConverged(x.asVec, iteration, residual)
-      omega = t.dot(s) / tt
-      x.axpyInPlace(alpha, pHat)
-      x.axpyInPlace(omega, sHat)
+      omega = t.asVec.dot(s) / tt
+      x.axpyInPlace(alpha, pHat.asVec)
+      x.axpyInPlace(omega, sHat.asVec)
       // r := s - omega * t keeps r the true residual b - A x.
       r := s
-      r.axpyInPlace(-omega, t)
+      r.axpyInPlace(-omega, t.asVec)
       residual = r.asVec.norm2
       iteration += 1
       if residual <= tol then
@@ -461,13 +480,14 @@ object IterativeSolvers:
     while totalIterations < config.maxIterations do
       val ax = MutableDVec.zeros(A.rows)
       A.applyTo(x.asVec, ax)
-      val r0 = preconditioner(b - ax.asVec)
-      val beta = r0.norm2
+      val r0 = MutableDVec.zeros(A.rows)
+      preconditioner.solve(b - ax.asVec, r0)
+      val beta = r0.asVec.norm2
       if beta <= tol then
         return SolverResult.Converged(x.asVec, totalIterations, beta)
       val innerLimit = math.min(restart, config.maxIterations - totalIterations)
       val basis = Array.fill(innerLimit + 1)(MutableDVec.zeros(A.cols))
-      scaleInto(basis(0), r0, 1.0 / beta)
+      scaleInto(basis(0), r0.asVec, 1.0 / beta)
       val cs = new Array[Double](innerLimit)
       val sn = new Array[Double](innerLimit)
       val g = new Array[Double](innerLimit + 1)
@@ -481,7 +501,8 @@ object IterativeSolvers:
       while j < innerLimit && !converged && !brokeDown do
         val av = MutableDVec.zeros(A.rows)
         A.applyTo(basis(j).asVec, av)
-        val w = preconditioner(av.asVec).mutableCopy
+        val w = MutableDVec.zeros(A.rows)
+        preconditioner.solve(av.asVec, w)
         val hcol = new Array[Double](j + 2)
         var i = 0
         while i <= j do
@@ -685,7 +706,9 @@ object IterativeSolvers:
   ): Double =
     val ax = MutableDVec.zeros(A.rows)
     A.applyTo(x, ax)
-    preconditioner(b - ax.asVec).norm2
+    val residual = MutableDVec.zeros(A.rows)
+    preconditioner.solve(b - ax.asVec, residual)
+    residual.asVec.norm2
 
   /** `out := alpha * x`. */
   private def scaleInto(out: MutableDVec, x: DVec, alpha: Double): Unit =

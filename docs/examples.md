@@ -464,7 +464,7 @@ val myGaleMatrix = Matrix.dense(2, 2)(1.0, 2.0, 3.0, 4.0)
 
 val bm: breeze.linalg.DenseMatrix[Double] = toBreezeCopy(myGaleMatrix)       // always copies
 val fromCopy: gale.linalg.DMat = fromBreezeCopy(bm)                          // independent storage
-val fromView: gale.linalg.DMat = fromBreezeView(bm)                         // aliases bm's storage!
+val unsafeView: gale.linalg.DMat = unsafeFromBreezeView(bm)                  // aliases bm's storage!
 ```
 
 Sparse conversions (`CSR`/`CSC` ↔ Breeze `CSCMatrix`) are always copies in

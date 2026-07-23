@@ -18,8 +18,10 @@ trait MutableVec[A] extends Vec[A]:
   *
   * Shares the same storage discipline as [[DVec]] (platform array, offset,
   * stride). Obtain one from `MutableVec.zeros`, `MutableVec.from`, or
-  * `DVec.mutableCopy`; read it as an immutable value via [[asVec]] (aliasing
-  * view) or [[toVec]] (copy).
+  * `DVec.mutableCopy`; [[toVec]] is the public conversion to an independently
+  * owned immutable value. Gale internals may also borrow an aliasing read-only
+  * view while they retain the mutable owner, but that view is deliberately not
+  * part of the public API.
   */
 final class MutableDVec private[gale] (
     private[gale] val data: DoubleArray,
@@ -39,11 +41,11 @@ final class MutableDVec private[gale] (
     checkIndex(index)
     data(offset.value + index * stride.value) = value
 
-  /** Read-only view sharing this vector's storage. Mutations made through
-    * this `MutableDVec` remain visible through the returned value; use
-    * [[toVec]] for an independent snapshot.
+  /** Internal borrowed view sharing this vector's storage. Mutations made
+    * through this `MutableDVec` remain visible through the returned value.
+    * Public callers must use [[toVec]], which returns an independent snapshot.
     */
-  def asVec: DVec =
+  private[gale] def asVec: DVec =
     new DVec(data, offsetValue, lengthValue, strideValue)
 
   /** Independent immutable snapshot of the current contents. */

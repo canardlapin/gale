@@ -48,7 +48,7 @@ Add `gale-interop-breeze` while moving a codebase one call site at a time:
 import gale.interop.breeze.*
 import gale.interop.breeze.BreezeMigration
 
-val galeView = fromBreezeView(breezeMatrix) // O(1), aliases Breeze storage
+val galeView = unsafeFromBreezeView(breezeMatrix) // O(1), aliases Breeze storage
 val galeCopy = fromBreezeCopy(breezeMatrix) // independent row-major Gale value
 
 val x  = BreezeMigration.solve(a, b)
@@ -61,8 +61,9 @@ failure. They do not reproduce Breeze exception classes. Once a call site is
 ported, prefer Gale values and the native `Either[LinAlgError, A]` API so copies
 leave the hot path.
 
-`fromBreezeView` is intentionally loud about aliasing. A positive-stride Breeze
-matrix or vector can share storage with Gale. A negative-stride vector must use
+`unsafeFromBreezeView` is intentionally loud about aliasing and is the explicit
+exception to Gale's immutable-value contract. A positive-stride Breeze matrix or
+vector can share storage with Gale. A negative-stride vector must use
 `fromBreezeCopy`. Gale-to-Breeze conversion is always a copy because Gale never
 exposes its platform storage as public API.
 

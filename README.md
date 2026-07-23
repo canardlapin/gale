@@ -31,6 +31,11 @@ The [numerical, sparse, and backend contract](docs/numerical-contract.md) states
 accuracy/determinism guarantees, the sparse v1 boundary, and how to choose an
 accelerator without widening the Breeze-equivalence claim.
 
+The [immutable vector ownership contract](docs/immutable-vector-ownership.md)
+defines the mutable-to-immutable boundary, the explicitly unsafe workspace view,
+and the audited ownership status of every public `DVec` return path derived from
+mutable storage.
+
 The current [v1 acceptance audit](docs/v1-acceptance-audit.md) and
 [release evidence](docs/release-evidence.md) distinguish locally verified code
 readiness from the binary-publication and remote-CI steps still required for a

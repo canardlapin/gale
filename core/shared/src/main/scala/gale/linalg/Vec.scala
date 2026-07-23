@@ -8,15 +8,15 @@ trait Vec[A]:
   def length: Int
   def apply(index: Int): A
 
-/** An immutable-facing dense `Double` vector: a length-`n` window over platform
+/** An immutable dense `Double` vector: a length-`n` window over platform
   * storage described by an offset and a (strictly positive) stride.
   *
   *   - '''Views vs copies.''' [[slice]] returns an aliasing view — it shares the
-  *     backing storage, so it is `O(1)` and reflects later writes to that storage.
-  *     [[copy]] (and the `Array`/`Seq` exporters) return independent data. `DVec`
-  *     itself exposes no mutators; obtain a writable view via [[mutableCopy]] or
-  *     `MutableVec`, and remember that a [[MutableDVec]] built as a view (e.g. a
-  *     matrix row) writes through to the shared storage.
+  *     immutable backing storage, so it is `O(1)`. [[copy]] (and the `Array`/`Seq`
+  *     exporters) return independent data. No unqualified public core API can
+  *     create a mutable alias of a `DVec`; [[mutableCopy]] always owns an
+  *     independent copy. Optional interop modules must prefix any deliberate
+  *     external-storage alias with `unsafe`.
   *   - '''Positive stride only.''' `gale` supports positive strides; there is no
   *     negative-stride (reversed) view. Element `i` lives at `offset + i*stride`.
   */

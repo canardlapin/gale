@@ -71,25 +71,25 @@ class BreezeConversionsSuite extends munit.FunSuite:
   // Dense matrix zero-copy view (Breeze -> gale) + aliasing contract
   // ---------------------------------------------------------------------------
 
-  test("fromBreezeView: matches elementwise for column-major, transpose, and slice") {
+  test("unsafeFromBreezeView: matches elementwise for column-major, transpose, and slice") {
     val b = breezeDense(4, 5)
 
-    val v1 = fromBreezeView(b)
+    val v1 = unsafeFromBreezeView(b)
     for i <- 0 until 4; j <- 0 until 5 do assertBits(v1(i, j), b(i, j), s"cm ($i,$j)")
 
-    val v2 = fromBreezeView(b.t)
+    val v2 = unsafeFromBreezeView(b.t)
     assertEquals((v2.rows, v2.cols), (5, 4))
     for i <- 0 until 5; j <- 0 until 4 do assertBits(v2(i, j), b(j, i), s"t ($i,$j)")
 
     val slice = b(1 until 4, 2 until 5)
-    val v3    = fromBreezeView(slice)
+    val v3    = unsafeFromBreezeView(slice)
     assertEquals((v3.rows, v3.cols), (3, 3))
     for i <- 0 until 3; j <- 0 until 3 do assertBits(v3(i, j), b(1 + i, 2 + j), s"slice ($i,$j)")
   }
 
   test("copy/view aliasing contract (dense matrix)") {
     val b    = breezeDense(3, 3)
-    val view = fromBreezeView(b)
+    val view = unsafeFromBreezeView(b)
     val copy = fromBreezeCopy(b)
     val before = b(1, 2)
 
@@ -137,9 +137,9 @@ class BreezeConversionsSuite extends munit.FunSuite:
     for i <- 0 until 4 do assertBits(bc(i), col(i), s"strided col [$i]")
   }
 
-  test("fromBreezeView (vector) aliases; fromBreezeCopy does not") {
+  test("unsafeFromBreezeView (vector) aliases; fromBreezeCopy does not") {
     val b    = DenseVector.tabulate(5)(i => i * 1.25)
-    val view = fromBreezeView(b)
+    val view = unsafeFromBreezeView(b)
     val copy = fromBreezeCopy(b)
     val before = b(3)
     b(3) = before + 42.0
@@ -152,7 +152,7 @@ class BreezeConversionsSuite extends munit.FunSuite:
     val copy = fromBreezeCopy(reversed)
     assertEquals(copy.toSeq, Seq(5.0, 4.0, 3.0, 2.0, 1.0))
     intercept[IllegalArgumentException]:
-      fromBreezeView(reversed)
+      unsafeFromBreezeView(reversed)
   }
 
   // ---------------------------------------------------------------------------

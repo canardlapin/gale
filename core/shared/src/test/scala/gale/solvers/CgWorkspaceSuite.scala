@@ -40,21 +40,38 @@ class CgWorkspaceSuite extends munit.FunSuite:
     assert(residualNorm(matrix, reused.solution, rhs) <= 1e-11)
     assert(vectorDifference(reused.solution, truth) <= 1e-11)
 
-  test("workspace reuse overwrites the view but not an explicit copy"):
+  test("workspace results are stable by default and live only through the unsafe view"):
     val workspace = CgWorkspace(4)
     val firstTruth = Vec(1.0, 2.0, 3.0, 4.0)
     val secondTruth = Vec(-2.0, 0.5, 1.5, -1.0)
     val config = SolverConfig(tolerance = 1e-12, maxIterations = 50)
 
     cgWith(matrix, matrix * firstTruth, workspace, config)
-    val alias = workspace.solution
-    val copy = workspace.solutionCopy
-    assert(vectorDifference(alias, firstTruth) <= 1e-11)
+    val stable = workspace.solution
+    val explicitCopy = workspace.solutionCopy
+    val borrowed = workspace.unsafeSolutionView
+    assert(vectorDifference(stable, firstTruth) <= 1e-11)
 
     cgWith(matrix, matrix * secondTruth, workspace, config)
-    assert(vectorDifference(alias, secondTruth) <= 1e-11)
-    assert(vectorDifference(copy, firstTruth) <= 1e-11)
-    assert(vectorDifference(copy, alias) > 1.0)
+    assert(vectorDifference(stable, firstTruth) <= 1e-11)
+    assert(vectorDifference(explicitCopy, firstTruth) <= 1e-11)
+    assert(vectorDifference(borrowed, secondTruth) <= 1e-11)
+    assert(vectorDifference(stable, borrowed) > 1.0)
+
+  test("allocating preconditioner application snapshots a retained destination"):
+    var retained: MutableVec[Double] = null
+    val preconditioner = new Preconditioner:
+      def solve(r: DVec, into: MutableVec[Double]): Unit =
+        retained = into
+        var i = 0
+        while i < r.length do
+          into(i) = 2.0 * r(i)
+          i += 1
+
+    val result = preconditioner(Vec(1.0, 2.0, 3.0))
+    retained(0) = 99.0
+
+    assertEquals(result.toSeq, Seq(2.0, 4.0, 6.0))
 
   test("exact initial solution converges without an iteration"):
     val truth = Vec(0.25, -0.5, 0.75, 1.25)

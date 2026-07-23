@@ -26,13 +26,14 @@ import gale.sparse.Sparse
   *     (the only exporters clone). There is therefore no way to alias gale storage
   *     into a Breeze matrix without a copy — the encapsulation boundary forbids it
   *     by design. [[toBreezeCopy]] always allocates.
-  *   - '''Breeze → gale can be a zero-copy view.''' gale's dense types carry an
-  *     arbitrary `(offset, rowStride, colStride)` layout, which is a strict
+  *   - '''Breeze → gale has an explicitly unsafe zero-copy view.''' gale's dense
+  *     types carry an arbitrary `(offset, rowStride, colStride)` layout, which is a strict
   *     superset of Breeze's `(offset, majorStride, isTranspose)` layout, so '''any'''
   *     Breeze matrix or vector maps onto a gale view that shares its `Array[Double]`.
-  *     [[fromBreezeView]] performs no copy and '''aliases''': later writes through
-  *     either handle are visible through the other. [[fromBreezeCopy]] is the safe,
-  *     non-aliasing alternative.
+  *     [[unsafeFromBreezeView]] performs no copy and '''aliases''': later writes
+  *     through either handle are visible through the other. Its `unsafe` prefix
+  *     marks the exception to Gale's immutable-value contract. [[fromBreezeCopy]]
+  *     is the safe, non-aliasing alternative.
   *
   * Sparse conversions are '''always copies''' (both directions): gale `CSR` is
   * row-compressed while Breeze only has column-compressed `CSCMatrix`, and the two
@@ -47,9 +48,9 @@ import gale.sparse.Sparse
   * | `DMat`  → `DenseMatrix` | [[toBreezeCopy]]   | copy | O(rows·cols) |
   * | `DVec`  → `DenseVector` | [[toBreezeCopy]]   | copy | O(n) |
   * | `DenseMatrix` → `DMat`  | [[fromBreezeCopy]] | copy | O(rows·cols) |
-  * | `DenseMatrix` → `DMat`  | [[fromBreezeView]] | '''view''' (aliases) | O(1) |
+  * | `DenseMatrix` → `DMat`  | [[unsafeFromBreezeView]] | '''view''' (aliases) | O(1) |
   * | `DenseVector` → `DVec`  | [[fromBreezeCopy]] | copy | O(n) |
-  * | `DenseVector` → `DVec`  | [[fromBreezeView]] | '''view''' (aliases) | O(1) |
+  * | `DenseVector` → `DVec`  | [[unsafeFromBreezeView]] | '''view''' (aliases) | O(1) |
   * | `CSR`/`CSC` → `CSCMatrix` | [[toBreezeCopy]] | copy | O(nnz·log nnz) |
   * | `CSCMatrix` → `CSC` | [[fromBreezeToCsc]] | copy | O(nnz·log nnz) |
   * | `CSCMatrix` → `CSR` | [[fromBreezeToCsr]] | copy | O(nnz·log nnz) |
@@ -92,15 +93,16 @@ def fromBreezeCopy(bm: DenseMatrix[Double]): DMat =
     i += 1
   Matrix.fromArrayCopy(rows, cols, out)
 
-/** A zero-copy gale `DMat` '''view''' over a Breeze matrix's storage. The result
-  * shares `bm.data`: writing through either handle is visible through the other.
+/** An explicitly unsafe zero-copy gale `DMat` '''view''' over a Breeze matrix's
+  * storage. The result shares `bm.data`: writing through either handle is visible
+  * through the other.
   *
   * Breeze's `linearIndex` is `offset + col + row·majorStride` when transposed and
   * `offset + row + col·majorStride` otherwise, which is exactly a gale
   * `(offset, rowStride, colStride)` layout with one stride equal to 1. Use
   * [[fromBreezeCopy]] when independent storage is wanted.
   */
-def fromBreezeView(bm: DenseMatrix[Double]): DMat =
+def unsafeFromBreezeView(bm: DenseMatrix[Double]): DMat =
   val ms = bm.majorStride
   val (rowStride, colStride) = if bm.isTranspose then (ms, 1) else (1, ms)
   require(
@@ -144,12 +146,13 @@ def fromBreezeCopy(bv: DenseVector[Double]): DVec =
     i += 1
   Vec.fromArrayCopy(out)
 
-/** A zero-copy gale `DVec` '''view''' over a Breeze vector's storage (shares
-  * `bv.data`, aliases). Breeze and gale share the same `offset + i·stride` element
-  * map. A reversed (negative-stride) Breeze vector cannot be viewed — gale requires
-  * a positive stride — so use [[fromBreezeCopy]] there.
+/** An explicitly unsafe zero-copy gale `DVec` '''view''' over a Breeze vector's
+  * storage (shares `bv.data`, aliases). Breeze and gale share the same
+  * `offset + i·stride` element map. A reversed (negative-stride) Breeze vector
+  * cannot be viewed — gale requires a positive stride — so use
+  * [[fromBreezeCopy]] there.
   */
-def fromBreezeView(bv: DenseVector[Double]): DVec =
+def unsafeFromBreezeView(bv: DenseVector[Double]): DVec =
   require(
     bv.stride > 0,
     "cannot view a Breeze vector with a non-positive stride; use fromBreezeCopy"

@@ -94,6 +94,7 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     val inputCols: Int = inputRows
     val factorization: SparseDirectFactorization = SparseDirectFactorization.LU
     val solveCalls = new AtomicInteger(0)
+    var lastVectorDestination: Option[MutableDVec] = None
     val rowPermutation: Permutation = Sparse.permutation(normal.pivots.toIndexSeq*)
     val columnPermutation: Permutation = identityPermutation(inputCols)
     val diagnostics: SparseNumericDiagnostics =
@@ -119,6 +120,7 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         workspace: SparseDirectWorkspace
     ): Either[LinAlgError, SparseSolveDiagnostics] =
       solveCalls.incrementAndGet()
+      lastVectorDestination = Some(destination)
       selected(operation).solve(rhs).map: solution =>
         var i = 0
         while i < solution.length do
@@ -215,6 +217,8 @@ class SparseDirectProviderSuite extends munit.FunSuite:
       SparseDirect.solve(factor, rhs, workspace, SparseSolveOperation.Transpose).toOption.get
     assertVecApprox(transposed.solution, expectedTranspose)
     assertEquals(transposed.diagnostics.operation, SparseSolveOperation.Transpose)
+    factor.lastVectorDestination.get(0) = 99.0
+    assertVecApprox(transposed.solution, expectedTranspose)
 
     val destination = MutableVec.zeros(2)
     assert(SparseDirect.solveInto(factor, rhs, destination, workspace).isRight)

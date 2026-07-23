@@ -266,7 +266,9 @@ object SparseDirect:
     validateVectorSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val destination = MutableDVec.zeros(factor.solutionRows(operation))
       factor.solveVectorInto(rhs, destination, operation, workspace).map: diagnostics =>
-        SparseVectorSolve(destination.asVec, diagnostics)
+        // Provider hooks receive the mutable destination and may retain it.
+        // Snapshot before returning an immutable public result.
+        SparseVectorSolve(destination.toVec, diagnostics)
 
   def solveInto(
       factor: SparseDirectNumericFactor,

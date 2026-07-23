@@ -29,6 +29,20 @@ class LinearOperatorSuite extends munit.FunSuite:
     }
   }
 
+  test("allocating operator application snapshots a retained destination") {
+    var retained: MutableDVec = null
+    val operator =
+      LinearOperator.fromFunction(2, 2): (input, output) =>
+        retained = output
+        output(0) = input(0) + 1.0
+        output(1) = input(1) + 2.0
+
+    val result = operator(Vec(3.0, 4.0))
+    retained(0) = 99.0
+
+    assertEquals(result.toSeq, Seq(4.0, 6.0))
+  }
+
   test("operators apply to matrix right-hand sides in one batch result") {
     val operator = Matrix.dense(2, 3)(
       1.0, 2.0, 0.0,
