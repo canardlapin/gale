@@ -192,10 +192,3 @@ partial SVD, sparse/banded matvec, conversions, aliasing, and typed failure case
 See [`docs/breeze-equivalence.md`](docs/breeze-equivalence.md) for the capability
 matrix, measured performance statement, migration examples, and explicit
 non-equivalence boundary.
-
-## `vendor/breeze`
-
-`vendor/breeze` is an **unreferenced reference checkout** of the Breeze library,
-kept for consulting its numerics while developing `gale`. It is not part of any
-sbt source root, is not compiled, and is excluded from packaging and publishing —
-no `gale` artifact depends on it. It can be deleted without affecting the build.
