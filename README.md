@@ -4,10 +4,36 @@ A cross-platform (JVM + Scala.js) linear algebra library for Scala 3, built
 around a small, allocation-conscious kernel layer and an Either-first public API.
 
 `gale` provides dense vectors and matrices, dense factorizations (LU, Cholesky,
-QR), standalone triangular solves, iterative and least-squares solvers, and a
-family of sparse matrix formats — all sharing one set of strided `Double` kernels
-that run identically on the JVM (`Array[Double]`) and in the browser
-(`Float64Array`).
+QR), a spectral layer (symmetric, nonsymmetric and generalized eigendecomposition,
+full and partial SVD, generalized SVD, pseudoinverse), standalone triangular
+solves, iterative and least-squares solvers, and a family of sparse matrix
+formats — all sharing one set of strided `Double` kernels that run identically on
+the JVM (`Array[Double]`) and in the browser (`Float64Array`).
+
+## Getting started
+
+`gale` is not yet published to Maven Central. Once it is, the coordinates will
+be:
+
+```scala
+libraryDependencies += "io.github.canardlapin" %%% "gale-core" % "<version>"
+```
+
+Until then, depend on it from source — sbt clones the pinned commit into its
+staging area, so a clean checkout needs no `publishLocal` and no sibling
+checkout:
+
+```scala
+lazy val galeRevision = "<commit sha>"
+lazy val galeBuild = uri(s"https://github.com/canardlapin/gale.git#$galeRevision")
+lazy val galeCoreJVM = ProjectRef(galeBuild, "coreJVM")
+lazy val galeCoreJS  = ProjectRef(galeBuild, "coreJS")
+```
+
+Only `gale-core` is needed to use the library. The backends are opt-in
+accelerators and the Breeze interop is a migration aid — take them only if you
+want them, so a portable or browser build never acquires a JVM-only dependency
+transitively.
 
 ## Modules
 
@@ -15,6 +41,7 @@ that run identically on the JVM (`Array[Double]`) and in the browser
 | --- | --- | --- |
 | `gale-core` | `core/` | The library. `crossProject` (JVM + JS), `CrossType.Full`. Shared source in `core/shared`, platform storage/interop in `core/jvm` and `core/js`. |
 | `gale-laws` | `laws/` | Reusable, munit/ScalaCheck-backed **law bundles** (`VecLaws`, `MatrixLaws`, `SparseLaws`, `SolverLaws`) expressed against the public API. munit and ScalaCheck are *main* dependencies here — the bundles are library code you can call from your own tests. Depends on `gale-core`. |
+| `gale-interop-breeze` | `interop-breeze/` | Optional JVM conversions between `gale` and Breeze types, for incremental migration. Depends on `gale-core`. |
 | `gale-backend-jvm-vector` | `backend-jvm-vector/` | Optional JDK Vector API GEMM backend with adaptive, measured dispatch. |
 | `gale-backend-jvm-native` | `backend-jvm-native/` | Optional JDK 22+ `NativeDMat` storage over FFM `MemorySegment`. |
 | `gale-backend-jvm-blas-ffm` | `backend-jvm-blas-ffm/` | Optional JDK 22+ runtime-discovered BLAS/LAPACK backend (Accelerate/OpenBLAS/reference/MKL). |
