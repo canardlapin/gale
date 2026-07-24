@@ -19,9 +19,10 @@ metals.sbt
 # Reference checkouts (not part of the build)
 vendor/
 
-# mote: per-actor identity and scratch (ops log is committed)
-.mote/local/
-.mote/tmp/
+# mote: local coordination state for agents working on this repo. None of it is
+# source, so none of it is tracked — a published library should not ship
+# another tool's operation log.
+.mote/
 
 # Claude Code personal settings
 .claude/settings.local.json
