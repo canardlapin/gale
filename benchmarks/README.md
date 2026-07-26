@@ -13,6 +13,11 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
 - `SolverJmh` — conjugate gradient on a 2D Laplacian (64x64 grid, 4096x4096 SPD).
 - `BlockSymmetricEigenJmh` — matrix-free block Krylov with an eight-dimensional
   repeated top eigenspace over `n` in {128, 512, 2048}.
+- `GeneralizedLobpcgJmh` — matrix-free generalized symmetric LOBPCG over
+  `n` in {128, 512, 2048}, `k` in {4, 8, 16}, clustered diagonal and
+  stiffness/mass pencils, and identity/Jacobi/block-Jacobi preconditioning.
+  `GeneralizedLobpcgWorkReceipt` records exact iteration and A/B/preconditioner
+  work separately from JMH timing.
 - `DenseTransformJmh` — boxed matrix/vector exports versus direct primitive
   copies from transposed and strided views over 1,024 and 16,384 values; use
   `-prof gc` for bytes/op.
@@ -22,7 +27,11 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
   spectral scratch, and sparse structure/value allocation baselines over `n` in
   {64, 128}; use `-prof gc` and compare the paired allocating/reuse scenarios.
 
-Each benchmark uses 2 forks with 5x500ms warmup and 5x500ms measurement.
+Most established kernel benchmarks use 2 forks with 5x500ms warmup and
+5x500ms measurement. `GeneralizedLobpcgJmh` uses one fork, 1x200ms warmup, and
+2x200ms measurement because its 54-scenario product is an end-to-end solver
+matrix; its receipt distinguishes the short development sweep from a
+trustworthy default-settings run.
 
 Run everything:
 
@@ -47,6 +56,8 @@ sbt "benchmarksJVM/Jmh/run -prof gc -p n=4096 gale.bench.DenseKernelJmh.dot"
 sbt "benchmarksJVM/Jmh/run -prof gc .*DenseTransformJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc .*SparseInteropJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=128 gale.bench.AllocationArchitectureJmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.GeneralizedLobpcgJmh.solve"
+sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"
 ```
 
 Verify the whole suite compiles (annotation processing included) without running

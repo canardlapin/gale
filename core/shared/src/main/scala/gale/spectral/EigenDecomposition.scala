@@ -4,13 +4,18 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.LinAlgError
 
-/** The result of a '''symmetric''' eigenproblem `A V = V diag(λ)` — complex-free
-  * by construction (fixed constraint 3 of `docs/spectral-parity.md`).
+/** The result of a real '''symmetric''' eigenproblem — ordinary
+  * `A V = V diag(λ)` or symmetric-definite generalized
+  * `A V = B V diag(λ)` — complex-free by construction (fixed constraint 3 of
+  * `docs/spectral-parity.md`).
   *
   * Eigenvalues are returned '''ascending-algebraic always''', independent of the
   * selection order (§ 1): the selection chooses membership, this layout is fixed.
   * `eigenvectors` holds the orthonormal eigenvectors as columns, aligned with
   * `eigenvalues`; it is empty (zero columns) when only values were requested.
+  * Ordinary eigenvectors are Euclidean-orthonormal. Generalized eigenvectors
+  * are `B`-orthonormal; in that case
+  * `diagnostics.orthogonalityError = ‖Vᵀ B V - I‖`.
   */
 final case class EigenDecomposition private[spectral] (
     eigenvalues: DVec,

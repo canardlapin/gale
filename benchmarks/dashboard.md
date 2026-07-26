@@ -1,6 +1,6 @@
 # Backend conformance and performance dashboard
 
-Last refreshed: 2026-07-20. Performance numbers are evidence for the named
+Last refreshed: 2026-07-25. Performance numbers are evidence for the named
 machine, JDK, and native library only. CI proves compatibility and conformance;
 it does not establish cross-machine speed.
 
@@ -49,6 +49,7 @@ material warmed penalty below its threshold.
 
 ## Evidence index
 
+- [Matrix-free generalized LOBPCG development baseline](results/2026-07-25-generalized-lobpcg-baseline.md)
 - [Reusable-architecture allocation baseline](results/2026-07-20-faer-nalgebra-allocation-baseline.md)
 - [Scalafim migration workloads](results/2026-07-19-scalafim-migration.md)
 - [Vector versus Breeze, JDK 22](results/2026-07-17-breeze-jdk22-vector-enabled.md)
@@ -64,6 +65,8 @@ material warmed penalty below its threshold.
 sbt testAll parityTest interopBreezeTest vectorBackendTest benchCompile
 sbt nativeBackendTest blasFfmBackendTest benchFfmCompile  # JDK 22+
 sbt "benchmarksJVM/Jmh/run .*Vector.*Jmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.GeneralizedLobpcgJmh.solve"
+sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"
 sbt "benchmarksFfm/Jmh/run .*FfmGemvJmh.*"
 sbt "benchmarksFfm/Jmh/run .*FfmLapackJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.ScalafimMigrationJmh.*"

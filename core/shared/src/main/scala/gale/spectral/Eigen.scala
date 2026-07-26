@@ -8,10 +8,13 @@ import gale.linalg.DenseWorkspace
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.linalg.MutableDVec
+import gale.linalg.PositiveDefinite
 import gale.linalg.Rows
 import gale.linalg.ScratchRequirement
 import gale.linalg.Shape
+import gale.linalg.Symmetric
 import gale.linalg.TriangularSolve
+import gale.solvers.Preconditioner
 
 /** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric
   * (phase b) of `docs/spectral-parity.md`.
@@ -27,6 +30,9 @@ import gale.linalg.TriangularSolve
   *   - [[eigSymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative partial
   *     solve (`eigsh`) via Lanczos with full reorthogonalization, for a matrix or
   *     a matrix-free [[gale.linalg.DoubleLinearOperator]].
+  *   - [[eigSymmetricGeneralized]] — dense one-shot or typed matrix-free
+  *     generalized symmetric-definite solves. The operator route uses portable
+  *     LOBPCG and explicit symmetric / positive-definite evidence.
   *
   * '''Nonsymmetric''' ([[NonsymmetricEigenDecomposition]], § 2 / § 7). A real input
   * can have complex eigenvalues in conjugate pairs; the output is ordered '''by the
@@ -561,10 +567,9 @@ object Eigen:
     * real-part orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs
     * [[EigenVectors.Right]].
     *
-    * '''Scope.''' Only the dense path ships here; the operator/iterative
-    * generalized solver (§ 6's `B`-inner-product Lanczos) and the generalized
-    * '''nonsymmetric''' pencil / QZ (§ 5, backend-scoped) are '''out''' of this
-    * entry point.
+    * '''Scope.''' This overload is the dense path. The separate typed operator
+    * overload runs matrix-free LOBPCG; the generalized '''nonsymmetric''' pencil
+    * / QZ (§ 5) remains backend-scoped.
     *
     * `Left` on: non-square `a` or `b` (`NonSquareMatrix`); disagreeing shapes
     * (`DimensionMismatch`); `B` not positive-definite (`NotPositiveDefinite`, the
@@ -611,6 +616,203 @@ object Eigen:
                               case Right(x) =>
                                 Right(assembleGeneralized(aSym, bSym, kernel.values, indices, Some(x)))
                           else Right(assembleGeneralized(aSym, bSym, kernel.values, indices, None))
+
+  /** Partial matrix-free generalized symmetric-definite eigendecomposition
+    * `A x = λ B x` via portable LOBPCG or an explicitly imported iterative
+    * generalized spectral backend.
+    *
+    * The property wrappers make the operator contract explicit: `a` requires
+    * caller-supplied [[gale.linalg.Symmetric]] evidence and `b` requires
+    * [[gale.linalg.PositiveDefinite]] evidence. Matrix-free properties cannot
+    * be exhaustively verified, so obtain those zero-cost wrappers with
+    * `assumeSymmetricOperator` / `assumePositiveDefiniteOperator` only when the
+    * corresponding mathematical promises hold. Encountered non-positive
+    * `B`-geometry still returns [[gale.linalg.LinAlgError.NotPositiveDefinite]].
+    *
+    * Only [[EigenSelection.Count]] with
+    * [[EigenOrder.SmallestAlgebraic]] or [[EigenOrder.LargestAlgebraic]] is
+    * accepted, with `1 <= k < n`. The implementation applies `A`, `B`, and the
+    * explicit `preconditioner` columnwise; it never materializes either
+    * operator and never constructs an implicit `B^-1`. Dense work is limited to
+    * the LOBPCG Rayleigh-Ritz trial space.
+    *
+    * Returned values are ascending-algebraic. Returned vectors are
+    * `B`-orthonormal, `diagnostics.residuals` are the true norms
+    * `‖A x - λ B x‖`, and `orthogonalityError` is `‖Xᵀ B X - I‖_F`.
+    * Iteration exhaustion returns only converged pairs in `Right`; use
+    * [[EigenDecomposition.requireConverged]] for residual fail-fast or
+    * [[EigenDecomposition.requireExtremeCertified]] when a separately certified
+    * global extreme is required. The facade snapshots mutable operator and
+    * preconditioner destinations before they can escape.
+    *
+    * A backend advertising [[SpectralCapability.IterativeGeneralized]] may
+    * provide raw converged Ritz pairs. The facade still imposes ascending
+    * ordering, B-normalization, ownership, residuals, and orthogonality. A
+    * provider `Left` is a decline and falls back to portable LOBPCG; a malformed
+    * provider `Right` is a conformance violation and fails loudly.
+    */
+  def eigSymmetricGeneralized[
+      A <: DoubleLinearOperator,
+      B <: DoubleLinearOperator
+  ](
+      a: Symmetric[A],
+      b: PositiveDefinite[B],
+      n: Int,
+      selection: EigenSelection,
+      options: GeneralizedSpectralOptions = GeneralizedSpectralOptions(),
+      preconditioner: Preconditioner = Preconditioner.Identity
+  )(using backend: SpectralBackend): Either[LinAlgError, EigenDecomposition] =
+    selection match
+      case EigenSelection.Count(k, order) =>
+        Lobpcg
+          .validate(a, b, n, k, order, options)
+          .flatMap: _ =>
+            iterativeGeneralizedSpectrum(
+              a,
+              b,
+              n,
+              k,
+              order,
+              options,
+              preconditioner,
+              backend
+            )
+      case other =>
+        Left(
+          LinAlgError.InvalidArgument(
+            s"matrix-free generalized LOBPCG requires EigenSelection.Count; ${other.getClass.getSimpleName} is dense-only"
+          )
+        )
+
+  private def iterativeGeneralizedSpectrum(
+      a: DoubleLinearOperator,
+      b: DoubleLinearOperator,
+      n: Int,
+      k: Int,
+      order: EigenOrder,
+      options: GeneralizedSpectralOptions,
+      preconditioner: Preconditioner,
+      backend: SpectralBackend
+  ): Either[LinAlgError, EigenDecomposition] =
+    def pure: Either[LinAlgError, EigenDecomposition] =
+      Lobpcg.solve(a, b, n, k, order, options, preconditioner)
+
+    if backend.capabilities.contains(SpectralCapability.IterativeGeneralized) then
+      backend.iterativeGeneralizedEigen(a, b, n, k, order, options, preconditioner) match
+        case Left(_)    => pure
+        case Right(raw) => canonicalizeRawIterativeGeneralized(a, b, n, k, options, raw, backend.name)
+    else pure
+
+  private def canonicalizeRawIterativeGeneralized(
+      a: DoubleLinearOperator,
+      b: DoubleLinearOperator,
+      n: Int,
+      k: Int,
+      options: GeneralizedSpectralOptions,
+      raw: RawIterativeGeneralizedEigen,
+      backendName: String
+  ): Either[LinAlgError, EigenDecomposition] =
+    val convergence = raw.convergence
+    val converged = convergence.converged
+    val malformedShape =
+      convergence.requested != k ||
+        converged < 0 ||
+        converged > k ||
+        convergence.iterations < 0 ||
+        raw.values.length != converged ||
+        raw.vectors.rows != n ||
+        raw.vectors.cols < converged
+    if malformedShape then
+      throw LinAlgError.InvalidArgument(
+        s"spectral provider '$backendName' returned malformed iterative generalized factors: " +
+          s"requested=${convergence.requested}, converged=$converged, iterations=${convergence.iterations}, " +
+          s"values length=${raw.values.length}, vectors=${raw.vectors.rows}x${raw.vectors.cols}; " +
+          s"expected requested=$k, 0 <= converged <= $k, values length=converged, and n x (>=converged) vectors for n=$n"
+      )
+
+    var column = 0
+    while column < converged do
+      if !raw.values(column).isFinite then
+        throw LinAlgError.InvalidArgument(
+          s"spectral provider '$backendName' returned a non-finite generalized eigenvalue at index $column"
+        )
+      var row = 0
+      while row < n do
+        if !raw.vectors(row, column).isFinite then
+          throw LinAlgError.InvalidArgument(
+            s"spectral provider '$backendName' returned a non-finite generalized eigenvector entry at ($row, $column)"
+          )
+        row += 1
+      column += 1
+
+    val permutation = (0 until converged).sortBy(index => (raw.values(index), index)).toArray
+    val values = DVec.tabulate(converged)(index => raw.values(permutation(index)))
+    val vectors =
+      DMat.tabulate(n, converged)((row, col) => raw.vectors(row, permutation(col)))
+
+    for
+      operatorImages <- GeneralizedBlockKernels.applyBlock(a, vectors)
+      metricImages <- GeneralizedBlockKernels.applyBlock(b, vectors)
+    yield
+      val inverseNorms = new Array[Double](converged)
+      var col = 0
+      while col < converged do
+        val normSquared = vectors.col(col).dot(metricImages.col(col))
+        if !normSquared.isFinite || normSquared <= 0.0 then
+          throw LinAlgError.InvalidArgument(
+            s"spectral provider '$backendName' returned non-positive B geometry for Ritz vector $col: $normSquared"
+          )
+        inverseNorms(col) = 1.0 / math.sqrt(normSquared)
+        col += 1
+
+      val normalizedVectors =
+        DMat.tabulate(n, converged)((row, c) => vectors(row, c) * inverseNorms(c))
+      val normalizedOperatorImages =
+        DMat.tabulate(n, converged)((row, c) => operatorImages(row, c) * inverseNorms(c))
+      val normalizedMetricImages =
+        DMat.tabulate(n, converged)((row, c) => metricImages(row, c) * inverseNorms(c))
+      val normalizedBlock =
+        GeneralizedBlockKernels.MetricBlock(normalizedVectors, normalizedMetricImages)
+      val residuals = DVec.tabulate(converged): c =>
+        DVec
+          .tabulate(n)(row =>
+            normalizedOperatorImages(row, c) -
+              normalizedMetricImages(row, c) * values(c)
+          )
+          .norm2
+      val orthogonalityError =
+        GeneralizedBlockKernels.metricOrthogonalityError(normalizedBlock)
+      val orthogonalityGuard =
+        math.max(1e-8, 100.0 * options.tolerance * math.sqrt(math.max(1, converged).toDouble))
+
+      col = 0
+      while col < converged do
+        if !residuals(col).isFinite || residuals(col) > options.tolerance then
+          throw LinAlgError.InvalidArgument(
+            s"spectral provider '$backendName' reported Ritz pair $col as converged, " +
+              s"but its true generalized residual ${residuals(col)} exceeds tolerance ${options.tolerance}"
+          )
+        col += 1
+      if !orthogonalityError.isFinite || orthogonalityError > orthogonalityGuard then
+        throw LinAlgError.InvalidArgument(
+          s"spectral provider '$backendName' returned Ritz vectors with B-orthogonality error " +
+            s"$orthogonalityError above guard $orthogonalityGuard"
+        )
+
+      EigenDecomposition(
+        values,
+        if options.returnVectors == EigenVectors.Right then normalizedVectors else DMat.zeros(n, 0),
+        SpectralDiagnostics(
+          requested = k,
+          converged = converged,
+          residuals = residuals,
+          orthogonalityError =
+            if options.returnVectors == EigenVectors.Right then orthogonalityError else 0.0,
+          iterations = convergence.iterations,
+          rank = None,
+          extremalityCertified = false
+        )
+      )
 
   // ===========================================================================
   // Generalized nonsymmetric eigendecomposition (QZ) — backend-scoped

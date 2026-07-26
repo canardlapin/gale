@@ -107,6 +107,27 @@ extension (matrix: DMat)
   def verifyUpperTriangular(tolerance: Double): Either[LinAlgError, UpperTriangular[DMat]] =
     MatrixPropertyVerification.verifyUpperTriangular(matrix, tolerance)
 
+extension [A <: DoubleLinearOperator](operator: A)
+  /** Assert that a matrix-free operator is symmetric without attempting to
+    * materialize or inspect it.
+    *
+    * The `Operator` suffix keeps this explicit at call sites where a dense
+    * [[DMat]] could instead use [[verifySymmetric]]. The returned evidence is
+    * zero-cost and preserves the operator's concrete type.
+    */
+  inline def assumeSymmetricOperator: Symmetric[A] =
+    Symmetric.unsafe(operator)
+
+  /** Assert that a matrix-free operator is symmetric positive-definite without
+    * attempting an impossible exhaustive verification.
+    *
+    * Iterative generalized solvers still reject non-positive metric geometry
+    * encountered in their explored subspaces. This evidence records the
+    * caller's global contract; it is not a runtime proof.
+    */
+  inline def assumePositiveDefiniteOperator: PositiveDefinite[A] =
+    PositiveDefinite.unsafe(operator)
+
 private object MatrixPropertyVerification:
   inline val DefaultSymmetryTolerance = 1.0e-12
 

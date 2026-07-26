@@ -4,6 +4,7 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
+import gale.solvers.Preconditioner
 
 /** Raw numeric carriers a [[SpectralBackend]] returns — public, invariant-free
   * containers holding only what a native routine naturally produces. The facade
@@ -19,6 +20,23 @@ import gale.linalg.LinAlgError
   * rejects a malformed carrier loudly as a conformance violation.
   */
 final case class RawSymmetricEigen(values: DVec, vectors: DMat)
+
+/** Raw converged Ritz pairs from an iterative generalized symmetric-definite
+  * provider.
+  *
+  * `values` and the leading aligned columns of `vectors` may arrive in any
+  * order. `convergence.converged` must equal `values.length`, and `vectors`
+  * must contain at least that many columns over the ambient `n` rows even when
+  * the caller requested values only: the facade needs vectors to independently
+  * derive true generalized residuals and B-orthogonality before discarding
+  * them from the public result. The facade owns all normalization, ordering,
+  * validation, and diagnostics.
+  */
+final case class RawIterativeGeneralizedEigen(
+    values: DVec,
+    vectors: DMat,
+    convergence: BackendConvergence
+)
 
 /** Raw nonsymmetric eigendecomposition, real-Schur SoA as `geev`/`dgeev` emit. */
 final case class RawNonsymmetricEigen(re: DVec, im: DVec, rightPacked: DMat, leftPacked: Option[DMat])
@@ -152,6 +170,21 @@ trait SpectralBackend:
   def rankDeficientGsvd(a: DMat, b: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
     unsupported("rank-deficient GSVD")
 
+  /** Iterative generalized symmetric-definite Ritz pairs for already validated
+    * operators. Providers must not infer this capability from a dense
+    * generalized eigendecomposition and must not materialize either operator.
+    */
+  def iterativeGeneralizedEigen(
+      a: DoubleLinearOperator,
+      b: DoubleLinearOperator,
+      n: Int,
+      k: Int,
+      order: EigenOrder,
+      options: GeneralizedSpectralOptions,
+      preconditioner: Preconditioner
+  ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
+    unsupported("iterative generalized symmetric eigen")
+
   def shiftInvertOperator(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, DoubleLinearOperator] =
     unsupported("shift-invert operator")
 
@@ -222,6 +255,21 @@ object SpectralBackend:
         first(SpectralCapability.RankDeficientGsvd) match
           case Some(bk) => bk.rankDeficientGsvd(a, b, wantVectors)
           case None     => unsupported("rank-deficient GSVD")
+
+      override def iterativeGeneralizedEigen(
+          a: DoubleLinearOperator,
+          b: DoubleLinearOperator,
+          n: Int,
+          k: Int,
+          order: EigenOrder,
+          options: GeneralizedSpectralOptions,
+          preconditioner: Preconditioner
+      ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
+        first(SpectralCapability.IterativeGeneralized) match
+          case Some(bk) =>
+            bk.iterativeGeneralizedEigen(a, b, n, k, order, options, preconditioner)
+          case None =>
+            unsupported("iterative generalized symmetric eigen")
 
       override def shiftInvertOperator(
           a: DMat,

@@ -1,5 +1,6 @@
 package gale.spectral
 
+import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.solvers.SolverConfig
 
@@ -119,5 +120,33 @@ final case class SpectralOptions(
     maxIterations: Int = 1000,
     subspaceDimension: Option[Int] = None,
     startVector: Option[DVec] = None,
+    returnVectors: EigenVectors = EigenVectors.Right
+)
+
+/** Tuning knobs for the partial generalized symmetric-definite operator solver
+  * `A x = λ B x`, where `A` is symmetric and `B` is symmetric
+  * positive-definite.
+  *
+  * This is deliberately distinct from [[SpectralOptions]]. LOBPCG evolves a
+  * block of `k` vectors together, so reducing its initialization to one
+  * `startVector` would hide the rank and multiplicity contract.
+  *
+  *   - `tolerance` is applied to the true generalized residual
+  *     `‖A x - λ B x‖`.
+  *   - `maxIterations` bounds outer block iterations; inner work performed by a
+  *     preconditioner or later metric-solve provider reports separately.
+  *   - `initialSubspace`, when present, must have shape `n × k` for a
+  *     `Count(k, ...)` selection. The solver owns a snapshot and may
+  *     B-orthonormalize, rank-reveal, and deterministically replenish it.
+  *   - `returnVectors` is restricted to [[EigenVectors.ValuesOnly]] or
+  *     [[EigenVectors.Right]] at the solver boundary.
+  *
+  * Constructors remain data-only. Shape, finiteness, rank, tolerance, and
+  * vector-flag validation return typed `Left` values from the solver facade.
+  */
+final case class GeneralizedSpectralOptions(
+    tolerance: Double = 1e-10,
+    maxIterations: Int = 200,
+    initialSubspace: Option[DMat] = None,
     returnVectors: EigenVectors = EigenVectors.Right
 )

@@ -1,5 +1,6 @@
 package gale.spectral
 
+import gale.linalg.Matrix
 import gale.solvers.SolverConfig
 
 class SpectralSelectionSuite extends munit.FunSuite:
@@ -66,6 +67,24 @@ class SpectralSelectionSuite extends munit.FunSuite:
     assertEquals(o.subspaceDimension, None)
     assertEquals(o.startVector, None)
     assertEquals(o.returnVectors, EigenVectors.Right)
+  }
+
+  test("GeneralizedSpectralOptions carries a block initial subspace") {
+    val defaults = GeneralizedSpectralOptions()
+    assertEqualsDouble(defaults.tolerance, 1e-10, 0.0)
+    assertEquals(defaults.maxIterations, 200)
+    assertEquals(defaults.initialSubspace, None)
+    assertEquals(defaults.returnVectors, EigenVectors.Right)
+
+    val initial = Matrix.eye(3)
+    val configured = GeneralizedSpectralOptions(
+      tolerance = 1e-8,
+      maxIterations = 40,
+      initialSubspace = Some(initial),
+      returnVectors = EigenVectors.ValuesOnly
+    )
+    assert(configured.initialSubspace.contains(initial))
+    assertEquals(configured.returnVectors, EigenVectors.ValuesOnly)
   }
 
   test("EigenVectors enumerates all four cases") {

@@ -41,6 +41,27 @@ entry points. Primitive arithmetic operators and `mulInto` methods validate
 their preconditions and may throw `LinAlgError`; they are intentionally not
 silently totalized.
 
+### Partial generalized symmetric-definite operators
+
+The operator-level partial generalized symmetric-definite solver is
+`Eigen.eigSymmetricGeneralized(Aop, Bop, n, Count(...), options,
+preconditioner)`. Its portable engine is LOBPCG over typed symmetric `A` and
+positive-definite `B` operators. It calls only `A*X`, `B*X`, and the explicit
+preconditioner; it does not materialize the operators or silently construct
+`B^-1`.
+
+The operator surface accepts
+`Count(k, SmallestAlgebraic | LargestAlgebraic)`, `1 <= k < n`, plus an optional
+`n × k` initial subspace. Results are ascending, vectors are
+`B`-orthonormal, and diagnostics report the true generalized residual and
+`B`-Gram error. Non-convergence returns the converged subset in `Right`, never a
+false full result. Residual convergence does not by itself certify membership in
+the requested global extreme; callers needing that stronger guarantee use
+`requireExtremeCertified`. A generalized block-Lanczos follow-up remains gated
+on an explicit metric-solve contract. The
+[operator eigensolver guide](generalized-operator-eigen.md) gives the complete
+selection, preconditioner, backend, and work-accounting contract.
+
 ## Storage and allocation boundary
 
 `DVec` and `DMat` are immutable-facing values and views. Their owned platform

@@ -25,8 +25,9 @@ enum SpectralConvergenceStatus:
   *   - `requested` — how many pairs/triplets the selection asked for.
   *   - `converged` — how many met the tolerance; the result contains exactly these.
   *   - `residuals` — the per-pair residual norms of the returned pairs.
-  *   - `orthogonalityError` — `‖VᵀV − I‖` of the returned basis, a numerical
-  *     quality signal.
+  *   - `orthogonalityError` — the Gram error of the returned basis in the
+  *     problem's natural inner product: `‖VᵀV − I‖` for ordinary symmetric
+  *     problems, or `‖Vᵀ B V − I‖` for generalized symmetric-definite ones.
   *   - `iterations` — iterations the solver took (`0` for a dense one-shot solve).
   *   - `rank` — numerical rank where meaningful (SVD/GSVD), else `None`.
   *   - `extremalityCertified` — whether the requested spectral membership was

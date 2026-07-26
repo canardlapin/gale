@@ -308,6 +308,60 @@ val gen = Eigen.eigSymmetricGeneralized(A, B, EigenSelection.All, EigenVectors.R
 // eigenvectors are B-orthonormal (XᵀBX = I), not Euclidean-orthonormal
 ```
 
+This dense overload is a one-shot route: a `Count(k, ...)` selection still
+computes the full dense spectrum and slices it. For a partial operator solve,
+use the typed LOBPCG overload:
+
+```scala
+import gale.linalg.*
+import gale.solvers.Preconditioner
+import gale.spectral.*
+
+val aOp = A.assumeSymmetricOperator
+val bOp = B.assumePositiveDefiniteOperator
+val partial = Eigen.eigSymmetricGeneralized(
+  aOp,
+  bOp,
+  n,
+  EigenSelection.Count(2, EigenOrder.SmallestAlgebraic),
+  GeneralizedSpectralOptions(tolerance = 1e-9),
+  Preconditioner.Jacobi(A)
+)
+```
+
+The same overload accepts genuinely matrix-free operators. Property evidence is
+explicit because Gale cannot exhaustively inspect an operator:
+
+```scala
+val stiffness = LinearOperator.fromFunction(n, n) { (x, into) =>
+  var i = 0
+  while i < n do
+    val left = if i == 0 then 0.0 else x(i - 1)
+    val right = if i + 1 == n then 0.0 else x(i + 1)
+    into(i) = 2.0 * x(i) - left - right
+    i += 1
+}
+val mass = LinearOperator.fromFunction(n, n) { (x, into) =>
+  var i = 0
+  while i < n do
+    into(i) = (1.0 + i.toDouble / n.toDouble) * x(i)
+    i += 1
+}
+
+val matrixFree = Eigen.eigSymmetricGeneralized(
+  stiffness.assumeSymmetricOperator,
+  mass.assumePositiveDefiniteOperator,
+  n,
+  EigenSelection.Count(3, EigenOrder.SmallestAlgebraic)
+)
+```
+
+LOBPCG never materializes `stiffness` or `mass`. Non-convergence is a
+diagnostics-carrying `Right` containing only converged pairs.
+See the
+[matrix-free generalized eigensolver guide](generalized-operator-eigen.md) for
+the full selection, preconditioner, certification, and backend contract.
+
 The general nonsymmetric pencil (QZ) is a **backend-scoped seam**:
 `Eigen.eigGeneralizedNonsymmetric(A, B)` needs a `given SpectralBackend` in
 scope (found automatically via companion-object implicit search — no import

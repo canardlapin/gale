@@ -24,6 +24,24 @@ class MatrixPropertiesSuite extends munit.FunSuite:
     assertEquals((spd * Vec(1.0, 0.0, 0.0)).length, 3)
   }
 
+  test("matrix-free operator evidence is explicit, zero-cost, and preserves type") {
+    val operator = LinearOperator.fromFunction(3, 3): (x, into) =>
+      var i = 0
+      while i < 3 do
+        into(i) = (i + 1).toDouble * x(i)
+        i += 1
+
+    val symmetricOperator: Symmetric[DoubleLinearOperator] =
+      operator.assumeSymmetricOperator
+    val positiveOperator: PositiveDefinite[DoubleLinearOperator] =
+      operator.assumePositiveDefiniteOperator
+    val positiveIsSymmetric: Symmetric[DoubleLinearOperator] = positiveOperator
+
+    assert(symmetricOperator.value eq operator)
+    assert(positiveOperator.value eq operator)
+    assert(positiveIsSymmetric.value eq operator)
+  }
+
   test("verifySymmetric uses a scale-aware tolerance") {
     val nearly = Matrix.dense(2, 2)(
       1.0e12, 3.0e8,

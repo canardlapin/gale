@@ -204,10 +204,21 @@ to `min(n, max(2k+1, 20))`, and grows toward `n` across non-converged restarts.
 | `k` largest/smallest algebraic | `'largestreal'`/`'smallestreal'` (≡ algebraic for symmetric) | `which='LA'`/`'SA'` | **in-a** `Count(k, LargestAlgebraic\|SmallestAlgebraic)` | For real symmetric, real-part = algebraic. |
 | Both ends | `'bothendsreal'` | `which='BE'` (⌈k/2⌉ high, ⌊k/2⌋ low) | **in-a** `Count(k, BothEnds)` | **New enum case** — not in the PRD's `EigenOrder`. |
 | Shift-invert near σ | `sigma` scalar (auto-factorizes `A-σB`) | `sigma=σ, mode='normal'` (+`'buckling'`/`'cayley'`) | **in-a** `SpectralTarget.ShiftInvert(σ, plan)` (σ **real**) | gale requires an **explicit** `LinearSolvePlan`; it never auto-factorizes. `'buckling'`/`'cayley'` modes **deferred**. |
-| Generalized `A x = λ B x` | `eigs(A,B,k)` | `eigsh(A, k, M=B)` (`B` SPD) | **in-b** | Needs `B`-inner-product Lanczos; grouped with generalized eigen (phase b). |
+| Generalized `A x = λ B x` | `eigs(A,B,k)` | `eigsh(A, k, M=B)` (`B` SPD) | **in-v1.1** typed operator LOBPCG | Portable LOBPCG over typed symmetric `A` / SPD `B` operators; generalized block Lanczos follows only after an explicit metric-solve contract. |
 | Matrix-free operator | `eigs(Afun,n,...)` | `LinearOperator` | **in-a** | gale already has `DoubleLinearOperator` with `applyTo`. |
 | Start vector / subspace / tol / maxiter | `StartVector`, `SubspaceDimension`, `Tolerance`, `MaxIterations` | `v0`, `ncv`, `tol`, `maxiter` | **in-a** `SpectralOptions` | The caller vector is the first block column; deterministic orthogonal probes fill a block at least `k` wide. Default initial `ncv = min(n, max(2k+1, 20))`. |
 | Convergence reporting | `[V,D,flag]` (`flag` 0/1) | raises `ArpackNoConvergence` (carries partial results) | **in-a** `Right(result + SpectralDiagnostics)` | See § Convergence. Never a `Left` for non-convergence. |
+
+The v1.1 generalized operator contract is intentionally narrower than the
+ordinary `eigsh` surface. It accepts only
+`Count(k, SmallestAlgebraic | LargestAlgebraic)` with `1 <= k < n`, an optional
+`n × k` initial block, and an explicit preconditioner. Results remain
+ascending-algebraic; vectors are `B`-orthonormal; diagnostics report
+`‖A x - λ B x‖` and `‖Xᵀ B X - I‖`. Partial or zero convergence is a `Right`
+with `extremalityCertified = false`. Magnitude, both-ends, interval, automatic
+factorization, and complex-shift modes are not part of the first tranche.
+The consolidated reader-facing contract and benchmark evidence are in
+[Matrix-free generalized symmetric eigensolving](generalized-operator-eigen.md).
 
 **Ordering guarantee.** As in § 1, partial symmetric results are returned
 **ascending-algebraic**, matching `eigsh` (which sorts ascending; MATLAB `eigs`

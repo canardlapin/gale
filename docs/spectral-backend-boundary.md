@@ -163,6 +163,13 @@ trait SpectralBackend:
     unsupported("generalized nonsymmetric eigen (QZ)")
   def rankDeficientGsvd(a: DMat, b: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
     unsupported("rank-deficient GSVD")
+  def iterativeGeneralizedEigen(
+      a: DoubleLinearOperator, b: DoubleLinearOperator,
+      n: Int, k: Int, order: EigenOrder,
+      options: GeneralizedSpectralOptions,
+      preconditioner: Preconditioner
+  ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
+    unsupported("iterative generalized symmetric eigen")
   def shiftInvertOperator(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, DoubleLinearOperator] =
     unsupported("shift-invert operator")
 
@@ -175,7 +182,7 @@ enum SpectralCapability:
   case GeneralizedSchur                                        // optional (Q,Z,AA,BB) factors
   case RankDeficientGsvd                                       // ggsvd3 hard cases — the §9 seam
   case ShiftInvertSolve                                        // (A−σB) providers for §6–7 targets
-  case IterativeGeneralized                                    // B-inner-product / ARPACK-class generalized
+  case IterativeGeneralized                                    // LOBPCG / later B-Lanczos generalized operators
   // Deliberately absent: ComplexShift (needs a complex tier; out — see §4).
 
 object SpectralBackend:
@@ -243,6 +250,8 @@ the facade turns each into the corresponding `private[spectral]` sealed result
 
 ```scala
 final case class RawSymmetricEigen(values: DVec, vectors: DMat)          // ascending not required; facade sorts
+final case class RawIterativeGeneralizedEigen(                          // converged pairs; facade verifies
+    values: DVec, vectors: DMat, convergence: BackendConvergence)
 final case class RawNonsymmetricEigen(                                    // real-Schur SoA, as geev/dgeev emit
     re: DVec, im: DVec, rightPacked: DMat, leftPacked: Option[DMat])
 final case class RawSvd(sigma: DVec, u: DMat, vt: DMat)                   // any order; facade fixes descending
@@ -264,7 +273,16 @@ into the named frozen type):
 | `denseSvd` | `RawSvd` | `SVD` (full dense — pure Golub–Kahan–Reinsch kernel ships as of v0.5) | acceleration of full dense SVD (parity § 3) |
 | `generalizedNonsymmetricEigen` | `RawGeneralizedEigen` | **`GeneralizedEigenDecomposition`** (new, § 1.3) | parity § 5 — QZ |
 | `rankDeficientGsvd` | `RawGsvd` | `GeneralizedSVD` | parity § 9 — rank-deficient GSVD |
+| `iterativeGeneralizedEigen` | `RawIterativeGeneralizedEigen` | `EigenDecomposition` | parity § 6 — partial generalized symmetric-definite operators |
 | `shiftInvertOperator` | `DoubleLinearOperator` | consumed by the existing Lanczos/Arnoldi loop | parity § 6–7 — targeted selection |
+
+`RawIterativeGeneralizedEigen` always carries the converged vectors, including
+for a values-only public request. This lets the facade independently reapply
+`A` and `B`, normalize in the B metric, verify the reported convergence
+tolerance and B-orthogonality, and only then discard vectors. Values and vectors
+may arrive in any aligned order; the facade snapshots and sorts them ascending.
+Malformed `Right` carriers fail loudly. A provider `Left` is a decline and the
+facade runs pure shared LOBPCG instead.
 
 Note `shiftInvertOperator` returns gale's own `DoubleLinearOperator`: a backend
 factorizes `A − σB` (or `A − σI`) once and exposes `(A − σB)⁻¹` as an operator,
@@ -483,7 +501,8 @@ gale-backend-jvm-blas-ffm    JVM only   given Backend (DenseDoubleKernel via FFM
                                         shift-invert) — the FFM LAPACK provider.
 gale-backend-jvm-arpack      JVM only   (later) SpectralBackend value+given with the iterative /
                                         IterativeGeneralized / large-scale ShiftInvertSolve
-                                        capabilities — ARPACK/SLEPc-class.
+                                        capabilities — ARPACK/SLEPc-class. Pure shared LOBPCG
+                                        remains the portable fallback.
 ```
 
 Composition rule: `SpectralBackend` is a **peer** of `Backend`, resolved by the
@@ -611,7 +630,7 @@ backend needed), or it is **out**. Loci are given by method, not line number
 | S6 | `Svds.gsvd(a, b, vectors)` rank-deficient pencil (`m+p < n`, or measured `rank < n`) | `Left(RankDeficient(rank, n))` | `rankDeficientGsvd(a, b, wantVectors)` → `GeneralizedSVD` with `Infinite`/`Zero` | **FFM LAPACK** (`ggsvd3`: `ggsvp3` + `tgsja`) |
 | S7 | Full **dense** SVD (parity § 3) — CLOSED for coverage in v0.5: the pure Golub–Kahan–Reinsch kernel ships behind `Svds.svd(a, All)` / `DMat.svd` | pure dense kernel computes (economy factors) | `denseSvd(a, wantVectors)` → `SVD` | **FFM LAPACK** (`gesdd`/`gesvd`) — acceleration only |
 | S8 | Accelerated dense symmetric/nonsymmetric eig for production scale (PRD Backend Performance Strategy) — **symmetric half WIRED (v0.5)**: `Eigen.eigSymmetric(a, sel, vectors)` takes `(using SpectralBackend)` and routes through `SpectralBackend.routesDenseSymmetricEigen(n)` (capability ∧ `n ≥ denseSymmetricEigenMinSize`, the measured spectral threshold — Accelerate 128 per `benchmarks/results/2026-07-17-ffm-lapack-crossover.md`, unswept families `Int.MaxValue`); the facade validates before the gate, re-imposes ascending order, re-derives residuals, falls back to the pure kernel on a provider `Left`, and throws `InvalidArgument` on malformed factors. Nonsymmetric half remains pure-only | pure kernels run below threshold / with no import (byte-identical) | `denseSymmetricEigen` / `denseNonsymmetricEigen` | **FFM LAPACK** (`dsyev` shipped; `geev` pending) |
-| S9 | Iterative **generalized** eigen (`B`-inner-product Lanczos, large/sparse; parity § 6 "in-b", no operator facade shipped) | *no operator facade* | `IterativeGeneralized` provider, or pure B-Lanczos | **Pure-deferrable** (small) / **ARPACK-class** (large) |
+| S9 | Iterative **generalized** symmetric-definite eigen (large/sparse; parity § 6) — **WIRED (v1.1)**: typed operator facade validates before routing, pure shared LOBPCG is the no-import/fallback path, `IterativeGeneralized` raw factors are sorted and independently checked, provider `Left` declines, malformed `Right` fails loudly | pure shared LOBPCG | `iterativeGeneralizedEigen`; generalized block Lanczos only after an explicit `B`-solve contract | **Pure-deferrable** through LOBPCG / **ARPACK-class** for large providers |
 | S10 | Complex shift σ (off the real axis; parity § Explicitly OUT) | n/a — `SpectralTarget.sigma` is `Double` | would need complex solves / complex tier | **Out** (§ 4) |
 
 **Which the v0.5 FFM LAPACK backend fills directly:** S5 (QZ), S6 (rank-deficient
@@ -621,12 +640,12 @@ and the first backend to build.
 
 **Which need an ARPACK/SLEPc-class iterative provider (a later, separate
 module):** the *large-scale* forms of S1/S2 (shift-invert at scale), **S4 (the
-one genuine left-vector seam — iterative)**, and S9 (iterative generalized).
+one genuine left-vector seam — iterative)**, and optional acceleration of S9.
 These are matrix-free/sparse and are not what a dense LAPACK backend addresses.
 
 **Which need no backend at all (pure-deferrable, do in pure gale first):** the
 *small-dense* forms of S1/S2 (wire the existing `LinearSolvePlan` into the shipped
-Lanczos/Arnoldi) and, if desired, S4/S9's small cases. The boundary explicitly
+Lanczos/Arnoldi), S9's portable LOBPCG path, and, if desired, S4's small cases. The boundary explicitly
 does **not** force these behind a native backend; it just *also* lets a backend
 serve them faster. **S3 is already done in pure core** and needs no backend at
 all except for speed.
@@ -701,6 +720,7 @@ discipline becomes compiler-enforced. Non-breaking: nothing outside
 | Facade | Change | Behaviour with `none` |
 |---|---|---|
 | `Eigen.eigSymmetric(a, sel, vectors)` | **LANDED (S8)** — gains `(using b: SpectralBackend)`; consults `b.denseSymmetricEigen` when `b.routesDenseSymmetricEigen(n)` (capability ∧ measured size threshold), else the pure call; provider `Left` falls back to pure, malformed factors throw | pure kernel — identical |
+| `Eigen.eigSymmetricGeneralized(aOp, bOp, n, Count(...), options, preconditioner)` | **LANDED (S9)** — typed operator overload consults `IterativeGeneralized`; provider raw pairs are sorted, B-normalized, snapshotted, and checked with facade-derived residuals/B-Gram; provider `Left` falls back to pure LOBPCG | pure shared LOBPCG — identical |
 | `Eigen.eigNonsymmetric(a, sel, vectors)` | gains `(using b)`; routes **acceleration** (S3/S8, all four vector modes) to `b.denseNonsymmetricEigen` | pure kernel (incl. left vectors) — identical |
 | `Eigen.eigSymmetric/eigNonsymmetric(op, n, sel, opts, target)` | when `target = Some(ShiftInvert(σ, plan))`, obtain the solve op (S1/S2) — from `b.shiftInvertOperator` if `ShiftInvertSolve`-capable, else the pure `LinearSolvePlan` wiring — and run the existing Krylov loop | `target` still `Left(UnsupportedOperation)` until the pure wiring lands; identical |
 | `Svds.svd(a, sel, vectors)` | gains `(using b)` for `DenseSvd` (S7) | pure — identical |

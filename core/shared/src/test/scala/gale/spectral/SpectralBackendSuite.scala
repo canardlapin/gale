@@ -4,6 +4,7 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
+import gale.solvers.Preconditioner
 
 /** Tests for the `SpectralBackend` contract skeleton: the `none` fallback (no
   * capabilities, every op `Left(UnsupportedOperation)`) and `compose` (capability
@@ -26,6 +27,19 @@ class SpectralBackendSuite extends munit.FunSuite:
     assert(none.denseSvd(a, true).isLeft)
     assert(none.generalizedNonsymmetricEigen(a, b, EigenVectors.Right).isLeft)
     assert(none.rankDeficientGsvd(a, b, true).isLeft)
+    assert(
+      none
+        .iterativeGeneralizedEigen(
+          a,
+          b,
+          2,
+          1,
+          EigenOrder.SmallestAlgebraic,
+          GeneralizedSpectralOptions(),
+          Preconditioner.Identity
+        )
+        .isLeft
+    )
     assert(none.shiftInvertOperator(a, None, 0.0).isLeft)
     none.generalizedNonsymmetricEigen(a, b, EigenVectors.Right) match
       case Left(_: LinAlgError.UnsupportedOperation) => ()
@@ -67,6 +81,28 @@ class SpectralBackendSuite extends munit.FunSuite:
       override def rankDeficientGsvd(x: DMat, y: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
         Right(RawGsvd(DMat.zeros(x.rows, 0), DMat.zeros(y.rows, 0), DMat.zeros(x.cols, 0), DVec.tabulate(1)(_ => tag.length.toDouble), DVec.tabulate(1)(_ => 1.0)))
 
+  private def fakeIterative(tag: String): SpectralBackend =
+    new SpectralBackend:
+      def name: String = tag
+      def capabilities: Set[SpectralCapability] =
+        Set(SpectralCapability.IterativeGeneralized)
+      override def iterativeGeneralizedEigen(
+          x: gale.linalg.DoubleLinearOperator,
+          y: gale.linalg.DoubleLinearOperator,
+          n: Int,
+          k: Int,
+          order: EigenOrder,
+          options: GeneralizedSpectralOptions,
+          preconditioner: Preconditioner
+      ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
+        Right(
+          RawIterativeGeneralizedEigen(
+            DVec.tabulate(k)(_ => tag.length.toDouble),
+            DMat.tabulate(n, k)((row, col) => if row == col then 1.0 else 0.0),
+            BackendConvergence(k, k, iterations = tag.length)
+          )
+        )
+
   // --- compose ---------------------------------------------------------------
 
   test("compose: capabilities are the union of the parts") {
@@ -94,4 +130,25 @@ class SpectralBackendSuite extends munit.FunSuite:
     val composite = SpectralBackend.compose(first, second)
     val raw = composite.generalizedNonsymmetricEigen(a, b, EigenVectors.Right).toOption.get
     assertEquals(raw.alphaRe(0), 5.0, "first part should have answered (marker 5)")
+  }
+
+  test("compose: IterativeGeneralized dispatches to the first capable part") {
+    val composite =
+      SpectralBackend.compose(fakeIterative("first"), fakeIterative("secondxxx"))
+    val raw = composite
+      .iterativeGeneralizedEigen(
+        a,
+        b,
+        2,
+        1,
+        EigenOrder.SmallestAlgebraic,
+        GeneralizedSpectralOptions(),
+        Preconditioner.Identity
+      )
+      .toOption
+      .get
+
+    assert(composite.capabilities.contains(SpectralCapability.IterativeGeneralized))
+    assertEquals(raw.values(0), 5.0)
+    assertEquals(raw.convergence.iterations, 5)
   }

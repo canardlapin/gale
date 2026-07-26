@@ -1395,6 +1395,25 @@ Required regression suites:
 - No exposed platform storage leakage.
 - No residual `atlas` package, docs, or examples.
 
+### v1.1: Matrix-Free Generalized Symmetric Eigensolvers
+
+- A typed operator-level partial solver for `A x = lambda B x`, with `A`
+  symmetric and `B` symmetric positive-definite.
+- Portable shared LOBPCG as the first engine, using `A*X`, `B*X`, and an
+  optional explicit preconditioner without forming `B^-1`.
+- `Count(k, SmallestAlgebraic | LargestAlgebraic)` selection initially, with
+  ascending output, `B`-orthonormal eigenvectors, true generalized residuals,
+  and honest partial-convergence diagnostics.
+- A block initial-subspace contract rather than overloading a scalar start
+  vector.
+- A real `SpectralCapability.IterativeGeneralized` provider operation with the
+  pure LOBPCG implementation as the portable fallback.
+- A later generalized block-Lanczos engine gated on a typed metric-solve
+  capability; no hidden `B` factorization or inverse.
+- Analytic, differential, metamorphic, adversarial, cross-platform, and
+  work-accounting tests plus reproducible benchmark receipts.
+- Alignment and other application-domain concepts remain outside Gale.
+
 ## Acceptance Criteria
 
 Gale v1 is acceptable when:
