@@ -1,6 +1,8 @@
 package gale.spectral
 
 import gale.linalg.Matrix
+import gale.linalg.assumePositiveDefinite
+import gale.linalg.orThrow
 import gale.solvers.SolverConfig
 
 class SpectralSelectionSuite extends munit.FunSuite:
@@ -42,18 +44,20 @@ class SpectralSelectionSuite extends munit.FunSuite:
     assertEquals(SingularSelection.All, SingularSelection.All)
   }
 
-  test("SpectralTarget.ShiftInvert names an explicit real sigma and solve plan") {
-    SpectralTarget.ShiftInvert(1.5, LinearSolvePlan.Direct) match
-      case SpectralTarget.ShiftInvert(sigma, LinearSolvePlan.Direct) =>
+  test("SpectralTarget.ShiftInvert names an explicit real sigma and executable solve plan") {
+    val system = Matrix.eye(3).assumePositiveDefinite
+    val plan =
+      LinearSolvePlan
+        .iterative(system, SolverConfig(tolerance = 1e-8))
+        .orThrow
+
+    SpectralTarget.ShiftInvert(1.5, plan) match
+      case SpectralTarget.ShiftInvert(sigma, LinearSolvePlan.Use(solver)) =>
         assertEqualsDouble(sigma, 1.5, 0.0)
-      case other => fail(s"expected ShiftInvert / Direct, got $other")
+        assertEquals(solver.kind, LinearSolveKind.ConjugateGradient)
+      case other => fail(s"expected ShiftInvert / Use, got $other")
 
-    LinearSolvePlan.Iterative(SolverConfig(tolerance = 1e-8)) match
-      case LinearSolvePlan.Iterative(cfg) => assertEqualsDouble(cfg.tolerance, 1e-8, 0.0)
-      case other                          => fail(s"expected Iterative, got $other")
-
-    // The Iterative plan defaults to the standard SolverConfig.
-    assertEquals(LinearSolvePlan.Iterative(), LinearSolvePlan.Iterative(SolverConfig()))
+    assertEquals(LinearSolvePlan.Backend, LinearSolvePlan.Backend)
 
     SpectralTarget.Around(0.25) match
       case SpectralTarget.Around(v) => assertEqualsDouble(v, 0.25, 0.0)

@@ -2,7 +2,13 @@ package gale.spectral
 
 import gale.linalg.DMat
 import gale.linalg.DVec
+import gale.linalg.DoubleLinearOperator
+import gale.linalg.ExactSolveFactor
+import gale.linalg.LinAlgError
+import gale.linalg.PositiveDefinite
+import gale.solvers.Preconditioner
 import gale.solvers.SolverConfig
+import gale.solvers.ToleranceMode
 
 /** Which extreme of the spectrum a count-based eigen selection picks.
   *
@@ -65,22 +71,66 @@ enum SingularSelection:
   case Count(k: Int, order: SingularOrder)
 
 /** How the inner linear solve that shift-invert needs — `(A − σI) x = b`, or
-  * `(A − σB) x = b` in the generalized case — is carried out.
+  * `(A − σB) x = b` in the generalized case — is obtained.
   *
-  * gale never auto-factorizes (unlike MATLAB `eigs`, which factorizes `A − σB`
-  * behind the scenes): a [[SpectralTarget.ShiftInvert]] must name its plan
-  * explicitly. This is the minimal placeholder the types phase needs; the kernel
-  * phase may extend it. It reuses the existing [[gale.solvers.SolverConfig]]
-  * rather than introducing a parallel config type.
+  * gale never auto-factorizes: a [[SpectralTarget.ShiftInvert]] either carries a
+  * caller-prepared executable solve or explicitly requests the optional backend
+  * capability. A plan is not a matrix operator and cannot be applied without
+  * observing its solve diagnostics.
   */
 enum LinearSolvePlan:
-  /** Factor the shifted matrix once with a dense LU and reuse it across
-    * iterations.
-    */
-  case Direct
+  /** Use this already-prepared, reusable solve capability. */
+  case Use(solver: LinearSolveOperator)
 
-  /** Solve the shifted system iteratively with the given configuration. */
-  case Iterative(config: SolverConfig = SolverConfig())
+  /** Ask the resolved backend for its advertised shift-invert solve. */
+  case Backend
+
+object LinearSolvePlan:
+  /** Adapt a caller-created factor; this factory does not factor a matrix. */
+  def direct(factor: ExactSolveFactor): LinearSolvePlan =
+    LinearSolvePlan.Use(LinearSolveOperator.direct(factor))
+
+  /** Build an explicit iterative solve for a caller-asserted SPD shifted system. */
+  def iterative[A <: DoubleLinearOperator](
+      operator: PositiveDefinite[A],
+      config: SolverConfig = SolverConfig(),
+      preconditioner: Preconditioner = Preconditioner.Identity,
+      toleranceMode: ToleranceMode = ToleranceMode.RelativeToRhs
+  ): Either[LinAlgError, LinearSolvePlan] =
+    LinearSolveOperator
+      .conjugateGradient(operator, config, preconditioner, toleranceMode)
+      .map(LinearSolvePlan.Use.apply)
+
+  /** Resolve a plan without implicit factorization. */
+  def resolve(
+      plan: LinearSolvePlan,
+      a: DMat,
+      b: Option[DMat],
+      sigma: Double
+  )(using backend: SpectralBackend): Either[LinAlgError, LinearSolveOperator] =
+    def validateSize(solver: LinearSolveOperator): Either[LinAlgError, LinearSolveOperator] =
+      if solver.size != a.rows then
+        Left(LinAlgError.VectorLengthMismatch(a.rows, solver.size))
+      else Right(solver)
+
+    if a.rows != a.cols then Left(LinAlgError.NonSquareMatrix(a.shape))
+    else if b.exists(matrix => matrix.rows != a.rows || matrix.cols != a.cols) then
+      Left(LinAlgError.InvalidArgument("shift-invert metric B must have the same square shape as A"))
+    else if !sigma.isFinite then
+      Left(LinAlgError.InvalidArgument(s"shift-invert sigma must be finite, got $sigma"))
+    else
+      plan match
+        case LinearSolvePlan.Use(solver) =>
+          validateSize(solver)
+        case LinearSolvePlan.Backend =>
+          if backend.capabilities.contains(SpectralCapability.ShiftInvertSolve) then
+            backend.shiftInvertSolve(a, b, sigma).flatMap(validateSize)
+          else
+            Left(
+              LinAlgError.UnsupportedOperation(
+                s"shift-invert solve: ${backend.name} backend does not provide it"
+              )
+            )
 
 /** A spectral transformation targeting eigenvalues near a real point `σ`.
   * Complex shifts (targeting off the real axis) are out of v0.3.5 — they would

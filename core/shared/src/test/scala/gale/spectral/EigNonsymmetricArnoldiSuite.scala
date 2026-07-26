@@ -258,7 +258,7 @@ class EigNonsymmetricArnoldiSuite extends munit.FunSuite:
   test("arnoldi: shift-invert / target is deferred") {
     val op = blockRotationOp(Array(30.0, 8.0, 5.0, 3.0), 0.5)
     val n = 8
-    val target = Some(SpectralTarget.ShiftInvert(0.5, LinearSolvePlan.Direct))
+    val target = Some(SpectralTarget.ShiftInvert(0.5, LinearSolvePlan.Backend))
     Eigen.eigNonsymmetric(op, n, EigenSelection.Count(2, EigenOrder.LargestMagnitude), SpectralOptions(), target) match
       case Left(_: LinAlgError.UnsupportedOperation) => ()
       case other                                     => fail(s"expected UnsupportedOperation, got $other")

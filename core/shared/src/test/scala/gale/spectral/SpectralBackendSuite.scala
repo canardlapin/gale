@@ -40,7 +40,7 @@ class SpectralBackendSuite extends munit.FunSuite:
         )
         .isLeft
     )
-    assert(none.shiftInvertOperator(a, None, 0.0).isLeft)
+    assert(none.shiftInvertSolve(a, None, 0.0).isLeft)
     none.generalizedNonsymmetricEigen(a, b, EigenVectors.Right) match
       case Left(_: LinAlgError.UnsupportedOperation) => ()
       case other                                     => fail(s"expected UnsupportedOperation, got $other")
@@ -103,6 +103,24 @@ class SpectralBackendSuite extends munit.FunSuite:
           )
         )
 
+  private def fakeShiftSolve(tag: String): SpectralBackend =
+    new SpectralBackend:
+      def name: String = tag
+      def capabilities: Set[SpectralCapability] =
+        Set(SpectralCapability.ShiftInvertSolve)
+      override def shiftInvertSolve(
+          x: DMat,
+          y: Option[DMat],
+          sigma: Double
+      ): Either[LinAlgError, LinearSolveOperator] =
+        LinearSolveOperator.backendProvided(x.rows): rhs =>
+          Right(
+            LinearSolveResult(
+              DVec.tabulate(rhs.length)(i => rhs(i) + tag.length.toDouble),
+              LinearSolveDiagnostics(true, 0, None, 0L)
+            )
+          )
+
   // --- compose ---------------------------------------------------------------
 
   test("compose: capabilities are the union of the parts") {
@@ -151,4 +169,15 @@ class SpectralBackendSuite extends munit.FunSuite:
     assert(composite.capabilities.contains(SpectralCapability.IterativeGeneralized))
     assertEquals(raw.values(0), 5.0)
     assertEquals(raw.convergence.iterations, 5)
+  }
+
+  test("compose: ShiftInvertSolve dispatches a typed solve to the first capable part") {
+    val composite =
+      SpectralBackend.compose(fakeShiftSolve("first"), fakeShiftSolve("secondxxx"))
+    val solve = composite.shiftInvertSolve(a, None, 0.5).toOption.get
+    val result = solve.solve(DVec.tabulate(2)(i => i.toDouble)).toOption.get
+
+    assertEquals(solve.kind, LinearSolveKind.BackendProvided)
+    assertEquals(result.solution(0), 5.0)
+    assertEquals(result.solution(1), 6.0)
   }

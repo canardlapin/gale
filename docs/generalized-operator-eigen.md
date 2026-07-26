@@ -92,6 +92,59 @@ When an external iterative generalized backend returns raw Ritz pairs, the
 facade deliberately reapplies `A` and `B` once per returned pair to establish
 owned, independently derived final diagnostics.
 
+## Metric-solve contract
+
+Generalized Lanczos needs the action of `B^-1`, which is a linear **solve**, not
+an ordinary operator application and not a LOBPCG preconditioner. Gale represents
+that distinction with `LinearSolveOperator`. Each call returns an owned solution
+and `LinearSolveDiagnostics` containing convergence, inner iterations, measured
+residual when available, and the exact number of system-operator applications.
+Structural failures are `Left(LinAlgError)`; iterative exhaustion returns its
+best iterate with `converged = false` so an outer eigensolver can identify the
+failure as an inner solve rather than an outer convergence failure.
+
+A direct solve adapts a factor the caller already created:
+
+```scala
+val factor = denseB.cholesky.orThrow
+val direct = LinearSolveOperator.direct(factor)
+val metric = MetricSolveOperator
+  .bind(denseB.assumePositiveDefinite, direct)
+  .orThrow
+```
+
+No Gale spectral call factorizes `denseB` as a side effect. For a matrix-free
+SPD metric, the caller can prepare a repeated CG solve:
+
+```scala
+val iterative = LinearSolveOperator
+  .conjugateGradient(
+    b.assumePositiveDefiniteOperator,
+    SolverConfig(tolerance = 1e-10, maxIterations = 500),
+    toleranceMode = ToleranceMode.RelativeToRhs
+  )
+  .orThrow
+
+val metric = MetricSolveOperator
+  .bind(b.assumePositiveDefiniteOperator, iterative)
+  .orThrow
+```
+
+`MetricSolveOperator` binds the solve to the metric it claims to invert and
+checks their dimensions. It never forms an inverse. If `A` is symmetric and the
+solve implements `B^-1`, then `T = B^-1 A` is self-adjoint in the B inner
+product:
+
+```text
+<x, T y>_B = xᵀ A y = (A x)ᵀ y = <T x, y>_B.
+```
+
+The same executable boundary is used by `SpectralTarget.ShiftInvert`.
+`LinearSolvePlan.Use(solver)` supplies a prepared solve;
+`LinearSolvePlan.Backend` explicitly asks a backend advertising
+`ShiftInvertSolve`. There is no string method flag and no automatic
+factorization.
+
 ## Backend capability
 
 `SpectralCapability.IterativeGeneralized` is an explicit backend capability.
@@ -111,7 +164,7 @@ JMH and exact iteration/operator work through a separate untimed receipt.
 See the
 [development baseline](../benchmarks/results/2026-07-25-generalized-lobpcg-baseline.md).
 
-The current engine is LOBPCG. A generalized block-Lanczos engine requires an
-explicit metric-solve contract so it can state whether and how `B^-1` is
-applied. Production-scale native/provider performance remains a separate
-backend evidence claim; the pure operator implementation does not imply one.
+LOBPCG is the current generalized engine. The metric-solve contract above is
+the prerequisite for the planned generalized block-Lanczos engine.
+Production-scale native/provider performance remains a separate backend
+evidence claim; the pure operator implementation does not imply one.

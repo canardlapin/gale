@@ -36,6 +36,19 @@ object LinAlgError:
   final case class DidNotConverge(iterations: Int, residual: Double)
       extends LinAlgError(s"solver did not converge after $iterations iterations; residual=$residual")
 
+  /** A nested linear solve failed to converge while an outer algorithm was
+    * otherwise still making progress. The separate outer/inner counters prevent
+    * callers from confusing this with exhaustion of the outer iteration budget.
+    */
+  final case class InnerSolveDidNotConverge(
+      outerIteration: Int,
+      innerIterations: Int,
+      residual: Double,
+      operatorApplications: Long
+  ) extends LinAlgError(
+        s"inner solve did not converge at outer iteration $outerIteration after $innerIterations inner iterations; residual=$residual, operatorApplications=$operatorApplications"
+      )
+
   /** Every requested spectral pair passed its residual test, but the solver did
     * not certify that those pairs belong to the requested global spectral
     * extreme.

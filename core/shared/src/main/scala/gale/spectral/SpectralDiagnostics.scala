@@ -32,6 +32,8 @@ enum SpectralConvergenceStatus:
   *   - `rank` — numerical rank where meaningful (SVD/GSVD), else `None`.
   *   - `extremalityCertified` — whether the requested spectral membership was
   *     established independently of the returned residuals.
+  *   - `innerSolve` — aggregated work for algorithms that explicitly solve an
+  *     inner linear system; `None` means no inner solves were performed.
   */
 final case class SpectralDiagnostics(
     requested: Int,
@@ -40,7 +42,8 @@ final case class SpectralDiagnostics(
     orthogonalityError: Double,
     iterations: Int,
     rank: Option[Int] = None,
-    extremalityCertified: Boolean = false
+    extremalityCertified: Boolean = false,
+    innerSolve: Option[LinearSolveSummary] = None
 ):
   /** True when every requested pair passed the solver's residual test
     * (`converged == requested`). For an iterative partial solver this is

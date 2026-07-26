@@ -185,8 +185,15 @@ trait SpectralBackend:
   ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
     unsupported("iterative generalized symmetric eigen")
 
-  def shiftInvertOperator(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, DoubleLinearOperator] =
-    unsupported("shift-invert operator")
+  /** Return an executable solve for `A - sigma I` or `A - sigma B`.
+    *
+    * Advertising [[SpectralCapability.ShiftInvertSolve]] commits the backend to
+    * returning gale's typed solve boundary, including ownership and per-call
+    * diagnostics. The backend may factor internally because the caller selected
+    * [[LinearSolvePlan.Backend]] explicitly; gale never routes here implicitly.
+    */
+  def shiftInvertSolve(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, LinearSolveOperator] =
+    unsupported("shift-invert solve")
 
   protected final def unsupported(op: String): Either[LinAlgError, Nothing] =
     Left(LinAlgError.UnsupportedOperation(s"$op: $name backend does not provide it"))
@@ -271,11 +278,11 @@ object SpectralBackend:
           case None =>
             unsupported("iterative generalized symmetric eigen")
 
-      override def shiftInvertOperator(
+      override def shiftInvertSolve(
           a: DMat,
           b: Option[DMat],
           sigma: Double
-      ): Either[LinAlgError, DoubleLinearOperator] =
+      ): Either[LinAlgError, LinearSolveOperator] =
         first(SpectralCapability.ShiftInvertSolve) match
-          case Some(bk) => bk.shiftInvertOperator(a, b, sigma)
-          case None     => unsupported("shift-invert operator")
+          case Some(bk) => bk.shiftInvertSolve(a, b, sigma)
+          case None     => unsupported("shift-invert solve")

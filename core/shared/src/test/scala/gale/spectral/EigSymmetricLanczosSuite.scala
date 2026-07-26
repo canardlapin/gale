@@ -464,7 +464,7 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
   test("block krylov: shift-invert / target is deferred") {
     val n = 20
     val a = laplacian(n)
-    val target = Some(SpectralTarget.ShiftInvert(0.5, LinearSolvePlan.Direct))
+    val target = Some(SpectralTarget.ShiftInvert(0.5, LinearSolvePlan.Backend))
     val result = Eigen.eigSymmetric(a, n, EigenSelection.Count(3, EigenOrder.SmallestAlgebraic), SpectralOptions(), target)
     result match
       case Left(_: LinAlgError.UnsupportedOperation) => ()
