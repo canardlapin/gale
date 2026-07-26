@@ -208,6 +208,29 @@ private[spectral] object GeneralizedBlockKernels:
       streamOffset = 0
     )
 
+  /** B-orthonormalize against an existing block with access to the metric.
+    *
+    * The metric is normally not reapplied. It is used only if separately
+    * updated `x` and `B x` work vectors produce a negative squared norm, so the
+    * implementation can distinguish accumulated cancellation from genuinely
+    * indefinite geometry.
+    */
+  def bOrthonormalizeAgainst(
+      candidates: MetricBlock,
+      metric: DoubleLinearOperator,
+      against: MetricBlock,
+      tolerance: Double
+  ): Either[LinAlgError, MetricBlock] =
+    rankRevealAgainst(
+      candidates,
+      against,
+      targetColumns = candidates.cols,
+      metric = Some(metric),
+      tolerance,
+      replenish = false,
+      streamOffset = 0
+    )
+
   /** B-orthonormalize against an existing block and deterministically replenish
     * the independent complement to `targetColumns`.
     *
@@ -337,21 +360,40 @@ private[spectral] object GeneralizedBlockKernels:
               i += 1
             pass += 1
 
-          val normSquared = work.asVec.dot(metricWork.asVec)
-          val scale = math.max(1.0, finiteCandidate.norm2 * finiteImage.norm2)
-          val threshold = tolerance * tolerance * scale
-          if !normSquared.isFinite then
-            Left(LinAlgError.InvalidArgument("B-orthogonalization produced a non-finite squared norm"))
-          else if normSquared < -threshold then
-            Left(LinAlgError.NotPositiveDefinite(vectors.length))
-          else if normSquared <= threshold then Right(false)
-          else
-            val inverseNorm = 1.0 / math.sqrt(normSquared)
-            val vector = (work.asVec * inverseNorm).copy
-            val metricImage = (metricWork.asVec * inverseNorm).copy
-            vectors += vector
-            metricImages += metricImage
-            Right(true)
+          val initialNormSquared = work.asVec.dot(metricWork.asVec)
+          val checkedMetricImage =
+            if initialNormSquared < 0.0 then
+              applyVector(metric, work.asVec)
+            else Right(metricWork.asVec)
+          checkedMetricImage.flatMap: refreshedMetricWork =>
+            if initialNormSquared < 0.0 then
+              metricWork := refreshedMetricWork
+            val normSquared = work.asVec.dot(metricWork.asVec)
+            val scale = math.max(1.0, finiteCandidate.norm2 * finiteImage.norm2)
+            val dependenceThreshold = tolerance * tolerance * scale
+            val negativeThreshold =
+              negativeBNormThreshold(
+                dependenceThreshold,
+                scale,
+                vectors.length
+              )
+            val effectiveDependenceThreshold =
+              if initialNormSquared < 0.0 then
+                math.max(dependenceThreshold, tolerance * scale)
+              else dependenceThreshold
+            if !normSquared.isFinite then
+              Left(LinAlgError.InvalidArgument("B-orthogonalization produced a non-finite squared norm"))
+            else if normSquared < -negativeThreshold then
+              Left(LinAlgError.NotPositiveDefinite(vectors.length))
+            else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then
+              Right(false)
+            else
+              val inverseNorm = 1.0 / math.sqrt(normSquared)
+              val vector = (work.asVec * inverseNorm).copy
+              val metricImage = (metricWork.asVec * inverseNorm).copy
+              vectors += vector
+              metricImages += metricImage
+              Right(true)
 
     var col = 0
     while col < candidates.cols do
@@ -466,14 +508,36 @@ private[spectral] object GeneralizedBlockKernels:
           i += 1
         pass += 1
 
-      val normSquared = work.asVec.dot(metricWork.asVec)
+      var normSquared = work.asVec.dot(metricWork.asVec)
+      var refreshed = false
+      if normSquared < 0.0 then
+        metric match
+          case Some(operator) =>
+            applyVector(operator, work.asVec) match
+              case Left(error) => return Left(error)
+              case Right(refreshedMetricWork) =>
+                metricWork := refreshedMetricWork
+                normSquared = work.asVec.dot(metricWork.asVec)
+                refreshed = true
+          case None => ()
       val scale = math.max(1.0, candidate.norm2 * candidateMetricImage.norm2)
-      val threshold = tolerance * tolerance * scale
+      val dependenceThreshold = tolerance * tolerance * scale
+      val negativeThreshold =
+        negativeBNormThreshold(
+          dependenceThreshold,
+          scale,
+          against.cols + newVectors.length
+        )
+      val effectiveDependenceThreshold =
+        if refreshed then
+          math.max(dependenceThreshold, tolerance * scale)
+        else dependenceThreshold
       if !normSquared.isFinite then
         Left(LinAlgError.InvalidArgument("B-orthogonalization produced a non-finite squared norm"))
-      else if normSquared < -threshold then
+      else if normSquared < -negativeThreshold then
         Left(LinAlgError.NotPositiveDefinite(against.cols + newVectors.length))
-      else if normSquared <= threshold then Right(false)
+      else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then
+        Right(false)
       else
         val inverseNorm = 1.0 / math.sqrt(normSquared)
         newVectors += (work.asVec * inverseNorm).copy
@@ -529,6 +593,27 @@ private[spectral] object GeneralizedBlockKernels:
           DMat.tabulate(candidates.rows, newMetricImages.length)((i, j) => newMetricImages(j)(i))
         )
       )
+
+  /** Dependence/indefiniteness threshold for a twice-reorthogonalized B norm.
+    *
+    * Subtracting an almost represented direction updates `x` and `B x`
+    * separately. Their final dot product can therefore be a few accumulated
+    * ulps negative even for an exactly SPD metric. Negative values within this
+    * basis-size-scaled roundoff envelope are dependence, while the ordinary
+    * positive dependence threshold remains caller-controlled and a materially
+    * negative norm still reports `NotPositiveDefinite`. A direction whose
+    * metric image had to be refreshed must also clear the unsquared requested
+    * tolerance before normalization; this avoids amplifying a
+    * cancellation-dominated remainder into the basis.
+    */
+  private def negativeBNormThreshold(
+      dependenceThreshold: Double,
+      scale: Double,
+      basisSize: Int
+  ): Double =
+    val roundoff =
+      8.0 * 2.220446049250313e-16 * math.max(1, basisSize).toDouble * scale
+    math.max(dependenceThreshold, roundoff)
 
   private def applyVector(operator: DoubleLinearOperator, vector: DVec): Either[LinAlgError, DVec] =
     if vector.length != operator.cols then

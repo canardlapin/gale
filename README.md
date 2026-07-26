@@ -5,11 +5,12 @@ around a small, allocation-conscious kernel layer and an Either-first public API
 
 `gale` provides dense vectors and matrices, dense factorizations (LU, Cholesky,
 QR), a spectral layer (symmetric, nonsymmetric and generalized
-eigendecomposition, matrix-free partial generalized symmetric eigensolving,
-full and partial SVD, generalized SVD, and pseudoinverse), standalone
-triangular solves, iterative and least-squares solvers, and a family of sparse
-matrix formats. They share one set of strided `Double` kernels that run
-identically on the JVM (`Array[Double]`) and in the browser (`Float64Array`).
+eigendecomposition, matrix-free partial generalized symmetric eigensolving
+through LOBPCG and generalized block Lanczos, full and partial SVD, generalized
+SVD, and pseudoinverse), standalone triangular solves, iterative and
+least-squares solvers, and a family of sparse matrix formats. They share one
+set of strided `Double` kernels that run identically on the JVM
+(`Array[Double]`) and in the browser (`Float64Array`).
 
 ## Getting started
 
@@ -61,8 +62,9 @@ accelerator without widening the Breeze-equivalence claim.
 
 The
 [matrix-free generalized symmetric eigensolver guide](docs/generalized-operator-eigen.md)
-documents the typed LOBPCG contract, supported selections, preconditioner
-semantics, convergence certification, and explicit backend capability.
+documents the default typed LOBPCG route, the explicit generalized block
+Lanczos route, metric-solve and preconditioner semantics, convergence
+certification, and explicit backend capability.
 
 The [immutable vector ownership contract](docs/immutable-vector-ownership.md)
 defines the mutable-to-immutable boundary, the explicitly unsafe workspace view,
@@ -85,8 +87,9 @@ public release. Gale is licensed under [Apache-2.0](LICENSE).
   `Permutation`, and Matrix Market I/O.
 - `gale.solvers` — `cg`, `bicgstab`, `gmres`, `cgnr`, `lsqr`, preconditioners.
 - `gale.spectral` — dense and partial eigen/SVD facades, including typed
-  matrix-free LOBPCG for `A x = λ B x` with symmetric `A` and positive-definite
-  `B` operators.
+  matrix-free LOBPCG (the default generalized route), generalized block Lanczos,
+  and reusable metric-solve contracts for `A x = λ B x` with symmetric `A` and
+  positive-definite `B` operators.
 - `gale.platform` — platform array abstractions (`DoubleArray`, `IndexArray`),
   distinct per platform.
 

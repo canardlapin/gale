@@ -216,7 +216,11 @@ private[spectral] object GeneralizedLanczos:
                 case Right(_)    => ()
               streamOffset += width
       else
-        val take = math.min(blockWidth, frontier.length - frontierOffset)
+        val take =
+          math.min(
+            targetDimension - basis.cols,
+            math.min(blockWidth, frontier.length - frontierOffset)
+          )
         val indices = Array.tabulate(take)(i => frontier(frontierOffset + i))
         frontierOffset += take
         val rightHandSides = selectColumns(operatorImages, indices)
@@ -235,21 +239,40 @@ private[spectral] object GeneralizedLanczos:
                 val raw =
                   GeneralizedBlockKernels.MetricBlock(directions, metricImages)
                 GeneralizedBlockKernels
-                  .bOrthonormalizeAgainst(raw, basis, tolerance) match
+                  .bOrthonormalizeAgainst(
+                    raw,
+                    metric,
+                    basis,
+                    tolerance
+                  ) match
                     case Left(error) => return Left(error)
                     case Right(independent) =>
                       appendBlock(independent) match
                         case Left(error) => return Left(error)
                         case Right(_)    => ()
 
-    Right(
-      ExpandedBasis(
-        basis,
-        operatorImages,
-        innerWork,
-        fullSpace = basis.cols == basis.rows
+    // Incremental MGS keeps the Krylov expansion cheap, but a long clustered
+    // basis can still accumulate enough drift for its projected B Gram to lose
+    // a Cholesky pivot. Stabilize the complete basis once before Rayleigh-Ritz,
+    // deterministically replenishing any cancellation-dominated directions.
+    GeneralizedBlockKernels
+      .bOrthonormalizeAndReplenish(
+        basis.vectors,
+        metric,
+        targetDimension,
+        tolerance,
+        streamOffset
       )
-    )
+      .flatMap: stabilized =>
+        GeneralizedBlockKernels
+          .applyBlock(operator, stabilized.vectors)
+          .map: stabilizedImages =>
+            ExpandedBasis(
+              stabilized,
+              stabilizedImages,
+              innerWork,
+              fullSpace = stabilized.cols == stabilized.rows
+            )
 
   private def applyMetricSolveBlock[B <: DoubleLinearOperator](
       metricSolve: MetricSolveOperator[B],

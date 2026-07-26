@@ -174,6 +174,29 @@ class GeneralizedLanczosSuite extends munit.FunSuite:
     assert(!result.diagnostics.extremalityCertified)
   }
 
+  test("block expansion respects a subspace cap that is not a block multiple") {
+    val n = 25
+    val values = IndexedSeq.tabulate(n)(i => (i + 1).toDouble)
+    val result =
+      directSolve(
+        diagonal(values),
+        Matrix.eye(n),
+        4,
+        EigenOrder.SmallestAlgebraic,
+        GeneralizedLanczosOptions(
+          tolerance = 1e-7,
+          maxIterations = 12,
+          subspaceDimension = Some(19)
+        )
+      ).orThrow
+
+    assert(result.diagnostics.allConverged, result.diagnostics.toString)
+    var i = 0
+    while i < 4 do
+      assertEqualsDouble(result.eigenvalues(i), (i + 1).toDouble, 1e-6)
+      i += 1
+  }
+
   test("common pencil scaling preserves the spectrum") {
     val values = IndexedSeq(1.0, 2.0, 3.5, 5.0, 8.0, 13.0, 21.0)
     val weights = IndexedSeq(0.5, 2.0, 3.0, 1.0, 4.0, 1.5, 2.5)

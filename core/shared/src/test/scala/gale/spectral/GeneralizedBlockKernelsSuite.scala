@@ -120,6 +120,87 @@ class GeneralizedBlockKernelsSuite extends munit.FunSuite:
       case other                                    => fail(s"expected NotPositiveDefinite, got $other")
   }
 
+  test("near-dependent roundoff is dropped without masking material indefiniteness") {
+    val existingVectors =
+      DMat.tabulate(3, 1)((row, _) => if row == 0 then 1.0 else 0.0)
+    val existing =
+      GeneralizedBlockKernels.MetricBlock(
+        existingVectors,
+        existingVectors
+      )
+
+    def inconsistentCandidate(epsilon: Double): GeneralizedBlockKernels.MetricBlock =
+      GeneralizedBlockKernels.MetricBlock(
+        Matrix.dense(3, 1)(1.0, epsilon, 0.0),
+        Matrix.dense(3, 1)(1.0, -epsilon, 0.0)
+      )
+
+    val roundoff =
+      GeneralizedBlockKernels
+        .bOrthonormalizeAgainst(
+          inconsistentCandidate(1e-8),
+          existing,
+          tolerance = 1e-8
+        )
+        .toOption
+        .get
+    assertEquals(roundoff.cols, 0)
+
+    GeneralizedBlockKernels.bOrthonormalizeAgainst(
+      inconsistentCandidate(1e-4),
+      existing,
+      tolerance = 1e-8
+    ) match
+      case Left(_: LinAlgError.NotPositiveDefinite) => ()
+      case other                                    => fail(s"expected material negative norm failure, got $other")
+  }
+
+  test("metric refresh distinguishes cancellation from indefinite complement geometry") {
+    val existingVectors =
+      DMat.tabulate(3, 1)((row, _) => if row == 0 then 1.0 else 0.0)
+    val existing =
+      GeneralizedBlockKernels.MetricBlock(
+        existingVectors,
+        existingVectors
+      )
+    val inconsistent =
+      GeneralizedBlockKernels.MetricBlock(
+        Matrix.dense(3, 1)(1.0, 1e-4, 0.0),
+        Matrix.dense(3, 1)(1.0, -1e-4, 0.0)
+      )
+    val identity = diagonalOperator(IndexedSeq.fill(3)(1.0))
+    val refreshed =
+      GeneralizedBlockKernels
+        .bOrthonormalizeAgainst(
+          inconsistent,
+          identity,
+          existing,
+          tolerance = 1e-12
+        )
+        .toOption
+        .get
+    val combined =
+      GeneralizedBlockKernels.concatenate(existing, refreshed).toOption.get
+
+    assertEquals(refreshed.cols, 1)
+    assertIdentity(combined.vectors.t * combined.metricImages, 1e-12)
+
+    val indefinite = diagonalOperator(IndexedSeq(1.0, -1.0, 1.0))
+    val material =
+      GeneralizedBlockKernels.MetricBlock(
+        Matrix.dense(3, 1)(1.0, 1e-3, 0.0),
+        Matrix.dense(3, 1)(1.0, -1e-3, 0.0)
+      )
+    GeneralizedBlockKernels.bOrthonormalizeAgainst(
+      material,
+      indefinite,
+      existing,
+      tolerance = 1e-12
+    ) match
+      case Left(_: LinAlgError.NotPositiveDefinite) => ()
+      case other                                    => fail(s"expected refreshed indefinite norm failure, got $other")
+  }
+
   test("non-finite metric images fail before reaching projected arithmetic") {
     val metric = diagonalOperator(IndexedSeq(1.0, Double.NaN, 2.0))
     GeneralizedBlockKernels.bOrthonormalize(Matrix.eye(3), metric) match

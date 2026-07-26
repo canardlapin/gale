@@ -208,7 +208,14 @@ See the
 LOBPCG remains the default generalized engine because it requires only a
 preconditioner and is generally more forgiving of inexact inverse information.
 Generalized block Lanczos is available explicitly when the caller has a useful
-metric solve. The benchmark comparison below is being extended to establish
-where Lanczos's smaller retained state outweighs its inner-solve cost.
+metric solve. The
+[engine comparison](../benchmarks/results/2026-07-25-generalized-eigensolver-comparison.md)
+found a narrow exact-solve Lanczos advantage on some clustered requests, but no
+consistent lower-allocation crossover in convergence-equivalent cells. LOBPCG
+was more robust across the full matrix, while iterative metric solves could add
+substantial `B` work. Gale therefore keeps the engines as separate named entry
+points and does not route automatically from problem dimensions or operator
+types.
+
 Production-scale native/provider performance remains a separate backend
 evidence claim; the pure operator implementations do not imply one.
