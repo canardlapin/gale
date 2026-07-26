@@ -6,10 +6,11 @@ Gale provides a partial solver for the real symmetric-definite pencil
 A x = λ B x
 ```
 
-when `A` is symmetric and `B` is symmetric positive-definite. The portable
-engine is LOBPCG. Both inputs are `DoubleLinearOperator`s: Gale applies them to
-blocks of vectors and never constructs dense `A`, dense `B`, or an implicit
-`B^-1`.
+when `A` is symmetric and `B` is symmetric positive-definite. The default
+portable engine is LOBPCG. Gale also provides an explicitly named generalized
+block-Lanczos engine for callers that can supply a metric solve. Both inputs are
+`DoubleLinearOperator`s: Gale applies them to blocks of vectors and never
+constructs dense `A`, dense `B`, or an implicit `B^-1`.
 
 This is a numerical capability, not an alignment-specific abstraction. A
 downstream alignment library can define its own operators and consume Gale's
@@ -145,6 +146,46 @@ The same executable boundary is used by `SpectralTarget.ShiftInvert`.
 `ShiftInvertSolve`. There is no string method flag and no automatic
 factorization.
 
+## Generalized block Lanczos
+
+Lanczos is a separate public entry point, so adding it does not change the
+LOBPCG route or overload a generic `method = "..."` option:
+
+```scala
+val result = Eigen.eigSymmetricGeneralizedLanczos(
+  a.assumeSymmetricOperator,
+  metric,
+  n,
+  EigenSelection.Count(k, EigenOrder.SmallestAlgebraic),
+  GeneralizedLanczosOptions(
+    tolerance = 1e-8,
+    maxIterations = 100,
+    subspaceDimension = Some(4 * k)
+  )
+)
+```
+
+The engine applies `A`, solves `B y = A x`, and then applies `B` to the new
+directions for explicit B-orthogonalization. It uses two-pass
+reorthogonalization, a multiplicity-safe block at least as wide as `k`,
+deterministic complement replenishment after invariant breakdown, thick
+restarts retaining the wanted Ritz block, and soft locking that keeps converged
+vectors in the basis without expanding them again. Rayleigh-Ritz work is dense
+only in the retained subspace.
+
+`GeneralizedLanczosOptions` accepts the same algebraic ends, tolerance,
+iteration, initial `n × k` block, and vector modes as LOBPCG, plus an explicit
+Krylov `subspaceDimension`. `None` uses `min(n, max(4k, 20))`; an explicit value
+must be in `[k + 1, n]`.
+
+Outer iteration exhaustion follows Gale's normal partial-spectral contract:
+`Right` contains exactly the true-residual-passing pairs. Inner work is separate
+in `diagnostics.innerSolve`, aggregating solve calls, converged solves, inner
+iterations, system-operator applications, and the worst measured residual.
+An iterative inner solve that does not converge returns
+`Left(InnerSolveDidNotConverge)` with both outer and inner work. A structural
+inner failure returns `Left(InnerSolveFailed)` and retains its typed cause.
+
 ## Backend capability
 
 `SpectralCapability.IterativeGeneralized` is an explicit backend capability.
@@ -164,7 +205,10 @@ JMH and exact iteration/operator work through a separate untimed receipt.
 See the
 [development baseline](../benchmarks/results/2026-07-25-generalized-lobpcg-baseline.md).
 
-LOBPCG is the current generalized engine. The metric-solve contract above is
-the prerequisite for the planned generalized block-Lanczos engine.
+LOBPCG remains the default generalized engine because it requires only a
+preconditioner and is generally more forgiving of inexact inverse information.
+Generalized block Lanczos is available explicitly when the caller has a useful
+metric solve. The benchmark comparison below is being extended to establish
+where Lanczos's smaller retained state outweighs its inner-solve cost.
 Production-scale native/provider performance remains a separate backend
-evidence claim; the pure operator implementation does not imply one.
+evidence claim; the pure operator implementations do not imply one.

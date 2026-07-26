@@ -42,11 +42,25 @@ object LinAlgError:
     */
   final case class InnerSolveDidNotConverge(
       outerIteration: Int,
-      innerIterations: Int,
+      completedSolves: Int,
+      innerIterations: Long,
       residual: Double,
       operatorApplications: Long
   ) extends LinAlgError(
-        s"inner solve did not converge at outer iteration $outerIteration after $innerIterations inner iterations; residual=$residual, operatorApplications=$operatorApplications"
+        s"inner solve did not converge at outer iteration $outerIteration after $completedSolves solves and $innerIterations inner iterations; residual=$residual, operatorApplications=$operatorApplications"
+      )
+
+  /** A structural/provider failure raised by a nested linear solve. The original
+    * typed error is retained rather than flattened into a message.
+    */
+  final case class InnerSolveFailed(
+      outerIteration: Int,
+      completedSolves: Int,
+      innerIterations: Long,
+      operatorApplications: Long,
+      failure: LinAlgError
+  ) extends LinAlgError(
+        s"inner solve failed at outer iteration $outerIteration after $completedSolves completed solves and $innerIterations inner iterations; operatorApplications=$operatorApplications: ${failure.getMessage}"
       )
 
   /** Every requested spectral pair passed its residual test, but the solver did

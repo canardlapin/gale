@@ -200,3 +200,21 @@ final case class GeneralizedSpectralOptions(
     initialSubspace: Option[DMat] = None,
     returnVectors: EigenVectors = EigenVectors.Right
 )
+
+/** Tuning knobs for generalized block Lanczos.
+  *
+  * The type is intentionally separate from [[GeneralizedSpectralOptions]]:
+  * choosing this options value is part of calling the explicitly named Lanczos
+  * facade, never a stringly algorithm switch on the LOBPCG entry point.
+  *
+  * `subspaceDimension` is the maximum B-orthogonal Krylov basis retained between
+  * thick restarts. `None` uses `min(n, max(4k, 20))`. It must be greater than
+  * `k` and no larger than `n`.
+  */
+final case class GeneralizedLanczosOptions(
+    tolerance: Double = 1e-10,
+    maxIterations: Int = 100,
+    subspaceDimension: Option[Int] = None,
+    initialSubspace: Option[DMat] = None,
+    returnVectors: EigenVectors = EigenVectors.Right
+)

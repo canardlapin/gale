@@ -33,6 +33,8 @@ import gale.solvers.Preconditioner
   *   - [[eigSymmetricGeneralized]] — dense one-shot or typed matrix-free
   *     generalized symmetric-definite solves. The operator route uses portable
   *     LOBPCG and explicit symmetric / positive-definite evidence.
+  *   - [[eigSymmetricGeneralizedLanczos]] — an explicitly named matrix-free
+  *     generalized block-Lanczos route requiring a typed metric solve.
   *
   * '''Nonsymmetric''' ([[NonsymmetricEigenDecomposition]], § 2 / § 7). A real input
   * can have complex eigenvalues in conjugate pairs; the output is ordered '''by the
@@ -681,6 +683,60 @@ object Eigen:
         Left(
           LinAlgError.InvalidArgument(
             s"matrix-free generalized LOBPCG requires EigenSelection.Count; ${other.getClass.getSimpleName} is dense-only"
+          )
+        )
+
+  /** Partial matrix-free generalized symmetric-definite eigendecomposition via
+    * generalized block Lanczos and an explicit solve for the SPD metric.
+    *
+    * This is a separately named engine, not a mode flag on
+    * [[eigSymmetricGeneralized]]. It applies `B^-1 A` only by calling
+    * `metricSolve`; no inverse or dense ambient operator is formed. Bases are
+    * B-orthogonalized with two-pass reorthogonalization, wanted Ritz vectors are
+    * retained across thick restarts, and converged vectors are soft-locked.
+    *
+    * Inner-solve work is reported in
+    * `result.diagnostics.innerSolve`. A non-converged inner solve is the distinct
+    * [[gale.linalg.LinAlgError.InnerSolveDidNotConverge]], not outer spectral
+    * exhaustion. Outer exhaustion follows the normal iterative spectral
+    * contract and returns only residual-converged pairs in `Right`.
+    */
+  def eigSymmetricGeneralizedLanczos[
+      A <: DoubleLinearOperator,
+      B <: DoubleLinearOperator
+  ](
+      a: Symmetric[A],
+      metricSolve: MetricSolveOperator[B],
+      n: Int,
+      selection: EigenSelection,
+      options: GeneralizedLanczosOptions = GeneralizedLanczosOptions()
+  ): Either[LinAlgError, EigenDecomposition] =
+    selection match
+      case EigenSelection.Count(k, order) =>
+        GeneralizedLanczos
+          .validate(
+            a,
+            metricSolve.metric,
+            metricSolve,
+            n,
+            k,
+            order,
+            options
+          )
+          .flatMap: _ =>
+            GeneralizedLanczos.solve(
+              a,
+              metricSolve.metric,
+              metricSolve,
+              n,
+              k,
+              order,
+              options
+            )
+      case other =>
+        Left(
+          LinAlgError.InvalidArgument(
+            s"matrix-free generalized block Lanczos requires EigenSelection.Count; ${other.getClass.getSimpleName} is dense-only"
           )
         )
 
