@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test:
-    name: Tests (Scala 3.3.8, ${{ matrix.platform }})
+    name: Tests (Scala 3.7.4, ${{ matrix.platform }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -57,7 +57,7 @@ jobs:
     strategy:
       matrix:
         # Bump to the latest published 3.8.x as it advances.
-        scala: ["3.8.0"]
+        scala: ["3.8.4"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -70,7 +70,9 @@ jobs:
         with:
           node-version: "22"
       - name: Compile and test on Scala Next
-        run: sbt "++${{ matrix.scala }}" testAll
+        # Force the advisory compiler without declaring a second publish line:
+        # Scala 3 minor releases share the `_3` artifact suffix.
+        run: sbt "++${{ matrix.scala }}!" testAll
 
   bench:
     name: Benchmarks compile

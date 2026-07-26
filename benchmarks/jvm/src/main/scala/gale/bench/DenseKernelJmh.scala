@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
@@ -21,11 +23,11 @@ class DenseKernelJmh:
 
   private val gemvRows = 64
 
-  private var x: DVec = _
-  private var y: DVec = _
-  private var yWork: MutableDVec = _
-  private var a: DMat = _
-  private var gemvY: MutableDVec = _
+  private var x: DVec = uninitialized
+  private var y: DVec = uninitialized
+  private var yWork: MutableDVec = uninitialized
+  private var a: DMat = uninitialized
+  private var gemvY: MutableDVec = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

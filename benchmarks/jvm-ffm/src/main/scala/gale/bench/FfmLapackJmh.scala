@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.backend.PureBackend
 import gale.backend.jvm.blas.{FfmBlasBackend, FfmBlasThresholds}
 import gale.linalg.{DMat, DVec, Matrix, Vec}
@@ -20,12 +22,12 @@ import java.util.concurrent.TimeUnit
 @State(Scope.Benchmark)
 class FfmLapackJmh:
   @Param(Array("32", "64", "128", "256", "512"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var square: DMat = _
-  private var spd: DMat = _
-  private var tall: DMat = _
-  private var nativeBackend: FfmBlasBackend = _
+  private var square: DMat = uninitialized
+  private var spd: DMat = uninitialized
+  private var tall: DMat = uninitialized
+  private var nativeBackend: FfmBlasBackend = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =
@@ -74,13 +76,13 @@ class FfmLapackJmh:
 @State(Scope.Benchmark)
 class FfmSolverScenarioJmh:
   @Param(Array("64", "128", "256", "512"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var square: DMat = _
-  private var tall: DMat = _
-  private var squareRhs: DVec = _
-  private var tallRhs: DVec = _
-  private var nativeBackend: FfmBlasBackend = _
+  private var square: DMat = uninitialized
+  private var tall: DMat = uninitialized
+  private var squareRhs: DVec = uninitialized
+  private var tallRhs: DVec = uninitialized
+  private var nativeBackend: FfmBlasBackend = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =
@@ -121,9 +123,9 @@ class FfmSolverScenarioJmh:
 @Fork(2)
 @State(Scope.Benchmark)
 class FfmDispatchJmh:
-  private var square: DMat = _
-  private var tall: DMat = _
-  private var backend: FfmBlasBackend = _
+  private var square: DMat = uninitialized
+  private var tall: DMat = uninitialized
+  private var backend: FfmBlasBackend = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =

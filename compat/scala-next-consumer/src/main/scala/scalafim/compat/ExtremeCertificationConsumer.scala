@@ -3,9 +3,10 @@ package scalafim.compat
 import gale.linalg.LinAlgError
 import gale.spectral.EigenDecomposition
 
-/** Compile-only probe for the public API shape consumed by Scalafim's Scala
-  * 3.4.2 modules. Keeping both policies visible demonstrates that the strict
-  * addition does not alter the historical residual-only helper.
+/** Compile-only Scala Next probe for the public API shape consumed by
+  * Scalafim. Keeping both policies visible demonstrates that the strict
+  * addition does not alter the historical residual-only helper while a newer
+  * compiler consumes Gale's baseline TASTy.
   */
 object ExtremeCertificationConsumer:
   def acceptResidualConvergence(

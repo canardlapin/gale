@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.backend.PureBackend
 import gale.linalg.DMat
 import gale.linalg.DMatBuilder
@@ -40,23 +42,23 @@ class AllocationArchitectureJmh:
   @Param(Array("64", "128"))
   var n: Int = 0
 
-  private var denseA: DMat = _
-  private var denseB: DMat = _
-  private var symmetric: DMat = _
-  private var denseGemmDestination: DMatBuilder = _
-  private var denseCombinationDestination: DMatBuilder = _
-  private var qrWorkspace: DenseWorkspace = _
-  private var symmetricWorkspace: DenseWorkspace = _
-  private var sparseA: CSR = _
-  private var sparseB: CSR = _
-  private var sparseCanonicalInput: CSR = _
-  private var sparseCanonicalWorkspace: DenseWorkspace = _
-  private var sparseUnionPlan: CSRUnionPlan = _
-  private var sparseUnionDestination: CSRValuesDestination = _
-  private var sparseProductPlan: CSRProductPlan = _
-  private var sparseProductDestination: CSRValuesDestination = _
-  private var sparseX: DVec = _
-  private var sparseDestination: MutableDVec = _
+  private var denseA: DMat = uninitialized
+  private var denseB: DMat = uninitialized
+  private var symmetric: DMat = uninitialized
+  private var denseGemmDestination: DMatBuilder = uninitialized
+  private var denseCombinationDestination: DMatBuilder = uninitialized
+  private var qrWorkspace: DenseWorkspace = uninitialized
+  private var symmetricWorkspace: DenseWorkspace = uninitialized
+  private var sparseA: CSR = uninitialized
+  private var sparseB: CSR = uninitialized
+  private var sparseCanonicalInput: CSR = uninitialized
+  private var sparseCanonicalWorkspace: DenseWorkspace = uninitialized
+  private var sparseUnionPlan: CSRUnionPlan = uninitialized
+  private var sparseUnionDestination: CSRValuesDestination = uninitialized
+  private var sparseProductPlan: CSRProductPlan = uninitialized
+  private var sparseProductDestination: CSRValuesDestination = uninitialized
+  private var sparseX: DVec = uninitialized
+  private var sparseDestination: MutableDVec = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

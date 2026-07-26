@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.eigSym
 import gale.bench.BreezeBenchData.*
@@ -26,8 +28,8 @@ class SymEigenBreezeJmh:
   @Param(Array("16", "64", "128"))
   var n: Int = 0
 
-  private var gA: DMat        = _
-  private var bA: BDM[Double] = _
+  private var gA: DMat        = uninitialized
+  private var bA: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

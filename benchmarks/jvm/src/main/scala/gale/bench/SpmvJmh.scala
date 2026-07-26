@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.*
 import gale.sparse.*
 import java.util.Random
@@ -19,9 +21,9 @@ class SpmvJmh:
 
   private val density = 0.01
 
-  private var a: CSR = _
-  private var x: DVec = _
-  private var y: MutableDVec = _
+  private var a: CSR = uninitialized
+  private var x: DVec = uninitialized
+  private var y: MutableDVec = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

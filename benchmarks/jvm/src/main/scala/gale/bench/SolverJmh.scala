@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.*
 import gale.solvers.*
 import gale.sparse.*
@@ -18,9 +20,9 @@ import org.openjdk.jmh.annotations.*
 class SolverJmh:
   private val grid = 64
 
-  private var a: CSR = _
-  private var b: DVec = _
-  private var config: SolverConfig = _
+  private var a: CSR = uninitialized
+  private var b: DVec = uninitialized
+  private var config: SolverConfig = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

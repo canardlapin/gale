@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.DenseVector as BDV
 import gale.bench.BreezeBenchData.*
@@ -24,12 +26,12 @@ class BlasL1BreezeJmh:
 
   private val alpha = 1.5
 
-  private var gx: DVec       = _
-  private var gy: DVec       = _
-  private var bx: BDV[Double] = _
-  private var by: BDV[Double] = _
-  private var gWork: MutableDVec = _
-  private var bWork: BDV[Double] = _
+  private var gx: DVec       = uninitialized
+  private var gy: DVec       = uninitialized
+  private var bx: BDV[Double] = uninitialized
+  private var by: BDV[Double] = uninitialized
+  private var gWork: MutableDVec = uninitialized
+  private var bWork: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
@@ -72,10 +74,10 @@ class BlasL2BreezeJmh:
   @Param(Array("256", "1024", "2048"))
   var n: Int = 0
 
-  private var ga: DMat       = _
-  private var gx: DVec       = _
-  private var ba: BDM[Double] = _
-  private var bx: BDV[Double] = _
+  private var ga: DMat       = uninitialized
+  private var gx: DVec       = uninitialized
+  private var ba: BDM[Double] = uninitialized
+  private var bx: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
@@ -105,12 +107,12 @@ class BlasL3BreezeJmh:
   @Param(Array("16", "64", "256"))
   var n: Int = 0
 
-  private var ga: DMat       = _
-  private var gb: DMat       = _
-  private var gt: DMat       = _
-  private var ba: BDM[Double] = _
-  private var bb: BDM[Double] = _
-  private var bt: BDM[Double] = _
+  private var ga: DMat       = uninitialized
+  private var gb: DMat       = uninitialized
+  private var gt: DMat       = uninitialized
+  private var ba: BDM[Double] = uninitialized
+  private var bb: BDM[Double] = uninitialized
+  private var bt: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

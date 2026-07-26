@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinearOperator
 import gale.spectral.Eigen
@@ -25,7 +27,7 @@ class BlockSymmetricEigenJmh:
   @Param(Array("128", "512", "2048"))
   var n: Int = 0
 
-  private var operator: DoubleLinearOperator = _
+  private var operator: DoubleLinearOperator = uninitialized
   private val selection = EigenSelection.Count(8, EigenOrder.LargestAlgebraic)
   private val options = SpectralOptions(
     tolerance = 1e-8,

@@ -8,8 +8,11 @@ import sbtcrossproject.CrossPlugin.autoImport.*
 import sbtcrossproject.CrossProject
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport.*
 
+lazy val scalaBaselineVersion = "3.7.4"
+lazy val scalaNextVersion = "3.8.4"
+
 ThisBuild / organization := "io.github.canardlapin"
-ThisBuild / scalaVersion := "3.3.8"
+ThisBuild / scalaVersion := scalaBaselineVersion
 ThisBuild / version      := "1.0.0-SNAPSHOT"
 ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
 ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
@@ -297,17 +300,17 @@ lazy val demo =
       libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
     )
 
-// Compile-only downstream source-consumption probe. The consumer uses Scala
-// 3.4.2 (Scalafim's compiler line) against gale-core compiled by this build's
-// Scala 3.3.8 project, exercising the public TASTy/API boundary rather than
-// compiling the probe as part of gale-core itself.
-lazy val scala34Consumer =
+// Compile-only downstream source-consumption probe. The consumer uses the
+// current Scala Next release against gale-core compiled by this build's Scala
+// 3.7.4 project, exercising the public TASTy/API boundary in the supported
+// direction rather than compiling the probe as part of gale-core itself.
+lazy val scalaNextConsumer =
   project
-    .in(file("compat/scala-3.4-consumer"))
+    .in(file("compat/scala-next-consumer"))
     .dependsOn(coreJVM)
     .settings(
-      name           := "gale-scala34-consumer-probe",
-      scalaVersion   := "3.4.2",
+      name           := "gale-scala-next-consumer-probe",
+      scalaVersion   := scalaNextVersion,
       publish / skip := true,
       scalacOptions ++= commonScalacOptions
     )
@@ -324,7 +327,7 @@ lazy val root =
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;scala34Consumer/compile")
+addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;scalaNextConsumer/compile")
 addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
@@ -342,7 +345,7 @@ addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
-addCommandAlias("scala34ConsumerProbe", ";scala34Consumer/compile")
+addCommandAlias("scalaNextConsumerProbe", ";scalaNextConsumer/compile")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
 // Compile API docs for both public platforms and execute/render the guide site.
 addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")

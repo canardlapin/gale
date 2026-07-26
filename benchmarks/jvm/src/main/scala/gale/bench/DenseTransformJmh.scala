@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.DMat
 import gale.linalg.DVec
 import java.util.concurrent.TimeUnit
@@ -20,10 +22,10 @@ class DenseTransformJmh:
   @Param(Array("1024", "16384"))
   var entries: Int = 0
 
-  private var matrix: DMat = _
-  private var vector: DVec = _
-  private var matrixDestination: Array[Double] = _
-  private var vectorDestination: Array[Double] = _
+  private var matrix: DMat = uninitialized
+  private var vector: DVec = uninitialized
+  private var matrixDestination: Array[Double] = uninitialized
+  private var vectorDestination: Array[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

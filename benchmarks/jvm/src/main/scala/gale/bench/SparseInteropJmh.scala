@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.sparse.COO
 import gale.sparse.CSR
 import gale.sparse.Sparse
@@ -22,8 +24,8 @@ class SparseInteropJmh:
   @Param(Array("1024", "16384"))
   var entries: Int = 0
 
-  private var coo: COO = _
-  private var csr: CSR = _
+  private var coo: COO = uninitialized
+  private var csr: CSR = uninitialized
   private val consumer = new SumConsumer
 
   @Setup(Level.Trial)

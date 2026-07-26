@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.DenseVector as BDV
 import breeze.linalg.LU as BreezeLU
@@ -30,12 +32,12 @@ class FactorizationBreezeJmh:
   @Param(Array("16", "64", "256"))
   var n: Int = 0
 
-  private var gA: DMat       = _
-  private var gS: DMat       = _
-  private var gb: DVec       = _
-  private var bA: BDM[Double] = _
-  private var bS: BDM[Double] = _
-  private var bb: BDV[Double] = _
+  private var gA: DMat       = uninitialized
+  private var gS: DMat       = uninitialized
+  private var gb: DVec       = uninitialized
+  private var bA: BDM[Double] = uninitialized
+  private var bS: BDM[Double] = uninitialized
+  private var bb: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
@@ -75,10 +77,10 @@ class LeastSquaresBreezeJmh:
   @Param(Array("16", "64", "256"))
   var n: Int = 0
 
-  private var gA: DMat       = _
-  private var gb: DVec       = _
-  private var bA: BDM[Double] = _
-  private var bb: BDV[Double] = _
+  private var gA: DMat       = uninitialized
+  private var gb: DVec       = uninitialized
+  private var bA: BDM[Double] = uninitialized
+  private var bb: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
@@ -110,12 +112,12 @@ class ScalafimMigrationJmh:
   private val regressors   = 24
   private val responses    = 128
 
-  private var design: DMat           = _
-  private var responseBatch: DMat    = _
-  private var coefficientBatch: DMat = _
-  private var qr: QR                  = _
-  private var cholesky: Cholesky      = _
-  private var designTranspose: DMat   = _
+  private var design: DMat           = uninitialized
+  private var responseBatch: DMat    = uninitialized
+  private var coefficientBatch: DMat = uninitialized
+  private var qr: QR                  = uninitialized
+  private var cholesky: Cholesky      = uninitialized
+  private var designTranspose: DMat   = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

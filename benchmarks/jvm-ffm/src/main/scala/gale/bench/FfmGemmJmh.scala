@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.backend.{Backend, PureBackend}
 import gale.backend.jvm.blas.{FfmBlasBackend, FfmBlasThresholds}
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
@@ -20,14 +22,14 @@ import java.util.concurrent.TimeUnit
 @State(Scope.Benchmark)
 class FfmGemmJmh:
   @Param(Array("64", "128", "256", "512", "1024"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var a: DMat = _
-  private var b: DMat = _
-  private var nativeBackend: FfmBlasBackend = _
-  private var nativeA: NativeDMat = _
-  private var nativeB: NativeDMat = _
-  private var nativeC: NativeDMat = _
+  private var a: DMat = uninitialized
+  private var b: DMat = uninitialized
+  private var nativeBackend: FfmBlasBackend = uninitialized
+  private var nativeA: NativeDMat = uninitialized
+  private var nativeB: NativeDMat = uninitialized
+  private var nativeC: NativeDMat = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =
@@ -79,11 +81,11 @@ class FfmGemmJmh:
 @State(Scope.Benchmark)
 class FfmGemvJmh:
   @Param(Array("64", "128", "256", "512", "1024", "2048"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var matrix: DMat = _
-  private var vector: DVec = _
-  private var nativeBackend: FfmBlasBackend = _
+  private var matrix: DMat = uninitialized
+  private var vector: DVec = uninitialized
+  private var nativeBackend: FfmBlasBackend = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =

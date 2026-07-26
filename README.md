@@ -115,10 +115,12 @@ publication is not configured yet.
 
 Core and the Vector backend require JDK 21; the finalized FFM modules require
 JDK 22+. sbt is pinned by `project/build.properties`. The build targets Scala
-3.3.8.
+3.7.4. Because Scala 3 TASTy compatibility across minor releases runs from
+older producers to newer consumers, projects compiling against Gale artifacts
+must use Scala 3.7.4 or newer.
 
 ```sh
-sbt compileAll        # compile core + laws, JVM and JS
+sbt compileAll        # compile core + laws (JVM/JS) and the Scala Next consumer
 sbt testAll           # test core + laws, JVM and JS
 sbt testAllFull       # testAll, then a full-optimizing Scala.js link of the JS
                       # test bundles (a stricter check than fastLink)
@@ -145,7 +147,7 @@ open demo/index.html
 ```
 
 The demo links with `ModuleKind.NoModule`, so the emitted script
-(`demo/target/scala-3.3.8/gale-demo-fastopt/main.js`) loads from a plain
+(`demo/target/scala-3.7.4/gale-demo-fastopt/main.js`) loads from a plain
 `<script>` tag directly off `file://` — no local server or bundler needed.
 
 ## Optional acceleration backends
@@ -183,8 +185,8 @@ exist; those libraries are still loadable and direct-callable.
 
 `.github/workflows/ci.yml` runs on pushes and PRs to `main`:
 
-- **test** — JVM and JS test suites on Scala 3.3.8 (Temurin 21), as a matrix.
-- **scala-next** — `testAll` on the latest Scala 3.8.x, as a non-failing-fast
+- **test** — JVM and JS test suites on Scala 3.7.4 (Temurin 21), as a matrix.
+- **scala-next** — `testAll` on Scala 3.8.4, as a non-failing-fast
   (`continue-on-error`) job so a compiler-next regression surfaces without gating
   merges.
 - **bench** — `benchCompile`.

@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
@@ -18,8 +20,8 @@ class GemmJmh:
   @Param(Array("32", "128", "512"))
   var n: Int = 0
 
-  private var a: DMat = _
-  private var b: DMat = _
+  private var a: DMat = uninitialized
+  private var b: DMat = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

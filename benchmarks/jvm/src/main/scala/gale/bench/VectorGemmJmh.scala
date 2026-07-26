@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.DenseVector as BDV
 import gale.backend.PureBackend
@@ -19,12 +21,12 @@ import java.util.concurrent.TimeUnit
 @State(Scope.Benchmark)
 class VectorGemmJmh:
   @Param(Array("64", "128", "256", "512"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var a: DMat = _
-  private var b: DMat = _
-  private var breezeA: BDM[Double] = _
-  private var breezeB: BDM[Double] = _
+  private var a: DMat = uninitialized
+  private var b: DMat = uninitialized
+  private var breezeA: BDM[Double] = uninitialized
+  private var breezeB: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =
@@ -57,12 +59,12 @@ class VectorGemmJmh:
 @State(Scope.Benchmark)
 class VectorGemvJmh:
   @Param(Array("64", "128", "256", "1024", "2048"))
-  var n: Int = _
+  var n: Int = uninitialized
 
-  private var a: DMat = _
-  private var x: DVec = _
-  private var breezeA: BDM[Double] = _
-  private var breezeX: BDV[Double] = _
+  private var a: DMat = uninitialized
+  private var x: DVec = uninitialized
+  private var breezeA: BDM[Double] = uninitialized
+  private var breezeX: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setup(): Unit =

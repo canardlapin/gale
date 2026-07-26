@@ -1226,13 +1226,17 @@ dimensions and must be package-private.
 
 The initial build should use `sbt-crossproject`.
 
-Recommended publish line:
+Selected publish line:
 
 ```scala
-ThisBuild / scalaVersion := "3.3.8"
+ThisBuild / scalaVersion := "3.7.4"
 ```
 
-CI should also test the current Scala Next line.
+This intentionally moves Gale beyond the current 3.3 LTS producer line.
+Because Scala 3 TASTy compatibility across minor releases runs from older
+producers to newer consumers, published Gale artifacts require consumers on
+Scala 3.7.4 or newer. CI should also test the current Scala Next line and
+compile a Scala Next consumer against the baseline artifacts.
 
 Required targets:
 

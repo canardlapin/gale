@@ -45,9 +45,12 @@ For the `1.x` line, Gale follows semantic versioning:
   backend import points are.
 
 Scala 3 TASTy and compiler compatibility still constrain consumers. Gale
-publishes for the Scala 3 binary line (`_3`) from Scala 3.3.8 and CI checks the
-current Scala Next line as advisory evidence. Cross-building with Scala Next is
-not a promise that every newer compiler can consume every older TASTy artifact.
+publishes for the Scala 3 binary line (`_3`) from Scala 3.7.4, so consumers
+compiling against Gale artifacts must use Scala 3.7.4 or newer; earlier compiler
+lines cannot read 3.7 TASTy. CI runs full source tests on Scala Next and compiles
+a dedicated Scala 3.8.4 consumer against the 3.7.4 artifacts as advisory
+evidence. These checks do not replace binary- or TASTy-compatibility gates
+between Gale releases.
 
 There is no MiMa gate for `1.0.0`: it has no earlier stable baseline. Before the
 first `1.1.0` release, the build must add an automated binary-compatibility check

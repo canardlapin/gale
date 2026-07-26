@@ -1,5 +1,7 @@
 package gale.bench
 
+import scala.compiletime.uninitialized
+
 import gale.linalg.*
 import gale.solvers.Preconditioner
 import gale.solvers.SolverConfig
@@ -35,7 +37,7 @@ class GeneralizedLobpcgJmh:
   @Param(Array("identity", "jacobi", "block-jacobi"))
   var preconditioner: String = ""
 
-  private var scenario: GeneralizedLobpcgScenario = _
+  private var scenario: GeneralizedLobpcgScenario = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
@@ -71,7 +73,7 @@ class GeneralizedEigenComparisonJmh:
   @Param(Array("lobpcg-identity", "lobpcg-preconditioned", "lanczos-exact", "lanczos-iterative"))
   var engine: String = ""
 
-  private var scenario: GeneralizedLobpcgScenario = _
+  private var scenario: GeneralizedLobpcgScenario = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
