@@ -1,6 +1,8 @@
 import org.scalajs.linker.interface.{ESVersion, ModuleKind}
 import org.scalajs.jsenv.nodejs.NodeJSEnv
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
+import laika.ast.Path.Root
+import laika.helium.config.{HeliumIcon, IconLink}
 import pl.project13.scala.sbt.JmhPlugin
 import sbtcrossproject.CrossPlugin.autoImport.*
 import sbtcrossproject.CrossProject
@@ -104,6 +106,26 @@ lazy val lawsJVM = laws.jvm
 lazy val coreJS  = core.js
 lazy val coreJVM = core.jvm
 
+// Executable public guide site. User-facing Markdown lives under docs/user;
+// internal design, audit, and release-evidence documents remain versioned under
+// docs/ but are not renderer inputs. The sbt project lives in site/ so it does
+// not collide with mdoc's input root. This is the standalone site plugin only:
+// Gale does not opt into Typelevel branding or the full sbt-typelevel stack.
+lazy val docs =
+  project
+    .in(file("site"))
+    .dependsOn(coreJVM)
+    .enablePlugins(TypelevelSitePlugin)
+    .settings(
+      name           := "gale-docs",
+      publish / skip := true,
+      scalacOptions ++= commonScalacOptions,
+      mdocIn := file("docs/user"),
+      tlSiteHelium := tlSiteHelium.value.site.topNavigationBar(
+        homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
+      )
+    )
+
 lazy val breezeVersion = "2.1.0"
 
 // gale-parity: a JVM-only correctness-parity harness that compares gale's public
@@ -127,8 +149,9 @@ lazy val parity =
       Test / fork    := false,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit"  % munitVersion  % Test,
-        "org.scalanlp"  %% "breeze" % breezeVersion % Test
+        "org.scalameta" %% "munit"            % munitVersion  % Test,
+        "org.scalameta" %% "munit-scalacheck" % munitVersion  % Test,
+        "org.scalanlp"  %% "breeze"           % breezeVersion % Test
       )
     )
 
@@ -321,3 +344,5 @@ addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
 addCommandAlias("scala34ConsumerProbe", ";scala34Consumer/compile")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
+// Compile API docs for both public platforms and execute/render the guide site.
+addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")

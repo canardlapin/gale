@@ -93,7 +93,7 @@ object PcaDemo:
   // ---------------------------------------------------------------------------
   // PCA via gale: center -> scatter (Xt X) -> symmetric eigendecomposition ->
   // project onto the top-2 eigenvectors. Same pipeline as the worked PCA
-  // example in docs/examples.md / WorkedExamplesSuite.
+  // example in docs/user/guides/examples.md / WorkedExamplesSuite.
   // ---------------------------------------------------------------------------
 
   private final case class PcaResult(

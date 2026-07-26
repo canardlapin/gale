@@ -43,6 +43,11 @@ Concrete methods are unchanged, so `lu.solve(rhs)`, `cholesky.solve(rhs)`, and
 are for generic algorithms and future sparse/provider factors that genuinely
 satisfy the same semantics.
 
+For a one-off dense solve, `a.solve(rhs)` accepts either a `DVec` or a `DMat`.
+The matrix overload factors `a` once and solves every column of the right-hand
+side. Retain `a.lu` or `a.cholesky` only when separate calls reuse the same
+coefficient matrix.
+
 ## Dimensions and failures
 
 `ExactSolveFactor.size` is the square system dimension.

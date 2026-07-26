@@ -56,12 +56,12 @@ The [v1 compatibility and artifact policy](docs/release-policy.md) defines the
 published module set, supported runtimes, and the boundary of the 1.x stability
 promise.
 
-The [numerical, sparse, and backend contract](docs/numerical-contract.md) states
+The [numerical, sparse, and backend contract](docs/user/advanced/numerical-contract.md) states
 accuracy/determinism guarantees, the sparse v1 boundary, and how to choose an
 accelerator without widening the Breeze-equivalence claim.
 
 The
-[matrix-free generalized symmetric eigensolver guide](docs/generalized-operator-eigen.md)
+[matrix-free generalized symmetric eigensolver guide](docs/user/advanced/generalized-operator-eigen.md)
 documents the default typed LOBPCG route, the explicit generalized block
 Lanczos route, metric-solve and preconditioner semantics, convergence
 certification, and explicit backend capability.
@@ -93,6 +93,24 @@ public release. Gale is licensed under [Apache-2.0](LICENSE).
 - `gale.platform` — platform array abstractions (`DoubleArray`, `IndexArray`),
   distinct per platform.
 
+## Documentation
+
+Start with the [Gale guide](docs/user/index.md) for installation status, a first
+checked example, topic-oriented guides, and links to the numerical contracts.
+The [getting-started guide](docs/user/getting-started.md) and selected algorithm
+guides contain `mdoc` examples that compile and execute against `gale-core`;
+Scaladoc remains the symbol-level API reference.
+
+Build both JVM and Scala.js Scaladoc and render the complete guide site with:
+
+```sh
+sbt docsCheck
+```
+
+For live authoring, run `sbt docs/tlSitePreview` and open
+<http://localhost:4242>. The generated site is a local/CI artifact; GitHub Pages
+publication is not configured yet.
+
 ## Build, test, benchmark
 
 Core and the Vector backend require JDK 21; the finalized FFM modules require
@@ -108,6 +126,7 @@ sbt benchCompile      # compile the JMH and Scala.js benchmarks
 sbt nativeBackendTest blasFfmBackendTest benchFfmCompile  # JDK 22+ native gates
 sbt benchSmokeJS      # run the Scala.js benchmark smoke runner (fastOpt)
 sbt benchSmokeJSFull  # the same under fullOpt
+sbt docsCheck         # JVM + JS Scaladoc and executable Laika/mdoc guide site
 ```
 
 Per-platform, per-module tasks also work directly, e.g. `sbt coreJVM/test`,
@@ -201,6 +220,6 @@ fork or a source-compatible replacement. Cross-library tests cover dense BLAS
 operations, solves and factorizations, rank/condition overlap, symmetric eigen,
 partial SVD, sparse/banded matvec, conversions, aliasing, and typed failure cases.
 
-See [`docs/breeze-equivalence.md`](docs/breeze-equivalence.md) for the capability
+See the [Breeze migration guide](docs/user/guides/breeze-equivalence.md) for the capability
 matrix, measured performance statement, migration examples, and explicit
 non-equivalence boundary.

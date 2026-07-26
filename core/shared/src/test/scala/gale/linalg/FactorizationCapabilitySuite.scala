@@ -56,6 +56,24 @@ class FactorizationCapabilitySuite extends munit.FunSuite:
     assert(factor.solve(Matrix.zeros(2, 4)).left.exists(_.isInstanceOf[LinAlgError.DimensionMismatch]))
   }
 
+  test("DMat solve accepts matrix right-hand sides without exposing the factor") {
+    val expected = Matrix.dense(3, 2)(
+      1.0, -2.0,
+      3.0, 0.5,
+      -1.0, 4.0
+    )
+    // Exercise a non-contiguous logical RHS as well as the facade overload.
+    val rhs = (expected.t * square.t).t
+
+    assertMatrixClose(square.solve(rhs).orThrow, expected, 1e-11)
+    assert(
+      square
+        .solve(Matrix.zeros(2, 4))
+        .left
+        .exists(_.isInstanceOf[LinAlgError.DimensionMismatch])
+    )
+  }
+
   test("QR satisfies least-squares vector and matrix laws") {
     val expectedVector = Vec(1.0, -2.0, 3.0)
     val expectedMatrix = Matrix.dense(3, 2)(

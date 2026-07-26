@@ -735,7 +735,21 @@ final class DMat private[gale] (
   def det(using Backend): Either[LinAlgError, Double] =
     lu.flatMap(_.det)
 
+  /** Solves `A x = b` for one vector right-hand side.
+    *
+    * The matrix is factored once for this call. Retain [[lu]] when solving
+    * several independent systems with the same matrix.
+    */
   def solve(b: DVec)(using Backend): Either[LinAlgError, DVec] =
+    lu.flatMap(_.solve(b))
+
+  /** Solves `A X = B` for all columns of a matrix right-hand side.
+    *
+    * The matrix is factored once, then the same factor is applied to every
+    * column of `b`. Shape and singularity failures remain typed
+    * [[LinAlgError]] values.
+    */
+  def solve(b: DMat)(using Backend): Either[LinAlgError, DMat] =
     lu.flatMap(_.solve(b))
 
   /** Full (economy) singular value decomposition `A = U Σ Vᵀ`: singular values
@@ -905,6 +919,14 @@ object DMat:
     out
 
 object Matrix:
+  /** Construct an owned dense matrix from row-major literal values.
+    *
+    * This is the concise spelling of [[dense]] for handwritten matrices. The
+    * number of values must equal `rows * cols`.
+    */
+  def apply(rows: Int, cols: Int)(values: Double*): DMat =
+    DMat.dense(rows, cols, values)
+
   def zeros(rows: Int, cols: Int): DMat =
     DMat.zeros(rows, cols)
 

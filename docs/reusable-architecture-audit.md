@@ -11,11 +11,11 @@ APIs, not a Rust-shaped ownership, scalar, or storage hierarchy.
 
 | Required outcome | Delivered contract | Primary evidence |
 | --- | --- | --- |
-| Compressed sparse structure independent from values | Immutable checked `CSRPattern` and `CSCPattern`; owned rebinding; single-owner value builders; structural transpose | `CompressedPatternSuite`, [compressed-pattern contract](sparse-patterns.md) |
-| Safe dense destination tier | `gemmInto` and `linearCombinationInto` on open `DMatBuilder` destinations, with shape, lifetime, and alias checks | `DenseDestinationSuite`, [dense-destination contract](dense-destinations.md) |
-| General reusable workspaces | Checked `ScratchRequirement` composition and grow-only `DenseWorkspace`; QR, symmetric eigen, and CSR canonicalization reuse | `WorkspaceSuite`, `DenseSymmetricWorkspaceSuite`, `SparseWorkspaceSuite`, [workspace contract](workspaces.md) |
-| Exact-solve and least-squares capabilities | Narrow `ExactSolveFactor` and `LeastSquaresFactor` traits without leaking concrete-only operations | `FactorizationCapabilitySuite`, [capability contract](factorization-capabilities.md) |
-| Symbolic sparse plans | Checked `CSRUnionPlan` and `CSRProductPlan`, exact-pattern validation, reusable numeric destinations, explicit-zero preservation | `SparsePlanSuite`, [symbolic-plan contract](sparse-plans.md) |
+| Compressed sparse structure independent from values | Immutable checked `CSRPattern` and `CSCPattern`; owned rebinding; single-owner value builders; structural transpose | `CompressedPatternSuite`, [compressed-pattern contract](user/advanced/sparse-patterns.md) |
+| Safe dense destination tier | `gemmInto` and `linearCombinationInto` on open `DMatBuilder` destinations, with shape, lifetime, and alias checks | `DenseDestinationSuite`, [dense-destination contract](user/advanced/dense-destinations.md) |
+| General reusable workspaces | Checked `ScratchRequirement` composition and grow-only `DenseWorkspace`; QR, symmetric eigen, and CSR canonicalization reuse | `WorkspaceSuite`, `DenseSymmetricWorkspaceSuite`, `SparseWorkspaceSuite`, [workspace contract](user/advanced/workspaces.md) |
+| Exact-solve and least-squares capabilities | Narrow `ExactSolveFactor` and `LeastSquaresFactor` traits without leaking concrete-only operations | `FactorizationCapabilitySuite`, [capability contract](user/reference/factorization-capabilities.md) |
+| Symbolic sparse plans | Checked `CSRUnionPlan` and `CSRProductPlan`, exact-pattern validation, reusable numeric destinations, explicit-zero preservation | `SparsePlanSuite`, [symbolic-plan contract](user/advanced/sparse-plans.md) |
 | Optional JVM sparse-direct seam | Explicit provider, symbolic, numeric, workspace, solve, capability, diagnostic, and lifecycle contracts; capability-less default | `SparseDirectProviderSuite`, [provider boundary and go/no-go gates](sparse-direct-provider.md) |
 
 All ordinary allocating APIs remain available. The reuse tier is explicit and
@@ -76,7 +76,7 @@ sbt 'coreJVM/doc' 'coreJS/doc'
 ```
 
 Focused JVM JMH and optimized Scala.js results are recorded in the
-[allocation receipt](../benchmarks/results/2026-07-20-faer-nalgebra-allocation-baseline.md).
+[allocation receipt](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-07-20-faer-nalgebra-allocation-baseline.md).
 At `n=128`, reusable dense GEMM measures 5.984 B/op, fused dense linear
 combination 0.259 B/op, symbolic union replay 0.682 B/op, and symbolic product
 replay 1.550 B/op. Reused values-only symmetric eigen scratch reduces allocation

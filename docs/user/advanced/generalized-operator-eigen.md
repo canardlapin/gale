@@ -18,12 +18,28 @@ eigenpairs without putting alignment concepts in Gale.
 
 ## Public contract
 
-```scala
+This diagonal pencil is intentionally small enough to inspect, but the call
+uses only the operator interface. Replacing either dense value with a custom
+`DoubleLinearOperator` does not change the eigensolver contract.
+
+```scala mdoc
 import gale.linalg.*
-import gale.solvers.Preconditioner
+import gale.solvers.*
 import gale.spectral.*
 
-val result = Eigen.eigSymmetricGeneralized(
+val n = 6
+val k = 2
+val expected = IndexedSeq(1.0, 2.0, 4.0, 7.0, 11.0, 16.0)
+val metricDiagonal = IndexedSeq(1.0, 3.0, 0.5, 2.0, 4.0, 1.5)
+
+val denseB = DMat.tabulate(n, n): (row, col) =>
+  if row == col then metricDiagonal(row) else 0.0
+
+val a = DMat.tabulate(n, n): (row, col) =>
+  if row == col then expected(row) * metricDiagonal(row) else 0.0
+val b = denseB
+
+val lobpcg = Eigen.eigSymmetricGeneralized(
   a.assumeSymmetricOperator,
   b.assumePositiveDefiniteOperator,
   n,
@@ -34,7 +50,9 @@ val result = Eigen.eigSymmetricGeneralized(
     returnVectors = EigenVectors.Right
   ),
   Preconditioner.Identity
-)
+).orThrow
+
+lobpcg.eigenvalues.toSeq
 ```
 
 The property wrappers are explicit evidence supplied by the caller. Gale cannot
@@ -106,7 +124,7 @@ failure as an inner solve rather than an outer convergence failure.
 
 A direct solve adapts a factor the caller already created:
 
-```scala
+```scala mdoc:silent
 val factor = denseB.cholesky.orThrow
 val direct = LinearSolveOperator.direct(factor)
 val metric = MetricSolveOperator
@@ -117,8 +135,8 @@ val metric = MetricSolveOperator
 No Gale spectral call factorizes `denseB` as a side effect. For a matrix-free
 SPD metric, the caller can prepare a repeated CG solve:
 
-```scala
-val iterative = LinearSolveOperator
+```scala mdoc:silent
+val iterativeSolve = LinearSolveOperator
   .conjugateGradient(
     b.assumePositiveDefiniteOperator,
     SolverConfig(tolerance = 1e-10, maxIterations = 500),
@@ -126,8 +144,8 @@ val iterative = LinearSolveOperator
   )
   .orThrow
 
-val metric = MetricSolveOperator
-  .bind(b.assumePositiveDefiniteOperator, iterative)
+val iterativeMetric = MetricSolveOperator
+  .bind(b.assumePositiveDefiniteOperator, iterativeSolve)
   .orThrow
 ```
 
@@ -151,8 +169,8 @@ factorization.
 Lanczos is a separate public entry point, so adding it does not change the
 LOBPCG route or overload a generic `method = "..."` option:
 
-```scala
-val result = Eigen.eigSymmetricGeneralizedLanczos(
+```scala mdoc
+val lanczos = Eigen.eigSymmetricGeneralizedLanczos(
   a.assumeSymmetricOperator,
   metric,
   n,
@@ -160,9 +178,11 @@ val result = Eigen.eigSymmetricGeneralizedLanczos(
   GeneralizedLanczosOptions(
     tolerance = 1e-8,
     maxIterations = 100,
-    subspaceDimension = Some(4 * k)
+    subspaceDimension = Some(math.min(n, 4 * k))
   )
-)
+).orThrow
+
+lanczos.eigenvalues.toSeq
 ```
 
 The engine applies `A`, solves `B y = A x`, and then applies `B` to the new
@@ -198,24 +218,21 @@ orthogonality.
 
 ## Performance evidence and limits
 
-The fixed-seed JMH matrix covers `n = 128, 512, 2048`, `k = 4, 8, 16`,
-clustered diagonal and finite-difference stiffness/mass pencils, and identity,
-Jacobi, and block-Jacobi preconditioners. It records time and allocation with
-JMH and exact iteration/operator work through a separate untimed receipt.
-See the
-[development baseline](../benchmarks/results/2026-07-25-generalized-lobpcg-baseline.md).
+Gale's fixed-seed benchmark matrix covers multiple problem sizes, requested
+ranks, clustered and finite-difference pencils, and identity, Jacobi, and
+block-Jacobi preconditioners. It records both time/allocation and exact
+iteration/operator work. Treat those measurements as evidence for the measured
+runtime and problem families, not as a universal engine ranking.
 
 LOBPCG remains the default generalized engine because it requires only a
 preconditioner and is generally more forgiving of inexact inverse information.
 Generalized block Lanczos is available explicitly when the caller has a useful
-metric solve. The
-[engine comparison](../benchmarks/results/2026-07-25-generalized-eigensolver-comparison.md)
-found a narrow exact-solve Lanczos advantage on some clustered requests, but no
-consistent lower-allocation crossover in convergence-equivalent cells. LOBPCG
-was more robust across the full matrix, while iterative metric solves could add
-substantial `B` work. Gale therefore keeps the engines as separate named entry
-points and does not route automatically from problem dimensions or operator
-types.
+metric solve. Gale's comparison found a narrow exact-solve Lanczos advantage on
+some clustered requests, but no consistent lower-allocation crossover in
+convergence-equivalent cells. LOBPCG was more robust across the full matrix,
+while iterative metric solves could add substantial `B` work. Gale therefore
+keeps the engines as separate named entry points and does not route
+automatically from problem dimensions or operator types.
 
 Production-scale native/provider performance remains a separate backend
 evidence claim; the pure operator implementations do not imply one.

@@ -2,8 +2,8 @@
 
 This document states what Gale v1 guarantees and where callers must make an
 explicit numerical or performance choice. It complements the runnable
-[worked examples](examples.md) and the focused
-[Breeze migration guide](breeze-equivalence.md).
+[worked examples](../guides/examples.md) and the focused
+[Breeze migration guide](../guides/breeze-equivalence.md).
 
 ## Floating-point guarantees
 
@@ -117,8 +117,9 @@ general allocating sparse matrix-matrix multiplication facade. Gale v1 does not
 claim general sparse matrix-matrix multiplication, an implemented sparse direct
 LU/Cholesky/QR provider, complex sparse storage, every Matrix Market
 field/symmetry, or a full Breeze sparse-collection replacement. The JVM-only
-[sparse-direct provider boundary](sparse-direct-provider.md) advertises no
-capability until an optional implementation passes its documented gates.
+sparse-direct boundary advertises no capability in the current build. Do not
+infer sparse LU, Cholesky, or QR support merely from the presence of
+provider-facing types.
 
 ## Choosing a backend
 
@@ -142,4 +143,4 @@ accepted only when the selected library exposes a supported thread-control
 symbol; otherwise loading fails rather than silently oversubscribing the JVM.
 
 The current thresholds and rejected routes are recorded in the
-[backend dashboard](../benchmarks/dashboard.md).
+[backend dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).

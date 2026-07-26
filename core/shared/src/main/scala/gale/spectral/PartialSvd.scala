@@ -164,7 +164,7 @@ object Svds:
     * `rcond = 1e-15`): a singular value is treated as zero unless
     * `σ_i > rcond · σ_max` with `rcond = max(m, n) · ε` (`ε = 2⁻⁵² ≈ 2.22e-16`)
     * — i.e. the cutoff is `max(m, n) · ε · σ_max`, scale-aware per
-    * `docs/numerical-contract.md`. An
+    * `docs/user/advanced/numerical-contract.md`. An
     * all-zero `a` therefore yields the all-zero `A⁺` (its correct
     * pseudo-inverse), never a division by zero.
     *

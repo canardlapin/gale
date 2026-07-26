@@ -72,6 +72,24 @@ class FactorizationParitySuite extends munit.FunSuite:
       assertVecClose(gx, bx, solveTol, s"LU solve rhs=$r")
   }
 
+  test("solve: matrix right-hand side matches breeze A \\ B") {
+    for n <- List(5, 12, 25); rhsCols <- List(1, 3, 7); seed <- List(1L, 2L) do
+      val aData = diagonallyDominant(n, seed)
+      val bData = matrixData(n, rhsCols, seed * 43 + rhsCols)
+      val gx = galeMatrix(aData).solve(galeMatrix(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeMatrix(bData)
+      assertMatClose(gx, bx, solveTol, s"matrix solve n=$n rhsCols=$rhsCols seed=$seed")
+  }
+
+  test("solve: reused LU handles a matrix right-hand side") {
+    val n = 20
+    val aData = diagonallyDominant(n, 101L)
+    val bData = matrixData(n, 5, 102L)
+    val gx = galeMatrix(aData).lu.orThrow.solve(galeMatrix(bData)).orThrow
+    val bx = breezeMatrix(aData) \ breezeMatrix(bData)
+    assertMatClose(gx, bx, solveTol, "reused LU matrix RHS")
+  }
+
   // ---------------------------------------------------------------------------
   // LU reconstruction (A = P⁻¹ L U)
   // ---------------------------------------------------------------------------
@@ -163,6 +181,15 @@ class FactorizationParitySuite extends munit.FunSuite:
       val gx    = galeMatrix(aData).leastSquares(galeVector(bData)).orThrow
       val bx    = breezeMatrix(aData) \ breezeVector(bData)
       assertVecClose(gx, bx, solveTol, s"least squares ${m}x$n seed=$seed")
+  }
+
+  test("least squares: matrix right-hand side matches breeze A \\ B") {
+    for (m, n) <- List((10, 4), (25, 12), (40, 7)); rhsCols <- List(1, 3); seed <- List(1L, 2L) do
+      val aData = matrixData(m, n, seed)
+      val bData = matrixData(m, rhsCols, seed * 47 + rhsCols)
+      val gx = galeMatrix(aData).leastSquares(galeMatrix(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeMatrix(bData)
+      assertMatClose(gx, bx, solveTol, s"matrix least squares ${m}x$n rhsCols=$rhsCols seed=$seed")
   }
 
   // ---------------------------------------------------------------------------

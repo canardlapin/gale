@@ -11,7 +11,7 @@ import gale.platform.DoubleArray
   * to an upper bidiagonal `B`, then implicit-shift QR on `B` with the Wilkinson
   * shift from the trailing 2×2, deflating on a negligible superdiagonal at the
   * scale-aware threshold `ε·‖B‖` (`‖B‖ = max_i(|d_i| + |e_i|)`, the standard
-  * Golub–Reinsch `anorm` — consistent with `docs/numerical-contract.md`'s
+  * Golub–Reinsch `anorm` — consistent with `docs/user/advanced/numerical-contract.md`'s
   * "scale-aware tests" rule). A wide input (`m < n`) is handled by running on
   * `Aᵀ` and swapping `U`/`V` on output, so the working orientation is always
   * tall. Vectors are accumulated when requested; the values-only mode runs the

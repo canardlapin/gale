@@ -12,7 +12,7 @@ import gale.sparse.Sparse
 
 /** Four worked, end-to-end examples of gale's public API, each recovering a value
   * with a known, independently-derived correct answer (not merely "it ran"). This
-  * suite is the compiled, always-green source backing `docs/examples.md` — every
+  * suite is the compiled, always-green source backing `docs/user/guides/examples.md` — every
   * code block there corresponds to a call pattern exercised here.
   */
 class WorkedExamplesSuite extends munit.FunSuite:

@@ -57,7 +57,7 @@ material warmed penalty below its threshold.
 - [FFM GEMV crossover](results/2026-07-17-ffm-gemv-crossover.md)
 - [FFM LAPACK and solver scenarios](results/2026-07-17-ffm-lapack-crossover.md)
 - [Scala.js Wasm profile](results/2026-07-17-wasm-profile.md)
-- [Breeze equivalence guide](../docs/breeze-equivalence.md)
+- [Breeze migration guide](../docs/user/guides/breeze-equivalence.md)
 
 ## Refresh commands
 

@@ -1,4 +1,4 @@
-# gale — worked examples
+# Gale worked examples
 
 A topic guide to `gale`'s public API, illustrated with runnable code. Every
 snippet below reflects a real call pattern verified against the source; the
@@ -23,7 +23,7 @@ A three-line hello world — build a small matrix and vector, multiply, print:
 ```scala
 import gale.linalg.{Matrix, Vec}
 
-val A = Matrix.dense(2, 2)(1.0, 2.0, 3.0, 4.0)
+val A = Matrix(2, 2)(1.0, 2.0, 3.0, 4.0)
 val x = Vec(1.0, 1.0)
 println((A * x).toSeq) // Vector(3.0, 7.0)
 ```
@@ -39,7 +39,7 @@ val v  = Vec(1.0, 2.0, 3.0)               // DVec from literal values
 val z  = Vec.zeros(4)                     // length-4 zero vector
 val t  = Vec.tabulate(5)(i => i * i.toDouble)
 
-val A  = Matrix.dense(2, 3)(              // row-major literal values
+val A  = Matrix(2, 3)(                    // row-major literal values
   1.0, 2.0, 3.0,
   4.0, 5.0, 6.0
 )
@@ -72,7 +72,7 @@ edit(0, 0) = 10.0
 val changed = edit.result()                      // ownership transfer, no recopy
 
 val ridge = A.addToDiagonal(1e-6)                // owned copy
-val symmetric = Matrix.dense(2, 2)(1, 3, 5, 2).symmetrizedAverage
+val symmetric = Matrix(2, 2)(1, 3, 5, 2).symmetrizedAverage
 ```
 
 For unboxed export or streaming, copy into caller-owned primitive storage or
@@ -119,7 +119,7 @@ a QR factorization), so it returns the factorization directly, not an
 ```scala
 import gale.linalg.{LinAlgError, Matrix, Vec}
 
-val A = Matrix.dense(3, 3)(4.0, 1.0, 0.0, 1.0, 3.0, 1.0, 0.0, 1.0, 2.0)
+val A = Matrix(3, 3)(4.0, 1.0, 0.0, 1.0, 3.0, 1.0, 0.0, 1.0, 2.0)
 val b = Vec(1.0, 2.0, 3.0)
 
 val solved = A.solve(b)          // Either[LinAlgError, DVec] via LU
@@ -127,7 +127,7 @@ val d      = A.det                // Either[LinAlgError, Double]
 val chol   = A.cholesky           // Either[LinAlgError, Cholesky] (SPD only)
 
 // QR — always total; least-squares is the Either-returning step.
-val tall = Matrix.dense(4, 2)(1.0, 0.0, 1.0, 1.0, 1.0, 2.0, 1.0, 3.0)
+val tall = Matrix(4, 2)(1.0, 0.0, 1.0, 1.0, 1.0, 2.0, 1.0, 3.0)
 val qr   = tall.qr                            // QR (never fails)
 val coeffs = qr.solveLeastSquares(Vec(1.0, 3.0, 5.0, 7.0))
 // or, the DMat-level shortcut for the same thing:
@@ -266,7 +266,7 @@ matrix is the simplest example with a genuinely complex spectrum (`±i`):
 import gale.linalg.Matrix
 import gale.spectral.{Eigen, EigenSelection, EigenVectors}
 
-val rotation = Matrix.dense(2, 2)(0.0, -1.0, 1.0, 0.0)
+val rotation = Matrix(2, 2)(0.0, -1.0, 1.0, 0.0)
 val d = Eigen.eigNonsymmetric(rotation, EigenSelection.All, EigenVectors.LeftAndRight).toOption.get
 for i <- 0 until d.size do
   val lambda = d.eigenvalue(i) // a Complex; here 0 + i and 0 - i
@@ -359,7 +359,7 @@ val matrixFree = Eigen.eigSymmetricGeneralized(
 LOBPCG never materializes `stiffness` or `mass`. Non-convergence is a
 diagnostics-carrying `Right` containing only converged pairs.
 See the
-[matrix-free generalized eigensolver guide](generalized-operator-eigen.md) for
+[matrix-free generalized eigensolver guide](../advanced/generalized-operator-eigen.md) for
 the full selection, preconditioner, certification, and backend contract.
 
 The general nonsymmetric pencil (QZ) is a **backend-scoped seam**:
@@ -514,7 +514,7 @@ the same backing array.
 import gale.interop.breeze.*
 import gale.linalg.Matrix
 
-val myGaleMatrix = Matrix.dense(2, 2)(1.0, 2.0, 3.0, 4.0)
+val myGaleMatrix = Matrix(2, 2)(1.0, 2.0, 3.0, 4.0)
 
 val bm: breeze.linalg.DenseMatrix[Double] = toBreezeCopy(myGaleMatrix)       // always copies
 val fromCopy: gale.linalg.DMat = fromBreezeCopy(bm)                          // independent storage
@@ -525,37 +525,39 @@ Sparse conversions (`CSR`/`CSC` ↔ Breeze `CSCMatrix`) are always copies in
 both directions — the two libraries differ in compressed axis and
 canonical-ordering bookkeeping.
 
-**Migration shims.** `BreezeMigration` mirrors common Breeze call sites
-(Breeze types in and out, computed by gale underneath), throwing
-`LinAlgError` on failure the way Breeze itself throws — useful for a
-mechanical, one-call-site-at-a-time port, after which prefer gale's native
-`Either`-returning API directly:
+**Move the numerical boundary.** Convert Breeze values once, run the computation
+with Gale types, and convert the result back only if an old interface still
+requires a Breeze value:
 
 ```scala
-import gale.interop.breeze.BreezeMigration
 import breeze.linalg.{DenseMatrix, DenseVector}
 
 val a = DenseMatrix.tabulate(3, 3)((i, j) => if i == j then 4.0 else 0.1) // symmetric, diagonally dominant
 val b = DenseVector(1.0, 2.0, 3.0)
 
-val x      = BreezeMigration.solve(a, b)     // A \ b, square system
-val d      = BreezeMigration.det(a)
-val l      = BreezeMigration.cholesky(a)     // lower factor, throws if not SPD
-val (w, v) = BreezeMigration.eigSym(a)       // (eigenvalues ascending, eigenvectors)
+val galeA = fromBreezeCopy(a)
+val galeB = fromBreezeCopy(b)
 
-// leastSquares wants a tall (overdetermined) system:
-val tallA  = DenseMatrix.tabulate(5, 2)((i, j) => if j == 0 then 1.0 else i.toDouble)
-val tallB  = DenseVector.tabulate(5)(i => 2.0 + 3.0 * i)
-val coeffs = BreezeMigration.leastSquares(tallA, tallB) // A \ b, overdetermined
+val galeResult = galeA.solve(galeB)
+val breezeResult = galeResult.map(x => toBreezeCopy(x))
 ```
 
-Matrix right-hand sides are supported as well. These overloads factor `A` once
-and reuse its LU or QR factors across all columns:
+The same `solve` method accepts a matrix of right-hand sides and factors `A`
+once for the whole matrix. Least squares accepts vector or matrix observations
+directly:
 
 ```scala
-val manySolutions = BreezeMigration.solve(a, manyRightHandSides)
-val manyCoeffs    = BreezeMigration.leastSquares(tallA, manyResponseColumns)
+val manySolutions = galeA.solve(galeRightHandSides)
+val manyCoeffs = galeTallA.leastSquares(galeResponseColumns)
 ```
+
+Retain `galeA.lu` or `galeTallA.qr` only when several separate calls reuse the
+same coefficient matrix.
+
+`BreezeMigration` remains available for old call sites whose Breeze-typed
+signatures cannot yet change. It throws on failure to fit those signatures.
+Treat it as a temporary compatibility adapter, not as the API to use in new
+Gale code.
 
 The exact supported replacement boundary—including rank/condition-number
 differences, performance evidence, and deliberate exclusions—is documented in
@@ -607,6 +609,6 @@ regression, the normal-equations cross-check, PCA via the symmetric
 eigendecomposition, and a graph Laplacian's Fiedler vector (plus a fifth,
 sparse-matvec check on the same Laplacian) — are not just prose: they are
 compiled and asserted in
-[`gale.examples.WorkedExamplesSuite`](../core/shared/src/test/scala/gale/examples/WorkedExamplesSuite.scala),
+[`gale.examples.WorkedExamplesSuite`](https://github.com/canardlapin/gale/blob/main/core/shared/src/test/scala/gale/examples/WorkedExamplesSuite.scala),
 which runs green on both `coreJVM/test` and `coreJS/test`. Read that file for
 the exact, working code behind every number in this document.

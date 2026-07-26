@@ -17,8 +17,12 @@ class DenseCoreSuite extends munit.FunSuite:
     assertEquals(x.slice(1, 3).toSeq, Seq(2.0, 3.0))
   }
 
-  test("Matrix.dense returns row-major DMat with row, column, transpose, and updates") {
-    val A = Matrix.dense(2, 3)(
+  test("Matrix.apply returns a row-major DMat and Matrix.dense remains its explicit alias") {
+    val A = Matrix(2, 3)(
+      1.0, 2.0, 3.0,
+      4.0, 5.0, 6.0
+    )
+    val explicit = Matrix.dense(2, 3)(
       1.0, 2.0, 3.0,
       4.0, 5.0, 6.0
     )
@@ -26,6 +30,7 @@ class DenseCoreSuite extends munit.FunSuite:
     assert(A.isInstanceOf[DMat])
     assertEquals(A.rows, 2)
     assertEquals(A.cols, 3)
+    assertEquals(A.valuesRowMajor, explicit.valuesRowMajor)
     assertEquals(A(1, 2), 6.0)
     assertEquals(A.row(1).toSeq, Seq(4.0, 5.0, 6.0))
     assertEquals(A.col(1).toSeq, Seq(2.0, 5.0))
@@ -36,6 +41,10 @@ class DenseCoreSuite extends munit.FunSuite:
     val B = A.updated(0, 1, 9.0)
     assertEquals(A(0, 1), 2.0)
     assertEquals(B(0, 1), 9.0)
+
+    intercept[IllegalArgumentException] {
+      Matrix(2, 2)(1.0, 2.0, 3.0)
+    }
   }
 
   test("matrix-vector and matrix-matrix products use dense kernels") {

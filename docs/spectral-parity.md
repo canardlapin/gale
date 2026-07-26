@@ -218,7 +218,7 @@ ascending-algebraic; vectors are `B`-orthonormal; diagnostics report
 with `extremalityCertified = false`. Magnitude, both-ends, interval, automatic
 factorization, and complex-shift modes are not part of the first tranche.
 The consolidated reader-facing contract and benchmark evidence are in
-[Matrix-free generalized symmetric eigensolving](generalized-operator-eigen.md).
+[Matrix-free generalized symmetric eigensolving](user/advanced/generalized-operator-eigen.md).
 
 **Ordering guarantee.** As in § 1, partial symmetric results are returned
 **ascending-algebraic**, matching `eigsh` (which sorts ascending; MATLAB `eigs`

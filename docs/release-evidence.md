@@ -80,7 +80,8 @@ Apache-2.0, homepage, SCM, and developer metadata to every published module.
 
 ## Performance evidence
 
-The canonical summary is the [backend dashboard](../benchmarks/dashboard.md).
+The canonical summary is the
+[backend dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).
 The candidate includes full receipts for:
 
 - Vector GEMM/GEMV versus pure Gale and Breeze VectorBLAS;
