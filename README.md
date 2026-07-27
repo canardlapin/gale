@@ -86,6 +86,9 @@ public release. Gale is licensed under [Apache-2.0](LICENSE).
 - `gale.sparse` — `COO`, `CSR`, `CSC`, `Banded`, `Diagonal`, `Identity`, `Zero`,
   `Permutation`, and Matrix Market I/O.
 - `gale.solvers` — `cg`, `bicgstab`, `gmres`, `cgnr`, `lsqr`, preconditioners.
+- `gale.optim` — portable proximal-gradient, projected-gradient,
+  linear-composite primal-dual, smooth-composite primal-dual, and exact
+  null-space reduction capabilities with typed stopping certificates.
 - `gale.spectral` — dense and partial eigen/SVD facades, including typed
   matrix-free LOBPCG (the default generalized route), generalized block Lanczos,
   and reusable metric-solve contracts for `A x = λ B x` with symmetric `A` and

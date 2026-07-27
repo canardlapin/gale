@@ -31,6 +31,9 @@ the documentation build.
 - **Solve large operator problems:** [Matrix-free generalized symmetric
   eigensolving](advanced/generalized-operator-eigen.md) introduces LOBPCG and
   generalized block Lanczos without materializing dense operators.
+- **Solve composite optimization problems:** [First-order composite
+  optimization](guides/first-order-optimization.md) covers proximal, projected,
+  primal-dual, and exact-reduction methods with typed certificates.
 - **Optimize a measured hot path:** [Advanced topics](advanced/index.md) covers
   numerical guarantees, reusable destinations and workspaces, sparse structure,
   and ownership boundaries.
