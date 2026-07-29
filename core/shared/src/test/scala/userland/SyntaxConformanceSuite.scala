@@ -41,8 +41,8 @@ class SyntaxConformanceSuite extends munit.FunSuite:
     val mapped = a.pointwise.map(math.exp)
     assertEqualsDouble(mapped(1, 1), math.exp(4.0), 1e-12)
 
-    // A.zipMap(B)(_ + _) — agrees with the core elementwise +.
-    val summed = a.zipMap(b)(_ + _)
+    // A.zipMapExact(B)(_ + _) — agrees with the core elementwise +.
+    val summed = a.zipMapExact(b)(_ + _)
     val coreSum = a + b
     assertEqualsDouble(summed(0, 0), coreSum(0, 0), 1e-12)
     assertEqualsDouble(summed(1, 1), coreSum(1, 1), 1e-12)
@@ -52,7 +52,7 @@ class SyntaxConformanceSuite extends munit.FunSuite:
     val wide = Matrix.dense(2, 3)(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
     intercept[LinAlgError.DimensionMismatch](a.pointwise * wide)
     intercept[LinAlgError.DimensionMismatch](a.pointwise / wide)
-    intercept[LinAlgError.DimensionMismatch](a.zipMap(wide)(_ + _))
+    intercept[LinAlgError.DimensionMismatch](a.zipMapExact(wide)(_ + _))
   }
 
   test("PRD Unicode aliases (× and ⋅) are exact synonyms of the core ops") {

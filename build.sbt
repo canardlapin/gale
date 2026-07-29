@@ -198,6 +198,28 @@ lazy val vectorBackend =
       libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
     )
 
+lazy val ravelVersion = "1.0.0-SNAPSHOT"
+
+// gale-interop-ravel is the copy-only boundary between neutral dense Ravel
+// storage and Gale's mathematical vector/matrix types. Neither core project
+// depends on the other.
+lazy val interopRavel: CrossProject =
+  crossProject(JSPlatform, JVMPlatform)
+    .crossType(CrossType.Full)
+    .in(file("interop-ravel"))
+    .dependsOn(core)
+    .settings(commonSettings)
+    .settings(
+      name := "gale-interop-ravel",
+      description := "Explicit copy conversions between Ravel arrays and Gale vectors and matrices.",
+      libraryDependencies +=
+        "io.github.canardlapin" %%% "ravel-core" % ravelVersion
+    )
+    .jsSettings(jsWasmSettings: _*)
+
+lazy val interopRavelJVM = interopRavel.jvm
+lazy val interopRavelJS  = interopRavel.js
+
 // JVM 22+ native storage. Kept separate so core and every Scala.js artifact stay
 // free of java.lang.foreign references.
 lazy val nativeBackend =
@@ -320,22 +342,24 @@ lazy val root =
     .in(file("."))
     .aggregate(
       coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS,
-      parity, interopBreeze, vectorBackend
+      parity, interopBreeze, interopRavelJVM, interopRavelJS, vectorBackend
     )
     .settings(
       name := "gale",
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;scalaNextConsumer/compile")
-addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
+addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;interopRavelJVM/compile;interopRavelJS/compile;scalaNextConsumer/compile")
+addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test;interopRavelJVM/test;interopRavelJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
-addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS")
+addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS;interopRavelJS/Test/fullLinkJS")
 // Breeze parity harness (JVM-only correctness parity vs Scala Breeze 2.1.0).
 addCommandAlias("parityTest", ";parity/test")
 // Breeze interop module (conversions + migration aids).
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
+// Ravel interop module (copy-only dense vector/matrix conversions).
+addCommandAlias("interopRavelTest", ";interopRavelJVM/test;interopRavelJS/test")
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("nativeBackendTest", ";nativeBackend/test")

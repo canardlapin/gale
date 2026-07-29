@@ -617,7 +617,7 @@ Elementwise operations must be explicit:
 A.pointwise * B
 A.pointwise / B
 A.pointwise.map(math.exp)
-A.zipMap(B)(_ + _)
+A.zipMapExact(B)(_ + _)
 ```
 
 Symbol aliases, including Unicode, belong in opt-in syntax modules:

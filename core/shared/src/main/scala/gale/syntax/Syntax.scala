@@ -9,7 +9,7 @@ import gale.linalg.Matrix
 /** Opt-in ergonomic syntax for `gale.linalg`, in focused import modules.
   *
   *   - [[all]] — the safe ASCII sugar: elementwise (`pointwise`) operators and
-  *     `zipMap`, which the PRD's "Elementwise operations must be explicit" example
+  *     `zipMapExact`, which the PRD's "Elementwise operations must be explicit" example
   *     assumes but core does not yet expose. Bring in with `import gale.syntax.all.*`.
   *   - [[unicode]] — the Unicode operator aliases `×` (matrix product) and `⋅`
   *     (dot), a '''separate''' opt-in (the PRD keeps symbol aliases out of the
@@ -43,7 +43,7 @@ object all:
       * b(i,j))`. Throws `LinAlgError.DimensionMismatch` on a shape mismatch (as the
       * core `+`/`-` do).
       */
-    def zipMap(b: DMat)(f: (Double, Double) => Double): DMat =
+    def zipMapExact(b: DMat)(f: (Double, Double) => Double): DMat =
       zipShape(a, b, f)
 
   extension (p: Pointwise)

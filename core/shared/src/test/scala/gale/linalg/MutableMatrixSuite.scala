@@ -5,7 +5,7 @@ class MutableMatrixSuite extends munit.FunSuite:
     val builder = DMat.newBuilder(2, 3)
     var i = 0
     while i < builder.size do
-      builder.updateRowMajor(i, i.toDouble + 1.0)
+      builder.writeLinear(i, i.toDouble + 1.0)
       i += 1
     builder(1, 2) = 9.0
 
@@ -24,5 +24,5 @@ class MutableMatrixSuite extends munit.FunSuite:
     val builder = DMatBuilder.zeros(2, 2)
     intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 0, 1.0))
     intercept[LinAlgError.IndexOutOfBounds](builder.update(0, 2, 1.0))
-    intercept[LinAlgError.IndexOutOfBounds](builder.updateRowMajor(4, 1.0))
+    intercept[LinAlgError.IndexOutOfBounds](builder.writeLinear(4, 1.0))
   }

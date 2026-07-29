@@ -32,7 +32,7 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
   /** Write by contiguous row-major logical index. This is useful for hot
     * sequential fill loops while keeping platform storage encapsulated.
     */
-  def updateRowMajor(index: Int, value: Double): Unit =
+  def writeLinear(index: Int, value: Double): Unit =
     requireOpen()
     if index < 0 || index >= size then
       throw LinAlgError.IndexOutOfBounds(index, size)

@@ -479,12 +479,12 @@ Two focused, opt-in import modules add ergonomic sugar without touching the
 default surface:
 
 ```scala
-import gale.syntax.all.*   // elementwise (Hadamard) ops and zipMap
+import gale.syntax.all.*   // elementwise (Hadamard) ops and zipMapExact
 
 val hadamard = a.pointwise * b     // elementwise product, NOT a.* b (matrix product)
 val quotient = a.pointwise / b
 val mapped   = a.pointwise.map(x => x * x)
-val combined = a.zipMap(b)((x, y) => x + y)
+val combined = a.zipMapExact(b)((x, y) => x + y)
 ```
 
 ```scala
