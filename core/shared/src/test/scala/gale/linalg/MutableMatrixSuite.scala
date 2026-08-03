@@ -1,5 +1,7 @@
 package gale.linalg
 
+import gale.TestAccess
+
 class MutableMatrixSuite extends munit.FunSuite:
   test("DMatBuilder fills row-major storage and transfers it without a public mutable alias") {
     val builder = DMat.newBuilder(2, 3)
@@ -25,4 +27,44 @@ class MutableMatrixSuite extends munit.FunSuite:
     intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 0, 1.0))
     intercept[LinAlgError.IndexOutOfBounds](builder.update(0, 2, 1.0))
     intercept[LinAlgError.IndexOutOfBounds](builder.writeLinear(4, 1.0))
+  }
+
+  test("consumeQR transfers builder storage, matches result then QR, and closes every operation") {
+    val values = Seq(
+      1.0, 0.0, 2.0,
+      1.0, 1.0, -1.0,
+      1.0, 2.0, 0.5,
+      1.0, 3.0, 1.5,
+      1.0, 4.0, -0.5
+    )
+    def filledBuilder(): DMatBuilder =
+      val builder = DMatBuilder.zeros(5, 3)
+      var i = 0
+      while i < values.length do
+        builder.writeLinear(i, values(i))
+        i += 1
+      builder
+
+    val options = QROptions(pivoting = QRPivoting.Column)
+    val expected = filledBuilder().result().qr(options)
+    val builder = filledBuilder()
+    val transferred = TestAccess.dmatBuilderStorage(builder)
+    val actual = builder.consumeQR(options, DenseWorkspace.empty)
+
+    assert(TestAccess.sameStorage(transferred, TestAccess.dmatStorage(actual.r)))
+    assertEquals(actual.r.valuesRowMajor, expected.r.valuesRowMajor)
+    assertEquals(actual.columnPermutation.toIndexSeq, expected.columnPermutation.toIndexSeq)
+    assertEquals(actual.diagnostics, expected.diagnostics)
+    assertEquals(actual.q.valuesRowMajor, expected.q.valuesRowMajor)
+    val rhs = Vec(1.0, 2.0, -1.0, 0.5, 3.0)
+    assertEquals(actual.solveLeastSquares(rhs).orThrow.toSeq, expected.solveLeastSquares(rhs).orThrow.toSeq)
+    assertEquals(actual.normalizedCovariance.orThrow.valuesRowMajor, expected.normalizedCovariance.orThrow.valuesRowMajor)
+
+    intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
+    intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
+    intercept[LinAlgError.UnsupportedOperation](builder.writeLinear(0, -1.0))
+    intercept[LinAlgError.UnsupportedOperation](builder.fill(0.0))
+    intercept[LinAlgError.UnsupportedOperation](builder.result())
+    intercept[LinAlgError.UnsupportedOperation](builder.consumeQR)
+    assertEquals(actual.r.valuesRowMajor, expected.r.valuesRowMajor)
   }

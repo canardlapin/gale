@@ -1,5 +1,6 @@
 package gale.linalg
 
+import gale.backend.Backend
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
@@ -49,9 +50,23 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
     * Every subsequent read, write, fill, or second `result()` call fails.
     */
   def result(): DMat =
-    requireOpen()
-    open = false
-    DMat.fromDoubleArrayOwned(rows, cols, data)
+    DMat.fromDoubleArrayOwned(rows, cols, takeOwnedData())
+
+  /** Consume this builder as the owned working buffer for portable QR.
+    * Every subsequent builder operation fails; factor results own independent
+    * reflector and factor storage and retain no mutable builder alias.
+    */
+  def consumeQR(using Backend): QR =
+    consumeQR(QROptions.Default, DenseWorkspace.forQR(rows, cols))
+
+  def consumeQR(options: QROptions)(using Backend): QR =
+    consumeQR(options, DenseWorkspace.forQR(rows, cols, options))
+
+  def consumeQR(workspace: DenseWorkspace)(using Backend): QR =
+    consumeQR(QROptions.Default, workspace)
+
+  def consumeQR(options: QROptions, workspace: DenseWorkspace)(using Backend): QR =
+    DenseDecompositions.qrOwned(rows, cols, takeOwnedData(), options, workspace)
 
   private[gale] def mutableColumn(index: Int): MutableDVec =
     requireOpen()
@@ -81,9 +96,15 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
     requireOpen()
     data
 
+  /** Close the builder and transfer its storage to one internal owner. */
+  private[gale] def takeOwnedData(): DoubleArray =
+    requireOpen()
+    open = false
+    data
+
   private def requireOpen(): Unit =
     if !open then
-      throw LinAlgError.UnsupportedOperation("DMatBuilder is closed after result()")
+      throw LinAlgError.UnsupportedOperation("DMatBuilder is closed after ownership transfer")
 
   private def checkRow(row: Int): Unit =
     if row < 0 || row >= rows then

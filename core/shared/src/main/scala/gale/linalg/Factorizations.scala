@@ -186,6 +186,25 @@ final case class QR private[gale] (
   def solveLeastSquaresWith(b: DMat, workspace: DenseWorkspace): Either[LinAlgError, DMat] =
     DenseDecompositions.solveLeastSquaresWith(this, b, workspace)
 
+  /** Solve against `diag(scales) * b` without materializing the scaled RHS.
+    * Zero and negative finite scales are algebraically supported; non-finite
+    * scales are rejected.
+    */
+  def solveLeastSquaresScaledRowsWith(
+      b: DVec,
+      scales: DVec,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, DVec] =
+    DenseDecompositions.solveLeastSquaresScaledRowsWith(this, b, scales, workspace)
+
+  /** Matrix-RHS form of [[solveLeastSquaresScaledRowsWith]]. */
+  def solveLeastSquaresScaledRowsWith(
+      b: DMat,
+      scales: DVec,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, DMat] =
+    DenseDecompositions.solveLeastSquaresScaledRowsWith(this, b, scales, workspace)
+
   def applyQ(b: DMat): Either[LinAlgError, DMat] =
     DenseDecompositions.applyQ(this, b, transpose = false)
 
@@ -300,9 +319,15 @@ object DenseDecompositions:
     qr(A, QROptions.Default, workspace)
 
   def qr(A: DMat, options: QROptions, workspace: DenseWorkspace)(using backend: Backend): QR =
-    val m = A.rows
-    val n = A.cols
-    val r = A.toDoubleArrayCopyRowMajor
+    qrOwned(A.rows, A.cols, A.toDoubleArrayCopyRowMajor, options, workspace)
+
+  private[gale] def qrOwned(
+      m: Int,
+      n: Int,
+      r: DoubleArray,
+      options: QROptions,
+      workspace: DenseWorkspace
+  )(using backend: Backend): QR =
     val limit = math.min(m, n)
     // Compact storage: reflectors column k holds v_k (length m, zero above row k),
     // tau(k) = 2 / (v_k · v_k). No m x m Q is formed here; it is rebuilt on demand.
@@ -335,6 +360,30 @@ object DenseDecompositions:
       columnPermutation = ColumnPermutation.fromArray(permutation),
       options = options
     )
+
+  def qrScaledRows(
+      A: DMat,
+      scales: DVec,
+      options: QROptions,
+      workspace: DenseWorkspace
+  )(using Backend): Either[LinAlgError, QR] =
+    validateRowScales(scales, A.rows) match
+      case Left(error) => Left(error)
+      case Right(_) =>
+        val m = A.rows
+        val n = A.cols
+        val r = DoubleArray.alloc(m * n)
+        var row = 0
+        while row < m do
+          val scale = scales.data(scales.offset.value + row * scales.stride.value)
+          var source = A.offset.value + row * A.rowStride.value
+          var col = 0
+          while col < n do
+            r(row * n + col) = scale * A.data(source)
+            source += A.colStride.value
+            col += 1
+          row += 1
+        Right(qrOwned(m, n, r, options, workspace))
 
   /** Rank-revealing unblocked QR with exact recomputation of every trailing
     * column norm before pivot selection. Each column retains the same scaled
@@ -1279,52 +1328,7 @@ object DenseDecompositions:
           case Right(value) => value
         val transformed = workspace.doubles(requirement)
         DoubleKernels.dcopy(m, b.data, b.offset.value, b.stride.value, transformed, 0, 1)
-
-        val limit = qr.reflectors.cols
-        val vData = qr.reflectors.data
-        val tau = qr.tau
-        var k = 0
-        while k < limit do
-          val beta = tau(k)
-          if beta != 0.0 then
-            var dot = 0.0
-            var row = k
-            while row < m do
-              dot = fma(vData(row * limit + k), transformed(row), dot)
-              row += 1
-            dot *= beta
-            row = k
-            while row < m do
-              transformed(row) = fma(-dot, vData(row * limit + k), transformed(row))
-              row += 1
-          k += 1
-
-        val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
-        val info = DoubleKernels.dtrsv(
-          n,
-          lower = false,
-          unit = false,
-          tolerance,
-          qr.r.data,
-          qr.r.offset.value,
-          qr.r.rowStride.value,
-          qr.r.colStride.value,
-          transformed,
-          0,
-          1
-        )
-        if info >= 0 then
-          Left(LinAlgError.RankDeficient(rank, n))
-        else
-          val coefficients = DoubleArray.alloc(n)
-          if qr.columnPermutation.isIdentity then
-            DoubleKernels.dcopy(n, transformed, 0, 1, coefficients, 0, 1)
-          else
-            var pivoted = 0
-            while pivoted < n do
-              coefficients(qr.columnPermutation(pivoted)) = transformed(pivoted)
-              pivoted += 1
-          Right(DVec.fromDoubleArrayOwned(coefficients))
+        finishLeastSquaresVectorInScratch(qr, transformed, rank)
 
   def solveLeastSquaresWith(
       qr: QR,
@@ -1361,42 +1365,191 @@ object DenseDecompositions:
             1
           )
           row += 1
+        finishLeastSquaresMatrixInScratch(qr, transformed, rhsCols, rank)
 
-        applyReflectorsLeft(qr, transformed, rhsCols, transpose = true)
-        val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
-        var rhs = 0
-        while rhs < rhsCols do
-          val info = DoubleKernels.dtrsv(
-            n,
-            lower = false,
-            unit = false,
-            tolerance,
-            qr.r.data,
-            qr.r.offset.value,
-            qr.r.rowStride.value,
-            qr.r.colStride.value,
-            transformed,
-            rhs,
-            rhsCols
-          )
-          if info >= 0 then return Left(LinAlgError.RankDeficient(rank, n))
-          rhs += 1
+  def solveLeastSquaresScaledRowsWith(
+      qr: QR,
+      b: DVec,
+      scales: DVec,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, DVec] =
+    val m = qr.reflectors.rows
+    val n = qr.r.cols
+    if qr.r.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.length != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1))))
+    else if m < n then
+      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else
+      val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
+      else
+        validateRowScales(scales, m) match
+          case Left(error) => Left(error)
+          case Right(_) =>
+            val requirement = DenseWorkspace.qrSolveRequirement(m) match
+              case Left(error)  => return Left(error)
+              case Right(value) => value
+            val transformed = workspace.doubles(requirement)
+            var row = 0
+            var bi = b.offset.value
+            var si = scales.offset.value
+            while row < m do
+              transformed(row) = scales.data(si) * b.data(bi)
+              bi += b.stride.value
+              si += scales.stride.value
+              row += 1
+            finishLeastSquaresVectorInScratch(qr, transformed, rank)
 
-        val coefficients = DoubleArray.alloc(n * rhsCols)
+  def solveLeastSquaresScaledRowsWith(
+      qr: QR,
+      b: DMat,
+      scales: DVec,
+      workspace: DenseWorkspace
+  ): Either[LinAlgError, DMat] =
+    val m = qr.reflectors.rows
+    val n = qr.r.cols
+    if qr.r.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.rows != m then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else if m < n then
+      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else
+      val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
+      else
+        validateRowScales(scales, m) match
+          case Left(error) => Left(error)
+          case Right(_) =>
+            val rhsCols = b.cols
+            val requirement = DenseWorkspace.qrSolveRequirement(m, rhsCols) match
+              case Left(error)  => return Left(error)
+              case Right(value) => value
+            val transformed = workspace.doubles(requirement)
+            var row = 0
+            var si = scales.offset.value
+            while row < m do
+              val scale = scales.data(si)
+              var source = b.offset.value + row * b.rowStride.value
+              var col = 0
+              while col < rhsCols do
+                transformed(row * rhsCols + col) = scale * b.data(source)
+                source += b.colStride.value
+                col += 1
+              si += scales.stride.value
+              row += 1
+            finishLeastSquaresMatrixInScratch(qr, transformed, rhsCols, rank)
+
+  private def finishLeastSquaresVectorInScratch(
+      qr: QR,
+      transformed: DoubleArray,
+      rank: Int
+  ): Either[LinAlgError, DVec] =
+    val m = qr.reflectors.rows
+    val n = qr.r.cols
+    val limit = qr.reflectors.cols
+    val vData = qr.reflectors.data
+    val tau = qr.tau
+    var k = 0
+    while k < limit do
+      val beta = tau(k)
+      if beta != 0.0 then
+        var dot = 0.0
+        var row = k
+        while row < m do
+          dot = fma(vData(row * limit + k), transformed(row), dot)
+          row += 1
+        dot *= beta
+        row = k
+        while row < m do
+          transformed(row) = fma(-dot, vData(row * limit + k), transformed(row))
+          row += 1
+      k += 1
+
+    val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
+    val info = DoubleKernels.dtrsv(
+      n,
+      lower = false,
+      unit = false,
+      tolerance,
+      qr.r.data,
+      qr.r.offset.value,
+      qr.r.rowStride.value,
+      qr.r.colStride.value,
+      transformed,
+      0,
+      1
+    )
+    if info >= 0 then Left(LinAlgError.RankDeficient(rank, n))
+    else
+      val coefficients = DoubleArray.alloc(n)
+      if qr.columnPermutation.isIdentity then
+        DoubleKernels.dcopy(n, transformed, 0, 1, coefficients, 0, 1)
+      else
         var pivoted = 0
         while pivoted < n do
-          val original = qr.columnPermutation(pivoted)
-          DoubleKernels.dcopy(
-            rhsCols,
-            transformed,
-            pivoted * rhsCols,
-            1,
-            coefficients,
-            original * rhsCols,
-            1
-          )
+          coefficients(qr.columnPermutation(pivoted)) = transformed(pivoted)
           pivoted += 1
-        Right(DMat.fromDoubleArrayOwned(n, rhsCols, coefficients))
+      Right(DVec.fromDoubleArrayOwned(coefficients))
+
+  private def finishLeastSquaresMatrixInScratch(
+      qr: QR,
+      transformed: DoubleArray,
+      rhsCols: Int,
+      rank: Int
+  ): Either[LinAlgError, DMat] =
+    val n = qr.r.cols
+    applyReflectorsLeft(qr, transformed, rhsCols, transpose = true)
+    val tolerance = qr.diagnostics.rankTolerance.getOrElse(rankToleranceFromMatrix(qr.r))
+    var rhs = 0
+    while rhs < rhsCols do
+      val info = DoubleKernels.dtrsv(
+        n,
+        lower = false,
+        unit = false,
+        tolerance,
+        qr.r.data,
+        qr.r.offset.value,
+        qr.r.rowStride.value,
+        qr.r.colStride.value,
+        transformed,
+        rhs,
+        rhsCols
+      )
+      if info >= 0 then return Left(LinAlgError.RankDeficient(rank, n))
+      rhs += 1
+
+    val coefficients = DoubleArray.alloc(n * rhsCols)
+    var pivoted = 0
+    while pivoted < n do
+      val original = qr.columnPermutation(pivoted)
+      DoubleKernels.dcopy(
+        rhsCols,
+        transformed,
+        pivoted * rhsCols,
+        1,
+        coefficients,
+        original * rhsCols,
+        1
+      )
+      pivoted += 1
+    Right(DMat.fromDoubleArrayOwned(n, rhsCols, coefficients))
+
+  private def validateRowScales(scales: DVec, rows: Int): Either[LinAlgError, Unit] =
+    if scales.length != rows then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(scales.length), Cols(1))))
+    else
+      var row = 0
+      var index = scales.offset.value
+      while row < rows do
+        val scale = scales.data(index)
+        if !scale.isFinite then
+          return Left(LinAlgError.InvalidArgument(s"row scale at index $row must be finite, got $scale"))
+        index += scales.stride.value
+        row += 1
+      Right(())
 
   def applyQ(qr: QR, b: DMat, transpose: Boolean): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows

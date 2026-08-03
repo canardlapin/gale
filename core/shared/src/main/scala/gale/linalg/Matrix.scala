@@ -706,6 +706,26 @@ final class DMat private[gale] (
   def qrWith(options: QROptions, workspace: DenseWorkspace)(using Backend): QR =
     DenseDecompositions.qr(this, options, workspace)
 
+  /** Factor the algebraic row-scaled matrix `diag(scales) * this` without
+    * materializing that matrix. Zero and negative finite scales are supported;
+    * non-finite scales are rejected with a typed error.
+    */
+  def qrScaledRows(scales: DVec)(using Backend): Either[LinAlgError, QR] =
+    DenseDecompositions.qrScaledRows(this, scales, QROptions.Default, DenseWorkspace.forQR(rows, cols))
+
+  def qrScaledRows(scales: DVec, options: QROptions)(using Backend): Either[LinAlgError, QR] =
+    DenseDecompositions.qrScaledRows(this, scales, options, DenseWorkspace.forQR(rows, cols, options))
+
+  def qrScaledRows(scales: DVec, workspace: DenseWorkspace)(using Backend): Either[LinAlgError, QR] =
+    DenseDecompositions.qrScaledRows(this, scales, QROptions.Default, workspace)
+
+  def qrScaledRows(
+      scales: DVec,
+      options: QROptions,
+      workspace: DenseWorkspace
+  )(using Backend): Either[LinAlgError, QR] =
+    DenseDecompositions.qrScaledRows(this, scales, options, workspace)
+
   def leastSquares(b: DVec)(using Backend): Either[LinAlgError, DVec] =
     qr.solveLeastSquares(b)
 
