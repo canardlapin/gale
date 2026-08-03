@@ -26,6 +26,10 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
 - `AllocationArchitectureJmh` — dense destination, factorization workspace,
   spectral scratch, and sparse structure/value allocation baselines over `n` in
   {64, 128}; use `-prof gc` and compare the paired allocating/reuse scenarios.
+- `QrMultiRhsJmh` — copy-inclusive pivoted-QR factor application and
+  least-squares matrix RHS solves over `n` in {512, 2048, 10000}, `p` in
+  {6, 24}, and `q` in {1, 8, 16, 32, 100}, plus a protected factorization
+  control. The exact regress4s fixture is `n=2048,p=6,q=16`.
 
 Most established kernel benchmarks use 2 forks with 5x500ms warmup and
 5x500ms measurement. `GeneralizedLobpcgJmh` uses one fork, 1x200ms warmup, and
@@ -56,6 +60,7 @@ sbt "benchmarksJVM/Jmh/run -prof gc -p n=4096 gale.bench.DenseKernelJmh.dot"
 sbt "benchmarksJVM/Jmh/run -prof gc .*DenseTransformJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc .*SparseInteropJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=128 gale.bench.AllocationArchitectureJmh.*"
+sbt "benchmarksJVM/Jmh/run -prof gc -p n=2048 -p p=6 -p q=16 gale.bench.QrMultiRhsJmh.*Owned"
 sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.GeneralizedLobpcgJmh.solve"
 sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"
 ```

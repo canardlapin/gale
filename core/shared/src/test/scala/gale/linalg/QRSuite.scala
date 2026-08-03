@@ -1,5 +1,7 @@
 package gale.linalg
 
+import gale.TestAccess
+
 class QRSuite extends munit.FunSuite:
   test("QR reconstructs a tall dense matrix") {
     val A = Matrix.dense(3, 2)(
@@ -248,6 +250,104 @@ class QRSuite extends munit.FunSuite:
     assertMatrixClose(actual, expected, 1e-10)
     assertMatrixClose(transformed, qr.q.t * observations, 1e-10)
     assertMatrixClose(qr.applyQ(transformed).orThrow, observations, 1e-10)
+  }
+
+  test("matrix RHS Q applications and least squares reduce to independent columns") {
+    val rng = new scala.util.Random(2026080201L)
+    val m = 37
+    val p = 6
+    val design = Matrix.dense(m, p, Seq.fill(m * p)(rng.nextDouble() * 2.0 - 1.0))
+    val qr = design.qr(QROptions(pivoting = QRPivoting.Column))
+
+    for q <- Seq(1, 8, 17) do
+      val rhs = Matrix.dense(m, q, Seq.fill(m * q)(rng.nextDouble() * 2.0 - 1.0))
+      val appliedQt = qr.applyQT(rhs).orThrow
+      val reappliedQ = qr.applyQ(appliedQt).orThrow
+      val solved = qr.solveLeastSquares(rhs).orThrow
+      val appliedQtColumns = Seq.tabulate(q): col =>
+        qr.applyQT(Matrix.tabulate(m, 1)((row, _) => rhs(row, col))).orThrow
+      val appliedQColumns = Seq.tabulate(q): col =>
+        qr.applyQ(Matrix.tabulate(m, 1)((row, _) => appliedQt(row, col))).orThrow
+      val appliedQtByColumn = Matrix.tabulate(m, q)((row, col) => appliedQtColumns(col)(row, 0))
+      val appliedQByColumn = Matrix.tabulate(m, q)((row, col) => appliedQColumns(col)(row, 0))
+      val solvedByColumn = Matrix.tabulate(p, q): (row, col) =>
+        qr.solveLeastSquares(rhs.col(col)).orThrow(row)
+
+      assertMatrixRelative(appliedQt, qr.q.t * rhs, rel = 8e-13, abs = 8e-14)
+      assertMatrixRelative(appliedQt, appliedQtByColumn, rel = 8e-13, abs = 8e-14)
+      assertMatrixRelative(reappliedQ, rhs, rel = 2e-12, abs = 2e-13)
+      assertMatrixRelative(reappliedQ, appliedQByColumn, rel = 8e-13, abs = 8e-14)
+      assertMatrixRelative(solved, solvedByColumn, rel = 8e-13, abs = 8e-14)
+
+      val appliedAgain = qr.applyQT(rhs).orThrow
+      val solvedAgain = qr.solveLeastSquares(rhs).orThrow
+      assertEquals(appliedAgain.valuesRowMajor, appliedQt.valuesRowMajor)
+      assertEquals(solvedAgain.valuesRowMajor, solved.valuesRowMajor)
+      assert(!TestAccess.sameStorage(TestAccess.dmatStorage(rhs), TestAccess.dmatStorage(appliedQt)))
+      assert(!TestAccess.sameStorage(TestAccess.dmatStorage(rhs), TestAccess.dmatStorage(solved)))
+  }
+
+  test("matrix RHS paths accept a non-contiguous transpose without changing its storage") {
+    val m = 41
+    val p = 6
+    val q = 9
+    val design = Matrix.tabulate(m, p)((row, col) =>
+      math.sin((row + 1).toDouble * (col + 2).toDouble * 0.03125) + (if row == col then 2.0 else 0.0)
+    )
+    val backing = Matrix.tabulate(q, m)((row, col) => math.cos((row + 3).toDouble * (col + 1).toDouble * 0.015625))
+    val strided = backing.t
+    val owned = Matrix.tabulate(m, q)(strided.apply)
+    val before = backing.valuesRowMajor
+    val qr = design.qr(QROptions(pivoting = QRPivoting.Column))
+
+    assert(!strided.isContiguousRowMajor)
+    assertMatrixRelative(qr.applyQT(strided).orThrow, qr.applyQT(owned).orThrow, rel = 0.0, abs = 0.0)
+    assertMatrixRelative(
+      qr.solveLeastSquares(strided).orThrow,
+      qr.solveLeastSquares(owned).orThrow,
+      rel = 0.0,
+      abs = 0.0
+    )
+    assertEquals(backing.valuesRowMajor, before)
+  }
+
+  test("matrix RHS paths preserve rank decisions at exact and near deficiency") {
+    val exact = Matrix.dense(5, 3)(
+      1.0, 2.0, 3.0,
+      2.0, 4.0, 6.0,
+      3.0, 6.0, 9.0,
+      4.0, 8.0, 12.0,
+      5.0, 10.0, 15.0
+    ).qr(QROptions(pivoting = QRPivoting.Column))
+    val rhs = Matrix.tabulate(5, 4)((row, col) => row.toDouble - 0.5 * col)
+    assertEquals(exact.diagnostics.rank, Some(1))
+    assert(exact.solveLeastSquares(rhs).left.exists(_.isInstanceOf[LinAlgError.RankDeficient]))
+
+    val near = Matrix.dense(5, 3)(
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0,
+      0.0, 0.0, 1.0e-10,
+      0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0
+    ).qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
+    assertEquals(near.diagnostics.rank, Some(2))
+    assert(near.solveLeastSquares(rhs).left.exists(_.isInstanceOf[LinAlgError.RankDeficient]))
+    assertMatrixRelative(near.applyQ(near.applyQT(rhs).orThrow).orThrow, rhs, rel = 1e-15, abs = 1e-15)
+  }
+
+  test("matrix RHS least squares remains finite and scale-equivariant at extreme magnitudes") {
+    val base = Matrix.tabulate(19, 5)((row, col) =>
+      math.sin((row + 1).toDouble * (col + 1).toDouble) + (if row == col then 1.0 else 0.0)
+    )
+    val expected = Matrix.tabulate(5, 7)((row, col) => (row - 2).toDouble * 0.125 + col.toDouble * 0.03125)
+
+    for scale <- Seq(1.0e150, 1.0e-150) do
+      val design = Matrix.tabulate(base.rows, base.cols)((row, col) => scale * base(row, col))
+      val observations = design * expected
+      val actual = design.qr(QROptions(pivoting = QRPivoting.Column)).solveLeastSquares(observations).orThrow
+
+      assert(actual.valuesRowMajor.forall(_.isFinite), s"non-finite matrix solution at scale=$scale")
+      assertMatrixRelative(actual, expected, rel = 4e-13, abs = 4e-14)
   }
 
   test("QR residualization and normalized covariance satisfy independent identities") {

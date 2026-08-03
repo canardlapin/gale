@@ -1156,6 +1156,21 @@ object DenseDecompositions:
       valueCols: Int,
       transpose: Boolean
   ): Unit =
+    if valueCols < 8 then
+      applyReflectorsLeftScalar(qr, values, valueCols, transpose)
+    else
+      applyReflectorsLeftBlocked(qr, values, valueCols, transpose)
+
+  /** Preserve the original column-first traversal for narrow right-hand sides.
+    * In particular, q=1 remains the compact scalar control rather than paying
+    * the compilation and branch footprint of the wide matrix kernel.
+    */
+  private def applyReflectorsLeftScalar(
+      qr: QR,
+      values: DoubleArray,
+      valueCols: Int,
+      transpose: Boolean
+  ): Unit =
     val m = qr.reflectors.rows
     val limit = qr.reflectors.cols
     val reflectors = qr.reflectors.data
@@ -1167,6 +1182,87 @@ object DenseDecompositions:
       val beta = tau(k)
       if beta != 0.0 then
         var col = 0
+        while col < valueCols do
+          var dot = 0.0
+          var row = k
+          while row < m do
+            dot = fma(reflectors(row * limit + k), values(row * valueCols + col), dot)
+            row += 1
+          dot *= beta
+          row = k
+          while row < m do
+            val index = row * valueCols + col
+            values(index) = fma(-dot, reflectors(row * limit + k), values(index))
+            row += 1
+          col += 1
+      k += step
+
+  /** Matrix RHS values are owned row-major storage. Work eight columns at a
+    * time so both dot accumulation and the rank-1 update traverse each row
+    * contiguously while keeping partial sums in scalar locals. The scalar tail
+    * handles widths that are not multiples of eight without scratch storage.
+    */
+  private def applyReflectorsLeftBlocked(
+      qr: QR,
+      values: DoubleArray,
+      valueCols: Int,
+      transpose: Boolean
+  ): Unit =
+    val m = qr.reflectors.rows
+    val limit = qr.reflectors.cols
+    val reflectors = qr.reflectors.data
+    val tau = qr.tau
+    var k = if transpose then 0 else limit - 1
+    val end = if transpose then limit else -1
+    val step = if transpose then 1 else -1
+    while k != end do
+      val beta = tau(k)
+      if beta != 0.0 then
+        var col = 0
+        while col + 7 < valueCols do
+          var dot0 = 0.0
+          var dot1 = 0.0
+          var dot2 = 0.0
+          var dot3 = 0.0
+          var dot4 = 0.0
+          var dot5 = 0.0
+          var dot6 = 0.0
+          var dot7 = 0.0
+          var row = k
+          while row < m do
+            val vi = reflectors(row * limit + k)
+            val index = row * valueCols + col
+            dot0 = fma(vi, values(index), dot0)
+            dot1 = fma(vi, values(index + 1), dot1)
+            dot2 = fma(vi, values(index + 2), dot2)
+            dot3 = fma(vi, values(index + 3), dot3)
+            dot4 = fma(vi, values(index + 4), dot4)
+            dot5 = fma(vi, values(index + 5), dot5)
+            dot6 = fma(vi, values(index + 6), dot6)
+            dot7 = fma(vi, values(index + 7), dot7)
+            row += 1
+          dot0 *= beta
+          dot1 *= beta
+          dot2 *= beta
+          dot3 *= beta
+          dot4 *= beta
+          dot5 *= beta
+          dot6 *= beta
+          dot7 *= beta
+          row = k
+          while row < m do
+            val vi = reflectors(row * limit + k)
+            val index = row * valueCols + col
+            values(index) = fma(-dot0, vi, values(index))
+            values(index + 1) = fma(-dot1, vi, values(index + 1))
+            values(index + 2) = fma(-dot2, vi, values(index + 2))
+            values(index + 3) = fma(-dot3, vi, values(index + 3))
+            values(index + 4) = fma(-dot4, vi, values(index + 4))
+            values(index + 5) = fma(-dot5, vi, values(index + 5))
+            values(index + 6) = fma(-dot6, vi, values(index + 6))
+            values(index + 7) = fma(-dot7, vi, values(index + 7))
+            row += 1
+          col += 8
         while col < valueCols do
           var dot = 0.0
           var row = k
