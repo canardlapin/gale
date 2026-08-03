@@ -30,13 +30,17 @@ jobs:
           cache: sbt
       - uses: sbt/setup-sbt@v1
       - name: Require a semantic release tag
+        if: github.event_name == 'push'
         run: |
           if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Release workflows must run from a clean vX.Y.Z tag; got $GITHUB_REF_NAME" >&2
             exit 1
           fi
-      - name: Run the release version and dependency gates
-        run: sbt releaseVersionCheck releaseDependencyCheck
+      - name: Run the release version gate
+        if: github.event_name == 'push'
+        run: sbt releaseVersionCheck
+      - name: Run the release dependency gate
+        run: sbt releaseDependencyCheck
       - name: Re-run the complete correctness, optimized-link, and docs gates
         run: sbt testAllFull docsCheck
 
@@ -149,5 +153,5 @@ jobs:
             echo "### Central Portal deployment"
             echo "Uploaded in USER_MANAGED mode; publish it manually after Central validation."
             echo
-            echo "Deployment ID: `$deployment`"
+            printf 'Deployment ID: `%s`\n' "$deployment"
           } >> "$GITHUB_STEP_SUMMARY"
