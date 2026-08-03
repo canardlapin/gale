@@ -1,0 +1,46 @@
+command=VECLIB_MAXIMUM_THREADS=1 sbt 'benchmarksFfm/runMain gale.bench.FfmPivotedQrAssessmentMain'
+library=/System/Library/Frameworks/Accelerate.framework/Accelerate
+libraryVersion=Accelerate 1.11
+shape=512 x 3 lwork=134 peakNativeBytes=13424 permutationEqual=true
+shape=512 x 5 lwork=202 peakNativeBytes=22184 permutationEqual=true
+shape=512 x 6 lwork=236 peakNativeBytes=26564 permutationEqual=true
+shape=512 x 8 lwork=304 peakNativeBytes=35324 permutationEqual=true
+shape=512 x 16 lwork=576 peakNativeBytes=70364 permutationEqual=true
+shape=512 x 24 lwork=848 peakNativeBytes=105404 permutationEqual=true
+shape=1024 x 3 lwork=134 peakNativeBytes=25712 permutationEqual=true
+shape=1024 x 5 lwork=202 peakNativeBytes=42664 permutationEqual=true
+shape=1024 x 6 lwork=236 peakNativeBytes=51140 permutationEqual=true
+shape=1024 x 8 lwork=304 peakNativeBytes=68092 permutationEqual=true
+shape=1024 x 16 lwork=576 peakNativeBytes=135900 permutationEqual=true
+shape=1024 x 24 lwork=848 peakNativeBytes=203708 permutationEqual=true
+shape=2048 x 3 lwork=134 peakNativeBytes=50288 permutationEqual=true
+shape=2048 x 5 lwork=202 peakNativeBytes=83624 permutationEqual=true
+shape=2048 x 6 lwork=236 peakNativeBytes=100292 permutationEqual=true
+shape=2048 x 8 lwork=304 peakNativeBytes=133628 permutationEqual=true
+shape=2048 x 16 lwork=576 peakNativeBytes=266972 permutationEqual=true
+shape=2048 x 24 lwork=848 peakNativeBytes=400316 permutationEqual=true
+shape=4096 x 3 lwork=134 peakNativeBytes=99440 permutationEqual=true
+shape=4096 x 5 lwork=202 peakNativeBytes=165544 permutationEqual=true
+shape=4096 x 6 lwork=236 peakNativeBytes=198596 permutationEqual=true
+shape=4096 x 8 lwork=304 peakNativeBytes=264700 permutationEqual=true
+shape=4096 x 16 lwork=576 peakNativeBytes=529116 permutationEqual=true
+shape=4096 x 24 lwork=848 peakNativeBytes=793532 permutationEqual=true
+shape=10000 x 3 lwork=134 peakNativeBytes=241136 permutationEqual=true
+shape=10000 x 5 lwork=202 peakNativeBytes=401704 permutationEqual=true
+shape=10000 x 6 lwork=236 peakNativeBytes=481988 permutationEqual=true
+shape=10000 x 8 lwork=304 peakNativeBytes=642556 permutationEqual=true
+shape=10000 x 16 lwork=576 peakNativeBytes=1284828 permutationEqual=true
+shape=10000 x 24 lwork=848 peakNativeBytes=1927100 permutationEqual=true
+ordinaryPermutationMismatches=0
+exactTiePermutationEqual=true
+nearTiedCorrelatedCases=256
+nearTiedPermutationMismatches=45
+reconstruction=ok
+orthogonality=ok
+leastSquaresResidual=ok
+rankDeficientRank=ok
+extremeScales=ok
+repeatedDeterminism=ok
+typedRhsDimensionFailure=ok
+jvmNativeIsolation=ok
+status=ok
