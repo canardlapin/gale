@@ -13,7 +13,6 @@ lazy val scalaNextVersion = "3.8.4"
 
 ThisBuild / organization := "io.github.canardlapin"
 ThisBuild / scalaVersion := scalaBaselineVersion
-ThisBuild / version      := "1.0.0-SNAPSHOT"
 ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
 ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / scmInfo := Some(
@@ -31,6 +30,42 @@ ThisBuild / developers := List(
     url = url("https://github.com/canardlapin")
   )
 )
+
+// sbt-ci-release/sbt-dynver owns the release version. Until the first tag
+// exists, keep the development line visibly on the 1.0 track instead of
+// exposing dynver's generic 0.0.0 fallback. A clean `v1.0.0` tag is the only
+// state that yields a stable version; every other state remains a unique
+// `1.0.0+...-SNAPSHOT` candidate.
+def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
+  val rawBase = out.ref.value.stripPrefix("v")
+  val base = if (rawBase == "0.0.0") "1.0.0" else rawBase
+  val commit =
+    if (out.commitSuffix.sha.isEmpty) ""
+    else s"+${out.commitSuffix.distance}-${out.commitSuffix.sha}"
+  val dirty =
+    if (out.dirtySuffix.value.isEmpty) ""
+    else s"+${out.dirtySuffix.value.stripPrefix("+")}"
+  val stable = out.ref.value.startsWith("v") && commit.isEmpty && dirty.isEmpty
+  if (stable) base else s"$base$commit$dirty-SNAPSHOT"
+}
+
+def galeReleaseFallbackVersion(date: java.util.Date): String = {
+  s"1.0.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
+}
+
+inThisBuild(List(
+  version := dynverGitDescribeOutput.value.mkVersion(
+    galeReleaseVersion,
+    galeReleaseFallbackVersion(dynverCurrentDate.value)
+  ),
+  dynver := {
+    val date = new java.util.Date
+    sbtdynver.DynVer
+      .getGitDescribeOutput(date)
+      .map(galeReleaseVersion)
+      .getOrElse(galeReleaseFallbackVersion(date))
+  }
+))
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",
@@ -80,6 +115,18 @@ lazy val releaseSnapshotSettings = Seq(
   }
 )
 
+lazy val releaseVersionCheck = taskKey[Unit](
+  "Require a clean, tag-derived semantic version for publication"
+)
+
+lazy val releaseVersionSettings = Seq(
+  releaseVersionCheck := {
+    val candidate = version.value
+    if (candidate.endsWith("-SNAPSHOT") || !candidate.matches("[0-9]+\\.[0-9]+\\.[0-9]+"))
+      sys.error(s"release publication requires a clean vX.Y.Z tag; derived version was $candidate")
+  }
+)
+
 lazy val munitVersion = "1.3.0"
 
 // Experimental WebAssembly output for Scala.js, toggled OFF by default so a plain
@@ -119,6 +166,7 @@ lazy val core: CrossProject =
     .in(file("core"))
     .settings(commonSettings)
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-core",
       description := "Cross-platform linear algebra for Scala 3: dense and sparse matrices, factorizations, and solvers on shared strided kernels."
@@ -134,6 +182,7 @@ lazy val laws: CrossProject =
     .in(file("laws"))
     .dependsOn(core)
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-laws",
       description := "Reusable munit/ScalaCheck law bundles for gale's public API.",
@@ -211,6 +260,7 @@ lazy val interopBreeze =
     .in(file("interop-breeze"))
     .dependsOn(coreJVM)
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-interop-breeze",
       description := "Breeze interoperability for gale (JVM).",
@@ -234,6 +284,7 @@ lazy val vectorBackend =
     .in(file("backend-jvm-vector"))
     .dependsOn(coreJVM, lawsJVM % "test->compile")
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-backend-jvm-vector",
       description := "Optional JDK Vector API GEMM backend for gale, with measured adaptive dispatch.",
@@ -275,6 +326,7 @@ lazy val nativeBackend =
     .in(file("backend-jvm-native"))
     .dependsOn(coreJVM)
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-backend-jvm-native",
       description := "Optional JDK 22+ off-heap matrix storage for gale over FFM MemorySegment.",
@@ -291,6 +343,7 @@ lazy val blasFfmBackend =
     .in(file("backend-jvm-blas-ffm"))
     .dependsOn(nativeBackend, lawsJVM % "test->compile")
     .settings(releaseSnapshotSettings)
+    .settings(releaseVersionSettings)
     .settings(
       name := "gale-backend-jvm-blas-ffm",
       description := "Optional JDK 22+ runtime-discovered BLAS/LAPACK backend for gale via FFM.",
@@ -408,7 +461,8 @@ lazy val root =
     .in(file("."))
     .aggregate(
       coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS,
-      parity, interopBreeze, interopRavelJVM, interopRavelJS, vectorBackend
+      parity, interopBreeze, interopRavelJVM, interopRavelJS, vectorBackend,
+      nativeBackend, blasFfmBackend
     )
     .settings(
       name := "gale",
@@ -432,6 +486,13 @@ addCommandAlias(
   "releaseDependencyCheck",
   ";coreJVM/releaseSnapshotCheck;coreJS/releaseSnapshotCheck;lawsJVM/releaseSnapshotCheck;lawsJS/releaseSnapshotCheck;interopBreeze/releaseSnapshotCheck;vectorBackend/releaseSnapshotCheck;nativeBackend/releaseSnapshotCheck;blasFfmBackend/releaseSnapshotCheck"
 )
+// The first two aliases intentionally split the signed bundle by JDK. The
+// release workflow merges the two Maven-layout staging trees and uploads one
+// Central Portal deployment, so no JDK can publish a partial version alone.
+addCommandAlias("releaseJdk21Unsigned", ";coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish;interopBreeze/publish;vectorBackend/publish")
+addCommandAlias("releaseJdk21Signed", ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned;interopBreeze/publishSigned;vectorBackend/publishSigned")
+addCommandAlias("releaseJdk22Unsigned", ";nativeBackend/publish;blasFfmBackend/publish")
+addCommandAlias("releaseJdk22Signed", ";nativeBackend/publishSigned;blasFfmBackend/publishSigned")
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("nativeBackendTest", ";nativeBackend/test")

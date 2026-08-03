@@ -10,8 +10,8 @@ solver, and spectral API on the JVM and Scala.js. Use it when a numerical
 library needs real-`Double` matrices, typed failure and convergence evidence,
 or matrix-free algorithms without taking a JVM-only dependency.
 
-> **Status:** Pre-release and source-only. The build is `1.0.0-SNAPSHOT`; Gale
-> is not available from Maven Central yet.
+> **Status:** Pre-release and source-only. Untagged builds derive a unique
+> `1.0.0+...-SNAPSHOT` version; Gale is not available from Maven Central yet.
 
 ## Quick start
 
@@ -65,8 +65,8 @@ libraryDependencies +=
   "io.github.canardlapin" %%% "gale-core" % "<published-version>"
 ```
 
-Do not substitute `1.0.0-SNAPSHOT` unless that snapshot was actually published
-to the resolver used by your build.
+Do not invent a snapshot coordinate: use a pinned source revision or a
+published, non-snapshot version from the resolver used by your build.
 
 ## What Gale covers
 

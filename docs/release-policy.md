@@ -1,8 +1,8 @@
 # Gale v1 compatibility and artifact policy
 
-This policy begins with the first `1.0.0` release. The current build version is
-`1.0.0-SNAPSHOT`; a snapshot is not a published release or a compatibility
-promise.
+This policy begins with the first `1.0.0` release. Untagged builds derive a
+unique `1.0.0+...-SNAPSHOT` version; a snapshot is not a published release or a
+compatibility promise. Only a clean `vX.Y.Z` tag may produce a stable version.
 
 ## Coordinates and published modules
 
@@ -35,11 +35,12 @@ publication promise.
 `gale-laws` is a normal published module because downstream libraries are meant
 to extend its suites, not a classifier-only test jar.
 
-The JVM/Scala.js modules are released from the JDK 21 build. Native storage and
-BLAS/LAPACK artifacts require a separate JDK 22 publication pass. A release is
-incomplete unless both passes publish the same version. `sbt
-releaseDependencyCheck` is required before either pass and rejects compile or
-runtime `SNAPSHOT` dependencies.
+The JVM/Scala.js modules are staged from a JDK 21 build. Native storage and
+BLAS/LAPACK artifacts are staged from a separate JDK 22 build. The release
+workflow merges those disjoint Maven-layout staging trees into one signed
+Central Portal bundle; a release is incomplete unless both passes contribute to
+that same tag-derived version. `sbt releaseDependencyCheck` is required before
+either pass and rejects compile or runtime `SNAPSHOT` dependencies.
 
 ## Compatibility promise
 
@@ -128,5 +129,9 @@ The owner selected Apache-2.0 and `https://github.com/canardlapin/gale` as the
 canonical SCM repository on 2026-07-19. The root `LICENSE` and generated POMs
 carry that provenance. Binary publication still requires a configured
 destination, credentials, signing policy, and remote CI on the exact release
-commit. Local `publishLocal` is useful packaging evidence but is not a public
+commit. `.github/workflows/release.yml` is tag-only (or an explicitly selected
+tag dry-run), imports the ephemeral PGP key only in release jobs, validates the
+complete signed bundle, and uploads it to Central Portal as `USER_MANAGED`.
+The final Central publish action remains a manual Portal operation after
+validation; `publishLocal` is useful packaging evidence but is not a public
 release.
