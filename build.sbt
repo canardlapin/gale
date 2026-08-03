@@ -13,6 +13,7 @@ lazy val scalaNextVersion = "3.8.4"
 
 ThisBuild / organization := "io.github.canardlapin"
 ThisBuild / scalaVersion := scalaBaselineVersion
+ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
 ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / scmInfo := Some(
