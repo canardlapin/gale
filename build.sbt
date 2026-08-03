@@ -39,6 +39,46 @@ lazy val commonScalacOptions = Seq(
   "-Xmax-inlines:64"
 )
 
+// Release candidates must not silently pull an unpublished snapshot at
+// compile or runtime. Keep this check attached to each admitted artifact so
+// publication can fail before assembling a partial bundle.
+lazy val releaseSnapshotCheck = taskKey[Unit](
+  "Fail when an admitted artifact resolves a SNAPSHOT dependency"
+)
+
+lazy val releaseInternalModules = Set(
+  "gale-core_3",
+  "gale-core_sjs1_3",
+  "gale-laws_3",
+  "gale-laws_sjs1_3",
+  "gale-interop-breeze_3",
+  "gale-backend-jvm-vector_3",
+  "gale-backend-jvm-native_3",
+  "gale-backend-jvm-blas-ffm_3"
+)
+
+lazy val releaseSnapshotSettings = Seq(
+  releaseSnapshotCheck := {
+    val reports = Seq((Compile / update).value, (Runtime / update).value)
+    val snapshots = reports
+      .flatMap(_.configurations)
+      .flatMap(_.modules)
+      .map(_.module)
+      .filter(_.revision.toUpperCase.contains("SNAPSHOT"))
+      .filterNot(m =>
+        m.organization == organization.value && releaseInternalModules.contains(m.name)
+      )
+      .distinct
+
+    if (snapshots.nonEmpty) {
+      val rendered = snapshots
+        .map(m => s"${m.organization}:${m.name}:${m.revision}")
+        .mkString(", ")
+      sys.error(s"release artifact has prohibited SNAPSHOT dependencies: $rendered")
+    }
+  }
+)
+
 lazy val munitVersion = "1.3.0"
 
 // Experimental WebAssembly output for Scala.js, toggled OFF by default so a plain
@@ -77,6 +117,7 @@ lazy val core: CrossProject =
     .crossType(CrossType.Full)
     .in(file("core"))
     .settings(commonSettings)
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-core",
       description := "Cross-platform linear algebra for Scala 3: dense and sparse matrices, factorizations, and solvers on shared strided kernels."
@@ -91,6 +132,7 @@ lazy val laws: CrossProject =
     .crossType(CrossType.Full)
     .in(file("laws"))
     .dependsOn(core)
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-laws",
       description := "Reusable munit/ScalaCheck law bundles for gale's public API.",
@@ -167,6 +209,7 @@ lazy val interopBreeze =
   project
     .in(file("interop-breeze"))
     .dependsOn(coreJVM)
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-interop-breeze",
       description := "Breeze interoperability for gale (JVM).",
@@ -189,6 +232,7 @@ lazy val vectorBackend =
   project
     .in(file("backend-jvm-vector"))
     .dependsOn(coreJVM, lawsJVM % "test->compile")
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-backend-jvm-vector",
       description := "Optional JDK Vector API GEMM backend for gale, with measured adaptive dispatch.",
@@ -212,6 +256,9 @@ lazy val interopRavel: CrossProject =
     .settings(
       name := "gale-interop-ravel",
       description := "Explicit copy conversions between Ravel arrays and Gale vectors and matrices.",
+      // Ravel is still a development snapshot and is deliberately outside
+      // the immutable Gale 1.0 artifact set.
+      publish / skip := true,
       libraryDependencies +=
         "io.github.canardlapin" %%% "ravel-core" % ravelVersion
     )
@@ -226,6 +273,7 @@ lazy val nativeBackend =
   project
     .in(file("backend-jvm-native"))
     .dependsOn(coreJVM)
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-backend-jvm-native",
       description := "Optional JDK 22+ off-heap matrix storage for gale over FFM MemorySegment.",
@@ -241,6 +289,7 @@ lazy val blasFfmBackend =
   project
     .in(file("backend-jvm-blas-ffm"))
     .dependsOn(nativeBackend, lawsJVM % "test->compile")
+    .settings(releaseSnapshotSettings)
     .settings(
       name := "gale-backend-jvm-blas-ffm",
       description := "Optional JDK 22+ runtime-discovered BLAS/LAPACK backend for gale via FFM.",
@@ -349,17 +398,23 @@ lazy val root =
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;interopRavelJVM/compile;interopRavelJS/compile;scalaNextConsumer/compile")
-addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test;interopRavelJVM/test;interopRavelJS/test")
+addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;scalaNextConsumer/compile")
+addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
-addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS;interopRavelJS/Test/fullLinkJS")
+addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS")
 // Breeze parity harness (JVM-only correctness parity vs Scala Breeze 2.1.0).
 addCommandAlias("parityTest", ";parity/test")
 // Breeze interop module (conversions + migration aids).
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
 // Ravel interop module (copy-only dense vector/matrix conversions).
 addCommandAlias("interopRavelTest", ";interopRavelJVM/test;interopRavelJS/test")
+// Admitted 1.0 modules are checked independently so an optional development
+// integration cannot mask a release dependency failure.
+addCommandAlias(
+  "releaseDependencyCheck",
+  ";coreJVM/releaseSnapshotCheck;coreJS/releaseSnapshotCheck;lawsJVM/releaseSnapshotCheck;lawsJS/releaseSnapshotCheck;interopBreeze/releaseSnapshotCheck;vectorBackend/releaseSnapshotCheck;nativeBackend/releaseSnapshotCheck;blasFfmBackend/releaseSnapshotCheck"
+)
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("nativeBackendTest", ";nativeBackend/test")
