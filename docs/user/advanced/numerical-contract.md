@@ -57,10 +57,11 @@ The operator surface accepts
 `B`-Gram error. Non-convergence returns the converged subset in `Right`, never a
 false full result. Residual convergence does not by itself certify membership in
 the requested global extreme; callers needing that stronger guarantee use
-`requireExtremeCertified`. A generalized block-Lanczos follow-up remains gated
-on an explicit metric-solve contract. The
+`requireExtremeCertified`. The separately named generalized block-Lanczos
+engine is available when the caller supplies an explicit `MetricSolveOperator`;
+it never constructs `B^-1` or silently factorizes the metric. The
 [operator eigensolver guide](generalized-operator-eigen.md) gives the complete
-selection, preconditioner, backend, and work-accounting contract.
+selection, metric-solve, backend, and work-accounting contract.
 
 ## Storage and allocation boundary
 

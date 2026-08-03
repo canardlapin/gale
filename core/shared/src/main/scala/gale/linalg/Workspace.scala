@@ -7,9 +7,8 @@ import gale.platform.IndexArray.*
 
 /** Checked primitive scratch counts for one algorithm path.
   *
-  * Counts describe simultaneously live storage, not result ownership. Use
-  * [[simultaneous]] when two requirements must coexist (component-wise sum) and
-  * [[alternative]] when only one branch executes (component-wise maximum).
+  * Counts describe simultaneously live storage, not result ownership. Use [[simultaneous]] when two requirements must
+  * coexist (component-wise sum) and [[alternative]] when only one branch executes (component-wise maximum).
   */
 final class ScratchRequirement private (
     val doubleElements: Int,
@@ -70,9 +69,8 @@ object ScratchRequirement:
 
 /** Grow-only reusable primitive scratch for portable dense and sparse algorithms.
   *
-  * The workspace owns one Double region and one index region. [[reserve]] grows
-  * either region only when required and never exposes their backing arrays.
-  * Instances are mutable single-owner execution resources and are not safe for
+  * The workspace owns one Double region and one index region. [[reserve]] grows either region only when required and
+  * never exposes their backing arrays. Instances are mutable single-owner execution resources and are not safe for
   * concurrent use.
   */
 final class DenseWorkspace private (
@@ -86,8 +84,7 @@ final class DenseWorkspace private (
 
   def indexCapacity: Int = indexWorkValue.length
 
-  /** Ensure both primitive regions satisfy `requirement`. Existing larger
-    * regions retain identity and contents.
+  /** Ensure both primitive regions satisfy `requirement`. Existing larger regions retain identity and contents.
     */
   def reserve(requirement: ScratchRequirement): Unit =
     if doubleWorkValue.length < requirement.doubleElements then
@@ -117,6 +114,11 @@ object DenseWorkspace:
   private[gale] inline val QrBlockSize = 32
   private[gale] inline val QrBlockedMin = 96
 
+  /** Scratch regions the wide column-pivoted path lays out per column: the reflector-update block it shares with the
+    * unpivoted path, then the downdated squared norms, then their rounding bounds.
+    */
+  private[gale] inline val PivotScreenRegions = 3
+
   private[gale] def usesBlockedQR(rows: Int, cols: Int): Boolean =
     math.min(rows, cols) >= QrBlockedMin
 
@@ -133,8 +135,11 @@ object DenseWorkspace:
       ScratchRequirement.checked(doubles, 0L)
 
   /** Report the exact QR scratch requirement for an explicit numerical policy.
-    * Compact column pivoting keeps one stable `scale` and `ssq` accumulator per
-    * column; those regions are alternatives to the default update scratch.
+    *
+    * Compact column pivoting keeps one stable `scale` and `ssq` accumulator per column; those regions are alternatives
+    * to the default update scratch. Wider column pivoting instead carries a downdated squared norm and its rounding
+    * bound per column across steps, so those two regions must survive the reflector update and sit past it rather than
+    * alias it.
     */
   def qrRequirement(
       rows: Int,
@@ -143,17 +148,19 @@ object DenseWorkspace:
   ): Either[LinAlgError, ScratchRequirement] =
     val baseResult = qrRequirement(rows, cols)
     baseResult match
-      case Right(base)
-          if options.pivoting == QRPivoting.Column && cols <= 8 &&
-            2L * cols.toLong > base.doubleElements.toLong =>
-        ScratchRequirement.checked(2L * cols.toLong, base.indexElements.toLong)
+      case Right(base) if options.pivoting == QRPivoting.Column =>
+        val pivotDoubles =
+          if cols <= 8 then 2L * cols.toLong
+          else PivotScreenRegions * cols.toLong
+        if pivotDoubles > base.doubleElements.toLong then
+          ScratchRequirement.checked(pivotDoubles, base.indexElements.toLong)
+        else baseResult
       case _ => baseResult
 
   /** Scratch for a QR least-squares solve with `rightHandSides` columns.
     *
-    * The transformed observation-by-RHS block lives entirely in caller-owned
-    * scratch. The coefficient vector or matrix remains an independently owned
-    * result and is therefore not included here.
+    * The transformed observation-by-RHS block lives entirely in caller-owned scratch. The coefficient vector or matrix
+    * remains an independently owned result and is therefore not included here.
     */
   def qrSolveRequirement(
       observations: Int,
@@ -187,21 +194,21 @@ object DenseWorkspace:
   /** Pre-size the reusable scratch for the QR path selected by this shape. */
   def forQR(rows: Int, cols: Int): DenseWorkspace =
     qrRequirement(rows, cols) match
-      case Left(error) => throw error
+      case Left(error)        => throw error
       case Right(requirement) =>
         forRequirement(requirement)
 
   /** Pre-size reusable QR scratch for an explicit numerical policy. */
   def forQR(rows: Int, cols: Int, options: QROptions): DenseWorkspace =
     qrRequirement(rows, cols, options) match
-      case Left(error) => throw error
+      case Left(error)        => throw error
       case Right(requirement) =>
         forRequirement(requirement)
 
   /** Pre-size reusable scratch for a QR least-squares solve. */
   def forQRSolve(observations: Int, rightHandSides: Int): DenseWorkspace =
     qrSolveRequirement(observations, rightHandSides) match
-      case Left(error) => throw error
+      case Left(error)        => throw error
       case Right(requirement) =>
         forRequirement(requirement)
 

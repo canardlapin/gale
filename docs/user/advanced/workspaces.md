@@ -20,16 +20,17 @@ val eigen = Eigen.symmetricScratchRequirement(
 ).toOption.get
 ```
 
-Counts are non-negative `Int`-addressable quantities. Construction and addition
-use `Either[LinAlgError, ScratchRequirement]`, so negative counts and overflow
-are reported before allocation. A zero-sized problem reports
+Counts are non-negative `Int`-addressable quantities. Construction and
+simultaneous addition use `Either[LinAlgError, ScratchRequirement]`, so negative
+counts and overflow are reported before allocation. A zero-sized problem reports
 `ScratchRequirement.empty`.
 
 Composition names encode lifetimes:
 
 - `a.simultaneous(b)` adds Double counts and index counts component-wise because
   both regions must coexist. Addition is checked for overflow.
-- `a.alternative(b)` takes component-wise maxima because only one branch runs.
+- `a.alternative(b)` takes component-wise maxima because only one branch runs;
+  maxima of already checked counts cannot overflow, so this operation is total.
 
 Both operations are commutative and associative for valid counts; the empty
 requirement is their identity. These rules let a larger algorithm report one
@@ -70,11 +71,22 @@ Keeping one workspace for a long-lived sequential pipeline is safe.
 
 ## Supported algorithms
 
-The initial portable reuse tier covers three independently measured families:
+The portable reuse tier covers these independently measured families:
 
-- `DenseWorkspace.qrRequirement(rows, cols)` and `DMat.qrWith(workspace)` reuse
-  Householder/panel scratch. The ordinary `qr` facade creates a suitable
-  workspace internally.
+- `DenseWorkspace.qrRequirement(rows, cols, options)` and
+  `DMat.qrWith(options, workspace)` reuse Householder, panel, and pivot-norm
+  scratch. Use the options-aware requirement when column pivoting is enabled.
+  The ordinary `qr` facade creates a suitable workspace internally.
+- `DenseWorkspace.qrSolveRequirement(observations, rightHandSides)` and
+  `QR.solveLeastSquaresWith(rhs, workspace)` keep the transformed right-hand
+  side in scratch while returning an independently owned coefficient vector or
+  matrix. `DenseWorkspace.forQRSolve` is the allocating convenience.
+- `DMat.qrScaledRows(scales, options, workspace)` factors
+  `diag(scales) * A` without constructing that temporary matrix. The matching
+  `QR.solveLeastSquaresScaledRowsWith` transforms a scaled right-hand side in
+  caller-owned scratch. Scales are algebraic row multipliers: they may be
+  negative or zero, and they are not implicitly square-rooted statistical
+  weights.
 - `Eigen.symmetricScratchRequirement(order, vectors)` and
   `Eigen.eigSymmetricWith(...)` reuse dense symmetric reduction scratch. This is
   deliberately the pure Gale route: an optional provider cannot promise to use
@@ -90,6 +102,32 @@ symmetrized reduction matrix and tridiagonal off-diagonal. When vectors are
 requested, the `n*n` eigenvector matrix is result storage rather than scratch,
 so the reported requirement is only `n` Double cells. CSR canonicalization
 reports `nnz` cells of each primitive kind, the widest possible row.
+
+## Factor and solve in one sequential pipeline
+
+Factorization scratch and solve scratch are not live at the same time. Size one
+workspace with the component-wise maximum of their requirements:
+
+```scala mdoc:silent
+import gale.linalg.*
+
+val options = QROptions(pivoting = QRPivoting.Column)
+
+val factorScratch = DenseWorkspace
+  .qrRequirement(rows = 200, cols = 40, options)
+  .orThrow
+val solveScratch = DenseWorkspace
+  .qrSolveRequirement(observations = 200, rightHandSides = 3)
+  .orThrow
+
+val shared = DenseWorkspace.forRequirement(
+  factorScratch.alternative(solveScratch)
+)
+```
+
+The factor and returned coefficients own their storage. Reusing `shared` after
+either call cannot mutate them. Do not use `simultaneous` here: that operation
+is for scratch regions that must coexist.
 
 Use a workspace only after profiling identifies a repeated allocation hot path.
 It does not change numerical results, ordering, diagnostics, or error semantics.

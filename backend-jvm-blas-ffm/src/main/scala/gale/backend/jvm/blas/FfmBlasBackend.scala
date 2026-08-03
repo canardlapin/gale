@@ -452,7 +452,7 @@ given ffmBlasBackend: Backend = FfmBlasBackend.default
 /** Explicit spectral import point (the boundary doc's "value + given" module shape):
   * the LAPACK spectral half of [[FfmBlasBackend.default]], routing the S7/S8 spectral
   * facades. When the discovered library has no complete LAPACK symbol set this is
-  * [[SpectralBackend.none]] — availability is a registration responsibility, so the
+  * [[gale.spectral.SpectralBackend.none]] — availability is a registration responsibility, so the
   * facades fall back to the pure kernels cleanly rather than failing at call time.
   */
 given ffmSpectralBackend: SpectralBackend =

@@ -43,6 +43,19 @@ Concrete methods are unchanged, so `lu.solve(rhs)`, `cholesky.solve(rhs)`, and
 are for generic algorithms and future sparse/provider factors that genuinely
 satisfy the same semantics.
 
+Workspace-aware solves intentionally remain on concrete `QR`. A
+`DenseWorkspace` is an execution-resource and pure-kernel choice, not part of
+the mathematical `LeastSquaresFactor` capability. Use
+`qr.solveLeastSquaresWith(rhs, workspace)` when repeated transformed-right-hand-
+side allocation is measured; generic code should keep using
+`LeastSquaresFactor.solveLeastSquares`.
+
+Likewise, `DMat.qr(options)` states a pivoting and rank policy and uses the
+portable factorization, while the no-argument `DMat.qr` may use an eligible
+backend provider. `DMat.qrWith(options, workspace)` is the explicit
+allocation-controlled portable route. These names distinguish dispatch and
+resource ownership; they are not interchangeable performance spellings.
+
 For a one-off dense solve, `a.solve(rhs)` accepts either a `DVec` or a `DMat`.
 The matrix overload factors `a` once and solves every column of the right-hand
 side. Retain `a.lu` or `a.cholesky` only when separate calls reuse the same

@@ -14,6 +14,9 @@ the elements it observes.
   single-owner mutable resources. They are not safe for concurrent use.
 - A builder's `result()` transfers its storage to an immutable value and closes
   the builder. Later reads, writes, or a second result request fail.
+- `DMatBuilder.consumeQR(...)` closes the builder and transfers its owned
+  row-major storage into QR construction. The returned factor retains no mutable
+  alias to the builder.
 
 ## Deliberately unsafe borrowed views
 
@@ -24,6 +27,11 @@ do not retain it across workspace reuse or external mutation.
 
 The safe defaults are `CgWorkspace.solution` and `fromBreezeCopy`, which return
 stable snapshots.
+
+Dense solve workspaces follow the same rule: `QR.solveLeastSquaresWith` and
+`QR.solveLeastSquaresScaledRowsWith` use caller-owned scratch for transformed
+right-hand sides, but the returned coefficient vector or matrix owns its
+storage. Reusing the workspace cannot change an earlier result.
 
 ## Choosing the boundary
 

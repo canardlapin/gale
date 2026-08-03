@@ -1,16 +1,23 @@
-# Guides
+# Choose a task guide
 
-Use these pages when you have a concrete task:
+Start from the problem you need to solve:
 
-- [Worked examples](examples.md) moves from dense values through solvers,
-  factorizations, spectral routines, sparse matrices, and the optional sized
-  layer.
-- [First-order composite optimization](first-order-optimization.md) covers
-  proximal, projected, primal-dual, and exact-reduction capabilities over
-  `DMat` and `DoubleLinearOperator`.
-- [Migrating a focused Breeze workload](breeze-equivalence.md) maps the
-  supported replacement slice and calls out deliberate differences.
+- [Dense systems and least squares](dense-systems.md) — solve square systems,
+  fit one or many responses, inspect pivoted QR, apply row scales, and reuse
+  scratch.
+- [Sparse matrices and operator solves](sparse-operators.md) — construct CSR,
+  run iterative methods, and define a matrix-free operator.
+- [Spectral analysis](spectral-analysis.md) — compute dense eigenvalues or SVD
+  and interpret partial convergence.
+- [First-order composite optimization](first-order-optimization.md) — choose
+  proximal, projected, primal-dual, or exact-reduction capabilities.
+- [Moving a Breeze workload to Gale](breeze-equivalence.md) — migrate the
+  supported real-`Double` linear algebra slice without assuming source
+  compatibility.
 
-If you are still learning Gale's basic model, start with
-[Getting started](../getting-started.md) and
-[Core concepts](../core-concepts.md).
+The [worked-example map](examples.md) summarizes the learning path and routes
+to advanced ownership, sparse-structure, and generalized-eigensolver material.
+
+If you have not completed one Gale call yet, begin with
+[Get your first result](../getting-started.md). If you know the call but not the
+failure, use [Troubleshooting](../troubleshooting.md).

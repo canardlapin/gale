@@ -1,87 +1,84 @@
-# Core concepts
+# Understand Gale's core model
 
-The same rules appear throughout Gale's API. Dense and sparse values keep their
-shape. Ordinary results do not change after a method returns. Operations that
-can fail report why. Optional backends may change how Gale computes an answer,
-but they do not change what the answer means.
+Five rules explain most of Gale's public API. Learn them once, then choose an
+algorithm from the task guides.
 
-## Dense values and shapes
+## 1. Values are immutable-facing
 
-Use `DVec` for a dense vector of `Double` values and `DMat` for a dense matrix.
-Use `CSR` or `CSC` when most entries are zero and you need compressed sparse
-storage.
+`DVec` and `DMat` are dense `Double` values. Ordinary arithmetic, solves, and
+factorizations return results that will not change behind the caller's back.
 
-Each value records its dimensions. Gale checks those dimensions before it
-multiplies matrices, solves a system, or applies an operator. A shape error is
-reported at the operation that caused it; it does not emerge later as a bad
-array index.
+A transpose, row, column, or contiguous slice can be an `O(1)` view sharing
+immutable storage. Gathers, exporters, and ordinary interop return copies.
+Because the public core exposes no mutable alias to Gale-owned storage,
+immutable sharing remains safe.
 
-Matrix literals list their entries by row. That construction rule does not
-expose Gale's storage. Code that needs to exchange data with another library
-should use Gale's views and interop functions, not assume that a `DMat` contains
-a particular JVM array or JavaScript typed array.
+Builders and workspaces are a separate, single-owner tier. A builder transfers
+its storage and closes. A workspace can be reused sequentially, while ordinary
+results returned from workspace APIs still own their storage. An API that
+deliberately exposes later mutation carries `unsafe` in its name.
 
-## Immutable results
+## 2. Shape is checked where it matters
 
-Methods such as `a * b`, `a.solve(b)`, and `a.qr` return values that will not
-change behind the caller's back. A transpose, row, column, or slice may share
-storage with another immutable Gale value, but no public mutable handle can
-alter that storage.
+Every value records its dimensions. A matrix product, solve, factorization, or
+operator application checks the shape required by that operation.
 
-This is the right API for most programs. It is simple to retain an intermediate
-result, pass it to another method, or use it from more than one thread.
+Primitive arithmetic methods assume their preconditions and throw a typed
+`LinAlgError` when shapes do not match. Total numerical entry points return
+`Either[LinAlgError, A]` when singularity, rank, definiteness, unsupported
+selection, or another structural condition is part of the method's normal
+failure model.
 
-Builders and workspaces provide a separate route for programs that spend too
-much time allocating temporary storage. They are mutable and must have one
-owner. A builder's `result()` closes the builder and returns an immutable
-value. A workspace may be reused, but results returned from it remain stable.
-Use these APIs after measurement shows that allocation matters.
+## 3. Success and convergence are different questions
 
-## Failures and diagnostics
+A direct solve can return `Left(SingularMatrix(...))`. An iterative solve can
+finish its legal iteration budget and still return the best available iterate
+with `converged = false`. Partial eigensolvers may return only the pairs whose
+residuals passed the requested tolerance.
 
-A solve can fail because the matrix is singular or because the right-hand side
-has the wrong length. Cholesky can fail because the matrix is not positive
-definite. An iterative method can stop before it reaches the requested
-tolerance.
+Inspect the result's diagnostics when the application requires all requested
+components, a residual threshold, orthogonality, or certification that a pair
+belongs to the requested global spectral end. A successful return is not a
+blanket accuracy claim.
 
-Gale reports such failures as `Either[LinAlgError, A]`. Library code can inspect
-or transform the `Either` without throwing an exception. Tests and small
-applications can call `.orThrow` when they want the program to stop
-immediately.
+## 4. Operators represent action, not storage
 
-Some successful calls also need qualification. Iterative solvers and partial
-eigensolvers return diagnostics with residuals, iteration counts, and the
-number of results that converged. Check those fields when your program requires
-all requested results or a particular accuracy.
+Use `DMat`, `CSR`, or `CSC` when entries and storage structure matter. Use
+`DoubleLinearOperator` when code can compute `A * x` without materializing
+`A`.
 
-## Matrices and linear operators
+Algorithms state the extra evidence they need. LSQR and partial SVD need a
+transpose action. A generalized symmetric eigensolver needs explicit symmetry
+and positive-definite metric evidence. A preconditioner transforms a residual;
+a `LinearSolveOperator` represents an actual system solve. Gale does not invent
+one capability from another.
 
-Use a matrix when you have its entries. Use `DoubleLinearOperator` when you can
-compute `A * x` without storing `A`.
+## 5. Execution policy is explicit
 
-The operator form is useful for a discretized differential equation, a large
-graph, or a covariance calculation whose matrix would be expensive to build.
-Gale's iterative solvers and partial eigensolvers accept operators when their
-algorithms need only matrix-vector or matrix-block products.
+With only `gale-core`, Gale uses its portable implementation on the JVM and
+Scala.js. An optional backend import can accelerate eligible JVM operations,
+but it does not take over every shape or layout.
 
-Gale keeps related operations separate. A preconditioner transforms a residual;
-it does not claim to solve a system. A `LinearSolveOperator` solves a system; it
-is not merely another matrix-vector product. These types prevent an eigensolver
-from inventing an inverse or factorization that the caller did not request.
+Explicit numerical policy and allocation control can pin a portable route. For
+example, `a.qr(options)` preserves one pivot/rank policy across platforms, and
+`a.qrWith(workspace)` promises caller-owned scratch rather than provider
+routing. Result types, ownership, and documented numerical meaning remain the
+same.
 
-## Optional backends
+## What changes and what is preserved
 
-If a program imports only `gale-core`, Gale uses its portable implementation on
-the JVM and Scala.js. JVM applications may import an optional backend for
-Vector API or native BLAS/LAPACK support.
-
-A backend does not take over every operation. Gale routes only the operations,
-layouts, and problem sizes that the backend supports. Small or strided
-operations may continue to use the portable code. With or without a backend,
-Gale keeps the same result types, failures, ownership rules, and diagnostics.
+| Operation | Values and shape | Storage or ownership | Failure or qualification |
+| --- | --- | --- | --- |
+| `a.t`, `a.row`, `a.col`, `a.slice` | logical view with derived shape | may share immutable storage | invalid index or slice throws `LinAlgError` |
+| `a * b`, `a + b` | new dense result | owned result | shape precondition throws `LinAlgError` |
+| `a.solve(rhs)` | solution with RHS column count | owned result | structural failure is `Left` |
+| `a.qr(options)` | factor of `A(:, permutation)` when pivoted | factor owns storage | rank is diagnostic; least-squares can reject rank deficiency |
+| iterative solve | last iterate | result owns iterate | inspect convergence and residual |
+| workspace call | same mathematical result | scratch is borrowed; result is owned | workspace is sequential and grow-only |
 
 ## Next steps
 
-Continue with [worked examples](guides/examples.md) for complete tasks. Read the
-[numerical contract](advanced/numerical-contract.md) when you need the precise
-rules for tolerances, ordering, sparse storage, or backend selection.
+Choose a task from [Guides](guides/index.md). Read the
+[numerical contract](advanced/numerical-contract.md) before depending on exact
+ordering, tolerance, sparse canonicalization, or backend behavior. Read
+[Ownership](advanced/ownership.md) before retaining a borrowed view.
