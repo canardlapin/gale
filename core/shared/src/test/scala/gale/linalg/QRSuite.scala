@@ -243,6 +243,48 @@ class QRSuite extends munit.FunSuite:
       assertEquals(repeated.diagnostics, actual.diagnostics)
   }
 
+  test("pivoted QR exactly matches the column-wise reference across compact-width boundaries") {
+    val options = QROptions(pivoting = QRPivoting.Column)
+    val columnCounts = Seq(1, 3, 5, 6, 8, 9, 16, 24)
+
+    for
+      cols <- columnCounts
+      seed <- 0 until 4
+    do
+      val rows = math.max(37, 2 * cols + 5)
+      val rng = new scala.util.Random(2026080310L + 97L * cols + seed)
+      val randomFixture = Matrix.tabulate(rows, cols): (row, col) =>
+        val random = rng.nextDouble() * 2.0 - 1.0
+        val diagonal = if row == col then 2.0 + 0.125 * col else 0.0
+        val columnScale = if col % 3 == 0 then 1.0e-3 else if col % 3 == 1 then 1.0 else 1.0e3
+        columnScale * (random + diagonal)
+      val fixture =
+        if seed == 3 && (cols == 8 || cols == 9) then
+          Matrix.tabulate(rows, cols): (row, col) =>
+            if col == cols - 1 then randomFixture(row, 0)
+            else if col == cols - 2 then -randomFixture(row, 1)
+            else randomFixture(row, col)
+        else randomFixture
+      val reference = columnWisePivotedReference(fixture)
+      val actual = fixture.qr(options)
+      val context = clues(rows, cols, seed)
+
+      assertEquals(actual.columnPermutation.toIndexSeq, reference.permutation.toIndexedSeq, context)
+      assertEquals(actual.diagnostics.rank, Some(reference.rank), context)
+      assertEquals(actual.r.valuesRowMajor, reference.r.toIndexedSeq, context)
+      assertMatrixRelative(
+        actual.q * actual.r,
+        permuteColumns(fixture, actual.columnPermutation),
+        rel = 8e-13,
+        abs = 8e-13,
+      )
+
+      val repeated = fixture.qr(options)
+      assertEquals(repeated.columnPermutation.toIndexSeq, actual.columnPermutation.toIndexSeq, context)
+      assertEquals(repeated.r.valuesRowMajor, actual.r.valuesRowMajor, context)
+      assertEquals(repeated.diagnostics, actual.diagnostics, context)
+  }
+
   test("pivoted QR permutation and rank are invariant under safe uniform scaling") {
     val base = Matrix.tabulate(17, 5): (row, col) =>
       math.sin((row + 1).toDouble * (col + 2).toDouble * 0.125) +
@@ -557,6 +599,55 @@ class QRSuite extends munit.FunSuite:
       assertMatrixRelative(actual, expected, rel = 4e-13, abs = 4e-14)
   }
 
+  test("one workspace safely serves changing vector and matrix least-squares shapes") {
+    val rows = 43
+    val cols = 8
+    val design = Matrix.tabulate(rows, cols): (row, col) =>
+      math.sin((row + 1.0) * (col + 2.0) * 0.02734375) +
+        (if row == col then 2.5 else 0.0)
+    val vector = TestAccess.stridedCopy(Vec.tabulate(rows)(row => math.cos((row + 1.0) * 0.0625)), 3)
+    val smallBacking = Matrix.tabulate(3, rows)((col, row) => math.sin((row + 2.0) * (col + 1.0) * 0.03125))
+    val small = smallBacking.t
+    val empty = Matrix.zeros(rows, 0)
+    val large = Matrix.tabulate(rows, 11)((row, col) => math.cos((row + 3.0) * (col + 2.0) * 0.015625))
+    val vectorBefore = vector.toSeq
+    val smallBefore = smallBacking.valuesRowMajor
+    val largeBefore = large.valuesRowMajor
+
+    for options <- Seq(QROptions.Default, QROptions(pivoting = QRPivoting.Column)) do
+      val qr = design.qr(options)
+      val workspace = DenseWorkspace.empty
+
+      val vectorFirst = qr.solveLeastSquaresWith(vector, workspace).orThrow
+      val vectorFirstValues = vectorFirst.toSeq
+      assertEquals(vectorFirstValues, qr.solveLeastSquares(vector).orThrow.toSeq)
+      assertEquals(workspace.doubleCapacity, rows)
+
+      val smallFirst = qr.solveLeastSquaresWith(small, workspace).orThrow
+      val smallFirstValues = smallFirst.valuesRowMajor
+      assertEquals(smallFirstValues, qr.solveLeastSquares(small).orThrow.valuesRowMajor)
+      assertEquals(workspace.doubleCapacity, rows * small.cols)
+
+      val emptyActual = qr.solveLeastSquaresWith(empty, workspace).orThrow
+      assertEquals(emptyActual.shape, Shape(Rows(cols), Cols(0)))
+      assertEquals(workspace.doubleCapacity, rows * small.cols)
+
+      val largeActual = qr.solveLeastSquaresWith(large, workspace).orThrow
+      assertEquals(largeActual.valuesRowMajor, qr.solveLeastSquares(large).orThrow.valuesRowMajor)
+      assertEquals(workspace.doubleCapacity, rows * large.cols)
+      assert(!TestAccess.sameStorage(TestAccess.dmatStorage(largeActual), TestAccess.workBacking(workspace)))
+
+      val vectorAgain = qr.solveLeastSquaresWith(vector, workspace).orThrow
+      assertEquals(vectorAgain.toSeq, vectorFirstValues)
+      assertEquals(vectorFirst.toSeq, vectorFirstValues)
+      assertEquals(smallFirst.valuesRowMajor, smallFirstValues)
+      assert(!TestAccess.sameStorage(TestAccess.dvecStorage(vectorAgain), TestAccess.workBacking(workspace)))
+
+    assertEquals(vector.toSeq, vectorBefore)
+    assertEquals(smallBacking.valuesRowMajor, smallBefore)
+    assertEquals(large.valuesRowMajor, largeBefore)
+  }
+
   test("row-scaled QR exactly matches explicitly materialized algebra on strided inputs") {
     val rows = 19
     val cols = 5
@@ -639,6 +730,73 @@ class QRSuite extends munit.FunSuite:
     assertEquals(repeated.valuesRowMajor, expectedMatrix.valuesRowMajor)
     assertEquals(actualMatrix.valuesRowMajor, expectedMatrix.valuesRowMajor)
     assert(TestAccess.sameStorage(backing, TestAccess.workBacking(workspace)))
+  }
+
+  test("row-scaled factorization and solves obey materialized algebra across layouts and pivot kernels") {
+    val cases = Seq((17, 3, 2026080321L), (23, 8, 2026080322L), (25, 9, 2026080323L))
+
+    for (rows, cols, seed) <- cases do
+      val rng = new scala.util.Random(seed)
+      val source = Matrix.tabulate(cols + 2, rows + 2): (col, row) =>
+        val random = rng.nextDouble() * 2.0 - 1.0
+        random + (if row == col then 2.0 else 0.0)
+      val design = source.slice(1, cols + 1, 1, rows + 1).t
+      val scales = TestAccess.stridedCopy(
+        Vec.tabulate(rows): row =>
+          if row == 2 then 0.0
+          else if row % 4 == 0 then -0.5 - row * 0.01
+          else 0.75 + row * 0.015625,
+        3,
+      )
+      val vector = TestAccess.stridedCopy(Vec.tabulate(rows)(row => math.sin((row + 1.0) * 0.125)), 2)
+      val matrixBacking = Matrix.tabulate(4, rows)((col, row) => math.cos((row + 1.0) * (col + 2.0) * 0.03125))
+      val matrix = matrixBacking.t
+      val empty = Matrix.zeros(rows, 0)
+      val sourceBefore = source.valuesRowMajor
+      val scalesBefore = scales.toSeq
+      val vectorBefore = vector.toSeq
+      val matrixBefore = matrixBacking.valuesRowMajor
+      val materializedDesign = Matrix.tabulate(rows, cols)((row, col) => scales(row) * design(row, col))
+      val scaledVector = Vec.tabulate(rows)(row => scales(row) * vector(row))
+      val scaledMatrix = Matrix.tabulate(rows, matrix.cols)((row, col) => scales(row) * matrix(row, col))
+
+      for options <- Seq(QROptions.Default, QROptions(pivoting = QRPivoting.Column)) do
+        val expected = materializedDesign.qr(options)
+        val workspace = DenseWorkspace.empty
+        val actual = design.qrScaledRows(scales, options, workspace).orThrow
+        val context = clues(rows, cols, seed, options)
+
+        assertEquals(actual.r.valuesRowMajor, expected.r.valuesRowMajor, context)
+        assertEquals(actual.q.valuesRowMajor, expected.q.valuesRowMajor, context)
+        assertEquals(actual.columnPermutation.toIndexSeq, expected.columnPermutation.toIndexSeq, context)
+        assertEquals(actual.diagnostics, expected.diagnostics, context)
+
+        val ones = Vec.tabulate(rows)(_ => 1.0)
+        val ordinary = design.qr(options)
+        val onesScaled = design.qrScaledRows(ones, options, workspace).orThrow
+        assertEquals(onesScaled.r.valuesRowMajor, ordinary.r.valuesRowMajor, context)
+        assertEquals(onesScaled.columnPermutation.toIndexSeq, ordinary.columnPermutation.toIndexSeq, context)
+        assertEquals(onesScaled.diagnostics, ordinary.diagnostics, context)
+
+        val vectorActual = actual.solveLeastSquaresScaledRowsWith(vector, scales, workspace).orThrow
+        val vectorExpected = expected.solveLeastSquares(scaledVector).orThrow
+        assertEquals(vectorActual.toSeq, vectorExpected.toSeq, context)
+
+        val matrixActual = actual.solveLeastSquaresScaledRowsWith(matrix, scales, workspace).orThrow
+        val matrixExpected = expected.solveLeastSquares(scaledMatrix).orThrow
+        assertEquals(matrixActual.valuesRowMajor, matrixExpected.valuesRowMajor, context)
+
+        val emptyActual = actual.solveLeastSquaresScaledRowsWith(empty, scales, workspace).orThrow
+        assertEquals(emptyActual.shape, Shape(Rows(cols), Cols(0)), context)
+        assertEquals(vectorActual.toSeq, vectorExpected.toSeq, context)
+        assertEquals(matrixActual.valuesRowMajor, matrixExpected.valuesRowMajor, context)
+        assert(!TestAccess.sameStorage(TestAccess.dvecStorage(vectorActual), TestAccess.workBacking(workspace)))
+        assert(!TestAccess.sameStorage(TestAccess.dmatStorage(matrixActual), TestAccess.workBacking(workspace)))
+
+      assertEquals(source.valuesRowMajor, sourceBefore)
+      assertEquals(scales.toSeq, scalesBefore)
+      assertEquals(vector.toSeq, vectorBefore)
+      assertEquals(matrixBacking.valuesRowMajor, matrixBefore)
   }
 
   test("row-scaled QR and scaled solves reject mismatched or non-finite scales before scratch acquisition") {
