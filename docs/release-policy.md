@@ -64,6 +64,34 @@ a dedicated Scala 3.8.4 consumer against the 3.7.4 artifacts as advisory
 evidence. These checks do not replace binary- or TASTy-compatibility gates
 between Gale releases.
 
+### Remote CI classification
+
+The branch-protection configuration must require these exact job names on a
+release candidate commit:
+
+- `Formatting and fatal-warning policy`
+- `Tests (Scala 3.7.4, JVM)` and `Tests (Scala 3.7.4, JS)`
+- `Scaladoc and executable guides`
+- `Scala.js optimized links`
+- `Breeze parity and published interop`
+- `Release dependency manifest`
+- `Benchmarks compile`
+- `Vector backend (JDK 21)` and `Vector backend (JDK 22)`
+- `FFM BLAS/LAPACK backend (JDK 22 / OpenBLAS)`
+
+`Scala 3.8.4 consumer probe`, `Scala Next source experiment (advisory)`, and
+`WebAssembly tests and profile (experimental)` are intentionally advisory.
+They remain visible for compatibility and research evidence but cannot turn a
+release candidate green or red. The required names are defined in
+`.github/workflows/ci.yml`; a release record must capture the exact run URL and
+classify every other check as advisory, manual, or unverified.
+
+The Breeze job's consumer probe publishes the admitted `gale-core` and
+`gale-interop-breeze` coordinates to the isolated local repository and then
+compiles a separate project from those coordinates. It is a package/POM and
+transitive-dependency check, not a sibling-source compilation or a claim that
+Central publication has already occurred.
+
 There is no MiMa gate for `1.0.0`: it has no earlier stable baseline. Before the
 first `1.1.0` release, the build must add an automated binary-compatibility check
 against the latest `1.0.x` artifact. Until that gate exists, maintainers must

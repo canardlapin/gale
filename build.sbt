@@ -36,7 +36,8 @@ lazy val commonScalacOptions = Seq(
   "-deprecation",
   "-feature",
   "-unchecked",
-  "-Xmax-inlines:64"
+  "-Xmax-inlines:64",
+  "-Werror"
 )
 
 // Release candidates must not silently pull an unpublished snapshot at
@@ -372,18 +373,34 @@ lazy val demo =
     )
 
 // Compile-only downstream source-consumption probe. The consumer uses the
-// current Scala Next release against gale-core compiled by this build's Scala
-// 3.7.4 project, exercising the public TASTy/API boundary in the supported
-// direction rather than compiling the probe as part of gale-core itself.
+// current Scala Next release against the locally published gale-core artifact
+// compiled by this build's Scala 3.7.4 project. It therefore exercises the
+// published TASTy/API boundary rather than compiling the probe against Gale's
+// sibling source project.
 lazy val scalaNextConsumer =
   project
     .in(file("compat/scala-next-consumer"))
-    .dependsOn(coreJVM)
     .settings(
       name           := "gale-scala-next-consumer-probe",
       scalaVersion   := scalaNextVersion,
       publish / skip := true,
-      scalacOptions ++= commonScalacOptions
+      scalacOptions ++= commonScalacOptions,
+      libraryDependencies += "io.github.canardlapin" %% "gale-core" % version.value
+    )
+
+// Compile-only downstream probe for the admitted Breeze interop artifact. It
+// deliberately has no `.dependsOn` edge: the CI alias publishes Gale's local
+// artifacts first, then resolves the coordinate through the generated POM.
+// This catches missing packages, metadata, and transitive dependency mistakes
+// that source-level interop tests cannot see.
+lazy val publishedInteropConsumer =
+  project
+    .in(file("compat/published-interop-consumer"))
+    .settings(
+      name           := "gale-published-interop-consumer-probe",
+      publish / skip := true,
+      scalacOptions ++= commonScalacOptions,
+      libraryDependencies += "io.github.canardlapin" %% "gale-interop-breeze" % version.value
     )
 
 lazy val root =
@@ -398,7 +415,7 @@ lazy val root =
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;scalaNextConsumer/compile")
+addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;coreJVM/publishLocal;scalaNextConsumer/compile")
 addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
@@ -424,7 +441,8 @@ addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
-addCommandAlias("scalaNextConsumerProbe", ";scalaNextConsumer/compile")
+addCommandAlias("scalaNextConsumerProbe", ";coreJVM/publishLocal;scalaNextConsumer/compile")
+addCommandAlias("publishedInteropProbe", ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile")
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
 // Compile API docs for both public platforms and execute/render the guide site.
 addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")
