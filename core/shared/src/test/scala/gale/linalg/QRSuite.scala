@@ -418,6 +418,145 @@ class QRSuite extends munit.FunSuite:
       assertMatrixRelative(actual, expected, rel = 4e-13, abs = 4e-14)
   }
 
+  test("workspace least squares matches allocating vector routes and owns results") {
+    val m = 37
+    val p = 6
+    val design = Matrix.tabulate(m, p): (row, col) =>
+      (col + 1).toDouble * math.sin((row + 1).toDouble * (col + 2).toDouble * 0.03125) +
+        (if row == col then 2.0 else 0.0)
+    val expected = Vec(1.0, -2.0, 0.5, 3.0, -1.0, 4.0)
+    val contiguous = design * expected
+    val strided = TestAccess.stridedCopy(contiguous, 3)
+
+    for qr <- Seq(design.qr, design.qr(QROptions(pivoting = QRPivoting.Column))) do
+      val workspace = DenseWorkspace.empty
+      for rhs <- Seq(contiguous, strided) do
+        val before = rhs.toSeq
+        val allocating = qr.solveLeastSquares(rhs).orThrow
+        val first = qr.solveLeastSquaresWith(rhs, workspace).orThrow
+        val firstValues = first.toSeq
+        val backing = TestAccess.workBacking(workspace)
+        val second = qr.solveLeastSquaresWith(rhs, workspace).orThrow
+
+        assertEquals(first.toSeq, allocating.toSeq)
+        assertEquals(second.toSeq, allocating.toSeq)
+        assertEquals(rhs.toSeq, before)
+        assertEquals(first.toSeq, firstValues)
+        assert(TestAccess.sameStorage(backing, TestAccess.workBacking(workspace)))
+        assert(!TestAccess.sameStorage(TestAccess.dvecStorage(first), TestAccess.workBacking(workspace)))
+      assertEquals(workspace.doubleCapacity, m)
+  }
+
+  test("workspace least squares matches allocating matrix routes for strided, partial, empty, and wide RHS") {
+    val m = 41
+    val p = 6
+    val design = Matrix.tabulate(m, p): (row, col) =>
+      (col + 1).toDouble * math.cos((row + 2).toDouble * (col + 1).toDouble * 0.0234375) +
+        (if row == col then 3.0 else 0.0)
+    val qr = design.qr(QROptions(pivoting = QRPivoting.Column))
+    assert(!qr.columnPermutation.isIdentity)
+    val workspace = DenseWorkspace.empty
+
+    for q <- Seq(0, 1, 17) do
+      val contiguous = Matrix.tabulate(m, q)((row, col) => math.sin((row + 1.0) * (col + 2.0) * 0.015625))
+      val transposeBacking = Matrix.tabulate(q, m)((row, col) => contiguous(col, row))
+      val partialBacking = Matrix.tabulate(m + 2, q + 2): (row, col) =>
+        if row >= 1 && row <= m && col >= 1 && col <= q then contiguous(row - 1, col - 1)
+        else -999.0
+      val inputs = Seq(contiguous, transposeBacking.t, partialBacking.slice(1, m + 1, 1, q + 1))
+
+      for rhs <- inputs do
+        val before = rhs.valuesRowMajor
+        val allocating = qr.solveLeastSquares(rhs).orThrow
+        val actual = qr.solveLeastSquaresWith(rhs, workspace).orThrow
+        assertEquals(actual.valuesRowMajor, allocating.valuesRowMajor)
+        assertEquals(actual.shape, Shape(Rows(p), Cols(q)))
+        assertEquals(rhs.valuesRowMajor, before)
+        assert(!TestAccess.sameStorage(TestAccess.dmatStorage(actual), TestAccess.workBacking(workspace)))
+
+    val wide = Matrix.tabulate(m, 17)((row, col) => row.toDouble - col.toDouble * 0.25)
+    val first = qr.solveLeastSquaresWith(wide, workspace).orThrow
+    val firstValues = first.valuesRowMajor
+    val backing = TestAccess.workBacking(workspace)
+    val second = qr.solveLeastSquaresWith(wide, workspace).orThrow
+    assertEquals(second.valuesRowMajor, firstValues)
+    assertEquals(first.valuesRowMajor, firstValues)
+    assert(TestAccess.sameStorage(backing, TestAccess.workBacking(workspace)))
+    assertEquals(workspace.doubleCapacity, m * 17)
+  }
+
+  test("workspace least squares preserves typed failures without acquiring scratch") {
+    val rankDeficient = Matrix.dense(4, 2)(
+      1.0, 2.0,
+      2.0, 4.0,
+      3.0, 6.0,
+      4.0, 8.0
+    ).qr(QROptions(pivoting = QRPivoting.Column))
+    val underdetermined = Matrix.dense(2, 3)(
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0
+    ).qr
+    val nearRankDeficient = Matrix.dense(5, 3)(
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0,
+      0.0, 0.0, 1.0e-10,
+      0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0
+    ).qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
+    val workspace = DenseWorkspace.empty
+
+    assert(
+      rankDeficient
+        .solveLeastSquaresWith(Vec(1.0, 2.0, 3.0, 4.0), workspace)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.RankDeficient])
+    )
+    assert(
+      rankDeficient
+        .solveLeastSquaresWith(Matrix.zeros(4, 3), workspace)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.RankDeficient])
+    )
+    assert(
+      underdetermined
+        .solveLeastSquaresWith(Vec(1.0, 2.0), workspace)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.UnsupportedOperation])
+    )
+    assert(
+      nearRankDeficient
+        .solveLeastSquaresWith(Matrix.zeros(5, 2), workspace)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.RankDeficient])
+    )
+    assert(
+      rankDeficient
+        .solveLeastSquaresWith(Vec(1.0, 2.0, 3.0), workspace)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.DimensionMismatch])
+    )
+    assertEquals(workspace.doubleCapacity, 0)
+  }
+
+  test("workspace matrix least squares remains finite and scale-equivariant at extreme magnitudes") {
+    val base = Matrix.tabulate(19, 5)((row, col) =>
+      math.sin((row + 1).toDouble * (col + 1).toDouble) + (if row == col then 1.0 else 0.0)
+    )
+    val expected = Matrix.tabulate(5, 7)((row, col) => (row - 2).toDouble * 0.125 + col.toDouble * 0.03125)
+    val workspace = DenseWorkspace.empty
+
+    for scale <- Seq(1.0e150, 1.0e-150) do
+      val design = Matrix.tabulate(base.rows, base.cols)((row, col) => scale * base(row, col))
+      val observations = design * expected
+      val qr = design.qr(QROptions(pivoting = QRPivoting.Column))
+      val allocating = qr.solveLeastSquares(observations).orThrow
+      val actual = qr.solveLeastSquaresWith(observations, workspace).orThrow
+
+      assertEquals(actual.valuesRowMajor, allocating.valuesRowMajor)
+      assert(actual.valuesRowMajor.forall(_.isFinite), s"non-finite workspace solution at scale=$scale")
+      assertMatrixRelative(actual, expected, rel = 4e-13, abs = 4e-14)
+  }
+
   test("QR residualization and normalized covariance satisfy independent identities") {
     val A = Matrix.dense(5, 2)(
       1.0, 0.0,

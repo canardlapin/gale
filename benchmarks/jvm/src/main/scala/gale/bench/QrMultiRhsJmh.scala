@@ -37,14 +37,20 @@ class QrMultiRhsJmh:
 
   private var design: DMat = uninitialized
   private var responses: DMat = uninitialized
+  private var response: DVec = uninitialized
   private var factor: QR = uninitialized
+  private var matrixWorkspace: DenseWorkspace = uninitialized
+  private var vectorWorkspace: DenseWorkspace = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
     require(p <= n, s"QR multi-RHS court requires a tall design, got n=$n p=$p")
     design = galeMatrix(matrixData(n, p, seed = 0x514d5253L + n * 31L + p))
     responses = galeMatrix(matrixData(n, q, seed = 0x52534853L + n * 37L + q))
+    response = responses.col(0)
     factor = design.qr(QROptions(pivoting = QRPivoting.Column))
+    matrixWorkspace = DenseWorkspace.forQRSolve(n, q)
+    vectorWorkspace = DenseWorkspace.forQRSolve(n)
     require(factor.diagnostics.rank.contains(p), s"fixture is not full rank: ${factor.diagnostics}")
 
   @Benchmark
@@ -54,6 +60,18 @@ class QrMultiRhsJmh:
   @Benchmark
   def solveLeastSquaresOwned(blackhole: Blackhole): Unit =
     blackhole.consume(factor.solveLeastSquares(responses))
+
+  @Benchmark
+  def solveLeastSquaresVectorOwned(blackhole: Blackhole): Unit =
+    blackhole.consume(factor.solveLeastSquares(response))
+
+  @Benchmark
+  def solveLeastSquaresWithWorkspace(blackhole: Blackhole): Unit =
+    blackhole.consume(factor.solveLeastSquaresWith(responses, matrixWorkspace))
+
+  @Benchmark
+  def solveLeastSquaresVectorWithWorkspace(blackhole: Blackhole): Unit =
+    blackhole.consume(factor.solveLeastSquaresWith(response, vectorWorkspace))
 
   @Benchmark
   def factorPivotedQr(blackhole: Blackhole): Unit =

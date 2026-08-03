@@ -149,6 +149,28 @@ object DenseWorkspace:
         ScratchRequirement.checked(2L * cols.toLong, base.indexElements.toLong)
       case _ => baseResult
 
+  /** Scratch for a QR least-squares solve with `rightHandSides` columns.
+    *
+    * The transformed observation-by-RHS block lives entirely in caller-owned
+    * scratch. The coefficient vector or matrix remains an independently owned
+    * result and is therefore not included here.
+    */
+  def qrSolveRequirement(
+      observations: Int,
+      rightHandSides: Int
+  ): Either[LinAlgError, ScratchRequirement] =
+    if observations < 0 || rightHandSides < 0 then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"QR solve shape must be non-negative, got observations=$observations rightHandSides=$rightHandSides"
+        )
+      )
+    else ScratchRequirement.checked(observations.toLong * rightHandSides.toLong, 0L)
+
+  /** Scratch for a QR least-squares solve with one vector right-hand side. */
+  def qrSolveRequirement(observations: Int): Either[LinAlgError, ScratchRequirement] =
+    qrSolveRequirement(observations, 1)
+
   private[gale] def qrWorkSize(rows: Int, cols: Int): Int =
     qrRequirement(rows, cols) match
       case Left(error)        => throw error
@@ -175,3 +197,14 @@ object DenseWorkspace:
       case Left(error) => throw error
       case Right(requirement) =>
         forRequirement(requirement)
+
+  /** Pre-size reusable scratch for a QR least-squares solve. */
+  def forQRSolve(observations: Int, rightHandSides: Int): DenseWorkspace =
+    qrSolveRequirement(observations, rightHandSides) match
+      case Left(error) => throw error
+      case Right(requirement) =>
+        forRequirement(requirement)
+
+  /** Pre-size reusable scratch for a vector QR least-squares solve. */
+  def forQRSolve(observations: Int): DenseWorkspace =
+    forQRSolve(observations, 1)

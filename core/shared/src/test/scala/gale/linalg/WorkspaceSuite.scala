@@ -104,6 +104,17 @@ class WorkspaceSuite extends munit.FunSuite:
     assertEquals(second.columnPermutation.toIndexSeq, first.columnPermutation.toIndexSeq)
   }
 
+  test("QR solve scratch requirements are checked and shape exact") {
+    assertEquals(DenseWorkspace.qrSolveRequirement(37), Right(requirement(37L, 0L)))
+    assertEquals(DenseWorkspace.qrSolveRequirement(37, 17), Right(requirement(629L, 0L)))
+    assertEquals(DenseWorkspace.qrSolveRequirement(37, 0), Right(requirement(0L, 0L)))
+    assertEquals(DenseWorkspace.forQRSolve(37).doubleCapacity, 37)
+    assertEquals(DenseWorkspace.forQRSolve(37, 17).doubleCapacity, 629)
+    assert(DenseWorkspace.qrSolveRequirement(-1).isLeft)
+    assert(DenseWorkspace.qrSolveRequirement(1, -1).isLeft)
+    assert(DenseWorkspace.qrSolveRequirement(Int.MaxValue, 2).isLeft)
+  }
+
   test("qrWith uses the length-m reflector scratch and reuses it without aliasing results") {
     val A = Matrix.dense(3, 3)(
       12.0, -51.0, 4.0,
