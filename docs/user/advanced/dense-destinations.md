@@ -66,6 +66,33 @@ impossible without internal/test-only access.
 without copying and permanently closes the builder. Allocate a new builder for a
 new ownership lifetime.
 
+## Consuming a builder as QR storage
+
+When a matrix is built only to be factorized, `consumeQR` transfers the
+builder's owned row-major storage directly into portable QR construction:
+
+```scala mdoc:silent
+import gale.linalg.*
+
+val design = DMatBuilder.zeros(rows = 4, cols = 2)
+design(0, 0) = 1.0
+design(0, 1) = 0.0
+design(1, 0) = 1.0
+design(1, 1) = 1.0
+design(2, 0) = 1.0
+design(2, 1) = 2.0
+design(3, 0) = 1.0
+design(3, 1) = 3.0
+
+val workspace = DenseWorkspace.forQR(4, 2)
+val factor = design.consumeQR(QROptions.Default, workspace)
+```
+
+The call closes `design` exactly as `result()` would. The returned `QR` owns
+its factor storage and does not retain a mutable builder alias. Use
+`builder.result().qr` when preserving the constructed matrix is part of the
+caller contract; use `consumeQR` when the matrix is deliberately transient.
+
 Use this tier only when destination reuse is part of the caller's design. For
 one-off operations, `A * B`, `A + B`, and the other high-level methods remain the
 clear default.

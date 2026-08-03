@@ -1,230 +1,156 @@
-# gale
+# Gale
 
-A cross-platform (JVM + Scala.js) linear algebra library for Scala 3, built
-around a small, allocation-conscious kernel layer and an Either-first public API.
+[Guide](docs/user/index.md) · [Getting started](docs/user/getting-started.md) ·
+[API reference](docs/user/reference/index.md) ·
+[Breeze migration](docs/user/guides/breeze-equivalence.md) ·
+[Benchmarks](benchmarks/dashboard.md)
 
-`gale` provides dense vectors and matrices, dense factorizations (LU, Cholesky,
-QR), a spectral layer (symmetric, nonsymmetric and generalized
-eigendecomposition, matrix-free partial generalized symmetric eigensolving
-through LOBPCG and generalized block Lanczos, full and partial SVD, generalized
-SVD, and pseudoinverse), standalone triangular solves, iterative and
-least-squares solvers, and a family of sparse matrix formats. They share one
-set of strided `Double` kernels that run identically on the JVM
-(`Array[Double]`) and in the browser (`Float64Array`).
+Gale is a linear algebra library for Scala 3 that runs the same dense, sparse,
+solver, and spectral API on the JVM and Scala.js. Use it when a numerical
+library needs real-`Double` matrices, typed failure and convergence evidence,
+or matrix-free algorithms without taking a JVM-only dependency.
 
-## Getting started
+> **Status:** Pre-release and source-only. The build is `1.0.0-SNAPSHOT`; Gale
+> is not available from Maven Central yet.
 
-`gale` is not yet published to Maven Central. Once it is, the coordinates will
-be:
+## Quick start
+
+This example fits an intercept and slope to observations following `1 + 2x`:
 
 ```scala
-libraryDependencies += "io.github.canardlapin" %%% "gale-core" % "<version>"
+import gale.linalg.*
+
+val design = Matrix(4, 2)(
+  1.0, 0.0,
+  1.0, 1.0,
+  1.0, 2.0,
+  1.0, 3.0
+)
+val observations = Vec(1.0, 3.0, 5.0, 7.0)
+
+val coefficients = design.leastSquares(observations).orThrow
+coefficients.toSeq // Seq(1.0, 2.0), within floating-point error
 ```
 
-Until then, depend on it from source — sbt clones the pinned commit into its
-staging area, so a clean checkout needs no `publishLocal` and no sibling
-checkout:
+`leastSquares` returns `Either[LinAlgError, DVec]`; `.orThrow` is convenient in
+a first example or test. Application and library code can keep the `Either` and
+handle rank deficiency or a shape mismatch explicitly.
+
+The same workflow is compiled and executed in the
+[getting-started guide](docs/user/getting-started.md).
+
+## Use Gale before the first release
+
+Pin a commit as an sbt source dependency. Choose `coreJVM` or `coreJS` for a
+single-platform build:
 
 ```scala
 lazy val galeRevision = "<commit sha>"
-lazy val galeBuild = uri(s"https://github.com/canardlapin/gale.git#$galeRevision")
+lazy val galeBuild = uri(
+  s"https://github.com/canardlapin/gale.git#$galeRevision"
+)
 lazy val galeCoreJVM = ProjectRef(galeBuild, "coreJVM")
-lazy val galeCoreJS  = ProjectRef(galeBuild, "coreJS")
+
+lazy val app = project.dependsOn(galeCoreJVM)
 ```
 
-Only `gale-core` is needed to use the library. The backends are opt-in
-accelerators and the Breeze interop is a migration aid — take them only if you
-want them, so a portable or browser build never acquires a JVM-only dependency
-transitively.
+For a cross-project, use the matching `coreJVM` and `coreJS` project references
+on its platform projections. A local checkout can instead run
+`coreJVM/publishLocal` and `coreJS/publishLocal`.
 
-## Modules
+The intended public dependency, once a release exists, is:
 
-| Module | Path | What it is |
-| --- | --- | --- |
-| `gale-core` | `core/` | The library. `crossProject` (JVM + JS), `CrossType.Full`. Shared source in `core/shared`, platform storage/interop in `core/jvm` and `core/js`. |
-| `gale-laws` | `laws/` | Reusable, munit/ScalaCheck-backed **law bundles** (`VecLaws`, `MatrixLaws`, `SparseLaws`, `SolverLaws`) expressed against the public API. munit and ScalaCheck are *main* dependencies here — the bundles are library code you can call from your own tests. Depends on `gale-core`. |
-| `gale-interop-breeze` | `interop-breeze/` | Optional JVM conversions between `gale` and Breeze types, for incremental migration. Depends on `gale-core`. |
-| `gale-backend-jvm-vector` | `backend-jvm-vector/` | Optional JDK Vector API GEMM backend with adaptive, measured dispatch. |
-| `gale-backend-jvm-native` | `backend-jvm-native/` | Optional JDK 22+ `NativeDMat` storage over FFM `MemorySegment`. |
-| `gale-backend-jvm-blas-ffm` | `backend-jvm-blas-ffm/` | Optional JDK 22+ runtime-discovered BLAS/LAPACK backend (Accelerate/OpenBLAS/reference/MKL). |
-| benchmarks | `benchmarks/jvm`, `benchmarks/js` | JMH (JVM) and a Scala.js smoke runner. Compile-checked in CI; not published. |
+```scala
+libraryDependencies +=
+  "io.github.canardlapin" %%% "gale-core" % "<published-version>"
+```
 
-See the [backend dashboard](benchmarks/dashboard.md) for the current conformance,
-dispatch, and platform-specific performance evidence.
+Do not substitute `1.0.0-SNAPSHOT` unless that snapshot was actually published
+to the resolver used by your build.
 
-The [v1 compatibility and artifact policy](docs/release-policy.md) defines the
-published module set, supported runtimes, and the boundary of the 1.x stability
-promise.
+## What Gale covers
 
-The [numerical, sparse, and backend contract](docs/user/advanced/numerical-contract.md) states
-accuracy/determinism guarantees, the sparse v1 boundary, and how to choose an
-accelerator without widening the Breeze-equivalence claim.
+- Build and transform immutable-facing dense vectors and matrices, including
+  strided transpose, row, column, and slice views.
+- Solve square and least-squares systems with reusable LU, Cholesky, or QR
+  factors and vector or matrix right-hand sides.
+- Store sparse matrices as COO, CSR, CSC, banded, diagonal, identity,
+  permutation, or zero structures, with explicit canonicalization rules.
+- Run CG, BiCGSTAB, GMRES, CGNR, and LSQR against dense matrices, sparse
+  matrices, or custom `DoubleLinearOperator`s.
+- Compute dense and partial eigenvalue and singular-value decompositions,
+  including matrix-free generalized symmetric problems through LOBPCG and
+  generalized block Lanczos.
+- Opt into allocation-controlled builders, destinations, and workspaces while
+  keeping ordinary returned results owned.
+- Add JVM Vector API or FFM BLAS/LAPACK acceleration explicitly; the portable
+  core remains the default and Scala.js stays independent.
 
-The
-[matrix-free generalized symmetric eigensolver guide](docs/user/advanced/generalized-operator-eigen.md)
-documents the default typed LOBPCG route, the explicit generalized block
-Lanczos route, metric-solve and preconditioner semantics, convergence
-certification, and explicit backend capability.
+## Fit and boundaries
 
-The [immutable vector ownership contract](docs/immutable-vector-ownership.md)
-defines the mutable-to-immutable boundary, the explicitly unsafe workspace view,
-and the audited ownership status of every public `DVec` return path derived from
-mutable storage.
+Gale targets the real-`Double` linear algebra slice used by scientific and data
+libraries. It is not source-compatible with Breeze and does not replace
+Breeze's statistics, probability, signal-processing, plotting, machine
+learning, tensor, or general complex-number modules. Sparse direct
+factorization is not implemented in the current core.
 
-The current [v1 acceptance audit](docs/v1-acceptance-audit.md) and
-[release evidence](docs/release-evidence.md) distinguish locally verified code
-readiness from the binary-publication and remote-CI steps still required for a
-public release. Gale is licensed under [Apache-2.0](LICENSE).
+The shared code targets Scala 3.7.4. Core JVM use requires JDK 21; finalized
+FFM modules require JDK 22 and explicit native access. CI executes the JVM and
+Scala.js/Node lanes independently. Experimental WebAssembly is default-off and
+is not part of the current compatibility or performance promise.
 
-### Package tour (`gale-core`)
-
-- `gale.linalg` — `Vec`/`DVec`, `MutableVec`/`MutableDVec`, `Matrix`/`DMat`,
-  `LinearOperator`, dense factorizations (`DenseDecompositions`, `LU`, `Cholesky`,
-  `QR`), `TriangularSolve`, `LinAlgError`.
-- `gale.kernel` — `DoubleKernels`, the strided BLAS-style inner loops
-  (`private[gale]`).
-- `gale.sparse` — `COO`, `CSR`, `CSC`, `Banded`, `Diagonal`, `Identity`, `Zero`,
-  `Permutation`, and Matrix Market I/O.
-- `gale.solvers` — `cg`, `bicgstab`, `gmres`, `cgnr`, `lsqr`, preconditioners.
-- `gale.optim` — portable proximal-gradient, projected-gradient,
-  linear-composite primal-dual, smooth-composite primal-dual, and exact
-  null-space reduction capabilities with typed stopping certificates.
-- `gale.spectral` — dense and partial eigen/SVD facades, including typed
-  matrix-free LOBPCG (the default generalized route), generalized block Lanczos,
-  and reusable metric-solve contracts for `A x = λ B x` with symmetric `A` and
-  positive-definite `B` operators.
-- `gale.platform` — platform array abstractions (`DoubleArray`, `IndexArray`),
-  distinct per platform.
+Floating-point algorithms preserve documented shapes, ordering, failure modes,
+and numerical invariants—not bit identity across legal implementations.
+Backends may reassociate arithmetic, and partial iterative results must be
+interpreted through their convergence diagnostics.
 
 ## Documentation
 
-Start with the [Gale guide](docs/user/index.md) for installation status, a first
-checked example, topic-oriented guides, and links to the numerical contracts.
-The [getting-started guide](docs/user/getting-started.md) and selected algorithm
-guides contain `mdoc` examples that compile and execute against `gale-core`;
-Scaladoc remains the symbol-level API reference.
+- [Getting started](docs/user/getting-started.md) — install from source and
+  complete one dense workflow.
+- [Core concepts](docs/user/core-concepts.md) — values, failures, operators,
+  diagnostics, and backend behavior.
+- [Worked-example map](docs/user/guides/examples.md) — choose a dense, sparse,
+  operator, spectral, optimization, or migration task.
+- [Advanced topics](docs/user/advanced/index.md) — numerical guarantees,
+  allocation control, ownership, sparse structure reuse, and matrix-free
+  generalized eigensolving.
+- [Modules and platforms](docs/user/reference/modules-and-platforms.md) —
+  artifacts, runtimes, and current publication status.
+- [Troubleshooting](docs/user/troubleshooting.md) — diagnose shape, rank,
+  convergence, backend, and runtime failures.
 
-Build both JVM and Scala.js Scaladoc and render the complete guide site with:
+Build JVM and Scala.js Scaladoc and execute/render the complete mdoc/Laika guide:
 
 ```sh
 sbt docsCheck
 ```
 
-For live authoring, run `sbt docs/tlSitePreview` and open
-<http://localhost:4242>. The generated site is a local/CI artifact; GitHub Pages
-publication is not configured yet.
+The generated site is a local and CI artifact. GitHub Pages publication and a
+stable hosted Scaladoc URL are not configured yet.
 
-## Build, test, benchmark
-
-Core and the Vector backend require JDK 21; the finalized FFM modules require
-JDK 22+. sbt is pinned by `project/build.properties`. The build targets Scala
-3.7.4. Because Scala 3 TASTy compatibility across minor releases runs from
-older producers to newer consumers, projects compiling against Gale artifacts
-must use Scala 3.7.4 or newer.
+## Development
 
 ```sh
-sbt compileAll        # compile core + laws (JVM/JS) and the Scala Next consumer
-sbt testAll           # test core + laws, JVM and JS
-sbt testAllFull       # testAll, then a full-optimizing Scala.js link of the JS
-                      # test bundles (a stricter check than fastLink)
-sbt benchCompile      # compile the JMH and Scala.js benchmarks
-sbt nativeBackendTest blasFfmBackendTest benchFfmCompile  # JDK 22+ native gates
-sbt benchSmokeJS      # run the Scala.js benchmark smoke runner (fastOpt)
-sbt benchSmokeJSFull  # the same under fullOpt
-sbt docsCheck         # JVM + JS Scaladoc and executable Laika/mdoc guide site
+sbt compileAll
+sbt testAllFull
+sbt parityTest interopBreezeTest
+sbt benchCompile
+sbt docsCheck
 ```
 
-Per-platform, per-module tasks also work directly, e.g. `sbt coreJVM/test`,
-`sbt lawsJS/test`, `sbt "coreJS/testOnly gale.sparse.*"`.
-
-## Browser demo
-
-`demo/` is a small Scala.js page that runs a full PCA — seeded synthetic 5-D
-data, centering, scatter matrix, `Eigen.eigSymmetric`, top-2 projection — live
-in the browser on gale's ordinary public API, with per-run timing and a
-"Re-sample" button. Build and open it:
+JDK 22 native gates are separate:
 
 ```sh
-sbt demo/fastLinkJS   # or the alias: sbt demoBuild
-open demo/index.html
+sbt nativeBackendTest blasFfmBackendTest benchFfmCompile
 ```
 
-The demo links with `ModuleKind.NoModule`, so the emitted script
-(`demo/target/scala-3.7.4/gale-demo-fastopt/main.js`) loads from a plain
-`<script>` tag directly off `file://` — no local server or bundler needed.
+The CI workflow also exercises Vector API on JDK 21 and 22, FFM/OpenBLAS on JDK
+22, and an allow-failure experimental WebAssembly lane. See the
+[compatibility and artifact policy](docs/release-policy.md) for the intended v1
+boundary and the [benchmark dashboard](benchmarks/dashboard.md) for qualified
+backend evidence.
 
-## Optional acceleration backends
+## License
 
-No import uses Gale's pure JVM/JS kernels. On JDK 21 or 22, opt into the Vector
-backend with:
-
-```scala
-import gale.backend.jvm.vector.given
-val c = a * b
-```
-
-On JDK 22+, opt into runtime-discovered native BLAS/LAPACK with:
-
-```scala
-import gale.backend.jvm.blas.given
-val c = a * b
-```
-
-The FFM loader checks `-Dgale.blas.library=/absolute/path` and
-`GALE_BLAS_LIBRARY` first, then probes OpenBLAS, the platform BLAS (including
-Accelerate), and MKL. Launch user applications with
-`--enable-native-access=ALL-UNNAMED`. Only known optimized library families
-dispatch automatically; generic/reference BLAS remains direct-callable but
-default-disabled until measured. When the selected library exposes the required
-Fortran LAPACK symbols, the same backend also advertises `NativeLapack` and
-provides typed LU, Cholesky, QR, and symmetric-eigen operations. Defaults are
-library-family-specific: the measured Accelerate route enables square GEMM at
-`n >= 512` and LU at `n >= 128`, while GEMV, QR, and Cholesky remain explicit
-opt-ins because their copy-inclusive behavior lost or was non-monotone.
-OpenBLAS/MKL automatic routes remain disabled until equivalent platform sweeps
-exist; those libraries are still loadable and direct-callable.
-
-## Continuous integration
-
-`.github/workflows/ci.yml` runs on pushes and PRs to `main`:
-
-- **test** — JVM and JS test suites on Scala 3.7.4 (Temurin 21), as a matrix.
-- **scala-next** — `testAll` on Scala 3.8.4, as a non-failing-fast
-  (`continue-on-error`) job so a compiler-next regression surfaces without gating
-  merges.
-- **bench** — `benchCompile`.
-- **vector-backend** — Vector tests and JMH compilation on JDK 21 and 22.
-- **ffm-blas-backend** — native storage and BLAS/LAPACK conformance plus JMH
-  compilation on JDK 22 + OpenBLAS.
-- **wasm** — an experimental WebAssembly link check, allow-failure (see below).
-
-## Experimental WebAssembly (Scala.js)
-
-The Scala.js output can target WebAssembly instead of JavaScript. It is **off by
-default** — a plain `sbt testAll` produces exactly the JavaScript build. Set the
-`GALE_WASM` environment variable to opt in; the build configures ES2022 modules
-and Node's required exception-reference flag:
-
-```sh
-GALE_WASM=1 sbt coreJS/test              # link and execute core tests as Wasm
-GALE_WASM=1 sbt benchSmokeJSFull         # execute the Wasm kernel profile
-```
-
-The current Node 24 profile is a correctness success but a performance failure:
-Wasm is 23–43x slower than optimized JavaScript on the selected dense kernels.
-It therefore remains experimental and default-off. The CI `wasm` job executes
-both the core tests and the profile, but remains allow-failure while the Scala.js
-backend and V8 support mature. See the
-[Wasm profile receipt](benchmarks/results/2026-07-17-wasm-profile.md).
-
-## Breeze replacement scope
-
-Gale targets the dense real-`Double`, sparse-matvec, and selected spectral slice
-that numerical Scala libraries commonly used from Breeze. It is not a Breeze
-fork or a source-compatible replacement. Cross-library tests cover dense BLAS
-operations, solves and factorizations, rank/condition overlap, symmetric eigen,
-partial SVD, sparse/banded matvec, conversions, aliasing, and typed failure cases.
-
-See the [Breeze migration guide](docs/user/guides/breeze-equivalence.md) for the capability
-matrix, measured performance statement, migration examples, and explicit
-non-equivalence boundary.
+[Apache-2.0](LICENSE)

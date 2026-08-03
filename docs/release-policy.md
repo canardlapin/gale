@@ -6,8 +6,8 @@ promise.
 
 ## Coordinates and published modules
 
-The organization is `io.gale` and the Scala binary suffix is `_3`. The intended
-v1 artifact set is:
+The organization is `io.github.canardlapin` and the Scala binary suffix is `_3`.
+The intended v1 artifact set is:
 
 | Artifact | Platforms | Purpose |
 | --- | --- | --- |
@@ -18,6 +18,16 @@ v1 artifact set is:
 | `gale-backend-jvm-native` | JVM | explicit JDK FFM native matrix storage |
 | `gale-backend-jvm-blas-ffm` | JVM | opt-in runtime-discovered BLAS/LAPACK provider |
 
+The cross-platform `gale-interop-ravel` project is explicitly excluded from
+1.0. Its current `ravel-core:1.0.0-SNAPSHOT` dependency cannot enter a stable
+Gale POM, and the project is `publish / skip := true`. It remains available
+through the dedicated `interopRavelTest` route until Ravel has a stable
+published coordinate and a later Gale release admits the integration.
+
+The complete coordinate, platform, JDK, and exclusion table is the
+[1.0 release manifest](release-manifest.md). A build project alone is not a
+publication promise.
+
 `gale-parity`, all benchmark projects, and the root aggregator are
 `publish / skip := true`. The packages `gale.kernel`, `gale.linalg`,
 `gale.sparse`, `gale.solvers`, and `gale.spectral` are intentionally shipped in
@@ -27,7 +37,9 @@ to extend its suites, not a classifier-only test jar.
 
 The JVM/Scala.js modules are released from the JDK 21 build. Native storage and
 BLAS/LAPACK artifacts require a separate JDK 22 publication pass. A release is
-incomplete unless both passes publish the same version.
+incomplete unless both passes publish the same version. `sbt
+releaseDependencyCheck` is required before either pass and rejects compile or
+runtime `SNAPSHOT` dependencies.
 
 ## Compatibility promise
 

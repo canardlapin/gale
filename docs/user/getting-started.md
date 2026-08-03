@@ -1,120 +1,110 @@
-# Getting started
+# Get your first result
 
-Gale's public API is small enough to begin with two imports:
+This page takes Gale from an sbt dependency to one interpreted numerical
+result. The example fits a straight line, so the expected coefficients are
+visible without knowing any Gale internals.
+
+## Add Gale before the first release
+
+Gale is currently source-only. Pin an exact revision and choose the platform
+projection your build uses:
+
+```scala
+lazy val galeRevision = "<commit sha>"
+lazy val galeBuild = uri(
+  s"https://github.com/canardlapin/gale.git#$galeRevision"
+)
+lazy val galeCoreJVM = ProjectRef(galeBuild, "coreJVM")
+
+lazy val app = project.dependsOn(galeCoreJVM)
+```
+
+Use `coreJS` for a Scala.js project. For a cross-project, depend on the matching
+`coreJVM` and `coreJS` references from its platform projections.
+
+The intended public coordinate is
+`"io.github.canardlapin" %%% "gale-core" % "<published-version>"`, but it is
+not installable from Maven Central until a release is actually published. Do
+not use the site's snapshot version as though it were a public artifact.
+
+## Fit a small regression
+
+Most dense work starts with one import:
 
 ```scala mdoc:silent
 import gale.linalg.*
-import gale.spectral.*
 ```
 
-The examples on this page are compiled and executed as part of `docsCheck`.
-
-## Use Gale from this checkout
-
-Gale is not yet publicly released. For now, use it as a source dependency in a
-multi-project build or run `publishLocal` from this checkout. The planned core
-coordinates are:
-
-```scala
-libraryDependencies +=
-  "io.github.canardlapin" %% "gale-core" % "<published-version>"
-```
-
-Use `%%%` instead of `%%` in a Scala.js or cross-project dependency. Do not
-substitute the site's snapshot version into a build unless that artifact was
-actually published locally.
-
-## Build a matrix and multiply
-
-Dense literals are row-major. Ordinary arithmetic returns owned immutable
-values:
+Matrix literals are row-major. Here the first column is an intercept and the
+second is a predictor:
 
 ```scala mdoc
-val a = Matrix(2, 2)(
+val design = Matrix(4, 2)(
+  1.0, 0.0,
+  1.0, 1.0,
   1.0, 2.0,
-  3.0, 4.0
+  1.0, 3.0
 )
-val x = Vec(1.0, 1.0)
+val observations = Vec(1.0, 3.0, 5.0, 7.0)
 
-(a * x).toSeq
+val coefficients = design.leastSquares(observations).orThrow
+coefficients.toSeq
 ```
 
-Construct larger values with `tabulate` rather than assembling intermediate
-collections:
+The result is an owned `DVec`. The design and observations remain unchanged,
+and later Gale operations cannot mutate the coefficients through another
+ordinary public handle.
+
+## Keep numerical failure explicit
+
+`leastSquares` returns `Either[LinAlgError, DVec]`. The previous call used
+`.orThrow` because failure would make the tutorial invalid. Library code can
+retain the error value:
 
 ```scala mdoc
-val diagonal = Matrix.tabulate(4, 4): (row, col) =>
-  if row == col then row.toDouble + 1.0 else 0.0
-
-(diagonal * Vec.fill(4)(2.0)).toSeq
-```
-
-## Handle numerical failure explicitly
-
-Operations that can fail return `Either[LinAlgError, A]`. Keep the `Either` in
-library code and decide at the application boundary how to report failure:
-
-```scala mdoc
-val system = Matrix(2, 2)(
-  3.0, 1.0,
-  1.0, 2.0
-)
-val rhs = Vec(9.0, 8.0)
-
-system.solve(rhs).map(_.toSeq)
-```
-
-For a tutorial or a test where failure should abort immediately, importing
-`gale.linalg.*` also provides `.orThrow`:
-
-```scala mdoc
-val solution = system.solve(rhs).orThrow
-solution.toSeq
-```
-
-## Compute a symmetric eigendecomposition
-
-The dense facade returns eigenvalues in ascending algebraic order. Property
-checks and iterative operator routes are separate APIs; this small dense example
-asks for all right eigenvectors:
-
-```scala mdoc
-val symmetric = Matrix(2, 2)(
-  2.0, 1.0,
-  1.0, 2.0
+val dependent = Matrix(3, 2)(
+  1.0, 2.0,
+  2.0, 4.0,
+  3.0, 6.0
 )
 
-val eig = Eigen
-  .eigSymmetric(
-    symmetric,
-    EigenSelection.All,
-    EigenVectors.Right
-  )
-  .orThrow
-
-eig.eigenvalues.toSeq
+dependent.leastSquares(Vec(1.0, 2.0, 3.0)).isLeft
 ```
 
-Diagnostics are part of the result rather than inferred from successful return:
+A rank-deficient design, singular square matrix, non-positive Cholesky pivot,
+or mismatched right-hand side has a distinct `LinAlgError` case.
+
+Primitive arithmetic such as `a + b`, `a * x`, or `x.dot(y)` is intentionally
+different: it validates shape preconditions and throws `LinAlgError` when they
+are violated. Total numerical entry points such as solves, factorizations, and
+spectral facades use `Either` where a structural numerical failure is part of
+ordinary control flow.
+
+## Inspect a factor when you need it
+
+The one-line `leastSquares` call factors the design internally. Retain a QR
+factor when several right-hand sides share the same design or when rank and
+pivot information matter:
 
 ```scala mdoc
+val qr = design.qr(QROptions(pivoting = QRPivoting.Column))
+
 (
-  eig.diagnostics.converged,
-  eig.diagnostics.requested,
-  eig.diagnostics.allConverged
+  qr.diagnostics.rank,
+  qr.columnPermutation.toIndexSeq,
+  qr.solveLeastSquares(observations).orThrow.toSeq
 )
 ```
 
-## Choose the next guide
+Explicit QR options use Gale's portable deterministic pivot and rank policy.
+The default no-options `qr` may use an imported backend for an eligible shape.
 
-- Read [core concepts](core-concepts.md) for the value, error, operator, and
-  backend model used throughout Gale.
-- Use [worked examples](guides/examples.md) for dense solves, PCA, graph Laplacians,
-  sparse formats, sized values, and migration examples.
-- Use the
-  [matrix-free generalized eigensolver guide](advanced/generalized-operator-eigen.md)
-  when `A` and `B` should be operators rather than dense matrices.
-- Read the [numerical contract](advanced/numerical-contract.md) before depending on
-  determinism, tolerances, sparse canonicalization, or optional backends.
-- Read the [Breeze migration guide](guides/breeze-equivalence.md) before treating Gale as a
-  replacement for an existing Breeze workload.
+## Choose the next page
+
+- Read [Core concepts](core-concepts.md) for values, errors, operators,
+  diagnostics, and backends.
+- Continue the same model-fitting workflow in
+  [Dense systems and least squares](guides/dense-systems.md).
+- Choose another task from the [worked-example map](guides/examples.md).
+- Use [Troubleshooting](troubleshooting.md) when a shape, rank, convergence, or
+  runtime problem blocks the first result.

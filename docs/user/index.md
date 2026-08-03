@@ -1,46 +1,53 @@
-# Gale
+# Gale guide
 
-Gale is a cross-platform linear algebra library for Scala 3. Its shared dense,
-sparse, solver, and spectral APIs run on the JVM and Scala.js, with optional
-JVM acceleration kept behind explicit backend modules.
+Gale provides real-`Double` linear algebra for Scala 3 on the JVM and
+Scala.js. Its ordinary API combines immutable-facing dense and sparse values,
+typed numerical failures, matrix-free operators, and diagnostics that qualify
+iterative results. Optional allocation-control and JVM acceleration stay
+explicit.
 
-This site describes Gale @VERSION@. Gale is still preparing its first public
-release, so the guides currently assume a source checkout or locally published
-artifacts rather than promising coordinates that are not yet available.
+This site describes Gale @VERSION@. The project is preparing its first public
+release, so installation currently uses a pinned source revision or locally
+published artifacts.
 
-## Your first ten minutes
+## Reach a first result
 
-1. Follow [Getting started](getting-started.md) to build a matrix, solve a
-   system, and compute a symmetric eigendecomposition.
-2. Read [Core concepts](core-concepts.md) for Gale's value, error, operator,
-   and backend model.
-3. Continue with the [task-oriented guides](guides/index.md) when you have a concrete
-   problem to solve.
+Start with [Getting started](getting-started.md). It shows the current source
+dependency, fits a small regression, and explains when to retain
+`Either[LinAlgError, A]` rather than call `.orThrow`.
 
-Every code block on the getting-started path is compiled and executed during
-the documentation build.
+Then read [Core concepts](core-concepts.md) for the five rules that explain
+later behavior: immutable-facing values, explicit shapes, typed failure,
+operator contracts, and opt-in execution policy.
 
-## Choose a path
+Every `mdoc` block in this guide is compiled or executed by `docsCheck` against
+the live `gale-core` API.
 
-- **Learn by example:** [Worked examples](guides/examples.md) covers dense
-  operations, solvers, factorizations, spectral routines, sparse matrices, and
-  the optional sized layer.
-- **Move from Breeze:** [Migrating a focused Breeze workload](guides/breeze-equivalence.md)
-  explains what Gale replaces, what differs, and where copying or aliasing
-  occurs.
-- **Solve large operator problems:** [Matrix-free generalized symmetric
-  eigensolving](advanced/generalized-operator-eigen.md) introduces LOBPCG and
-  generalized block Lanczos without materializing dense operators.
-- **Solve composite optimization problems:** [First-order composite
-  optimization](guides/first-order-optimization.md) covers proximal, projected,
-  primal-dual, and exact-reduction methods with typed certificates.
-- **Optimize a measured hot path:** [Advanced topics](advanced/index.md) covers
-  numerical guarantees, reusable destinations and workspaces, sparse structure,
-  and ownership boundaries.
+## Continue with your task
 
-## Look something up
+- [Dense systems and least squares](guides/dense-systems.md) — square solves,
+  pivoted QR, matrix right-hand sides, row scaling, and reusable scratch.
+- [Sparse matrices and operator solves](guides/sparse-operators.md) — CSR,
+  iterative methods, and matrix-free application.
+- [Spectral analysis](guides/spectral-analysis.md) — dense eigenproblems, SVD,
+  partial results, and diagnostics.
+- [First-order composite optimization](guides/first-order-optimization.md) —
+  proximal, projected, primal-dual, and exact-reduction methods.
+- [Moving from Breeze](guides/breeze-equivalence.md) — the supported migration
+  boundary, conversions, and deliberate differences.
 
-Use the [reference section](reference/index.md) for stable capability summaries and the
-generated Scaladoc for symbol-level signatures. Internal implementation plans,
-acceptance audits, and release evidence remain in the repository but are not
-part of this user guide.
+The [worked-example map](guides/examples.md) routes by problem rather than by
+package name.
+
+## Make an informed advanced choice
+
+Use [Advanced topics](advanced/index.md) when you need precise numerical
+guarantees, matrix-free generalized eigensolving, reusable destinations or
+workspaces, sparse structure reuse, or ownership details.
+
+Use [Reference](reference/index.md) for modules, platforms, factorization
+capabilities, and local Scaladoc. If a call fails or does not converge, start
+with [Troubleshooting](troubleshooting.md).
+
+Internal implementation plans, acceptance audits, and release receipts remain
+versioned in the repository but are intentionally outside this public site.
