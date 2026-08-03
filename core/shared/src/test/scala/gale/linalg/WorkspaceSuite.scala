@@ -78,8 +78,30 @@ class WorkspaceSuite extends munit.FunSuite:
   test("QR reports its exact branch-specific scratch requirement") {
     assertEquals(DenseWorkspace.qrRequirement(3, 2), Right(requirement(3L, 0L)))
     assertEquals(DenseWorkspace.qrRequirement(129, 97), Right(requirement(8256L, 0L)))
+    val pivoted = QROptions(pivoting = QRPivoting.Column)
+    assertEquals(DenseWorkspace.qrRequirement(3, 5, pivoted), Right(requirement(10L, 0L)))
+    assertEquals(DenseWorkspace.qrRequirement(4096, 6, pivoted), Right(requirement(4096L, 0L)))
+    assertEquals(DenseWorkspace.forQR(3, 5, pivoted).workCapacity, 10)
     assert(DenseWorkspace.qrRequirement(-1, 2).isLeft)
     assert(DenseWorkspace.qrRequirement(2, -1).isLeft)
+    assert(DenseWorkspace.qrRequirement(-1, 2, pivoted).isLeft)
+    assert(DenseWorkspace.qrRequirement(2, -1, pivoted).isLeft)
+  }
+
+  test("pivoted qrWith acquires and reuses options-aware norm scratch") {
+    val A = Matrix.tabulate(3, 5)((row, col) => (row + 1).toDouble / (col + 2).toDouble)
+    val options = QROptions(pivoting = QRPivoting.Column)
+    val workspace = DenseWorkspace.empty
+
+    val first = A.qrWith(options, workspace)
+    assertEquals(workspace.workCapacity, 10)
+    val backing = TestAccess.workBacking(workspace)
+    val firstR = first.r.valuesRowMajor
+
+    val second = A.qrWith(options, workspace)
+    assert(TestAccess.sameStorage(backing, TestAccess.workBacking(workspace)))
+    assertEquals(first.r.valuesRowMajor, firstR)
+    assertEquals(second.columnPermutation.toIndexSeq, first.columnPermutation.toIndexSeq)
   }
 
   test("qrWith uses the length-m reflector scratch and reuses it without aliasing results") {

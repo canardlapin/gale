@@ -30,6 +30,9 @@ JMH (JVM) benchmarks covering the dense kernels plus sparse and solver scenarios
   least-squares matrix RHS solves over `n` in {512, 2048, 10000}, `p` in
   {6, 24}, and `q` in {1, 8, 16, 32, 100}, plus a protected factorization
   control. The exact regress4s fixture is `n=2048,p=6,q=16`.
+- `TallPivotedQrJmh` — copy-inclusive portable column-pivoted factorization over
+  `n` in {512, 1024, 2048, 4096, 10000} and `p` in {3, 5, 6, 8, 16, 24}; the
+  exact regress4s factor shapes include `4096x6`, `2048x6`, and `1024x5`.
 
 Most established kernel benchmarks use 2 forks with 5x500ms warmup and
 5x500ms measurement. `GeneralizedLobpcgJmh` uses one fork, 1x200ms warmup, and
@@ -61,6 +64,7 @@ sbt "benchmarksJVM/Jmh/run -prof gc .*DenseTransformJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc .*SparseInteropJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=128 gale.bench.AllocationArchitectureJmh.*"
 sbt "benchmarksJVM/Jmh/run -prof gc -p n=2048 -p p=6 -p q=16 gale.bench.QrMultiRhsJmh.*Owned"
+sbt "benchmarksJVM/Jmh/run -prof gc -p n=4096 -p p=6 gale.bench.TallPivotedQrJmh.factorPivotedQr"
 sbt "benchmarksJVM/Jmh/run -prof gc gale.bench.GeneralizedLobpcgJmh.solve"
 sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"
 ```

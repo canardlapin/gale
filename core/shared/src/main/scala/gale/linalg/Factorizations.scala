@@ -286,7 +286,7 @@ object DenseDecompositions:
     qr(A, QROptions.Default, DenseWorkspace.forQR(A.rows, A.cols))
 
   def qr(A: DMat, options: QROptions)(using Backend): QR =
-    qr(A, options, DenseWorkspace.forQR(A.rows, A.cols))
+    qr(A, options, DenseWorkspace.forQR(A.rows, A.cols, options))
 
   def qr(A: DMat, workspace: DenseWorkspace)(using backend: Backend): QR =
     qr(A, QROptions.Default, workspace)
@@ -300,7 +300,7 @@ object DenseDecompositions:
     // tau(k) = 2 / (v_k · v_k). No m x m Q is formed here; it is rebuilt on demand.
     val reflectors = DoubleArray.alloc(m * limit)
     val tau = DoubleArray.alloc(limit)
-    val requirement = DenseWorkspace.qrRequirement(m, n) match
+    val requirement = DenseWorkspace.qrRequirement(m, n, options) match
       case Left(error)  => throw error
       case Right(value) => value
     val scratch = workspace.doubles(requirement)
@@ -328,10 +328,11 @@ object DenseDecompositions:
       options = options
     )
 
-  /** Rank-revealing unblocked QR with exact recomputation of each trailing
-    * column norm before pivot selection. The extra work is intentional: this
-    * path is the portable correctness reference used for statistical designs,
-    * while the default unpivoted path retains the blocked fast kernel.
+  /** Rank-revealing unblocked QR with exact recomputation of every trailing
+    * column norm before pivot selection. Each column retains the same scaled
+    * accumulation and row order as `dnrm2`, but all columns share one
+    * row-contiguous matrix pass. The default unpivoted path retains the blocked
+    * fast kernel.
     */
   private def factorPivotedQR(
       r: DoubleArray,
@@ -343,25 +344,172 @@ object DenseDecompositions:
       scratch: DoubleArray,
       permutation: Array[Int]
   ): Unit =
+    // Scalar-local row-first norms are admitted for compact statistical
+    // designs. Wider designs retain independent exact `dnrm2` scans, but still
+    // reuse the winning scan for Householder; the scratch-array row-first
+    // candidate did not clear the benchmark court.
+    val useRowFirstNorms = n <= 8
     var k = 0
     while k < limit do
+      if useRowFirstNorms then exactTrailingColumnNormsScalarRowMajor(r, m, n, k, scratch)
       var pivot = k
       var bestNorm = -1.0
       var col = k
       while col < n do
-        val norm = DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+        val norm =
+          if useRowFirstNorms then scratch(col) * math.sqrt(scratch(n + col))
+          else DoubleKernels.dnrm2(m - k, r, k * n + col, n)
         if norm > bestNorm then
           bestNorm = norm
           pivot = col
         col += 1
+      // `bestNorm` deliberately remains the scan sentinel when every norm is
+      // NaN. Read the chosen column's actual accumulator so Householder sees
+      // exactly the non-finite value that a fresh `dnrm2` would have produced.
+      val selectedNorm =
+        if useRowFirstNorms then scratch(pivot) * math.sqrt(scratch(n + pivot))
+        else if bestNorm >= 0.0 then bestNorm
+        else DoubleKernels.dnrm2(m - k, r, k * n + pivot, n)
       if pivot != k then
         swapColumns(r, m, n, k, pivot)
         val original = permutation(k)
         permutation(k) = permutation(pivot)
         permutation(pivot) = original
-      factorHouseholder(r, m, n, reflectors, limit, tau, k)
+      factorHouseholder(r, m, n, reflectors, limit, tau, k, selectedNorm)
       applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
       k += 1
+
+  /** Small-width row-first norm pass with accumulator pairs held in locals.
+    * Predictable width guards avoid scratch traffic inside the matrix scan and
+    * cover the compact statistical-design regime directly.
+    */
+  private def exactTrailingColumnNormsScalarRowMajor(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      k: Int,
+      scratch: DoubleArray
+  ): Unit =
+    val width = n - k
+    var scale0, scale1, scale2, scale3 = 0.0
+    var scale4, scale5, scale6, scale7 = 0.0
+    var ssq0, ssq1, ssq2, ssq3 = 1.0
+    var ssq4, ssq5, ssq6, ssq7 = 1.0
+    var row = k
+    while row < m do
+      val offset = row * n + k
+      var value = r(offset)
+      if value != 0.0 then
+        val abs = math.abs(value)
+        if scale0 < abs then
+          val ratio = scale0 / abs
+          ssq0 = 1.0 + ssq0 * ratio * ratio
+          scale0 = abs
+        else
+          val ratio = abs / scale0
+          ssq0 += ratio * ratio
+      if width > 1 then
+        value = r(offset + 1)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale1 < abs then
+            val ratio = scale1 / abs
+            ssq1 = 1.0 + ssq1 * ratio * ratio
+            scale1 = abs
+          else
+            val ratio = abs / scale1
+            ssq1 += ratio * ratio
+      if width > 2 then
+        value = r(offset + 2)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale2 < abs then
+            val ratio = scale2 / abs
+            ssq2 = 1.0 + ssq2 * ratio * ratio
+            scale2 = abs
+          else
+            val ratio = abs / scale2
+            ssq2 += ratio * ratio
+      if width > 3 then
+        value = r(offset + 3)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale3 < abs then
+            val ratio = scale3 / abs
+            ssq3 = 1.0 + ssq3 * ratio * ratio
+            scale3 = abs
+          else
+            val ratio = abs / scale3
+            ssq3 += ratio * ratio
+      if width > 4 then
+        value = r(offset + 4)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale4 < abs then
+            val ratio = scale4 / abs
+            ssq4 = 1.0 + ssq4 * ratio * ratio
+            scale4 = abs
+          else
+            val ratio = abs / scale4
+            ssq4 += ratio * ratio
+      if width > 5 then
+        value = r(offset + 5)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale5 < abs then
+            val ratio = scale5 / abs
+            ssq5 = 1.0 + ssq5 * ratio * ratio
+            scale5 = abs
+          else
+            val ratio = abs / scale5
+            ssq5 += ratio * ratio
+      if width > 6 then
+        value = r(offset + 6)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale6 < abs then
+            val ratio = scale6 / abs
+            ssq6 = 1.0 + ssq6 * ratio * ratio
+            scale6 = abs
+          else
+            val ratio = abs / scale6
+            ssq6 += ratio * ratio
+      if width > 7 then
+        value = r(offset + 7)
+        if value != 0.0 then
+          val abs = math.abs(value)
+          if scale7 < abs then
+            val ratio = scale7 / abs
+            ssq7 = 1.0 + ssq7 * ratio * ratio
+            scale7 = abs
+          else
+            val ratio = abs / scale7
+            ssq7 += ratio * ratio
+      row += 1
+
+    scratch(k) = scale0
+    scratch(n + k) = ssq0
+    if width > 1 then
+      scratch(k + 1) = scale1
+      scratch(n + k + 1) = ssq1
+    if width > 2 then
+      scratch(k + 2) = scale2
+      scratch(n + k + 2) = ssq2
+    if width > 3 then
+      scratch(k + 3) = scale3
+      scratch(n + k + 3) = ssq3
+    if width > 4 then
+      scratch(k + 4) = scale4
+      scratch(n + k + 4) = ssq4
+    if width > 5 then
+      scratch(k + 5) = scale5
+      scratch(n + k + 5) = ssq5
+    if width > 6 then
+      scratch(k + 6) = scale6
+      scratch(n + k + 6) = ssq6
+    if width > 7 then
+      scratch(k + 7) = scale7
+      scratch(n + k + 7) = ssq7
 
   /** Small-shape QR: scalar Householder generation with row-major rank-1
     * updates. Keeping this path avoids compact-WY setup overhead where Gale is
@@ -431,8 +579,24 @@ object DenseDecompositions:
       k: Int
   ): Unit =
     val diagIndex = k * n + k
-    val x0 = r(diagIndex)
     val norm = DoubleKernels.dnrm2(m - k, r, diagIndex, n)
+    factorHouseholder(r, m, n, reflectors, limit, tau, k, norm)
+
+  /** Build a Householder reflector from an already exact norm. Pivoted QR uses
+    * this overload to avoid rescanning the selected strided column.
+    */
+  private def factorHouseholder(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      k: Int,
+      norm: Double
+  ): Unit =
+    val diagIndex = k * n + k
+    val x0 = r(diagIndex)
     reflectors(k * limit + k) = 1.0
     if norm > 0.0 then
       val beta = if x0 >= 0.0 then -norm else norm

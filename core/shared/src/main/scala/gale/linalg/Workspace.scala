@@ -132,6 +132,23 @@ object DenseWorkspace:
         else math.max(rows, cols).toLong
       ScratchRequirement.checked(doubles, 0L)
 
+  /** Report the exact QR scratch requirement for an explicit numerical policy.
+    * Compact column pivoting keeps one stable `scale` and `ssq` accumulator per
+    * column; those regions are alternatives to the default update scratch.
+    */
+  def qrRequirement(
+      rows: Int,
+      cols: Int,
+      options: QROptions
+  ): Either[LinAlgError, ScratchRequirement] =
+    val baseResult = qrRequirement(rows, cols)
+    baseResult match
+      case Right(base)
+          if options.pivoting == QRPivoting.Column && cols <= 8 &&
+            2L * cols.toLong > base.doubleElements.toLong =>
+        ScratchRequirement.checked(2L * cols.toLong, base.indexElements.toLong)
+      case _ => baseResult
+
   private[gale] def qrWorkSize(rows: Int, cols: Int): Int =
     qrRequirement(rows, cols) match
       case Left(error)        => throw error
@@ -148,6 +165,13 @@ object DenseWorkspace:
   /** Pre-size the reusable scratch for the QR path selected by this shape. */
   def forQR(rows: Int, cols: Int): DenseWorkspace =
     qrRequirement(rows, cols) match
+      case Left(error) => throw error
+      case Right(requirement) =>
+        forRequirement(requirement)
+
+  /** Pre-size reusable QR scratch for an explicit numerical policy. */
+  def forQR(rows: Int, cols: Int, options: QROptions): DenseWorkspace =
+    qrRequirement(rows, cols, options) match
       case Left(error) => throw error
       case Right(requirement) =>
         forRequirement(requirement)

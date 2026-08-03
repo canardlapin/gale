@@ -1,6 +1,7 @@
 package gale.linalg
 
 import gale.TestAccess
+import gale.platform.PlatformMath.fma
 
 class QRSuite extends munit.FunSuite:
   test("QR reconstructs a tall dense matrix") {
@@ -207,6 +208,73 @@ class QRSuite extends munit.FunSuite:
     assertEquals(qr.diagnostics.rank, Some(3))
   }
 
+  test("row-first pivot norms exactly match a column-wise reference") {
+    val rng = new scala.util.Random(2026080301L)
+    val random = Matrix.dense(31, 8, Seq.fill(31 * 8)(rng.nextDouble() * 2.0 - 1.0))
+    val tiedAndDeficient = Matrix.dense(7, 6)(
+      1.0, 0.0, 0.0, 2.0, 0.0, 1.0 + 4.0e-16,
+      0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    )
+    val overflowSensitive = Matrix.dense(6, 3)(
+      1.0e308, 0.0, 0.0,
+      1.0e308, 0.0, 0.0,
+      0.0, 1.0e150, 0.0,
+      0.0, 0.0, 1.0e-150,
+      0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0
+    )
+
+    for fixture <- Seq(random, tiedAndDeficient, overflowSensitive) do
+      val reference = columnWisePivotedReference(fixture)
+      val actual = fixture.qr(QROptions(pivoting = QRPivoting.Column))
+
+      assertEquals(actual.columnPermutation.toIndexSeq, reference.permutation.toIndexedSeq)
+      assertEquals(actual.diagnostics.rank, Some(reference.rank))
+      assertEquals(actual.r.valuesRowMajor, reference.r.toIndexedSeq)
+
+      val repeated = fixture.qr(QROptions(pivoting = QRPivoting.Column))
+      assertEquals(repeated.columnPermutation.toIndexSeq, actual.columnPermutation.toIndexSeq)
+      assertEquals(repeated.r.valuesRowMajor, actual.r.valuesRowMajor)
+      assertEquals(repeated.diagnostics, actual.diagnostics)
+  }
+
+  test("pivoted QR permutation and rank are invariant under safe uniform scaling") {
+    val base = Matrix.tabulate(17, 5): (row, col) =>
+      math.sin((row + 1).toDouble * (col + 2).toDouble * 0.125) +
+        (if row == col then 0.5 else 0.0)
+    val expected = base.qr(QROptions(pivoting = QRPivoting.Column))
+
+    for scale <- Seq(1.0e-150, 1.0e150) do
+      val scaled = Matrix.tabulate(base.rows, base.cols)((row, col) => scale * base(row, col))
+      val actual = scaled.qr(QROptions(pivoting = QRPivoting.Column))
+      val reference = columnWisePivotedReference(scaled)
+
+      assertEquals(actual.columnPermutation.toIndexSeq, expected.columnPermutation.toIndexSeq)
+      assertEquals(actual.columnPermutation.toIndexSeq, reference.permutation.toIndexedSeq)
+      assertEquals(actual.diagnostics.rank, expected.diagnostics.rank)
+      assertEquals(actual.diagnostics.rank, Some(reference.rank))
+      assertMatrixRelative(actual.q * actual.r, permuteColumns(scaled, actual.columnPermutation), 4e-13, 1e-300)
+  }
+
+  test("pivoted QR preserves column-wise non-finite pivot selection") {
+    val fixture = Matrix.dense(4, 4)(
+      Double.NaN, 3.0, Double.PositiveInfinity, 0.0,
+      0.0, 4.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0
+    )
+    val reference = columnWisePivotedReference(fixture)
+
+    val actual = fixture.qr(QROptions(pivoting = QRPivoting.Column))
+    assertEquals(actual.columnPermutation.toIndexSeq, reference.permutation.toIndexedSeq)
+    assertEquals(actual.diagnostics.rank, Some(reference.rank))
+  }
+
   test("caller rank tolerance controls the explicit rank decision") {
     val A = Matrix.dense(3, 2)(
       1.0, 0.0,
@@ -384,6 +452,135 @@ class QRSuite extends munit.FunSuite:
         assert(math.abs(actual(i, j) - expected(i, j)) < tolerance)
         j += 1
       i += 1
+
+  private final case class ReferencePivotedQR(
+      permutation: Array[Int],
+      r: Array[Double],
+      rank: Int
+  )
+
+  /** Deliberately slow test-only reference for the pre-optimization contract:
+    * recompute every candidate norm in its own strided column scan, then rescan
+    * the selected column while constructing its reflector.
+    */
+  private def columnWisePivotedReference(A: DMat): ReferencePivotedQR =
+    val m = A.rows
+    val n = A.cols
+    val limit = math.min(m, n)
+    val r = A.valuesRowMajor.toArray
+    val reflectors = Array.fill(m * limit)(0.0)
+    val tau = Array.fill(limit)(0.0)
+    val permutation = Array.tabulate(n)(identity)
+    val dots = Array.fill(n)(0.0)
+
+    var k = 0
+    while k < limit do
+      var pivot = k
+      var bestNorm = -1.0
+      var col = k
+      while col < n do
+        val norm = referenceNorm(r, m, n, k, col)
+        if norm > bestNorm then
+          bestNorm = norm
+          pivot = col
+        col += 1
+
+      if pivot != k then
+        var row = 0
+        while row < m do
+          val left = row * n + k
+          val right = row * n + pivot
+          val value = r(left)
+          r(left) = r(right)
+          r(right) = value
+          row += 1
+        val original = permutation(k)
+        permutation(k) = permutation(pivot)
+        permutation(pivot) = original
+
+      val diagIndex = k * n + k
+      val x0 = r(diagIndex)
+      val norm = referenceNorm(r, m, n, k, k)
+      reflectors(k * limit + k) = 1.0
+      if norm > 0.0 then
+        val beta = if x0 >= 0.0 then -norm else norm
+        val x0OverBeta = x0 / beta
+        val denominatorOverBeta = x0OverBeta - 1.0
+        tau(k) = 1.0 - x0OverBeta
+        r(diagIndex) = beta
+        var row = k + 1
+        while row < m do
+          val index = row * n + k
+          reflectors(row * limit + k) = (r(index) / beta) / denominatorOverBeta
+          r(index) = 0.0
+          row += 1
+      else
+        tau(k) = 0.0
+        var row = k + 1
+        while row < m do
+          r(row * n + k) = 0.0
+          row += 1
+
+      col = k + 1
+      while col < n do
+        dots(col) = 0.0
+        col += 1
+      var row = k
+      while row < m do
+        val vi = reflectors(row * limit + k)
+        col = k + 1
+        while col < n do
+          dots(col) = fma(vi, r(row * n + col), dots(col))
+          col += 1
+        row += 1
+      col = k + 1
+      while col < n do
+        dots(col) *= tau(k)
+        col += 1
+      row = k
+      while row < m do
+        val vi = reflectors(row * limit + k)
+        col = k + 1
+        while col < n do
+          val index = row * n + col
+          r(index) = fma(-vi, dots(col), r(index))
+          col += 1
+        row += 1
+      k += 1
+
+    var maxDiag = 0.0
+    k = 0
+    while k < limit do
+      maxDiag = math.max(maxDiag, math.abs(r(k * n + k)))
+      k += 1
+    val tolerance = 2.0 * math.max(m, n).toDouble * 2.220446049250313e-16 * maxDiag
+    var rank = 0
+    k = 0
+    while k < limit do
+      if math.abs(r(k * n + k)) > tolerance then rank += 1
+      k += 1
+    ReferencePivotedQR(permutation, r, rank)
+
+  private def referenceNorm(values: Array[Double], rows: Int, cols: Int, fromRow: Int, col: Int): Double =
+    var scale = 0.0
+    var ssq = 1.0
+    var row = fromRow
+    while row < rows do
+      val value = values(row * cols + col)
+      if value != 0.0 then
+        val abs = math.abs(value)
+        if scale < abs then
+          val ratio = scale / abs
+          ssq = 1.0 + ssq * ratio * ratio
+          scale = abs
+        else
+          val ratio = abs / scale
+          ssq += ratio * ratio
+      row += 1
+    scale * math.sqrt(ssq)
+
+  private def permuteColumns(A: DMat, permutation: ColumnPermutation): DMat =
+    Matrix.tabulate(A.rows, A.cols)((row, col) => A(row, permutation(col)))
 
   private def assertVectorClose(actual: DVec, expected: DVec, tolerance: Double): Unit =
     assertEquals(actual.length, expected.length)
