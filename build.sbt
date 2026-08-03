@@ -40,12 +40,12 @@ def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
   val rawBase = out.ref.value.stripPrefix("v")
   val base = if (rawBase == "0.0.0") "1.0.0" else rawBase
   val commit =
-    if (out.commitSuffix.sha.isEmpty) ""
+    if (out.commitSuffix.distance == 0) ""
     else s"+${out.commitSuffix.distance}-${out.commitSuffix.sha}"
   val dirty =
     if (out.dirtySuffix.value.isEmpty) ""
     else s"+${out.dirtySuffix.value.stripPrefix("+")}"
-  val stable = out.ref.value.startsWith("v") && commit.isEmpty && dirty.isEmpty
+  val stable = out.ref.value.startsWith("v") && out.commitSuffix.distance == 0 && dirty.isEmpty
   if (stable) base else s"$base$commit$dirty-SNAPSHOT"
 }
 
