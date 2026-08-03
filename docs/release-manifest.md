@@ -52,8 +52,9 @@ silently treat a sibling checkout or a local snapshot as release evidence.
 
 The current development build derives a unique `1.0.0+...-SNAPSHOT` version;
 that version identifies the source tree only. A release candidate must derive
-one non-snapshot version from its tag and run the same gate before assembling
-artifacts. `.github/workflows/release.yml` stages JDK 21 and JDK 22 slices,
+one non-snapshot `v1.0.0-RC1` (or later release) version from its tag and run
+the same gate before assembling artifacts. `.github/workflows/release.yml`
+stages JDK 21 and JDK 22 slices,
 merges them, checks signatures and metadata with
 `tools/verify-central-bundle.sh`, and uploads one user-managed Central Portal
 deployment.

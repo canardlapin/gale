@@ -32,11 +32,11 @@ ThisBuild / developers := List(
   )
 )
 
-// sbt-ci-release/sbt-dynver owns the release version. Until the first tag
-// exists, keep the development line visibly on the 1.0 track instead of
-// exposing dynver's generic 0.0.0 fallback. A clean `v1.0.0` tag is the only
-// state that yields a stable version; every other state remains a unique
-// `1.0.0+...-SNAPSHOT` candidate.
+// sbt-ci-release/sbt-dynver owns the release version. Until a release or
+// release-candidate tag exists, keep the development line visibly on the 1.0
+// track instead of exposing dynver's generic 0.0.0 fallback. A clean
+// `v1.0.0` or `v1.0.0-RC1` tag yields its stable/pre-release version; every
+// other state remains a unique `1.0.0+...-SNAPSHOT` candidate.
 def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
   val rawBase = out.ref.value.stripPrefix("v")
   val base = if (rawBase == "0.0.0") "1.0.0" else rawBase
@@ -123,8 +123,9 @@ lazy val releaseVersionCheck = taskKey[Unit](
 lazy val releaseVersionSettings = Seq(
   releaseVersionCheck := {
     val candidate = version.value
-    if (candidate.endsWith("-SNAPSHOT") || !candidate.matches("[0-9]+\\.[0-9]+\\.[0-9]+"))
-      sys.error(s"release publication requires a clean vX.Y.Z tag; derived version was $candidate")
+    val releasePattern = "[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?"
+    if (candidate.endsWith("-SNAPSHOT") || !candidate.matches(releasePattern))
+      sys.error(s"release publication requires a clean vX.Y.Z or vX.Y.Z-RCn tag; derived version was $candidate")
   }
 )
 
