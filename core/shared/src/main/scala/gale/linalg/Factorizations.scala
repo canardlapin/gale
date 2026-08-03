@@ -14,22 +14,18 @@ final case class FactorizationDiagnostics(
   def isSuccess: Boolean =
     info == 0
 
-/** The row permutation produced by LU pivoting: `apply(i)` is the original row
-  * that ends up in position `i`.
+/** The row permutation produced by LU pivoting: `apply(i)` is the original row that ends up in position `i`.
   *
-  * `toArray` / `toIndexSeq` are public `Int`-index accessors. P4 restricted
-  * `Double` storage to the platform-specific interop doorway, but index arrays
-  * are plain `Array[Int]` and safe to expose: both accessors hand back an
-  * independent copy, so callers can read or mutate the result without touching
-  * the factorization's internal state.
+  * `toArray` / `toIndexSeq` are public `Int`-index accessors. P4 restricted `Double` storage to the platform-specific
+  * interop doorway, but index arrays are plain `Array[Int]` and safe to expose: both accessors hand back an independent
+  * copy, so callers can read or mutate the result without touching the factorization's internal state.
   */
 final class PivotVector private (private val values: Array[Int]):
   def length: Int =
     values.length
 
   def apply(index: Int): Int =
-    if index < 0 || index >= values.length then
-      throw LinAlgError.IndexOutOfBounds(index, values.length)
+    if index < 0 || index >= values.length then throw LinAlgError.IndexOutOfBounds(index, values.length)
     values(index)
 
   /** A fresh `Array[Int]` copy of the pivots; safe to mutate. */
@@ -74,16 +70,15 @@ object CholeskyOptions:
   val Default: CholeskyOptions =
     CholeskyOptions()
 
-/** For pivoted QR, `apply(i)` is the original input column represented by
-  * factor column `i`, so `Q * R == A(:, columnPermutation)`.
+/** For pivoted QR, `apply(i)` is the original input column represented by factor column `i`, so
+  * `Q * R == A(:, columnPermutation)`.
   */
 final class ColumnPermutation private (private val values: Array[Int]):
   def length: Int =
     values.length
 
   def apply(index: Int): Int =
-    if index < 0 || index >= values.length then
-      throw LinAlgError.IndexOutOfBounds(index, values.length)
+    if index < 0 || index >= values.length then throw LinAlgError.IndexOutOfBounds(index, values.length)
     values(index)
 
   def isIdentity: Boolean =
@@ -124,13 +119,11 @@ final case class LU private[gale] (
   def det: Either[LinAlgError, Double] =
     DenseDecompositions.det(this)
 
-/** Cholesky factorization `A = L Lᵀ` of a symmetric positive-definite matrix,
-  * holding the lower factor `L`.
+/** Cholesky factorization `A = L Lᵀ` of a symmetric positive-definite matrix, holding the lower factor `L`.
   *
-  * The factorization reads only the '''lower triangle''' of the input (including
-  * the diagonal); the strict upper triangle is never inspected, so `A` is treated
-  * as symmetric by assumption and any asymmetry in its upper triangle is ignored.
-  * A non-positive pivot yields `Left(`[[LinAlgError.NotPositiveDefinite]]`)`.
+  * The factorization reads only the '''lower triangle''' of the input (including the diagonal); the strict upper
+  * triangle is never inspected, so `A` is treated as symmetric by assumption and any asymmetry in its upper triangle is
+  * ignored. A non-positive pivot yields `Left(`[[LinAlgError.NotPositiveDefinite]]`)`.
   */
 final case class Cholesky private[gale] (
     lower: DMat,
@@ -147,12 +140,10 @@ final case class Cholesky private[gale] (
 
 /** Householder QR of an `m x n` matrix, stored compactly.
   *
-  * Rather than materialising the `m x m` orthogonal factor, the factorization
-  * keeps the `min(m, n)` elementary reflectors (`reflectors`, column `k` holding
-  * the length-`m` Householder vector `v_k`, zero above row `k`) and their scalars
-  * (`tau`, where `tau(k) = 2 / (v_k · v_k)`), plus the upper-triangular `r`. The
-  * dense `q` is rebuilt on demand; `solveLeastSquares` applies `Qᵀ` implicitly
-  * through the reflectors, so it never forms `Q`.
+  * Rather than materialising the `m x m` orthogonal factor, the factorization keeps the `min(m, n)` elementary
+  * reflectors (`reflectors`, column `k` holding the length-`m` Householder vector `v_k`, zero above row `k`) and their
+  * scalars (`tau`, where `tau(k) = 2 / (v_k · v_k)`), plus the upper-triangular `r`. The dense `q` is rebuilt on
+  * demand; `solveLeastSquares` applies `Qᵀ` implicitly through the reflectors, so it never forms `Q`.
   */
 final case class QR private[gale] (
     reflectors: DMat,
@@ -166,8 +157,8 @@ final case class QR private[gale] (
 
   def coefficientCount: Int = r.cols
 
-  /** The orthogonal factor `Q` (`m x m`), materialised from the stored
-    * reflectors on first access and cached thereafter.
+  /** The orthogonal factor `Q` (`m x m`), materialised from the stored reflectors on first access and cached
+    * thereafter.
     */
   lazy val q: DMat =
     DenseDecompositions.materializeQ(this)
@@ -186,9 +177,8 @@ final case class QR private[gale] (
   def solveLeastSquaresWith(b: DMat, workspace: DenseWorkspace): Either[LinAlgError, DMat] =
     DenseDecompositions.solveLeastSquaresWith(this, b, workspace)
 
-  /** Solve against `diag(scales) * b` without materializing the scaled RHS.
-    * Zero and negative finite scales are algebraically supported; non-finite
-    * scales are rejected.
+  /** Solve against `diag(scales) * b` without materializing the scaled RHS. Zero and negative finite scales are
+    * algebraically supported; non-finite scales are rejected.
     */
   def solveLeastSquaresScaledRowsWith(
       b: DVec,
@@ -219,8 +209,7 @@ final case class QR private[gale] (
 
 object DenseDecompositions:
   def lu(A: DMat): Either[LinAlgError, LU] =
-    if A.rows != A.cols then
-      Left(LinAlgError.NonSquareMatrix(A.shape))
+    if A.rows != A.cols then Left(LinAlgError.NonSquareMatrix(A.shape))
     else
       val n = A.rows
       val packed = A.toDoubleArrayCopyRowMajor
@@ -243,8 +232,7 @@ object DenseDecompositions:
             pivot = i
           i += 1
 
-        if maxAbs == 0.0 || maxAbs.isNaN then
-          return Left(LinAlgError.SingularMatrix(k))
+        if maxAbs == 0.0 || maxAbs.isNaN then return Left(LinAlgError.SingularMatrix(k))
 
         if pivot != k then
           swapRows(packed, n, k, pivot)
@@ -279,8 +267,7 @@ object DenseDecompositions:
     cholesky(A, CholeskyOptions.Default)
 
   def cholesky(A: DMat, options: CholeskyOptions): Either[LinAlgError, Cholesky] =
-    if A.rows != A.cols then
-      Left(LinAlgError.NonSquareMatrix(A.shape))
+    if A.rows != A.cols then Left(LinAlgError.NonSquareMatrix(A.shape))
     else
       val n = A.rows
       val lower = DoubleArray.alloc(n * n)
@@ -294,11 +281,9 @@ object DenseDecompositions:
             sum -= lower(i * n + k) * lower(j * n + k)
             k += 1
           if i == j then
-            if sum <= options.pivotTolerance || sum.isNaN then
-              return Left(LinAlgError.NotPositiveDefinite(i))
+            if sum <= options.pivotTolerance || sum.isNaN then return Left(LinAlgError.NotPositiveDefinite(i))
             lower(i * n + j) = math.sqrt(sum)
-          else
-            lower(i * n + j) = sum / lower(j * n + j)
+          else lower(i * n + j) = sum / lower(j * n + j)
           j += 1
         i += 1
       Right(
@@ -339,12 +324,9 @@ object DenseDecompositions:
     val scratch = workspace.doubles(requirement)
     val permutation = Array.tabulate(n)(i => i)
 
-    if options.pivoting == QRPivoting.Column then
-      factorPivotedQR(r, m, n, reflectors, limit, tau, scratch, permutation)
-    else if DenseWorkspace.usesBlockedQR(m, n) then
-      factorBlockedQR(r, m, n, reflectors, limit, tau, scratch)
-    else
-      factorUnblockedQR(r, m, n, reflectors, limit, tau, scratch)
+    if options.pivoting == QRPivoting.Column then factorPivotedQR(r, m, n, reflectors, limit, tau, scratch, permutation)
+    else if DenseWorkspace.usesBlockedQR(m, n) then factorBlockedQR(r, m, n, reflectors, limit, tau, scratch)
+    else factorUnblockedQR(r, m, n, reflectors, limit, tau, scratch)
 
     val rankTolerance = options.rankTolerance.getOrElse(rankToleranceFromUpperTriangular(r, m, n))
     val rank = rankFromUpperTriangular(r, m, n, rankTolerance)
@@ -369,7 +351,7 @@ object DenseDecompositions:
   )(using Backend): Either[LinAlgError, QR] =
     validateRowScales(scales, A.rows) match
       case Left(error) => Left(error)
-      case Right(_) =>
+      case Right(_)    =>
         val m = A.rows
         val n = A.cols
         val r = DoubleArray.alloc(m * n)
@@ -385,11 +367,11 @@ object DenseDecompositions:
           row += 1
         Right(qrOwned(m, n, r, options, workspace))
 
-  /** Rank-revealing unblocked QR with exact recomputation of every trailing
-    * column norm before pivot selection. Each column retains the same scaled
-    * accumulation and row order as `dnrm2`, but all columns share one
-    * row-contiguous matrix pass. The default unpivoted path retains the blocked
-    * fast kernel.
+  /** Rank-revealing unblocked QR with exact column-pivot selection.
+    *
+    * Both widths select the pivot from exact `dnrm2` values in ascending column order under the same strict-improvement
+    * rule; they differ only in how the scans that cannot win are avoided. The default unpivoted path retains the
+    * blocked fast kernel.
     */
   private def factorPivotedQR(
       r: DoubleArray,
@@ -402,31 +384,41 @@ object DenseDecompositions:
       permutation: Array[Int]
   ): Unit =
     // Scalar-local row-first norms are admitted for compact statistical
-    // designs. Wider designs retain independent exact `dnrm2` scans, but still
-    // reuse the winning scan for Householder; the scratch-array row-first
-    // candidate did not clear the benchmark court.
-    val useRowFirstNorms = n <= 8
+    // designs, where the accumulator pairs stay in registers. Wider designs
+    // screen with downdated norms instead; the scratch-array row-first
+    // candidate did not clear the benchmark court at those widths.
+    if n <= 8 then factorPivotedQRRowFirst(r, m, n, reflectors, limit, tau, scratch, permutation)
+    else factorPivotedQRScreened(r, m, n, reflectors, limit, tau, scratch, permutation)
+
+  /** Compact-width pivoted QR: every trailing column norm is recomputed before each pivot decision, but all columns
+    * share one row-contiguous matrix pass with the scaled accumulation and row order of `dnrm2` held in locals.
+    */
+  private def factorPivotedQRRowFirst(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      scratch: DoubleArray,
+      permutation: Array[Int]
+  ): Unit =
     var k = 0
     while k < limit do
-      if useRowFirstNorms then exactTrailingColumnNormsScalarRowMajor(r, m, n, k, scratch)
+      exactTrailingColumnNormsScalarRowMajor(r, m, n, k, scratch)
       var pivot = k
       var bestNorm = -1.0
       var col = k
       while col < n do
-        val norm =
-          if useRowFirstNorms then scratch(col) * math.sqrt(scratch(n + col))
-          else DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+        val norm = scratch(col) * math.sqrt(scratch(n + col))
         if norm > bestNorm then
           bestNorm = norm
           pivot = col
         col += 1
-      // `bestNorm` deliberately remains the scan sentinel when every norm is
-      // NaN. Read the chosen column's actual accumulator so Householder sees
-      // exactly the non-finite value that a fresh `dnrm2` would have produced.
-      val selectedNorm =
-        if useRowFirstNorms then scratch(pivot) * math.sqrt(scratch(n + pivot))
-        else if bestNorm >= 0.0 then bestNorm
-        else DoubleKernels.dnrm2(m - k, r, k * n + pivot, n)
+      // Read the chosen column's actual accumulator so Householder sees exactly
+      // the value a fresh `dnrm2` would have produced, including when every
+      // norm is NaN and `bestNorm` remains the scan sentinel.
+      val selectedNorm = scratch(pivot) * math.sqrt(scratch(n + pivot))
       if pivot != k then
         swapColumns(r, m, n, k, pivot)
         val original = permutation(k)
@@ -436,9 +428,123 @@ object DenseDecompositions:
       applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
       k += 1
 
-  /** Small-width row-first norm pass with accumulator pairs held in locals.
-    * Predictable width guards avoid scratch traffic inside the matrix scan and
-    * cover the compact statistical-design regime directly.
+  /** Wide-width pivoted QR that measures only the columns which can still hold the largest norm.
+    *
+    * Applying the step-`k` reflector is orthogonal on rows `k..m-1`, so `‖A(k+1:m, j)‖² = ‖A(k:m, j)‖² - R(k, j)²`
+    * holds exactly in real arithmetic. This path carries that downdate for every trailing column alongside a running
+    * bound on the rounding error the downdate has accumulated, which makes `[estimate - bound, estimate + bound]` an
+    * enclosure of the squared norm a fresh `dnrm2` scan would report.
+    *
+    * The enclosure is used only to discard columns that provably cannot hold the maximum. Every surviving column is
+    * then measured by the same `dnrm2` scan, in the same ascending order, under the same strict-improvement rule as
+    * recomputing all of them, so the pivot index, the tie choice, the rank decision, and the `selectedNorm` handed to
+    * `factorHouseholder` are unchanged. Only discarded scans are saved: a step costs one scan rather than one per
+    * trailing column whenever the columns are separated, and falls back to measuring all of them when they are not.
+    */
+  private def factorPivotedQRScreened(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tau: DoubleArray,
+      scratch: DoubleArray,
+      permutation: Array[Int]
+  ): Unit =
+    // The reflector update owns `scratch(0 until n)`, so both per-column
+    // regions live past it and survive across steps.
+    val estimates = n
+    val bounds = 2 * n
+    var col = 0
+    while col < n do
+      val norm = DoubleKernels.dnrm2(m, r, col, n)
+      val square = norm * norm
+      scratch(estimates + col) = square
+      scratch(bounds + col) = pivotScreenMeasuredBound(square, m)
+      col += 1
+
+    var k = 0
+    while k < limit do
+      // The largest lower bound any trailing column can claim. A column whose
+      // enclosure lies entirely below it cannot hold the maximum.
+      var screen = Double.NegativeInfinity
+      col = k
+      while col < n do
+        val lower = scratch(estimates + col) - scratch(bounds + col)
+        if lower > screen then screen = lower
+        col += 1
+
+      var pivot = k
+      var bestNorm = -1.0
+      col = k
+      while col < n do
+        // Negated so a NaN enclosure stays in the measured set and reaches the
+        // same comparison it would have reached under full recomputation.
+        if !(scratch(estimates + col) + scratch(bounds + col) < screen) then
+          val norm = DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+          val square = norm * norm
+          scratch(estimates + col) = square
+          scratch(bounds + col) = pivotScreenMeasuredBound(square, m - k)
+          if norm > bestNorm then
+            bestNorm = norm
+            pivot = col
+        col += 1
+
+      // `bestNorm` deliberately remains the scan sentinel when every measured
+      // norm is NaN. Read the chosen column's actual accumulator so Householder
+      // sees exactly the non-finite value a fresh `dnrm2` would have produced.
+      val selectedNorm =
+        if bestNorm >= 0.0 then bestNorm
+        else DoubleKernels.dnrm2(m - k, r, k * n + pivot, n)
+
+      if pivot != k then
+        swapColumns(r, m, n, k, pivot)
+        val original = permutation(k)
+        permutation(k) = permutation(pivot)
+        permutation(pivot) = original
+        val movedEstimate = scratch(estimates + k)
+        scratch(estimates + k) = scratch(estimates + pivot)
+        scratch(estimates + pivot) = movedEstimate
+        val movedBound = scratch(bounds + k)
+        scratch(bounds + k) = scratch(bounds + pivot)
+        scratch(bounds + pivot) = movedBound
+
+      factorHouseholder(r, m, n, reflectors, limit, tau, k, selectedNorm)
+      applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
+
+      // Downdate past the row the reflector just resolved, then widen each
+      // bound by the rounding the square and the subtraction introduced.
+      col = k + 1
+      while col < n do
+        val resolved = r(k * n + col)
+        val resolvedSquare = resolved * resolved
+        val updated = scratch(estimates + col) - resolvedSquare
+        scratch(estimates + col) = updated
+        scratch(bounds + col) = scratch(bounds + col) +
+          (resolvedSquare + math.abs(updated)) * PivotScreenStepRounding
+        col += 1
+      k += 1
+
+  /** IEEE machine epsilon for `Double` (2^-52), the pivot-screen bound scale. */
+  private inline val PivotScreenEpsilon = 2.220446049250313e-16
+
+  /** Rounding admitted by one downdate: the square, and the subtraction that consumes it. Two epsilons carry both with
+    * slack.
+    */
+  private inline val PivotScreenStepRounding = 2.0 * PivotScreenEpsilon
+
+  /** Bound on how far a squared norm measured now can sit from the value a later `dnrm2` scan reports for the same
+    * column.
+    *
+    * `dnrm2` admits one scaled update per scanned row, so its relative error grows with the scan length; squaring
+    * doubles that, and the constant term carries the final rounding of the square itself with slack. A bound that is
+    * too wide only costs scans that the screen then declines to discard.
+    */
+  private def pivotScreenMeasuredBound(square: Double, length: Int): Double =
+    math.abs(square) * ((2.0 * length.toDouble + 8.0) * PivotScreenEpsilon)
+
+  /** Small-width row-first norm pass with accumulator pairs held in locals. Predictable width guards avoid scratch
+    * traffic inside the matrix scan and cover the compact statistical-design regime directly.
     */
   private def exactTrailingColumnNormsScalarRowMajor(
       r: DoubleArray,
@@ -568,9 +674,8 @@ object DenseDecompositions:
       scratch(k + 7) = scale7
       scratch(n + k + 7) = ssq7
 
-  /** Small-shape QR: scalar Householder generation with row-major rank-1
-    * updates. Keeping this path avoids compact-WY setup overhead where Gale is
-    * already ahead of Breeze.
+  /** Small-shape QR: scalar Householder generation with row-major rank-1 updates. Keeping this path avoids compact-WY
+    * setup overhead where Gale is already ahead of Breeze.
     */
   private def factorUnblockedQR(
       r: DoubleArray,
@@ -587,9 +692,8 @@ object DenseDecompositions:
       applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
       k += 1
 
-  /** Large-shape QR using compact WY panels. Each panel is factored with the
-    * unblocked kernel, but its reflectors are aggregated as
-    * `H = I - V T Vᵀ`; the trailing matrix receives `Hᵀ` through two GEMMs.
+  /** Large-shape QR using compact WY panels. Each panel is factored with the unblocked kernel, but its reflectors are
+    * aggregated as `H = I - V T Vᵀ`; the trailing matrix receives `Hᵀ` through two GEMMs.
     */
   private def factorBlockedQR(
       r: DoubleArray,
@@ -617,14 +721,24 @@ object DenseDecompositions:
         val panelWidth = panelEnd - panelStart
         formCompactWY(reflectors, m, limit, tau, panelStart, panelWidth, scratch, tOffset, wOffset, block)
         applyCompactWYTranspose(
-          r, m, n, reflectors, limit, panelStart, panelEnd, panelWidth,
-          scratch, vtOffset, wOffset, tOffset, block
+          r,
+          m,
+          n,
+          reflectors,
+          limit,
+          panelStart,
+          panelEnd,
+          panelWidth,
+          scratch,
+          vtOffset,
+          wOffset,
+          tOffset,
+          block
         )
       panelStart = panelEnd
 
-  /** Build one normalized Householder reflector with a scaled `dnrm2` norm.
-    * The stored vector has `v(k)=1`; `tau=2/(vᵀv)` and the transformed diagonal
-    * is written directly to `R`. This is the stable `dlarfg` convention.
+  /** Build one normalized Householder reflector with a scaled `dnrm2` norm. The stored vector has `v(k)=1`;
+    * `tau=2/(vᵀv)` and the transformed diagonal is written directly to `R`. This is the stable `dlarfg` convention.
     */
   private def factorHouseholder(
       r: DoubleArray,
@@ -639,8 +753,8 @@ object DenseDecompositions:
     val norm = DoubleKernels.dnrm2(m - k, r, diagIndex, n)
     factorHouseholder(r, m, n, reflectors, limit, tau, k, norm)
 
-  /** Build a Householder reflector from an already exact norm. Pivoted QR uses
-    * this overload to avoid rescanning the selected strided column.
+  /** Build a Householder reflector from an already exact norm. Pivoted QR uses this overload to avoid rescanning the
+    * selected strided column.
     */
   private def factorHouseholder(
       r: DoubleArray,
@@ -677,8 +791,8 @@ object DenseDecompositions:
         r(i * n + k) = 0.0
         i += 1
 
-  /** Apply `I - tau*v*vᵀ` to a contiguous row-major column interval. The dot
-    * vector is accumulated row-first so the matrix traversal stays unit-stride.
+  /** Apply `I - tau*v*vᵀ` to a contiguous row-major column interval. The dot vector is accumulated row-first so the
+    * matrix traversal stays unit-stride.
     */
   private def applyReflectorToColumns(
       r: DoubleArray,
@@ -805,19 +919,29 @@ object DenseDecompositions:
     while j < panelWidth do
       var row = 0
       while row < rowsRemaining do
-        scratch(vtOffset + j * rowsRemaining + row) =
-          reflectors((panelStart + row) * limit + panelStart + j)
+        scratch(vtOffset + j * rowsRemaining + row) = reflectors((panelStart + row) * limit + panelStart + j)
         row += 1
       j += 1
 
     // W := V^T C.
     dispatchGemm(
-      panelWidth, trailingCols, rowsRemaining,
+      panelWidth,
+      trailingCols,
+      rowsRemaining,
       1.0,
-      scratch, vtOffset, rowsRemaining, 1,
-      r, panelStart * n + panelEnd, n, 1,
+      scratch,
+      vtOffset,
+      rowsRemaining,
+      1,
+      r,
+      panelStart * n + panelEnd,
+      n,
+      1,
       0.0,
-      scratch, wOffset, trailingCols, 1
+      scratch,
+      wOffset,
+      trailingCols,
+      1
     )
 
     // W := T^T W. Descending rows make the triangular multiply safe in place.
@@ -840,12 +964,23 @@ object DenseDecompositions:
 
     // C := C - V W.
     dispatchGemm(
-      rowsRemaining, trailingCols, panelWidth,
+      rowsRemaining,
+      trailingCols,
+      panelWidth,
       -1.0,
-      reflectors, panelStart * limit + panelStart, limit, 1,
-      scratch, wOffset, trailingCols, 1,
+      reflectors,
+      panelStart * limit + panelStart,
+      limit,
+      1,
+      scratch,
+      wOffset,
+      trailingCols,
+      1,
       1.0,
-      r, panelStart * n + panelEnd, n, 1
+      r,
+      panelStart * n + panelEnd,
+      n,
+      1
     )
 
   private def dispatchGemm(
@@ -869,23 +1004,49 @@ object DenseDecompositions:
   )(using backend: Backend): Unit =
     if backend.routesGemm(rows, cols, shared) then
       backend.denseDouble.gemm(
-        rows, cols, shared, alpha,
-        a, aOffset, aRowStride, aColStride,
-        b, bOffset, bRowStride, bColStride,
-        beta, c, cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
     else
       DoubleKernels.dgemm(
-        rows, cols, shared, alpha,
-        a, aOffset, aRowStride, aColStride,
-        b, bOffset, bRowStride, bColStride,
-        beta, c, cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
 
   /** Rebuild the dense `m x m` orthogonal factor from the stored reflectors.
     *
-    * `Q = H_0 H_1 ... H_{limit-1}` with `H_k = I - tau_k v_k v_kᵀ`. Starting from
-    * the identity and right-multiplying by each `H_k` in order accumulates `Q`.
+    * `Q = H_0 H_1 ... H_{limit-1}` with `H_k = I - tau_k v_k v_kᵀ`. Starting from the identity and right-multiplying by
+    * each `H_k` in order accumulates `Q`.
     */
   private[gale] def materializeQ(qr: QR): DMat =
     val reflectors = qr.reflectors
@@ -927,17 +1088,14 @@ object DenseDecompositions:
 
   /** 1-norm condition number estimate `||A||_1 * ||A^{-1}||_1`.
     *
-    * `||A^{-1}||_1` is estimated by Hager's algorithm (Higham's refinement):
-    * a handful of matvecs with `A^{-1}` and `A^{-T}` locate a large column of
-    * the inverse without forming it. Each matvec is one LU back/forward solve,
-    * so the total cost is two LU factorizations (of `A` and `Aᵀ`) plus O(5)
-    * solves — not the `n` solves a full inverse would need. The estimate is a
-    * lower bound on the true 1-norm, so the returned condition number never
-    * exceeds the exact one.
+    * `||A^{-1}||_1` is estimated by Hager's algorithm (Higham's refinement): a handful of matvecs with `A^{-1}` and
+    * `A^{-T}` locate a large column of the inverse without forming it. Each matvec is one LU back/forward solve, so the
+    * total cost is two LU factorizations (of `A` and `Aᵀ`) plus O(5) solves — not the `n` solves a full inverse would
+    * need. The estimate is a lower bound on the true 1-norm, so the returned condition number never exceeds the exact
+    * one.
     */
   def conditionEstimate(A: DMat): Either[LinAlgError, Double] =
-    if A.rows != A.cols then
-      Left(LinAlgError.NonSquareMatrix(A.shape))
+    if A.rows != A.cols then Left(LinAlgError.NonSquareMatrix(A.shape))
     else
       lu(A) match
         case Left(_: LinAlgError.SingularMatrix) =>
@@ -957,14 +1115,12 @@ object DenseDecompositions:
 
   /** Hager/Higham estimate of `||A^{-1}||_1` given LU factors of `A` and `Aᵀ`.
     *
-    * `luA` solves `A y = x` (applies `A^{-1}`); `luAt` solves `Aᵀ z = ξ`
-    * (applies `A^{-T}`). Iterates the standard column-search recurrence for at
-    * most five steps, stopping when the search index repeats or the local
-    * optimality test `||z||_inf <= zᵀx` holds.
+    * `luA` solves `A y = x` (applies `A^{-1}`); `luAt` solves `Aᵀ z = ξ` (applies `A^{-T}`). Iterates the standard
+    * column-search recurrence for at most five steps, stopping when the search index repeats or the local optimality
+    * test `||z||_inf <= zᵀx` holds.
     */
   private def hagerInverseOneNorm(n: Int, luA: LU, luAt: LU): Either[LinAlgError, Double] =
-    if n == 0 then
-      Right(0.0)
+    if n == 0 then Right(0.0)
     else
       // Platform scratch reused across iterations: `xVec` / `xiVec` are stable
       // views over `x` / `xi`, re-solved after each in-place update, and the
@@ -1017,8 +1173,7 @@ object DenseDecompositions:
                     zMax = az
                     j = i
                   i += 1
-                if zMax <= zdotx || j == jOld then
-                  converged = true
+                if zMax <= zdotx || j == jOld then converged = true
                 else
                   jOld = j
                   i = 0
@@ -1031,8 +1186,7 @@ object DenseDecompositions:
 
   def solve(lu: LU, b: DVec): Either[LinAlgError, DVec] =
     val n = lu.packed.rows
-    if lu.packed.cols != n then
-      Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    if lu.packed.cols != n then Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
     else if b.length != n then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(1)), Shape(Rows(b.length), Cols(1))))
     else
@@ -1058,15 +1212,12 @@ object DenseDecompositions:
       DoubleKernels.dtrsv(n, lower = true, unit = true, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
       // U x = y: a successful LU has nonzero pivots, but guard exact zeros anyway.
       val info = DoubleKernels.dtrsv(n, lower = false, unit = false, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
-      if info >= 0 then
-        Left(LinAlgError.SingularMatrix(info))
-      else
-        Right(DVec.fromDoubleArrayOwned(x))
+      if info >= 0 then Left(LinAlgError.SingularMatrix(info))
+      else Right(DVec.fromDoubleArrayOwned(x))
 
   def solve(lu: LU, b: DMat): Either[LinAlgError, DMat] =
     val n = lu.packed.rows
-    if lu.packed.cols != n then
-      Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    if lu.packed.cols != n then Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
     else if b.rows != n then
       Left(
         LinAlgError.DimensionMismatch(
@@ -1125,8 +1276,7 @@ object DenseDecompositions:
 
   def solve(cholesky: Cholesky, b: DVec): Either[LinAlgError, DVec] =
     val n = cholesky.lower.rows
-    if cholesky.lower.cols != n then
-      Left(LinAlgError.NonSquareMatrix(cholesky.lower.shape))
+    if cholesky.lower.cols != n then Left(LinAlgError.NonSquareMatrix(cholesky.lower.shape))
     else if b.length != n then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(1)), Shape(Rows(b.length), Cols(1))))
     else
@@ -1140,19 +1290,15 @@ object DenseDecompositions:
       // Owned contiguous copy of b, mutated in place into the solution.
       val x = b.toDoubleArrayOwnedCopy
       val forward = DoubleKernels.dtrsv(n, lower = true, unit = false, 0.0, lData, lOff, lRowStep, lColStep, x, 0, 1)
-      if forward >= 0 then
-        Left(LinAlgError.NotPositiveDefinite(forward))
+      if forward >= 0 then Left(LinAlgError.NotPositiveDefinite(forward))
       else
         val back = DoubleKernels.dtrsv(n, lower = false, unit = false, 0.0, lData, lOff, lColStep, lRowStep, x, 0, 1)
-        if back >= 0 then
-          Left(LinAlgError.NotPositiveDefinite(back))
-        else
-          Right(DVec.fromDoubleArrayOwned(x))
+        if back >= 0 then Left(LinAlgError.NotPositiveDefinite(back))
+        else Right(DVec.fromDoubleArrayOwned(x))
 
   def solve(cholesky: Cholesky, b: DMat): Either[LinAlgError, DMat] =
     val n = cholesky.lower.rows
-    if cholesky.lower.cols != n then
-      Left(LinAlgError.NonSquareMatrix(cholesky.lower.shape))
+    if cholesky.lower.cols != n then Left(LinAlgError.NonSquareMatrix(cholesky.lower.shape))
     else if b.rows != n then
       Left(
         LinAlgError.DimensionMismatch(
@@ -1195,16 +1341,13 @@ object DenseDecompositions:
   def solveLeastSquares(qr: QR, b: DVec): Either[LinAlgError, DVec] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
     else if b.length != m then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1))))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
-      if rank < n then
-        Left(LinAlgError.RankDeficient(rank, n))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         // y := Qᵀ b, applied implicitly as H_{limit-1} ... H_0 b through the
         // stored reflectors — no m x m Q is ever formed. Order matters: apply
@@ -1241,11 +1384,10 @@ object DenseDecompositions:
         val rColStep = qr.r.colStride.value
         val x = DoubleArray.alloc(n)
         DoubleKernels.dcopy(n, y, 0, 1, x, 0, 1)
-        val info = DoubleKernels.dtrsv(n, lower = false, unit = false, tolerance, rData, rOff, rRowStep, rColStep, x, 0, 1)
-        if info >= 0 then
-          Left(LinAlgError.RankDeficient(rank, n))
-        else if qr.columnPermutation.isIdentity then
-          Right(DVec.fromDoubleArrayOwned(x))
+        val info =
+          DoubleKernels.dtrsv(n, lower = false, unit = false, tolerance, rData, rOff, rRowStep, rColStep, x, 0, 1)
+        if info >= 0 then Left(LinAlgError.RankDeficient(rank, n))
+        else if qr.columnPermutation.isIdentity then Right(DVec.fromDoubleArrayOwned(x))
         else
           val unpermuted = DoubleArray.alloc(n)
           var pivoted = 0
@@ -1257,16 +1399,12 @@ object DenseDecompositions:
   def solveLeastSquares(qr: QR, b: DMat): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
-    else if b.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
-      if rank < n then
-        Left(LinAlgError.RankDeficient(rank, n))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         val rhsCols = b.cols
         val transformed = b.toDoubleArrayCopyRowMajor
@@ -1312,16 +1450,13 @@ object DenseDecompositions:
   ): Either[LinAlgError, DVec] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
     else if b.length != m then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1))))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
-      if rank < n then
-        Left(LinAlgError.RankDeficient(rank, n))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         val requirement = DenseWorkspace.qrSolveRequirement(m) match
           case Left(error)  => return Left(error)
@@ -1337,16 +1472,12 @@ object DenseDecompositions:
   ): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
-    else if b.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
-      if rank < n then
-        Left(LinAlgError.RankDeficient(rank, n))
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         val rhsCols = b.cols
         val requirement = DenseWorkspace.qrSolveRequirement(m, rhsCols) match
@@ -1375,19 +1506,17 @@ object DenseDecompositions:
   ): Either[LinAlgError, DVec] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
     else if b.length != m then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1))))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
       if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         validateRowScales(scales, m) match
           case Left(error) => Left(error)
-          case Right(_) =>
+          case Right(_)    =>
             val requirement = DenseWorkspace.qrSolveRequirement(m) match
               case Left(error)  => return Left(error)
               case Right(value) => value
@@ -1410,19 +1539,16 @@ object DenseDecompositions:
   ): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
     val n = qr.r.cols
-    if qr.r.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
-    else if b.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
-    else if m < n then
-      Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
+    if qr.r.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(n)), qr.r.shape))
+    else if b.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    else if m < n then Left(LinAlgError.UnsupportedOperation("underdetermined least squares"))
     else
       val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
       if rank < n then Left(LinAlgError.RankDeficient(rank, n))
       else
         validateRowScales(scales, m) match
           case Left(error) => Left(error)
-          case Right(_) =>
+          case Right(_)    =>
             val rhsCols = b.cols
             val requirement = DenseWorkspace.qrSolveRequirement(m, rhsCols) match
               case Left(error)  => return Left(error)
@@ -1485,8 +1611,7 @@ object DenseDecompositions:
     if info >= 0 then Left(LinAlgError.RankDeficient(rank, n))
     else
       val coefficients = DoubleArray.alloc(n)
-      if qr.columnPermutation.isIdentity then
-        DoubleKernels.dcopy(n, transformed, 0, 1, coefficients, 0, 1)
+      if qr.columnPermutation.isIdentity then DoubleKernels.dcopy(n, transformed, 0, 1, coefficients, 0, 1)
       else
         var pivoted = 0
         while pivoted < n do
@@ -1553,8 +1678,7 @@ object DenseDecompositions:
 
   def applyQ(qr: QR, b: DMat, transpose: Boolean): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
-    if b.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    if b.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
     else
       val out = b.toDoubleArrayCopyRowMajor
       applyReflectorsLeft(qr, out, b.cols, transpose)
@@ -1562,8 +1686,7 @@ object DenseDecompositions:
 
   def residualize(qr: QR, b: DMat): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
-    if b.rows != m then
-      Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
+    if b.rows != m then Left(LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(b.cols)), b.shape))
     else
       val out = b.toDoubleArrayCopyRowMajor
       applyReflectorsLeft(qr, out, b.cols, transpose = true)
@@ -1581,10 +1704,8 @@ object DenseDecompositions:
   def normalizedCovariance(qr: QR): Either[LinAlgError, DMat] =
     val n = qr.r.cols
     val rank = qr.diagnostics.rank.getOrElse(rankFromMatrix(qr.r))
-    if qr.r.rows < n then
-      Left(LinAlgError.UnsupportedOperation("normalized covariance requires rows >= columns"))
-    else if rank < n then
-      Left(LinAlgError.RankDeficient(rank, n))
+    if qr.r.rows < n then Left(LinAlgError.UnsupportedOperation("normalized covariance requires rows >= columns"))
+    else if rank < n then Left(LinAlgError.RankDeficient(rank, n))
     else
       val invR = DoubleArray.alloc(n * n)
       var rhs = 0
@@ -1623,14 +1744,11 @@ object DenseDecompositions:
       valueCols: Int,
       transpose: Boolean
   ): Unit =
-    if valueCols < 8 then
-      applyReflectorsLeftScalar(qr, values, valueCols, transpose)
-    else
-      applyReflectorsLeftBlocked(qr, values, valueCols, transpose)
+    if valueCols < 8 then applyReflectorsLeftScalar(qr, values, valueCols, transpose)
+    else applyReflectorsLeftBlocked(qr, values, valueCols, transpose)
 
-  /** Preserve the original column-first traversal for narrow right-hand sides.
-    * In particular, q=1 remains the compact scalar control rather than paying
-    * the compilation and branch footprint of the wide matrix kernel.
+  /** Preserve the original column-first traversal for narrow right-hand sides. In particular, q=1 remains the compact
+    * scalar control rather than paying the compilation and branch footprint of the wide matrix kernel.
     */
   private def applyReflectorsLeftScalar(
       qr: QR,
@@ -1664,10 +1782,9 @@ object DenseDecompositions:
           col += 1
       k += step
 
-  /** Matrix RHS values are owned row-major storage. Work eight columns at a
-    * time so both dot accumulation and the rank-1 update traverse each row
-    * contiguously while keeping partial sums in scalar locals. The scalar tail
-    * handles widths that are not multiples of eight without scratch storage.
+  /** Matrix RHS values are owned row-major storage. Work eight columns at a time so both dot accumulation and the
+    * rank-1 update traverse each row contiguously while keeping partial sums in scalar locals. The scalar tail handles
+    * widths that are not multiples of eight without scratch storage.
     */
   private def applyReflectorsLeftBlocked(
       qr: QR,
@@ -1747,8 +1864,7 @@ object DenseDecompositions:
 
   def det(lu: LU): Either[LinAlgError, Double] =
     val n = lu.packed.rows
-    if lu.packed.cols != n then
-      Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    if lu.packed.cols != n then Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
     else
       var out = lu.parity.toDouble
       var i = 0
@@ -1808,8 +1924,7 @@ object DenseDecompositions:
     var rank = 0
     var i = 0
     while i < limit do
-      if math.abs(values(i * cols + i)) > tolerance then
-        rank += 1
+      if math.abs(values(i * cols + i)) > tolerance then rank += 1
       i += 1
     rank
 
