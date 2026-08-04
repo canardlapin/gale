@@ -31,8 +31,8 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - name: Require a semantic release tag
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release workflows must run from a clean vX.Y.Z tag; got $GITHUB_REF_NAME" >&2
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release workflows must run from a clean vX.Y.Z or vX.Y.Z-RCn tag; got $GITHUB_REF_NAME" >&2
             exit 1
           fi
       - name: Run the release version and dependency gates
@@ -149,5 +149,5 @@ jobs:
             echo "### Central Portal deployment"
             echo "Uploaded in USER_MANAGED mode; publish it manually after Central validation."
             echo
-            echo "Deployment ID: `$deployment`"
+            printf 'Deployment ID: `%s`\n' "$deployment"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -2,7 +2,8 @@
 
 This policy begins with the first `1.0.0` release. Untagged builds derive a
 unique `1.0.0+...-SNAPSHOT` version; a snapshot is not a published release or a
-compatibility promise. Only a clean `vX.Y.Z` tag may produce a stable version.
+compatibility promise. Only a clean `vX.Y.Z` or pre-release `vX.Y.Z-RCn` tag may
+produce a publishable version.
 
 ## Coordinates and published modules
 

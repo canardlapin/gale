@@ -1,113 +1,136 @@
-# Gale 1.0.0-SNAPSHOT release evidence
+# Gale 1.0.0-RC1 release-foundation evidence
 
-Evidence date: 2026-07-17. Candidate identity: the commit containing this record
-on `main`; its parent is `393cc60`. All commands below ran against the candidate
-working tree before that evidence commit was created.
+Evidence date: 2026-08-03. Candidate commit:
+`6b48b78` (`6b48b782d557ab120de4c14e32f8dc6eaeb96442`), on
+`perf/pivoted-qr-norm-downdate`. The exact pushed SHA is recorded in Mote and
+in the remote CI receipt below. No release tag was created in the real
+checkout, and no Central deployment was uploaded.
 
-This record certifies local engineering gates. It does not claim that a public
-`1.0.0` was published or that remote CI ran on the evidence commit. Apache-2.0,
-the canonical GitHub repository, and POM provenance metadata were subsequently
-owner-selected on 2026-07-19.
+This record covers the four pre-RC foundation workstreams: documentation,
+artifact/dependency boundary, required CI, and signed Central Portal bundle
+mechanics. It does not claim that the owner's Central namespace, project PGP
+key, or Portal token has been configured.
 
-## Environment
+## Exact candidate and environment
 
-- macOS 14.3, Apple ARM64
-- sbt 1.11.7, Scala 3.3.8
-- OpenJDK 22 for JVM, JS, Vector, FFM, packaging, and Scaladoc gates
-- Node.js 24.1.0 for the executed Wasm profile
-- runtime-discovered macOS Accelerate for local FFM tests/measurements
+- Repository: `io.github.canardlapin/gale`
+- Branch: `perf/pivoted-qr-norm-downdate`
+- Exact pushed SHA: `6b48b782d557ab120de4c14e32f8dc6eaeb96442` (checked by
+  `git rev-parse` and `git ls-remote` before certification)
+- Local macOS Apple ARM64 court: sbt 1.11.7, Scala 3.7.4, Homebrew OpenJDK
+  25.0.1, Node supplied by the local Scala.js toolchain
+- All local sbt commands used isolated `/tmp/gale-*` Coursier, sbt, and Ivy
+  caches; no sibling checkout supplied a dependency
+- Remote CI uses the checked-in JDK 21/JDK 22 and Node 22 matrix definitions
+- Mote epic: `bd-01KZ447W504M5WMBHZF5CKWYKD`
 
-Local JDK 21 was unavailable. The workflow defines required Vector jobs on JDK
-21 and 22 and an OpenBLAS FFM job on JDK 22, but checked-in workflow text is not
-a substitute for a remote run on this candidate.
+## Local correctness, compatibility, and documentation gates
 
-## Correctness and build gates
+The final candidate passed:
 
-```bash
-JAVA_HOME=<jdk22> sbt -java-home <jdk22> \
-  testAllFull parityTest interopBreezeTest vectorBackendTest benchCompile
-
-JAVA_HOME=<jdk22> sbt -java-home <jdk22> \
-  nativeBackendTest blasFfmBackendTest benchFfmCompile
-
-GALE_WASM=1 sbt coreJS/test benchSmokeJSFull
+```text
+git diff --check
+sbt scalafmtCheckAll
+sbt releaseDependencyCheck
+sbt testAllFull docsCheck
+sbt parityTest interopBreezeTest
 ```
 
-All commands exited zero.
+The principal counts from the final `testAllFull docsCheck` run are:
 
 | Gate | Result |
 | --- | ---: |
-| core JVM | 376 / 376 |
-| core Scala.js JavaScript | 373 / 373 |
-| laws JVM | 30 / 30 |
-| laws Scala.js | 30 / 30 |
-| Breeze differential parity | 31 / 31 |
+| Core JVM tests | 622 / 622 |
+| Core Scala.js tests | 612 / 612 |
+| Laws JVM tests | 41 / 41 |
+| Laws Scala.js tests | 41 / 41 |
+| Scala.js optimized test links | pass |
+| JVM/Scala.js Scaladoc | pass |
+| mdoc pages | 26 compiled |
+| Laika pages | 22 rendered |
+| Breeze parity | 45 / 45 |
 | Breeze conversions/migration | 24 / 24 |
-| Vector backend + conformance | 27 / 27 |
-| native storage | 3 / 3 |
-| FFM BLAS/LAPACK + conformance | 19 / 19 |
-| Wasm-linked core | 373 / 373 |
-| core/laws Scala.js full links | pass |
-| JVM/JS benchmark compilation | pass |
-| JDK 22 FFM JMH compilation | pass |
 
-The [acceptance audit](v1-acceptance-audit.md) records the static dependency,
-package-residue, example, and public-storage checks. It found and removed the
-pre-v1 unsafe raw-array adoption API; copy-only JVM and Scala.js interop passed
-all gates above.
+`PivotedQRScreenSuite` contributes seven focused equivalence and stability
+checks inside the JVM/JS totals. The required remote run below independently
+executes the same public gates on Ubuntu and the JDK matrix.
 
-## Artifact evidence
+## Frozen artifact and dependency boundary
 
-Binary JARs and POMs were generated successfully for the intended v1 artifact
-set at version `1.0.0-SNAPSHOT`:
+The authoritative [release manifest](release-manifest.md) admits exactly these
+eight coordinates:
 
-- `gale-core_3` and `gale-core_sjs1_3`
-- `gale-laws_3` and `gale-laws_sjs1_3`
+- `gale-core_3`
+- `gale-core_sjs1_3`
+- `gale-laws_3`
+- `gale-laws_sjs1_3`
 - `gale-interop-breeze_3`
 - `gale-backend-jvm-vector_3`
 - `gale-backend-jvm-native_3`
 - `gale-backend-jvm-blas-ffm_3`
 
-Source and Scaladoc artifacts were built for all eight. A first documentation
-pass exposed unresolved Scaladoc links; those links were repaired, and focused
-core/laws/interop documentation rebuilds completed without warnings. Package
-inspection found no benchmark, parity, or vendor checkout content in published
-core/backend/laws artifacts. The interop artifact contains only its intentional
-`gale.interop.breeze` classes and declared Breeze dependency.
+`gale-interop-ravel` remains excluded because its `ravel-core_3:1.0.0-SNAPSHOT`
+dependency cannot enter a stable or RC Gale POM. `releaseDependencyCheck`
+rejects prohibited compile/runtime snapshots for every admitted project.
 
-The generated core POM has no forbidden compile dependency. The build now adds
-Apache-2.0, homepage, SCM, and developer metadata to every published module.
+## Tag-derived signed bundle rehearsal
 
-## Performance evidence
+In a temporary clone of the exact candidate, a local-only `v1.0.0-RC1` tag
+derived version `1.0.0-RC1`, passed `releaseVersionCheck`, and selected the
+`target/sona-staging` repository. With an isolated ephemeral GPG home (not the
+owner's release key), the following aliases completed:
 
-The canonical summary is the
-[backend dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).
-The candidate includes full receipts for:
+```text
+sbt releaseVersionCheck releaseJdk21Signed releaseJdk22Signed
+```
 
-- Vector GEMM/GEMV versus pure Gale and Breeze VectorBLAS;
-- FFM heap-copy GEMM, GEMV, LU/Cholesky/QR/eigen crossovers;
-- solve/least-squares scenarios, allocation rate, and declined-route overhead;
-- optimized Scala.js JavaScript versus executed Wasm.
+The two disjoint JDK slices merged into one Maven-layout tree containing 192
+files: all eight POM/JAR/sources/Scaladoc sets, checksums, and 32 detached
+signatures. The exact RC bundle passed:
 
-The important shipped decisions are conservative:
+```text
+tools/verify-central-bundle.sh --require-signatures central-bundle.zip
+Central bundle verified: 8 admitted artifacts, version 1.0.0-RC1
+```
 
-- Vector ARM64/JDK 22: contiguous GEMM at `128^3`, GEMV at `128^2`;
-- Accelerate/JDK 22: square GEMM at `512^3`, LU at n=128;
-- FFM GEMV, QR, and Cholesky remain default-off;
-- OpenBLAS/MKL automatic thresholds remain off until family-specific sweeps;
-- Wasm remains experimental/default-off after two runs showed optimized
-  JavaScript 20.6–42.9x faster.
+An unsigned-bundle rehearsal separately failed the signature-required verifier,
+confirming the gate fails closed. The release workflow remains tag-only,
+imports signing secrets only in tag jobs, merges JDK 21/JDK 22 slices, and sends
+one `USER_MANAGED` Central Portal deployment without automatically publishing
+it.
 
-## Release disposition
+## Remote CI receipt
 
-Engineering acceptance: **pass** for this local candidate.
+GitHub run [30837452017](https://github.com/canardlapin/gale/actions/runs/30837452017)
+ran on the exact candidate `6b48b782d557ab120de4c14e32f8dc6eaeb96442`. The
+completed run has every required job and both required JVM/JS and Vector
+matrices green:
 
-Public release disposition: **not releasable yet**. Remaining actions are:
+- formatting and fatal-warning policy
+- JVM and Scala.js tests
+- Scaladoc and executable guides
+- Scala.js optimized links
+- Breeze parity and published interop
+- release dependency manifest
+- benchmark compilation
+- Vector JDK 21 and JDK 22
+- FFM BLAS/LAPACK on JDK 22/OpenBLAS
 
-1. configure the binary publishing destination, credentials, and signing policy;
-2. run required remote CI on the exact release commit, including JDK 21 Vector
-   and Linux/OpenBLAS JDK 22 FFM jobs;
-3. replace `1.0.0-SNAPSHOT` with `1.0.0`, build/sign/publish the same artifact
-   set in the documented JDK 21/JDK 22 passes, and tag that exact commit.
+The Scala 3.8.4 consumer/source lanes are advisory and passed. The Wasm lane is
+also advisory and failed; `continue-on-error: true` keeps it from masking the
+required release gates. This receipt is the source-level record to carry into
+the later RC tag and Central validation operation.
 
-No release tag, signing, or binary publication was performed by this audit.
+## Remaining RC-only gates
+
+The engineering foundation is locally and remotely exercised, but the final
+publication child remains open until the owner supplies and validates:
+
+1. the `io.github.canardlapin` Central namespace;
+2. the real project PGP key and passphrase in GitHub Actions secrets;
+3. Central Portal username/token secrets and one non-publishing validation
+   upload; and
+4. the owner's Central validation receipt for the exact candidate.
+
+No immutable `v1.0.0` tag, RC tag, Central upload, or public binary release was
+created by this foundation work.
