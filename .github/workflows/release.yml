@@ -149,5 +149,5 @@ jobs:
             echo "### Central Portal deployment"
             echo "Uploaded in USER_MANAGED mode; publish it manually after Central validation."
             echo
-            echo "Deployment ID: `$deployment`"
+            printf 'Deployment ID: `%s`\n' "$deployment"
           } >> "$GITHUB_STEP_SUMMARY"
