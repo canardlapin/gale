@@ -1,6 +1,6 @@
 # Backend conformance and performance dashboard
 
-Last refreshed: 2026-07-25. Performance numbers are evidence for the named
+Last refreshed: 2026-08-05. Performance numbers are evidence for the named
 machine, JDK, and native library only. CI proves compatibility and conformance;
 it does not establish cross-machine speed.
 
@@ -12,7 +12,7 @@ it does not establish cross-machine speed.
 | Pure Gale | Scala.js / Node 22 | core + laws | required | active without an import |
 | Vector API | JVM 21/22 | shared backend conformance + backend suites | required on both JDKs | opt-in import; measured coarse ops only |
 | FFM BLAS/LAPACK | JVM 22 / OpenBLAS | shared backend conformance + native storage + loader/LAPACK suites | required | opt-in import; family-specific thresholds |
-| Scala.js Wasm | Node 22+ / experimental linker | 373 core tests + kernel profile | allow-failure | explicit `GALE_WASM=1` only |
+| Scala.js Wasm | Node 22+ / experimental linker | core suite + kernel profile | allow-failure | explicit `GALE_WASM=1` only |
 
 The FFM capability is conditional. `NativeBlas` requires a conforming CBLAS
 candidate; `NativeLapack` additionally requires all bound factorization and
@@ -20,6 +20,23 @@ symmetric-eigen symbols. The shared conformance suite uses independent
 `BigDecimal` oracles for dense kernels and typed reconstruction/error laws for
 factorizations. Breeze parity is a separate differential gate and is not counted
 as the backend's only oracle.
+
+## Gale 0.1 bounded candidate court
+
+The 2026-08-05 pre-M1 court exercised dense kernels, pivoted and multi-RHS QR,
+CG, reusable allocation paths, and both generalized spectral engines on an
+Apple M3 Max with OpenJDK 22. The same-build multi-RHS QR workspace route
+removed 99.65% of the owned route's measured allocation. Reused dense GEMM,
+sparse matvec, and planned sparse product and union replay remained near-zero
+allocation.
+
+The spectral receipt pairs every timing with convergence and exact operator
+work. All four engines converged on the timed clustered control. All four
+exhausted their budgets on the timed stiffness/mass control, so those timings
+are explicitly excluded from engine comparisons. The bounded one-fork court is
+liveness and allocation evidence, not a new crossover threshold or a universal
+performance claim. See the
+[full receipt](results/2026-08-05-0.1-candidate-court.md).
 
 ## Measured automatic routes
 
@@ -49,6 +66,7 @@ material warmed penalty below its threshold.
 
 ## Evidence index
 
+- [Gale 0.1 bounded candidate court](results/2026-08-05-0.1-candidate-court.md)
 - [Matrix-free generalized LOBPCG development baseline](results/2026-07-25-generalized-lobpcg-baseline.md)
 - [Reusable-architecture allocation baseline](results/2026-07-20-faer-nalgebra-allocation-baseline.md)
 - [Scalafim migration workloads](results/2026-07-19-scalafim-migration.md)
