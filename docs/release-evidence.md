@@ -35,7 +35,7 @@ The final candidate passed:
 
 ```text
 git diff --check
-sbt formatCheck
+sbt scalafmtCheckAll
 sbt releaseDependencyCheck
 sbt testAllFull docsCheck
 sbt parityTest interopBreezeTest
