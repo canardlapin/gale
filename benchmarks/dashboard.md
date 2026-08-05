@@ -12,7 +12,7 @@ it does not establish cross-machine speed.
 | Pure Gale | Scala.js / Node 22 | core + laws | required | active without an import |
 | Vector API | JVM 21/22 | shared backend conformance + backend suites | required on both JDKs | opt-in import; measured coarse ops only |
 | FFM BLAS/LAPACK | JVM 22 / OpenBLAS | shared backend conformance + native storage + loader/LAPACK suites | required | opt-in import; family-specific thresholds |
-| Scala.js Wasm | Node 22+ / experimental linker | core suite + kernel profile | allow-failure | explicit `GALE_WASM=1` only |
+| Scala.js Wasm | Node 24 / experimental linker | core suite + kernel profile | allow-failure | explicit `GALE_WASM=1` only |
 
 The FFM capability is conditional. `NativeBlas` requires a conforming CBLAS
 candidate; `NativeLapack` additionally requires all bound factorization and

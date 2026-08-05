@@ -2,7 +2,7 @@ package gale.bench
 
 import scala.compiletime.uninitialized
 
-import gale.backend.{Backend, PureBackend}
+import gale.backend.PureBackend
 import gale.backend.jvm.blas.{FfmBlasBackend, FfmBlasThresholds}
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
 import gale.linalg.{DMat, DVec, Matrix, Vec}

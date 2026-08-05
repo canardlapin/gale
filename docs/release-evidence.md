@@ -26,7 +26,8 @@ key, or Portal token has been configured.
   25.0.1, Node supplied by the local Scala.js toolchain
 - All local sbt commands used isolated `/tmp/gale-*` Coursier, sbt, and Ivy
   caches; no sibling checkout supplied a dependency
-- Remote CI uses the checked-in JDK 21/JDK 22 and Node 22 matrix definitions
+- Remote CI uses the checked-in JDK 21/JDK 22 and required Node 22 matrix
+  definitions; its experimental Wasm lane uses Node 24
 - Mote epic: `bd-01KZ447W504M5WMBHZF5CKWYKD`
 
 ## Local correctness, compatibility, and documentation gates

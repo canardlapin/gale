@@ -262,7 +262,9 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          # Scala.js 1.22's experimental Wasm output is exercised on the
+          # Node 24 runtime used by the recorded Gale Wasm court.
+          node-version: "24"
       - name: Execute core tests and optimized kernel profile as WebAssembly
         # build.sbt supplies --experimental-wasm-exnref to the Node jsEnv.
         run: sbt coreJS/test benchSmokeJSFull

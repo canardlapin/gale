@@ -158,7 +158,7 @@ consumer release that needs the new coordinate.
 | Vector backend | JDK 21 or 22 plus `jdk.incubator.vector` | provisional, required test lane |
 | Native and FFM BLAS/LAPACK backends | JDK 22 plus explicit native access | provisional, required test lane |
 | Scala.js JavaScript in browsers | current evergreen browsers intended | not browser-certified until browser CI exists |
-| Scala.js Wasm | Node 22+ experimental profile | advisory and excluded |
+| Scala.js Wasm | Node 24 experimental profile | advisory and excluded |
 
 Release notes must distinguish the Node-tested Scala.js runtime from intended
 browser support. They must not claim browser certification without a browser
