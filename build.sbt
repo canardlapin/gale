@@ -61,6 +61,11 @@ inThisBuild(
       galeReleaseVersion,
       galeReleaseFallbackVersion(dynverCurrentDate.value)
     ),
+    // The explicit Gale version contract also owns snapshot classification.
+    // Dynver's default follows Git state, which would leave a synthetic M1 dry
+    // run classified as a snapshot and route it to Central's snapshot service
+    // instead of sbt's local staging directory.
+    isSnapshot := version.value.endsWith("-SNAPSHOT"),
     dynver := {
       val date = new java.util.Date
       sbtdynver.DynVer
@@ -157,6 +162,10 @@ lazy val releaseVersionCheck = taskKey[Unit](
   "Require a clean, tag-derived semantic version for publication"
 )
 
+lazy val releaseStagingCheck = taskKey[Unit](
+  "Require a non-snapshot 0.1 candidate and sbt's local Central staging repository"
+)
+
 lazy val releaseVersionSettings = Seq(
   releaseVersionCheck := {
     val candidate = version.value
@@ -165,6 +174,18 @@ lazy val releaseVersionSettings = Seq(
       sys.error(
         s"0.1 publication requires a clean v0.1.x, v0.1.x-Mn, or v0.1.x-RCn tag; derived version was $candidate"
       )
+  },
+  releaseStagingCheck := {
+    val candidate = version.value
+    if (isSnapshot.value)
+      sys.error(s"release candidate $candidate is still classified as a snapshot")
+    publishTo.value match {
+      case Some(destination) if destination.name == "local-staging" => ()
+      case other                                                    =>
+        sys.error(
+          s"release candidate $candidate must publish to local-staging, found ${other.fold("no destination")(_.toString)}"
+        )
+    }
   }
 )
 
@@ -541,10 +562,17 @@ addCommandAlias(
 // The first 0.1 milestone admits only the cross-platform core and reusable law
 // modules. Optional JVM integrations and acceleration backends remain tested
 // by CI but cannot enter the Central bundle through these aliases.
-addCommandAlias("releaseM1Unsigned", ";coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish")
+addCommandAlias(
+  "releaseM1Preflight",
+  ";releaseDependencyCheck;coreJVM/releaseVersionCheck;coreJS/releaseVersionCheck;lawsJVM/releaseVersionCheck;lawsJS/releaseVersionCheck;coreJVM/releaseStagingCheck;coreJS/releaseStagingCheck;lawsJVM/releaseStagingCheck;lawsJS/releaseStagingCheck"
+)
+addCommandAlias(
+  "releaseM1Unsigned",
+  ";releaseM1Preflight;coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish"
+)
 addCommandAlias(
   "releaseM1Signed",
-  ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned"
+  ";releaseM1Preflight;coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned"
 )
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")

@@ -18,7 +18,8 @@ compatibility and runtime support.
 Every admitted coordinate is released at one tag-derived version and includes
 a binary JAR, sources JAR, Scaladoc JAR, POM, checksums, and signatures. The
 bundle verifier rejects missing coordinates, additional coordinates, mixed
-versions, snapshots, and missing files or signatures.
+versions, snapshots, coordinates outside the admitted Maven group, missing
+files or signatures, and absent or incorrect MD5/SHA-1 checksums.
 
 ## Tested but provisional modules
 
@@ -51,11 +52,29 @@ in the build does not admit them to publication.
 
 ## Executable checks
 
-Run the dependency gate before packaging:
+Run the dependency gate while converging a candidate:
 
 ```sh
 sbt releaseDependencyCheck
 ```
+
+The publication aliases are self-guarding. On an exact tag, run:
+
+```sh
+sbt releaseM1Preflight
+```
+
+For the credential-free manual court, supply the same synthetic version used by
+the workflow:
+
+```sh
+sbt 'set ThisBuild / version := "0.1.0-M1"' releaseM1Preflight
+```
+
+The preflight repeats the dependency and version checks for all four admitted
+projects and requires each `publishTo` destination to be sbt's local
+`target/sona-staging` repository. `releaseM1Unsigned` and `releaseM1Signed`
+invoke this preflight themselves before writing any artifact.
 
 The gate checks compile and runtime resolution for the stable and provisional
 candidate modules. It fails on external dependency revisions containing

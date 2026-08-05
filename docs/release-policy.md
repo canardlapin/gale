@@ -176,6 +176,13 @@ The release workflow performs two different operations:
   uploads one `USER_MANAGED` Central Portal deployment. Publication remains a
   deliberate Portal action after validation.
 
+Both publication aliases begin with `releaseM1Preflight`. It rejects a
+snapshot-classified candidate, a non-0.1 release version, prohibited snapshot
+dependencies, or any admitted project whose `publishTo` destination is not
+sbt's local `target/sona-staging` repository. Bundle verification also checks
+the exact Maven group and artifact set plus the MD5 and SHA-1 content digests;
+the signed tag path additionally requires every primary artifact signature.
+
 Before closing the milestone, the owner must verify the Central namespace,
 project signing key, Portal credentials, and one non-publishing validation
 deployment. A clean external consumer must then resolve and exercise every

@@ -50,14 +50,12 @@ jobs:
             echo "Manual dry runs require a 0.1 milestone or RC version; got $DRY_RUN_VERSION" >&2
             exit 1
           fi
-      - name: Run the tag-derived release version gate
+      - name: Run the tag-derived release preflight
         if: github.event_name == 'push'
-        run: sbt releaseVersionCheck
-      - name: Run the synthetic dry-run version gate
+        run: sbt releaseM1Preflight
+      - name: Run the synthetic dry-run preflight
         if: github.event_name == 'workflow_dispatch'
-        run: sbt "set ThisBuild / version := \"$DRY_RUN_VERSION\"" releaseVersionCheck
-      - name: Run the release dependency gate
-        run: sbt releaseDependencyCheck
+        run: sbt "set ThisBuild / version := \"$DRY_RUN_VERSION\"" releaseM1Preflight
       - name: Re-run the complete correctness, optimized-link, and docs gates
         run: sbt formatCheck testAllFull compileAll parityTest interopBreezeTest benchCompile docsCheck
 
