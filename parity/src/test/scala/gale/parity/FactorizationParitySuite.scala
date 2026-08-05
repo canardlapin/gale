@@ -12,18 +12,16 @@ import gale.parity.ParitySupport.*
 
 /** Factorization and linear-solve parity versus Breeze.
   *
-  * Factorizations are not unique — pivoting order and reflector/sign conventions
-  * differ between gale's pure kernels and Breeze's LAPACK backend — so these tests
-  * compare '''invariants''' rather than raw factors: determinant values (sign
-  * included), solution vectors, `A = L Lᵀ` / `A = Q R` reconstructions, and
-  * sign-free products such as `Rᵀ R = Aᵀ A`.
+  * Factorizations are not unique — pivoting order and reflector/sign conventions differ between gale's pure kernels and
+  * Breeze's LAPACK backend — so these tests compare '''invariants''' rather than raw factors: determinant values (sign
+  * included), solution vectors, `A = L Lᵀ` / `A = Q R` reconstructions, and sign-free products such as `Rᵀ R = Aᵀ A`.
   */
 class FactorizationParitySuite extends munit.FunSuite:
 
   private val solveTol = 1e-10
-  private val detTol   = 1e-11
+  private val detTol = 1e-11
   private val reconTol = 1e-11
-  private val cholTol  = 1e-10
+  private val cholTol = 1e-10
 
   // ---------------------------------------------------------------------------
   // Determinant
@@ -32,17 +30,17 @@ class FactorizationParitySuite extends munit.FunSuite:
   test("det: gale vs breeze on well-conditioned matrices") {
     for n <- List(4, 8, 15); seed <- List(1L, 2L, 3L) do
       val data = diagonallyDominant(n, seed)
-      val gd   = galeMatrix(data).det.orThrow
-      val bd   = det(breezeMatrix(data))
+      val gd = galeMatrix(data).det.orThrow
+      val bd = det(breezeMatrix(data))
       assertScalarClose(gd, bd, detTol, s"det n=$n seed=$seed")
   }
 
   test("det: sign parity under a row swap (negative determinant)") {
     for n <- List(4, 9); seed <- List(5L, 6L) do
       val data = diagonallyDominant(n, seed)
-      val tmp  = data(0); data(0) = data(1); data(1) = tmp // swap two rows -> flips sign
-      val gd   = galeMatrix(data).det.orThrow
-      val bd   = det(breezeMatrix(data))
+      val tmp = data(0); data(0) = data(1); data(1) = tmp // swap two rows -> flips sign
+      val gd = galeMatrix(data).det.orThrow
+      val bd = det(breezeMatrix(data))
       assert(gd < 0.0 == bd < 0.0, s"det sign disagreement n=$n seed=$seed: gale=$gd breeze=$bd")
       assertScalarClose(gd, bd, detTol, s"det(swapped) n=$n seed=$seed")
   }
@@ -55,20 +53,20 @@ class FactorizationParitySuite extends munit.FunSuite:
     for n <- List(5, 12, 25); seed <- List(1L, 2L, 3L) do
       val aData = diagonallyDominant(n, seed)
       val bData = vectorData(n, seed * 41 + 1)
-      val gx    = galeMatrix(aData).solve(galeVector(bData)).orThrow
-      val bx    = breezeMatrix(aData) \ breezeVector(bData)
+      val gx = galeMatrix(aData).solve(galeVector(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeVector(bData)
       assertVecClose(gx, bx, solveTol, s"solve n=$n seed=$seed")
   }
 
   test("solve: LU-reused solve matches a fresh breeze solve for several RHS") {
-    val n  = 20
-    val a  = diagonallyDominant(n, 99L)
+    val n = 20
+    val a = diagonallyDominant(n, 99L)
     val lu = galeMatrix(a).lu.orThrow
     val ba = breezeMatrix(a)
     for r <- 0 until 4 do
       val bData = vectorData(n, 500L + r)
-      val gx    = lu.solve(galeVector(bData)).orThrow
-      val bx    = ba \ breezeVector(bData)
+      val gx = lu.solve(galeVector(bData)).orThrow
+      val bx = ba \ breezeVector(bData)
       assertVecClose(gx, bx, solveTol, s"LU solve rhs=$r")
   }
 
@@ -100,8 +98,8 @@ class FactorizationParitySuite extends munit.FunSuite:
 
       // gale: packed L\U + pivots. pivots(i) is the original row now in row i, so
       // (L·U)(i, j) must equal A(pivots(i), j).
-      val lu   = galeMatrix(data).lu.orThrow
-      val piv  = lu.pivots
+      val lu = galeMatrix(data).lu.orThrow
+      val piv = lu.pivots
       val lMat = Matrix.tabulate(n, n)((i, j) => if i == j then 1.0 else if j < i then lu.packed(i, j) else 0.0)
       val uMat = Matrix.tabulate(n, n)((i, j) => if j >= i then lu.packed(i, j) else 0.0)
       val recon = lMat * uMat
@@ -125,8 +123,8 @@ class FactorizationParitySuite extends munit.FunSuite:
   test("cholesky: lower factor matches elementwise and reconstructs A") {
     for n <- List(4, 10, 20); seed <- List(1L, 2L, 3L) do
       val data = spd(n, seed)
-      val gL   = galeMatrix(data).cholesky.orThrow.lower
-      val bL   = cholesky(breezeMatrix(data))
+      val gL = galeMatrix(data).cholesky.orThrow.lower
+      val bL = cholesky(breezeMatrix(data))
       // Cholesky is unique for SPD with positive diagonal: compare the lower
       // triangles directly (breeze may leave nonzero garbage above the diagonal,
       // so only the lower triangle is compared).
@@ -150,8 +148,8 @@ class FactorizationParitySuite extends munit.FunSuite:
   test("QR: reconstruction, orthonormality, and Rᵀ R = Aᵀ A parity") {
     for (m, n) <- List((5, 5), (8, 5), (20, 12)); seed <- List(1L, 2L) do
       val data = matrixData(m, n, seed)
-      val ga   = galeMatrix(data)
-      val ba   = breezeMatrix(data)
+      val ga = galeMatrix(data)
+      val ba = breezeMatrix(data)
 
       val gqr = ga.qr
       val bqr = qr(ba) // complete QR: Q is m×m, R is m×n
@@ -178,8 +176,8 @@ class FactorizationParitySuite extends munit.FunSuite:
     for (m, n) <- List((10, 4), (25, 12), (40, 7)); seed <- List(1L, 2L) do
       val aData = matrixData(m, n, seed)
       val bData = vectorData(m, seed * 17 + 3)
-      val gx    = galeMatrix(aData).leastSquares(galeVector(bData)).orThrow
-      val bx    = breezeMatrix(aData) \ breezeVector(bData)
+      val gx = galeMatrix(aData).leastSquares(galeVector(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeVector(bData)
       assertVecClose(gx, bx, solveTol, s"least squares ${m}x$n seed=$seed")
   }
 
@@ -215,9 +213,10 @@ class FactorizationParitySuite extends munit.FunSuite:
     // a Hager/Higham 1-norm estimate. Diagonal matrices are the honest overlap:
     // both condition numbers are max(|d|)/min(|d|).
     for diagonal <- Seq(
-      Array(0.5, 1.0, 4.0, 25.0),
-      Array(-1000.0, 7.0, -2.0, 0.25)
-    ) do
+        Array(0.5, 1.0, 4.0, 25.0),
+        Array(-1000.0, 7.0, -2.0, 0.25)
+      )
+    do
       val data = Array.tabulate(diagonal.length, diagonal.length): (i, j) =>
         if i == j then diagonal(i) else 0.0
       val galeCond = galeMatrix(data).conditionEstimate.orThrow

@@ -4,11 +4,10 @@ import gale.linalg.DVec
 import gale.linalg.Matrix
 import gale.linalg.Vec
 
-/** Tests for the optional compile-time-dimension layer: dimension-correct ops
-  * compile and compute the same as their `DVec`/`DMat` equivalents; dimension-
-  * mismatched ops '''do not compile''' (the layer's whole point, checked with
-  * munit's `compileErrors`); runtime adoption goes through `Either`; lowering is
-  * zero-copy; and the tiny fixed-size det/inverse kernels are exact.
+/** Tests for the optional compile-time-dimension layer: dimension-correct ops compile and compute the same as their
+  * `DVec`/`DMat` equivalents; dimension- mismatched ops '''do not compile''' (the layer's whole point, checked with
+  * munit's `compileErrors`); runtime adoption goes through `Either`; lowering is zero-copy; and the tiny fixed-size
+  * det/inverse kernels are exact.
   */
 class SizedSuite extends munit.FunSuite:
 

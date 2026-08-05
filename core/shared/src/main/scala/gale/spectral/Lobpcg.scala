@@ -10,14 +10,12 @@ import gale.linalg.Rows
 import gale.linalg.Shape
 import gale.solvers.Preconditioner
 
-/** Portable locally optimal block preconditioned conjugate-gradient kernel for
-  * the symmetric-definite generalized eigenproblem `A X = B X Λ`.
+/** Portable locally optimal block preconditioned conjugate-gradient kernel for the symmetric-definite generalized
+  * eigenproblem `A X = B X Λ`.
   *
-  * Ambient operators are used only through block applications. Dense
-  * generalized eigendecompositions are confined to the current trial subspace.
-  * The current Ritz block and every retained history block carry cached metric
-  * images; `A X` is likewise transformed with Ritz coefficients instead of
-  * being recomputed.
+  * Ambient operators are used only through block applications. Dense generalized eigendecompositions are confined to
+  * the current trial subspace. The current Ritz block and every retained history block carry cached metric images;
+  * `A X` is likewise transformed with Ritz coefficients instead of being recomputed.
   */
 private[spectral] object Lobpcg:
 
@@ -50,131 +48,131 @@ private[spectral] object Lobpcg:
       GeneralizedBlockKernels
         .bOrthonormalizeAndReplenish(initial, metric, k, orthogonalityTolerance)
         .flatMap: initialBlock =>
-          GeneralizedBlockKernels.applyBlock(operator, initialBlock.vectors).flatMap: initialImages =>
-            rayleighRitz(initialBlock, initialImages, k, order, options.tolerance).flatMap: initialState =>
-              var state = initialState
-              var history = emptyBlock(n)
-              var iterations = 0
-              var extremalityCertified = false
-              var invariantStartExplorationPending =
-                convergedCount(initialState) == k && k < n
-              var failure: Option[LinAlgError] = None
+          GeneralizedBlockKernels
+            .applyBlock(operator, initialBlock.vectors)
+            .flatMap: initialImages =>
+              rayleighRitz(initialBlock, initialImages, k, order, options.tolerance).flatMap: initialState =>
+                var state = initialState
+                var history = emptyBlock(n)
+                var iterations = 0
+                var extremalityCertified = false
+                var invariantStartExplorationPending =
+                  convergedCount(initialState) == k && k < n
+                var failure: Option[LinAlgError] = None
 
-              while iterations < options.maxIterations &&
+                while iterations < options.maxIterations &&
                   (convergedCount(state) < k || invariantStartExplorationPending) &&
                   failure.isEmpty
-              do
-                val active = unconvergedIndices(state)
-                val residualBlock = selectColumns(state.residuals, active)
+                do
+                  val active = unconvergedIndices(state)
+                  val residualBlock = selectColumns(state.residuals, active)
 
-                applyPreconditioner(preconditioner, residualBlock) match
-                  case Left(error) =>
-                    failure = Some(error)
-                  case Right(preconditioned) =>
-                    GeneralizedBlockKernels.applyBlock(metric, preconditioned) match
-                      case Left(error) =>
-                        failure = Some(error)
-                      case Right(preconditionedMetricImages) =>
-                        val rawDirections =
-                          GeneralizedBlockKernels.MetricBlock(preconditioned, preconditionedMetricImages)
-                        // An exactly invariant initial block can be the wrong
-                        // spectral end. Force one deterministic complement
-                        // probe instead of accepting residual zero as target
-                        // identity.
-                        val requestedDirections =
-                          if active.nonEmpty then active.length else k
-                        val directionCount = math.min(requestedDirections, n - k)
-                        GeneralizedBlockKernels.bOrthonormalizeAgainstAndReplenish(
-                          rawDirections,
-                          metric,
-                          state.block,
-                          directionCount,
-                          orthogonalityTolerance,
-                          streamOffset = (iterations + 1) * math.max(k, 1)
-                        ) match
-                          case Left(error) =>
-                            failure = Some(error)
-                          case Right(directions) =>
-                            GeneralizedBlockKernels.concatenate(state.block, directions) match
-                              case Left(error) =>
-                                failure = Some(error)
-                              case Right(stateAndDirections) =>
-                                GeneralizedBlockKernels
-                                  .bOrthonormalizeAgainst(history, stateAndDirections, orthogonalityTolerance)
-                                  .flatMap(candidate =>
-                                    retainStableHistory(
-                                      candidate,
-                                      stateAndDirections,
-                                      orthogonalityTolerance
-                                    )
-                                  )
-                                match
-                                  case Left(error) =>
-                                    failure = Some(error)
-                                  case Right(usableHistory) =>
-                                    GeneralizedBlockKernels.concatenate(
-                                      state.block,
-                                      directions,
-                                      usableHistory
+                  applyPreconditioner(preconditioner, residualBlock) match
+                    case Left(error) =>
+                      failure = Some(error)
+                    case Right(preconditioned) =>
+                      GeneralizedBlockKernels.applyBlock(metric, preconditioned) match
+                        case Left(error) =>
+                          failure = Some(error)
+                        case Right(preconditionedMetricImages) =>
+                          val rawDirections =
+                            GeneralizedBlockKernels.MetricBlock(preconditioned, preconditionedMetricImages)
+                          // An exactly invariant initial block can be the wrong
+                          // spectral end. Force one deterministic complement
+                          // probe instead of accepting residual zero as target
+                          // identity.
+                          val requestedDirections =
+                            if active.nonEmpty then active.length else k
+                          val directionCount = math.min(requestedDirections, n - k)
+                          GeneralizedBlockKernels.bOrthonormalizeAgainstAndReplenish(
+                            rawDirections,
+                            metric,
+                            state.block,
+                            directionCount,
+                            orthogonalityTolerance,
+                            streamOffset = (iterations + 1) * math.max(k, 1)
+                          ) match
+                            case Left(error) =>
+                              failure = Some(error)
+                            case Right(directions) =>
+                              GeneralizedBlockKernels.concatenate(state.block, directions) match
+                                case Left(error) =>
+                                  failure = Some(error)
+                                case Right(stateAndDirections) =>
+                                  GeneralizedBlockKernels
+                                    .bOrthonormalizeAgainst(history, stateAndDirections, orthogonalityTolerance)
+                                    .flatMap(candidate =>
+                                      retainStableHistory(
+                                        candidate,
+                                        stateAndDirections,
+                                        orthogonalityTolerance
+                                      )
                                     ) match
-                                      case Left(error) =>
-                                        failure = Some(error)
-                                      case Right(trial) =>
-                                        val directionImagesEither =
-                                          GeneralizedBlockKernels.applyBlock(operator, directions.vectors)
-                                        val historyImagesEither =
-                                          GeneralizedBlockKernels.applyBlock(operator, usableHistory.vectors)
+                                    case Left(error) =>
+                                      failure = Some(error)
+                                    case Right(usableHistory) =>
+                                      GeneralizedBlockKernels.concatenate(
+                                        state.block,
+                                        directions,
+                                        usableHistory
+                                      ) match
+                                        case Left(error) =>
+                                          failure = Some(error)
+                                        case Right(trial) =>
+                                          val directionImagesEither =
+                                            GeneralizedBlockKernels.applyBlock(operator, directions.vectors)
+                                          val historyImagesEither =
+                                            GeneralizedBlockKernels.applyBlock(operator, usableHistory.vectors)
 
-                                        (directionImagesEither, historyImagesEither) match
-                                          case (Left(error), _) =>
-                                            failure = Some(error)
-                                          case (_, Left(error)) =>
-                                            failure = Some(error)
-                                          case (Right(directionImages), Right(historyImages)) =>
-                                            val trialImages =
-                                              concatenateMatrices(
-                                                state.operatorImages,
-                                                directionImages,
-                                                historyImages
-                                              )
-                                            rayleighRitz(
-                                              trial,
-                                              trialImages,
-                                              k,
-                                              order,
-                                              options.tolerance
-                                            ) match
-                                              case Left(error) =>
-                                                failure = Some(error)
-                                              case Right(nextState) =>
-                                                locallyOptimalHistory(
-                                                  previous = state.block,
-                                                  current = nextState.block,
-                                                  tolerance = orthogonalityTolerance
-                                                ) match
-                                                  case Left(error) =>
-                                                    failure = Some(error)
-                                                  case Right(nextHistory) =>
-                                                    extremalityCertified =
-                                                      extremalityCertified || trial.cols == n
-                                                    invariantStartExplorationPending = false
-                                                    history = nextHistory
-                                                    state = nextState
-                                                    iterations += 1
+                                          (directionImagesEither, historyImagesEither) match
+                                            case (Left(error), _) =>
+                                              failure = Some(error)
+                                            case (_, Left(error)) =>
+                                              failure = Some(error)
+                                            case (Right(directionImages), Right(historyImages)) =>
+                                              val trialImages =
+                                                concatenateMatrices(
+                                                  state.operatorImages,
+                                                  directionImages,
+                                                  historyImages
+                                                )
+                                              rayleighRitz(
+                                                trial,
+                                                trialImages,
+                                                k,
+                                                order,
+                                                options.tolerance
+                                              ) match
+                                                case Left(error) =>
+                                                  failure = Some(error)
+                                                case Right(nextState) =>
+                                                  locallyOptimalHistory(
+                                                    previous = state.block,
+                                                    current = nextState.block,
+                                                    tolerance = orthogonalityTolerance
+                                                  ) match
+                                                    case Left(error) =>
+                                                      failure = Some(error)
+                                                    case Right(nextHistory) =>
+                                                      extremalityCertified = extremalityCertified || trial.cols == n
+                                                      invariantStartExplorationPending = false
+                                                      history = nextHistory
+                                                      state = nextState
+                                                      iterations += 1
 
-              failure match
-                case Some(error) => Left(error)
-                case None =>
-                  Right(
-                    assemble(
-                      state,
-                      n,
-                      k,
-                      options.returnVectors == EigenVectors.Right,
-                      iterations,
-                      extremalityCertified
+                failure match
+                  case Some(error) => Left(error)
+                  case None        =>
+                    Right(
+                      assemble(
+                        state,
+                        n,
+                        k,
+                        options.returnVectors == EigenVectors.Right,
+                        iterations,
+                        extremalityCertified
+                      )
                     )
-                  )
 
   private[spectral] def validate(
       operator: DoubleLinearOperator,
@@ -275,11 +273,13 @@ private[spectral] object Lobpcg:
       stateAndDirections: GeneralizedBlockKernels.MetricBlock,
       tolerance: Double
   ): Either[LinAlgError, GeneralizedBlockKernels.MetricBlock] =
-    GeneralizedBlockKernels.concatenate(stateAndDirections, candidate).map: trial =>
-      val guard =
-        math.max(1e-4, 10.0 * tolerance * math.sqrt(math.max(1, trial.cols).toDouble))
-      if GeneralizedBlockKernels.metricOrthogonalityError(trial) <= guard then candidate
-      else emptyBlock(candidate.rows)
+    GeneralizedBlockKernels
+      .concatenate(stateAndDirections, candidate)
+      .map: trial =>
+        val guard =
+          math.max(1e-4, 10.0 * tolerance * math.sqrt(math.max(1, trial.cols).toDouble))
+        if GeneralizedBlockKernels.metricOrthogonalityError(trial) <= guard then candidate
+        else emptyBlock(candidate.rows)
 
   private def applyPreconditioner(
       preconditioner: Preconditioner,
@@ -355,8 +355,7 @@ private[spectral] object Lobpcg:
       block += 1
     DMat.tabulate(rows, offsets.last): (row, col) =>
       var index = 0
-      while index + 1 < offsets.length && col >= offsets(index + 1) do
-        index += 1
+      while index + 1 < offsets.length && col >= offsets(index + 1) do index += 1
       blocks(index)(row, col - offsets(index))
 
   private def emptyBlock(n: Int): GeneralizedBlockKernels.MetricBlock =
@@ -371,8 +370,7 @@ private[spectral] object Lobpcg:
       var row = 0
       while row < n do
         state = state * 1103515245 + 12345
-        destination(row) =
-          ((state >>> 9) & 0x7fffff).toDouble / 0x800000.toDouble * 2.0 - 1.0
+        destination(row) = ((state >>> 9) & 0x7fffff).toDouble / 0x800000.toDouble * 2.0 - 1.0
         row += 1
       column += 1
     output.result()

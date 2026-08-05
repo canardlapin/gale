@@ -13,18 +13,15 @@ enum DuplicatePolicy:
 
 /** Policy for non-finite values entering a sparse builder.
   *
-  * [[SparseValuePolicy.AllowNonFinite]] is the explicit default and preserves
-  * Gale's historical behavior: `NaN` and infinities are stored verbatim.
-  * [[SparseValuePolicy.RequireFinite]] makes a
-  * checked ingestion boundary reject them with `Left(InvalidArgument)` (and the
-  * legacy throwing [[COOBuilder.add]] surface throws that same error).
+  * [[SparseValuePolicy.AllowNonFinite]] is the explicit default and preserves Gale's historical behavior: `NaN` and
+  * infinities are stored verbatim. [[SparseValuePolicy.RequireFinite]] makes a checked ingestion boundary reject them
+  * with `Left(InvalidArgument)` (and the legacy throwing [[COOBuilder.add]] surface throws that same error).
   */
 enum SparseValuePolicy:
   case AllowNonFinite, RequireFinite
 
-/** Allocation-free callback for stored sparse entries. Unlike
-  * `(Int, Int, Double) => Unit`, this dedicated SAM has a primitive JVM method
-  * signature and never constructs a tuple or [[COOEntry]].
+/** Allocation-free callback for stored sparse entries. Unlike `(Int, Int, Double) => Unit`, this dedicated SAM has a
+  * primitive JVM method signature and never constructs a tuple or [[COOEntry]].
   */
 trait SparseEntryConsumer:
   def apply(row: Int, col: Int, value: Double): Unit
@@ -48,8 +45,8 @@ final class COO private[gale] (
   def nnz: Int =
     entryValues.length
 
-  /** Visit every physically stored COO triplet exactly once in storage order.
-    * Duplicates, explicit zeros, and allowed non-finite values are not changed.
+  /** Visit every physically stored COO triplet exactly once in storage order. Duplicates, explicit zeros, and allowed
+    * non-finite values are not changed.
     */
   def foreachStoredEntry(consumer: SparseEntryConsumer): Unit =
     var i = 0
@@ -65,10 +62,9 @@ final class COO private[gale] (
 
   /** Value at `(row, col)`, summing every stored entry at that coordinate.
     *
-    * On a canonical COO (no duplicate coordinates) this is the single stored value
-    * (or `0.0`), which agrees exactly with [[CSR.apply]] on the same matrix. On a
-    * non-canonical COO it sums duplicates — the construction-oriented, sum-on-
-    * assembly semantics COO carries until it is canonicalized or converted.
+    * On a canonical COO (no duplicate coordinates) this is the single stored value (or `0.0`), which agrees exactly
+    * with [[CSR.apply]] on the same matrix. On a non-canonical COO it sums duplicates — the construction-oriented,
+    * sum-on- assembly semantics COO carries until it is canonicalized or converted.
     */
   def apply(row: Int, col: Int): Double =
     checkRow(row)
@@ -76,8 +72,7 @@ final class COO private[gale] (
     var i = 0
     var out = 0.0
     while i < nnz do
-      if rowIndices(i) == row && colIndices(i) == col then
-        out += entryValues(i)
+      if rowIndices(i) == row && colIndices(i) == col then out += entryValues(i)
       i += 1
     out
 
@@ -86,8 +81,7 @@ final class COO private[gale] (
     val out = DVec.zeros(cols)
     var p = 0
     while p < nnz do
-      if rowIndices(p) == index then
-        out.data(colIndices(p)) = out.data(colIndices(p)) + entryValues(p)
+      if rowIndices(p) == index then out.data(colIndices(p)) = out.data(colIndices(p)) + entryValues(p)
       p += 1
     out
 
@@ -96,15 +90,21 @@ final class COO private[gale] (
     val out = DVec.zeros(rows)
     var p = 0
     while p < nnz do
-      if colIndices(p) == index then
-        out.data(rowIndices(p)) = out.data(rowIndices(p)) + entryValues(p)
+      if colIndices(p) == index then out.data(rowIndices(p)) = out.data(rowIndices(p)) + entryValues(p)
       p += 1
     out
 
   def t: COO =
     // Swapping (row, col) turns row-major order into column-major order, which is
     // not canonical in general; do not carry the flag through the transpose.
-    COO(cols, rows, IndexArray.copy(colIndices), IndexArray.copy(rowIndices), DoubleArray.copy(entryValues), canonical = false)
+    COO(
+      cols,
+      rows,
+      IndexArray.copy(colIndices),
+      IndexArray.copy(rowIndices),
+      DoubleArray.copy(entryValues),
+      canonical = false
+    )
 
   // COO is construction-oriented: matvec scatters directly over the entry
   // triples (summing duplicates) without building a CSR first. For repeated
@@ -169,9 +169,8 @@ final class COO private[gale] (
   def toCSC: CSC =
     CSC.fromCOO(this)
 
-  /** Canonical form of this COO: entries sorted row-major, duplicate coordinates
-    * summed, and entries that are (or sum to) zero dropped. Reuses the builder's
-    * sort/sum, then prunes zeros so cancellations disappear too.
+  /** Canonical form of this COO: entries sorted row-major, duplicate coordinates summed, and entries that are (or sum
+    * to) zero dropped. Reuses the builder's sort/sum, then prunes zeros so cancellations disappear too.
     */
   def canonicalize: COO =
     val builder = Sparse.coo(rows, cols)
@@ -191,12 +190,10 @@ final class COO private[gale] (
     DoubleArray.copy(entryValues)
 
   private def checkRow(row: Int): Unit =
-    if row < 0 || row >= rows then
-      throw LinAlgError.IndexOutOfBounds(row, rows)
+    if row < 0 || row >= rows then throw LinAlgError.IndexOutOfBounds(row, rows)
 
   private def checkCol(col: Int): Unit =
-    if col < 0 || col >= cols then
-      throw LinAlgError.IndexOutOfBounds(col, cols)
+    if col < 0 || col >= cols then throw LinAlgError.IndexOutOfBounds(col, cols)
 
 object COO:
   private[gale] def apply(
@@ -243,8 +240,8 @@ final class COOBuilder private[gale] (
       case Left(error) => throw error
       case Right(())   => this
 
-  /** Checked in-place canonicalization. Mutation happens only after duplicate
-    * validation succeeds, so a `Left` leaves the original triplets intact.
+  /** Checked in-place canonicalization. Mutation happens only after duplicate validation succeeds, so a `Left` leaves
+    * the original triplets intact.
     */
   def tryCanonicalize(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, Unit] =
     tryToCOO(duplicates).map: coo =>
@@ -282,8 +279,7 @@ final class COOBuilder private[gale] (
       val prevCol = colIndices(i - 1)
       val row = rowIndices(i)
       val col = colIndices(i)
-      if row < prevRow || (row == prevRow && col < prevCol) then
-        return false
+      if row < prevRow || (row == prevRow && col < prevCol) then return false
       i += 1
     true
 
@@ -295,9 +291,8 @@ final class COOBuilder private[gale] (
       case Left(error) => throw error
       case Right(coo)  => coo
 
-  /** Total canonical COO finalization. Sorting is a stable primitive-index
-    * mergesort, so [[DuplicatePolicy.Last]] retains insertion-order semantics
-    * without allocating boxed [[COOEntry]] values.
+  /** Total canonical COO finalization. Sorting is a stable primitive-index mergesort, so [[DuplicatePolicy.Last]]
+    * retains insertion-order semantics without allocating boxed [[COOEntry]] values.
     */
   def tryToCOO(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, COO] =
     val order = stableCoordinateOrder()
@@ -313,11 +308,11 @@ final class COOBuilder private[gale] (
       var value = entryValues(first)
       var next = read + 1
       while next < order.length &&
-          rowIndices(order(next)) == row && colIndices(order(next)) == col
+        rowIndices(order(next)) == row && colIndices(order(next)) == col
       do
         duplicates match
-          case DuplicatePolicy.Sum  => value += entryValues(order(next))
-          case DuplicatePolicy.Last => value = entryValues(order(next))
+          case DuplicatePolicy.Sum   => value += entryValues(order(next))
+          case DuplicatePolicy.Last  => value = entryValues(order(next))
           case DuplicatePolicy.Error =>
             return Left(LinAlgError.InvalidArgument(s"duplicate sparse entry at ($row, $col)"))
         next += 1
@@ -366,8 +361,8 @@ final class COOBuilder private[gale] (
       // the checked CSC path total even when rows == Int.MaxValue.
       tryToCOO(duplicates).map(coo => coo.t.toCSR.pruneZeros.t)
 
-  /** Stable row-major ordering of insertion indices, implemented over primitive
-    * arrays so canonicalization does not construct a boxed triplet collection.
+  /** Stable row-major ordering of insertion indices, implemented over primitive arrays so canonicalization does not
+    * construct a boxed triplet collection.
     */
   private def stableCoordinateOrder(): Array[Int] =
     val order = Array.tabulate(nnz)(identity)
@@ -377,7 +372,7 @@ final class COOBuilder private[gale] (
       val leftRow = rowIndices(left)
       val rightRow = rowIndices(right)
       leftRow < rightRow ||
-        (leftRow == rightRow && colIndices(left) <= colIndices(right))
+      (leftRow == rightRow && colIndices(left) <= colIndices(right))
 
     def sort(from: Int, until: Int): Unit =
       if until - from > 1 then
@@ -406,8 +401,7 @@ final class COOBuilder private[gale] (
   private def hasDuplicates: Boolean =
     var i = 1
     while i < rowIndices.length do
-      if rowIndices(i) == rowIndices(i - 1) && colIndices(i) == colIndices(i - 1) then
-        return true
+      if rowIndices(i) == rowIndices(i - 1) && colIndices(i) == colIndices(i - 1) then return true
       i += 1
     false
 
@@ -433,14 +427,13 @@ final class CSR private[gale] (
   def nnz: Int =
     values.length
 
-  /** Immutable compressed structure shared with this matrix. No pointer or
-    * index storage is copied or exposed.
+  /** Immutable compressed structure shared with this matrix. No pointer or index storage is copied or exposed.
     */
   lazy val pattern: CSRPattern =
     new CSRPattern(new CompressedPatternStorage(rowPtr, colIdx), rows, cols)
 
-  /** Replace all stored values without changing structure. The input is copied
-    * exactly once; explicit zeros remain stored until [[pruneZeros]] or [[prune]].
+  /** Replace all stored values without changing structure. The input is copied exactly once; explicit zeros remain
+    * stored until [[pruneZeros]] or [[prune]].
     */
   def rebind(values: DVec): Either[LinAlgError, CSR] =
     pattern.bind(values)
@@ -448,14 +441,14 @@ final class CSR private[gale] (
   def rebind(values: Array[Double]): Either[LinAlgError, CSR] =
     pattern.bind(values)
 
-  /** O(1) exact symbolic-plan compatibility check: dimensions and immutable
-    * compressed backing identity must match the pattern used during analysis.
+  /** O(1) exact symbolic-plan compatibility check: dimensions and immutable compressed backing identity must match the
+    * pattern used during analysis.
     */
   private[sparse] def sharesPatternStorage(pattern: CSRPattern): Boolean =
     rows == pattern.rows && cols == pattern.cols && pattern.storage.sharesArrays(rowPtr, colIdx)
 
-  /** Visit every physically stored CSR entry exactly once in deterministic
-    * row-major storage order, without exposing pointer/index/value arrays.
+  /** Visit every physically stored CSR entry exactly once in deterministic row-major storage order, without exposing
+    * pointer/index/value arrays.
     */
   def foreachStoredEntry(consumer: SparseEntryConsumer): Unit =
     var row = 0
@@ -469,11 +462,10 @@ final class CSR private[gale] (
 
   /** Value at `(row, col)`: the stored value whose column matches, or `0.0`.
     *
-    * On a canonical CSR (sorted, no duplicate columns) there is at most one match,
-    * so this is an exact lookup agreeing with [[COO.apply]]. A non-canonical CSR
-    * with duplicate columns is never produced by the public API; if one is built
-    * directly, `apply` returns the first stored match while the matvec sums them,
-    * so canonicalize first for a well-defined value.
+    * On a canonical CSR (sorted, no duplicate columns) there is at most one match, so this is an exact lookup agreeing
+    * with [[COO.apply]]. A non-canonical CSR with duplicate columns is never produced by the public API; if one is
+    * built directly, `apply` returns the first stored match while the matvec sums them, so canonicalize first for a
+    * well-defined value.
     */
   def apply(row: Int, col: Int): Double =
     checkRow(row)
@@ -797,9 +789,8 @@ final class CSR private[gale] (
       i += 1
     out
 
-  /** True iff column indices are strictly increasing within every row (sorted,
-    * no duplicates) and no stored value is an explicit zero — the canonical CSR
-    * contract. Computed once on first access and cached.
+  /** True iff column indices are strictly increasing within every row (sorted, no duplicates) and no stored value is an
+    * explicit zero — the canonical CSR contract. Computed once on first access and cached.
     */
   lazy val hasCanonicalFormat: Boolean =
     val rPtr = rowPtr
@@ -819,9 +810,8 @@ final class CSR private[gale] (
       row += 1
     ok
 
-  /** Order the column indices ascending within each row, carrying values along.
-    * Duplicate columns and explicit zeros are preserved (use [[canonicalize]] to
-    * also sum duplicates and drop zeros). The row structure is unchanged, so the
+  /** Order the column indices ascending within each row, carrying values along. Duplicate columns and explicit zeros
+    * are preserved (use [[canonicalize]] to also sum duplicates and drop zeros). The row structure is unchanged, so the
     * existing row pointers are shared.
     */
   def sortedIndices: CSR =
@@ -848,8 +838,8 @@ final class CSR private[gale] (
   def pruneZeros: CSR =
     prune(absBelow = 0.0)
 
-  /** Drop entries whose magnitude is `<= absBelow`, preserving the order of the
-    * survivors. Structure-only: no sort or duplicate summation is performed.
+  /** Drop entries whose magnitude is `<= absBelow`, preserving the order of the survivors. Structure-only: no sort or
+    * duplicate summation is performed.
     */
   def prune(absBelow: Double): CSR =
     require(absBelow >= 0.0, "prune threshold must be non-negative")
@@ -883,9 +873,8 @@ final class CSR private[gale] (
       toDoubleArray(outValues, write)
     )
 
-  /** Fully canonicalize: sort columns within each row, sum duplicate columns, and
-    * drop entries that are (or sum to) zero. The result satisfies
-    * [[hasCanonicalFormat]] and preserves the sum-semantics matrix.
+  /** Fully canonicalize: sort columns within each row, sum duplicate columns, and drop entries that are (or sum to)
+    * zero. The result satisfies [[hasCanonicalFormat]] and preserves the sum-semantics matrix.
     */
   def canonicalize: CSR =
     val requirement = canonicalizeScratchRequirement match
@@ -893,15 +882,14 @@ final class CSR private[gale] (
       case Right(value) => value
     canonicalizeWith(DenseWorkspace.forRequirement(requirement))
 
-  /** Primitive scratch required by [[canonicalizeWith]]. Both regions are sized
-    * to `nnz`, the widest possible row, and can be reused by later calls.
+  /** Primitive scratch required by [[canonicalizeWith]]. Both regions are sized to `nnz`, the widest possible row, and
+    * can be reused by later calls.
     */
   def canonicalizeScratchRequirement: Either[LinAlgError, ScratchRequirement] =
     ScratchRequirement.checked(nnz.toLong, nnz.toLong)
 
-  /** Canonicalize using caller-owned primitive scratch. The returned CSR owns
-    * its values and indices; neither result storage nor input storage aliases
-    * the workspace, so a subsequent call cannot mutate an earlier result.
+  /** Canonicalize using caller-owned primitive scratch. The returned CSR owns its values and indices; neither result
+    * storage nor input storage aliases the workspace, so a subsequent call cannot mutate an earlier result.
     */
   def canonicalizeWith(workspace: DenseWorkspace): CSR =
     val requirement = canonicalizeScratchRequirement match
@@ -947,7 +935,13 @@ final class CSR private[gale] (
         p = q
       row += 1
     outRowPtr(rows) = write
-    new CSR(rows, cols, toIndexArray(outRowPtr, rows + 1), toIndexArray(outColIdx, write), toDoubleArray(outValues, write))
+    new CSR(
+      rows,
+      cols,
+      toIndexArray(outRowPtr, rows + 1),
+      toIndexArray(outColIdx, write),
+      toDoubleArray(outValues, write)
+    )
 
   private def checkRow(row: Int): Unit =
     if row < 0 || row >= rows then throw LinAlgError.IndexOutOfBounds(row, rows)
@@ -956,8 +950,7 @@ final class CSR private[gale] (
     if col < 0 || col >= cols then throw LinAlgError.IndexOutOfBounds(col, cols)
 
   private def requireSameShape(that: CSR): Unit =
-    if rows != that.rows || cols != that.cols then
-      throw LinAlgError.DimensionMismatch(shape, that.shape)
+    if rows != that.rows || cols != that.cols then throw LinAlgError.DimensionMismatch(shape, that.shape)
 
 final class CSC private[gale] (
     val rows: Int,
@@ -970,14 +963,13 @@ final class CSC private[gale] (
   def nnz: Int =
     values.length
 
-  /** Immutable compressed structure shared with this matrix. No pointer or
-    * index storage is copied or exposed.
+  /** Immutable compressed structure shared with this matrix. No pointer or index storage is copied or exposed.
     */
   lazy val pattern: CSCPattern =
     new CSCPattern(new CompressedPatternStorage(colPtr, rowIdx), rows, cols)
 
-  /** Replace all stored values without changing structure. The input is copied
-    * exactly once; explicit zeros remain stored until [[pruneZeros]] or [[prune]].
+  /** Replace all stored values without changing structure. The input is copied exactly once; explicit zeros remain
+    * stored until [[pruneZeros]] or [[prune]].
     */
   def rebind(values: DVec): Either[LinAlgError, CSC] =
     pattern.bind(values)
@@ -1013,8 +1005,7 @@ final class CSC private[gale] (
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     tMulInto(x, into)
 
-  /** `y := A x` by column scatter: each column contributes `x(col)` scaled into
-    * the rows it touches. No CSR conversion.
+  /** `y := A x` by column scatter: each column contributes `x(col)` scaled into the rows it touches. No CSR conversion.
     */
   def mulInto(x: DVec, y: MutableDVec): Unit =
     if x.length != cols then
@@ -1114,15 +1105,14 @@ final class CSC private[gale] (
   // result is transposed back to CSC; the CSR work builds fresh arrays and never
   // mutates shared storage, so the reinterpretation stays safe.
 
-  /** True iff row indices are strictly increasing within every column (sorted, no
-    * duplicates) and no stored value is an explicit zero — the canonical CSC
-    * contract.
+  /** True iff row indices are strictly increasing within every column (sorted, no duplicates) and no stored value is an
+    * explicit zero — the canonical CSC contract.
     */
   def hasCanonicalFormat: Boolean =
     t.hasCanonicalFormat
 
-  /** Order the row indices ascending within each column, carrying values along.
-    * Duplicates and explicit zeros are preserved.
+  /** Order the row indices ascending within each column, carrying values along. Duplicates and explicit zeros are
+    * preserved.
     */
   def sortedIndices: CSC =
     t.sortedIndices.t
@@ -1135,8 +1125,8 @@ final class CSC private[gale] (
   def prune(absBelow: Double): CSC =
     t.prune(absBelow).t
 
-  /** Fully canonicalize: sort rows within each column, sum duplicate rows, and
-    * drop entries that are (or sum to) zero. Satisfies [[hasCanonicalFormat]].
+  /** Fully canonicalize: sort rows within each column, sum duplicate rows, and drop entries that are (or sum to) zero.
+    * Satisfies [[hasCanonicalFormat]].
     */
   def canonicalize: CSC =
     t.canonicalize.t
@@ -1160,8 +1150,8 @@ final class CSC private[gale] (
   def zipValues(that: CSC)(f: (Double, Double) => Double): CSC =
     t.zipValues(that.t)(f).t
 
-  /** Dense materialisation by column scatter, producing a contiguous row-major
-    * matrix directly (rather than a transposed view of the CSR densification).
+  /** Dense materialisation by column scatter, producing a contiguous row-major matrix directly (rather than a
+    * transposed view of the CSR densification).
     */
   def toDense(maxEntries: Int = Int.MaxValue): DMat =
     val entries = rows.toLong * cols.toLong
@@ -1224,8 +1214,10 @@ final class Diagonal private[gale] (private val diagonal: DoubleArray)
     this
 
   override def applyTo(x: DVec, into: MutableDVec): Unit =
-    if x.length != cols then throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
-    if into.length != rows then throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
+    if x.length != cols then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
+    if into.length != rows then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
     val intoData = into.data
     val intoOff = into.offset.value
     val intoStep = into.stride.value
@@ -1250,9 +1242,7 @@ final class Diagonal private[gale] (private val diagonal: DoubleArray)
       i += 1
     builder.toCSR()
 
-final class Identity private[gale] (val rows: Int)
-    extends SparseMatrix[Double]
-    with DoubleLinearOperator:
+final class Identity private[gale] (val rows: Int) extends SparseMatrix[Double] with DoubleLinearOperator:
   def cols: Int =
     rows
 
@@ -1277,8 +1267,10 @@ final class Identity private[gale] (val rows: Int)
     this
 
   override def applyTo(x: DVec, into: MutableDVec): Unit =
-    if x.length != cols then throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
-    if into.length != rows then throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
+    if x.length != cols then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
+    if into.length != rows then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
     val intoData = into.data
     val intoOff = into.offset.value
     val intoStep = into.stride.value
@@ -1293,9 +1285,7 @@ final class Identity private[gale] (val rows: Int)
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     applyTo(x, into)
 
-final class Zero private[gale] (val rows: Int, val cols: Int)
-    extends SparseMatrix[Double]
-    with DoubleLinearOperator:
+final class Zero private[gale] (val rows: Int, val cols: Int) extends SparseMatrix[Double] with DoubleLinearOperator:
   require(rows >= 0 && cols >= 0, "zero matrix shape must be non-negative")
 
   def nnz: Int =
@@ -1318,8 +1308,10 @@ final class Zero private[gale] (val rows: Int, val cols: Int)
     new Zero(cols, rows)
 
   override def applyTo(x: DVec, into: MutableDVec): Unit =
-    if x.length != cols then throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
-    if into.length != rows then throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
+    if x.length != cols then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
+    if into.length != rows then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
     into.clear()
 
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
@@ -1366,8 +1358,10 @@ final class Permutation private[gale] (private val columnsByRow: Array[Int])
     new Permutation(inverse)
 
   override def applyTo(x: DVec, into: MutableDVec): Unit =
-    if x.length != cols then throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
-    if into.length != rows then throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
+    if x.length != cols then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
+    if into.length != rows then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(rows), Cols(1)), Shape(Rows(into.length), Cols(1)))
     val intoData = into.data
     val intoOff = into.offset.value
     val intoStep = into.stride.value
@@ -1383,10 +1377,9 @@ final class Permutation private[gale] (private val columnsByRow: Array[Int])
   override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     t.applyTo(x, into)
 
-  /** The permutation as row → column: `toArray(row)` is the column carrying the 1
-    * in that row. A fresh `Array[Int]` copy (safe to mutate); see [[toIndexSeq]]
-    * for an immutable snapshot. Index arrays stay public under P4's storage rule,
-    * which restricts only `Double` storage to the interop doorway.
+  /** The permutation as row → column: `toArray(row)` is the column carrying the 1 in that row. A fresh `Array[Int]`
+    * copy (safe to mutate); see [[toIndexSeq]] for an immutable snapshot. Index arrays stay public under P4's storage
+    * rule, which restricts only `Double` storage to the interop doorway.
     */
   def toArray: Array[Int] =
     columnsByRow.clone()
@@ -1430,9 +1423,8 @@ object Sparse:
     require(rows >= 0 && cols >= 0, "sparse matrix shape must be non-negative")
     new COOBuilder(rows, cols, SparseValuePolicy.AllowNonFinite)
 
-  /** End-to-end total COO ingestion entry point. The default explicitly allows
-    * non-finite values for backward compatibility; pass `RequireFinite` at file
-    * or network boundaries that reject them.
+  /** End-to-end total COO ingestion entry point. The default explicitly allows non-finite values for backward
+    * compatibility; pass `RequireFinite` at file or network boundaries that reject them.
     */
   def cooChecked(
       rows: Int,
@@ -1456,10 +1448,8 @@ object Sparse:
     var i = 0
     while i < columnsByRow.length do
       val col = columnsByRow(i)
-      if col < 0 || col >= columnsByRow.length then
-        throw LinAlgError.IndexOutOfBounds(col, columnsByRow.length)
-      if seen(col) then
-        throw LinAlgError.InvalidArgument(s"duplicate permutation target $col")
+      if col < 0 || col >= columnsByRow.length then throw LinAlgError.IndexOutOfBounds(col, columnsByRow.length)
+      if seen(col) then throw LinAlgError.InvalidArgument(s"duplicate permutation target $col")
       seen(col) = true
       i += 1
     new Permutation(columnsByRow.toArray)
@@ -1469,8 +1459,8 @@ object Sparse:
     entries.foreach { case (row, col, value) => builder.add(row, col, value) }
     builder.toCOO()
 
-  /** A [[Banded]] matrix from diagonals keyed by offset (`0` main, `d>0` super,
-    * `d<0` sub). See [[Banded.fromDiagonals]].
+  /** A [[Banded]] matrix from diagonals keyed by offset (`0` main, `d>0` super, `d<0` sub). See
+    * [[Banded.fromDiagonals]].
     */
   def banded(rows: Int, cols: Int, diagonals: Map[Int, Seq[Double]]): Banded =
     Banded.fromDiagonals(rows, cols, diagonals)
@@ -1480,11 +1470,10 @@ object Sparse:
     Banded.fromDense(dense)
 
 private def check(index: Int, bound: Int): Unit =
-  if index < 0 || index >= bound then
-    throw LinAlgError.IndexOutOfBounds(index, bound)
+  if index < 0 || index >= bound then throw LinAlgError.IndexOutOfBounds(index, bound)
 
-/** Copy the first `length` entries of a plain builder array into an exact-size
-  * platform [[IndexArray]] (typed-array-backed on JS, `Array[Int]` on the JVM).
+/** Copy the first `length` entries of a plain builder array into an exact-size platform [[IndexArray]]
+  * (typed-array-backed on JS, `Array[Int]` on the JVM).
   */
 private def toIndexArray(src: Array[Int], length: Int): IndexArray =
   val out = IndexArray.alloc(length)
@@ -1494,8 +1483,7 @@ private def toIndexArray(src: Array[Int], length: Int): IndexArray =
     i += 1
   out
 
-/** Copy the first `length` entries of a plain builder array into an exact-size
-  * platform [[DoubleArray]].
+/** Copy the first `length` entries of a plain builder array into an exact-size platform [[DoubleArray]].
   */
 private def toDoubleArray(src: Array[Double], length: Int): DoubleArray =
   val out = DoubleArray.alloc(length)
@@ -1505,10 +1493,9 @@ private def toDoubleArray(src: Array[Double], length: Int): DoubleArray =
     i += 1
   out
 
-/** Stable insertion sort of the parallel `(keys, vals)` arrays over `[start, end)`
-  * by ascending `keys`. Insertion sort suits the short per-row/per-column slices
-  * that canonicalization operates on and keeps equal keys in their original order,
-  * so summed duplicates are deterministic.
+/** Stable insertion sort of the parallel `(keys, vals)` arrays over `[start, end)` by ascending `keys`. Insertion sort
+  * suits the short per-row/per-column slices that canonicalization operates on and keeps equal keys in their original
+  * order, so summed duplicates are deterministic.
   */
 private def insertionSortRange(keys: Array[Int], vals: Array[Double], start: Int, end: Int): Unit =
   var i = start + 1
@@ -1524,8 +1511,8 @@ private def insertionSortRange(keys: Array[Int], vals: Array[Double], start: Int
     vals(j + 1) = v
     i += 1
 
-/** Platform-array counterpart of [[insertionSortRange]], used by reusable
-  * workspace storage on both the JVM and Scala.js.
+/** Platform-array counterpart of [[insertionSortRange]], used by reusable workspace storage on both the JVM and
+  * Scala.js.
   */
 private def insertionSortPlatformRange(
     keys: IndexArray,

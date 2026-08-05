@@ -5,21 +5,17 @@ import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** The S8 dense-symmetric-eigen dispatch seam on `Eigen.eigSymmetric` (seam S8 of
-  * `docs/spectral-backend-boundary.md`), in the `BackendSeamSuite` style: with no
-  * acceleration import the `given` resolves to `SpectralBackend.none` and the pure
-  * kernel runs — the entire existing symmetric-eigen suite is the byte-identical
-  * witness for that; these tests add the ROUTING behaviour. A doubling provider
-  * makes a routed call unmistakable; recording counters make "the provider was
-  * never consulted" observable; a declining provider isolates the fallback; and a
-  * malformed provider proves the loud conformance failure.
+/** The S8 dense-symmetric-eigen dispatch seam on `Eigen.eigSymmetric` (seam S8 of `docs/spectral-backend-boundary.md`),
+  * in the `BackendSeamSuite` style: with no acceleration import the `given` resolves to `SpectralBackend.none` and the
+  * pure kernel runs — the entire existing symmetric-eigen suite is the byte-identical witness for that; these tests add
+  * the ROUTING behaviour. A doubling provider makes a routed call unmistakable; recording counters make "the provider
+  * was never consulted" observable; a declining provider isolates the fallback; and a malformed provider proves the
+  * loud conformance failure.
   */
 class EigSymmetricBackendSeamSuite extends munit.FunSuite:
 
   private val a: DMat = Matrix.dense(3, 3)(
-    4.0, 1.0, 0.5,
-    1.0, 3.0, -0.25,
-    0.5, -0.25, 2.0
+    4.0, 1.0, 0.5, 1.0, 3.0, -0.25, 0.5, -0.25, 2.0
   )
 
   private def pureEig(
@@ -44,9 +40,8 @@ class EigSymmetricBackendSeamSuite extends munit.FunSuite:
         c += 1
       r += 1
 
-  /** Computes the true spectrum with the pure kernel and DOUBLES the eigenvalues —
-    * a routed call is unmistakably distinguishable from the pure result — while
-    * recording invocations.
+  /** Computes the true spectrum with the pure kernel and DOUBLES the eigenvalues — a routed call is unmistakably
+    * distinguishable from the pure result — while recording invocations.
     */
   private final class DoublingEigenProvider(minSize: Int) extends SpectralBackend:
     var calls: Int = 0
@@ -63,9 +58,8 @@ class EigSymmetricBackendSeamSuite extends munit.FunSuite:
         )
       )
 
-  /** Computes the true spectrum but hands it back in DESCENDING order (values and
-    * vector columns in lockstep) — a legal raw carrier whose order the facade must
-    * silently correct.
+  /** Computes the true spectrum but hands it back in DESCENDING order (values and vector columns in lockstep) — a legal
+    * raw carrier whose order the facade must silently correct.
     */
   private final class ReversingEigenProvider extends SpectralBackend:
     val name: String = "reversing-eigen"
@@ -82,8 +76,7 @@ class EigSymmetricBackendSeamSuite extends munit.FunSuite:
         )
       )
 
-  /** Advertises the capability but declines every input, so the facade's
-    * fallback-to-pure is observable in isolation.
+  /** Advertises the capability but declines every input, so the facade's fallback-to-pure is observable in isolation.
     */
   private final class DecliningEigenProvider extends SpectralBackend:
     var calls: Int = 0
@@ -187,17 +180,20 @@ class EigSymmetricBackendSeamSuite extends munit.FunSuite:
 
   test("malformed provider factors fail loudly (conformance violation, never silent)") {
     // Wrong eigenvalue count.
-    val wrongCount = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows - 1), DMat.zeros(m.rows, m.rows)))
+    val wrongCount =
+      MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows - 1), DMat.zeros(m.rows, m.rows)))
     val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All)(using wrongCount)
     }
     // Vectors requested but too few columns returned.
-    val tooFewColumns = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows, m.rows - 1)))
+    val tooFewColumns =
+      MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows, m.rows - 1)))
     val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.Right)(using tooFewColumns)
     }
     // Wrong vector row count.
-    val wrongRows = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows - 1, m.rows)))
+    val wrongRows =
+      MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows - 1, m.rows)))
     val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.Right)(using wrongRows)
     }

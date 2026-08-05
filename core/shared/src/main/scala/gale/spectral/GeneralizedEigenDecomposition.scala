@@ -4,25 +4,21 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.LinAlgError
 
-/** The result of a '''generalized nonsymmetric''' eigenproblem `A x = λ B x` (the
-  * QZ / `ggev` family, § 1.3 of `docs/spectral-backend-boundary.md`). It mirrors
-  * [[NonsymmetricEigenDecomposition]] — SoA real storage, real-Schur packed
-  * vectors, typed accessors, `private[spectral]` constructor — but carries the
-  * '''projective `(α, β)`''' spectrum, so an infinite eigenvalue from a singular /
-  * rank-deficient `B` (`β = 0`) is representable, which a plain [[Complex]] cannot
-  * express.
+/** The result of a '''generalized nonsymmetric''' eigenproblem `A x = λ B x` (the QZ / `ggev` family, § 1.3 of
+  * `docs/spectral-backend-boundary.md`). It mirrors [[NonsymmetricEigenDecomposition]] — SoA real storage, real-Schur
+  * packed vectors, typed accessors, `private[spectral]` constructor — but carries the '''projective `(α, β)`'''
+  * spectrum, so an infinite eigenvalue from a singular / rank-deficient `B` (`β = 0`) is representable, which a plain
+  * [[Complex]] cannot express.
   *
-  * Assembled only by the facade from a backend's raw QZ output; there is no
-  * producer-less public path (every entry point requires a `given SpectralBackend`).
+  * Assembled only by the facade from a backend's raw QZ output; there is no producer-less public path (every entry
+  * point requires a `given SpectralBackend`).
   *
   * '''Packing invariants''' (enforced at construction):
-  *   - a '''finite''' complex eigenvalue `α = a ± b·i` (`b > 0`) owns two adjacent
-  *     columns with the positive-imaginary member first, exact conjugate symmetry
-  *     on `α`, '''and equal `β`''' — the `β` clause distinguishes two pairs that
+  *   - a '''finite''' complex eigenvalue `α = a ± b·i` (`b > 0`) owns two adjacent columns with the positive-imaginary
+  *     member first, exact conjugate symmetry on `α`, '''and equal `β`''' — the `β` clause distinguishes two pairs that
   *     share an `α` but differ in `β`;
-  *   - an '''infinite''' eigenvalue (`β = 0`) is always a real `1×1` block:
-  *     `β(i) = 0 ⟹ alphaIm(i) = 0`. A complex-infinite eigenvalue is not
-  *     representable and a backend that emits one is a conformance failure.
+  *   - an '''infinite''' eigenvalue (`β = 0`) is always a real `1×1` block: `β(i) = 0 ⟹ alphaIm(i) = 0`. A
+  *     complex-infinite eigenvalue is not representable and a backend that emits one is a conformance failure.
   */
 final class GeneralizedEigenDecomposition private[spectral] (
     private[spectral] val alphaRe: DVec,
@@ -52,8 +48,7 @@ final class GeneralizedEigenDecomposition private[spectral] (
   private def validatePacking(): Unit =
     var i = 0
     while i < alphaRe.length do
-      if beta(i) == 0.0 then
-        require(alphaIm(i) == 0.0, s"infinite eigenvalue $i (β=0) must be real (alphaIm=0)")
+      if beta(i) == 0.0 then require(alphaIm(i) == 0.0, s"infinite eigenvalue $i (β=0) must be real (alphaIm=0)")
       val imag = alphaIm(i)
       if imag > 0.0 then
         require(
@@ -72,29 +67,28 @@ final class GeneralizedEigenDecomposition private[spectral] (
   def size: Int =
     alphaRe.length
 
-  /** The `i`-th eigenvalue as a projective [[GeneralizedEigenvalue]] `(α, β)`; use
-    * [[isInfinite]] before reading `.value` (which is `α/β`).
+  /** The `i`-th eigenvalue as a projective [[GeneralizedEigenvalue]] `(α, β)`; use [[isInfinite]] before reading
+    * `.value` (which is `α/β`).
     */
   def eigenvalue(i: Int): GeneralizedEigenvalue =
     checkIndex(i)
     GeneralizedEigenvalue(Complex(alphaRe(i), alphaIm(i)), beta(i))
 
-  /** True when the `i`-th eigenvalue is infinite (`β = 0`) — a singular /
-    * rank-deficient `B` direction.
+  /** True when the `i`-th eigenvalue is infinite (`β = 0`) — a singular / rank-deficient `B` direction.
     */
   def isInfinite(i: Int): Boolean =
     checkIndex(i)
     beta(i) == 0.0
 
-  /** True when the `i`-th eigenvalue owns a single real column — a finite real `λ`
-    * or an infinite eigenvalue (both have `alphaIm = 0`).
+  /** True when the `i`-th eigenvalue owns a single real column — a finite real `λ` or an infinite eigenvalue (both have
+    * `alphaIm = 0`).
     */
   def isRealPair(i: Int): Boolean =
     checkIndex(i)
     alphaIm(i) == 0.0
 
-  /** The `i`-th '''right''' eigenvector as `(realPart, imaginaryPart)`, decoded from
-    * the real-Schur packing exactly like [[NonsymmetricEigenDecomposition]].
+  /** The `i`-th '''right''' eigenvector as `(realPart, imaginaryPart)`, decoded from the real-Schur packing exactly
+    * like [[NonsymmetricEigenDecomposition]].
     */
   def eigenvector(i: Int): (DVec, DVec) =
     checkIndex(i)
@@ -107,14 +101,12 @@ final class GeneralizedEigenDecomposition private[spectral] (
       case Some(packed) => decode(packed, "left eigenvectors", i)
       case None         => throw LinAlgError.UnsupportedOperation("left eigenvectors")
 
-  /** `Right(this)` when all requested pairs converged, else
-    * `Left(`[[gale.linalg.LinAlgError.DidNotConverge]]`)`.
+  /** `Right(this)` when all requested pairs converged, else `Left(`[[gale.linalg.LinAlgError.DidNotConverge]]`)`.
     */
   def requireConverged: Either[LinAlgError, GeneralizedEigenDecomposition] =
     diagnostics.requireConverged(this)
 
-  /** `Right(this)` only when the requested global spectral extreme is
-    * independently certified. See
+  /** `Right(this)` only when the requested global spectral extreme is independently certified. See
     * [[SpectralDiagnostics.requireExtremeCertified]].
     */
   def requireExtremeCertified: Either[LinAlgError, GeneralizedEigenDecomposition] =

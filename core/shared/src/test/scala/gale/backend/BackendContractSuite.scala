@@ -4,24 +4,22 @@ import gale.linalg.*
 import gale.spectral.SpectralBackend
 import gale.spectral.SpectralCapability
 
-/** The core backend contract (doc §A): the default `given` is the pure backend,
-  * capability discovery and `compose` behave as specified, and `PureBackend`'s kernel
-  * surface computes the same results as the public operators it forwards to. No facade
-  * seam is wired into `DMat.*` yet — this is the contract foundation the acceleration
-  * modules (vector, FFM) build on, so the no-import path is provably unchanged.
+/** The core backend contract (doc §A): the default `given` is the pure backend, capability discovery and `compose`
+  * behave as specified, and `PureBackend`'s kernel surface computes the same results as the public operators it
+  * forwards to. No facade seam is wired into `DMat.*` yet — this is the contract foundation the acceleration modules
+  * (vector, FFM) build on, so the no-import path is provably unchanged.
   */
 class BackendContractSuite extends munit.FunSuite:
 
-  /** Distinct, finite thresholds so `compose` routing is observable by value (pure's
-    * are all `MaxValue`).
+  /** Distinct, finite thresholds so `compose` routing is observable by value (pure's are all `MaxValue`).
     */
   private object FakeThresholds extends BackendThresholds:
     def nativeGemmMinFlops: Long = 1000L
     def nativeGemvMinWork: Long = 1000L
     def nativeFactorizationMinSize: Int = 64
 
-  /** A test-only backend that merely CLAIMS `Vectorized` (its kernels are still pure) —
-    * enough to exercise capability/dispatch logic without a real SIMD implementation.
+  /** A test-only backend that merely CLAIMS `Vectorized` (its kernels are still pure) — enough to exercise
+    * capability/dispatch logic without a real SIMD implementation.
     */
   private object FakeVectorBackend extends Backend:
     val name: String = "fake-vector"
@@ -189,11 +187,23 @@ class BackendContractSuite extends munit.FunSuite:
     val expected = a * b
     val c = Matrix.dense(2, 2)(0.0, 0.0, 0.0, 0.0)
     PureBackend.denseDouble.gemm(
-      a.rows, b.cols, a.cols, 1.0,
-      a.data, a.offset.value, a.rowStride.value, a.colStride.value,
-      b.data, b.offset.value, b.rowStride.value, b.colStride.value,
+      a.rows,
+      b.cols,
+      a.cols,
+      1.0,
+      a.data,
+      a.offset.value,
+      a.rowStride.value,
+      a.colStride.value,
+      b.data,
+      b.offset.value,
+      b.rowStride.value,
+      b.colStride.value,
       0.0,
-      c.data, c.offset.value, c.rowStride.value, c.colStride.value
+      c.data,
+      c.offset.value,
+      c.rowStride.value,
+      c.colStride.value
     )
     var i = 0
     while i < 2 do
@@ -210,9 +220,14 @@ class BackendContractSuite extends munit.FunSuite:
     val c = Matrix.dense(2, 2)(0.0, 0.0, 0.0, 0.0)
     // C(k×k) = AᵀA where A is m rows × k cols: here m = a.rows, k = a.cols.
     PureBackend.denseDouble.syrk(
-      a.rows, a.cols,
-      a.data, a.offset.value, a.rowStride.value,
-      c.data, c.offset.value, c.rowStride.value
+      a.rows,
+      a.cols,
+      a.data,
+      a.offset.value,
+      a.rowStride.value,
+      c.data,
+      c.offset.value,
+      c.rowStride.value
     )
     // dsyrkRowMajor computes the UPPER triangle then mirrors it into the lower, so
     // the result is the FULL symmetric AᵀA (both triangles populated).
@@ -229,11 +244,23 @@ class BackendContractSuite extends munit.FunSuite:
     val expected = at * b // 2x2
     val c = Matrix.dense(2, 2)(0.0, 0.0, 0.0, 0.0)
     PureBackend.denseDouble.gemm(
-      at.rows, b.cols, at.cols, 1.0,
-      at.data, at.offset.value, at.rowStride.value, at.colStride.value,
-      b.data, b.offset.value, b.rowStride.value, b.colStride.value,
+      at.rows,
+      b.cols,
+      at.cols,
+      1.0,
+      at.data,
+      at.offset.value,
+      at.rowStride.value,
+      at.colStride.value,
+      b.data,
+      b.offset.value,
+      b.rowStride.value,
+      b.colStride.value,
       0.0,
-      c.data, c.offset.value, c.rowStride.value, c.colStride.value
+      c.data,
+      c.offset.value,
+      c.rowStride.value,
+      c.colStride.value
     )
     var i = 0
     while i < 2 do
@@ -262,10 +289,20 @@ class BackendContractSuite extends munit.FunSuite:
     val expectedMv = mat * x
     val yv = Vec.fill(2)(0.0)
     PureBackend.denseDouble.gemv(
-      mat.rows, mat.cols, 1.0,
-      mat.data, mat.offset.value, mat.rowStride.value, mat.colStride.value,
-      x.data, x.offset.value, x.stride.value,
-      0.0, yv.data, yv.offset.value, yv.stride.value
+      mat.rows,
+      mat.cols,
+      1.0,
+      mat.data,
+      mat.offset.value,
+      mat.rowStride.value,
+      mat.colStride.value,
+      x.data,
+      x.offset.value,
+      x.stride.value,
+      0.0,
+      yv.data,
+      yv.offset.value,
+      yv.stride.value
     )
     assertEqualsDouble(yv(0), expectedMv(0), 1e-12)
     assertEqualsDouble(yv(1), expectedMv(1), 1e-12)
@@ -273,7 +310,14 @@ class BackendContractSuite extends munit.FunSuite:
     // axpy: yb := 2*x + yb (fresh buffer)
     val yb = Vec(5.0, 6.0, 7.0, 8.0)
     PureBackend.denseDouble.axpy(
-      n, 2.0, x.data, x.offset.value, x.stride.value, yb.data, yb.offset.value, yb.stride.value
+      n,
+      2.0,
+      x.data,
+      x.offset.value,
+      x.stride.value,
+      yb.data,
+      yb.offset.value,
+      yb.stride.value
     )
     assertEqualsDouble(yb(0), 2.0 * 1.0 + 5.0, 1e-12)
     assertEqualsDouble(yb(3), 2.0 * 4.0 + 8.0, 1e-12)

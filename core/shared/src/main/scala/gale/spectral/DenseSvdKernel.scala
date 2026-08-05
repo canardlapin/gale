@@ -3,38 +3,30 @@ package gale.spectral
 import gale.linalg.DMat
 import gale.platform.DoubleArray
 
-/** The pure dense bidiagonal-SVD kernel — the piece whose absence deferred full
-  * dense SVD out of v0.3.5 (parity § 3; seam S7 of
-  * `docs/spectral-backend-boundary.md`).
+/** The pure dense bidiagonal-SVD kernel — the piece whose absence deferred full dense SVD out of v0.3.5 (parity § 3;
+  * seam S7 of `docs/spectral-backend-boundary.md`).
   *
-  * '''Algorithm''' (Golub–Kahan–Reinsch): Householder bidiagonalization of `A`
-  * to an upper bidiagonal `B`, then implicit-shift QR on `B` with the Wilkinson
-  * shift from the trailing 2×2, deflating on a negligible superdiagonal at the
-  * scale-aware threshold `ε·‖B‖` (`‖B‖ = max_i(|d_i| + |e_i|)`, the standard
-  * Golub–Reinsch `anorm` — consistent with `docs/user/advanced/numerical-contract.md`'s
-  * "scale-aware tests" rule). A wide input (`m < n`) is handled by running on
-  * `Aᵀ` and swapping `U`/`V` on output, so the working orientation is always
-  * tall. Vectors are accumulated when requested; the values-only mode runs the
-  * identical scalar recurrences and skips only the rotation applications.
+  * '''Algorithm''' (Golub–Kahan–Reinsch): Householder bidiagonalization of `A` to an upper bidiagonal `B`, then
+  * implicit-shift QR on `B` with the Wilkinson shift from the trailing 2×2, deflating on a negligible superdiagonal at
+  * the scale-aware threshold `ε·‖B‖` (`‖B‖ = max_i(|d_i| + |e_i|)`, the standard Golub–Reinsch `anorm` — consistent
+  * with `docs/user/advanced/numerical-contract.md`'s "scale-aware tests" rule). A wide input (`m < n`) is handled by
+  * running on `Aᵀ` and swapping `U`/`V` on output, so the working orientation is always tall. Vectors are accumulated
+  * when requested; the values-only mode runs the identical scalar recurrences and skips only the rotation applications.
   *
-  * '''Output contract''' (raw, canonicalized by the `Svds` facade): `min(m, n)`
-  * non-negative singular values in '''kernel order''' (not sorted — the facade
-  * imposes the descending layout, exactly as it does for a backend's
-  * [[RawSvd]]), with economy factors `U` (`m×k`) and `Vᵀ` (`k×n`),
-  * `k = min(m, n)`; empty (`m×0` / `0×n`) factors when values-only.
+  * '''Output contract''' (raw, canonicalized by the `Svds` facade): `min(m, n)` non-negative singular values in
+  * '''kernel order''' (not sorted — the facade imposes the descending layout, exactly as it does for a backend's
+  * [[RawSvd]]), with economy factors `U` (`m×k`) and `Vᵀ` (`k×n`), `k = min(m, n)`; empty (`m×0` / `0×n`) factors when
+  * values-only.
   *
-  * Deterministic per platform: fixed sweep order, no RNG, and only
-  * correctly-rounded primitives ([[pythag]] instead of `math.hypot`, whose last
-  * bit differs across platforms). Exhaustion of the per-value sweep budget is a
-  * typed [[SvdKernelFailure.DidNotConverge]], mirroring
-  * [[DenseSpectralKernels.SpectralKernelFailure]] (pathological in practice —
-  * the classic bound is ~2 sweeps per singular value).
+  * Deterministic per platform: fixed sweep order, no RNG, and only correctly-rounded primitives ([[pythag]] instead of
+  * `math.hypot`, whose last bit differs across platforms). Exhaustion of the per-value sweep budget is a typed
+  * [[SvdKernelFailure.DidNotConverge]], mirroring [[DenseSpectralKernels.SpectralKernelFailure]] (pathological in
+  * practice — the classic bound is ~2 sweeps per singular value).
   */
 private[gale] object DenseSvdKernel:
 
-  /** Typed kernel failure, mirroring
-    * [[DenseSpectralKernels.SpectralKernelFailure]]: the implicit-QR sweep
-    * budget ran out. Carries the total sweeps performed.
+  /** Typed kernel failure, mirroring [[DenseSpectralKernels.SpectralKernelFailure]]: the implicit-QR sweep budget ran
+    * out. Carries the total sweeps performed.
     */
   enum SvdKernelFailure:
     case DidNotConverge(iterations: Int)
@@ -42,16 +34,14 @@ private[gale] object DenseSvdKernel:
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
-  /** Implicit-QR sweeps allowed per singular value before the typed failure.
-    * The classical Golub–Reinsch budget is 30; doubled for slack — convergence
-    * is cubic once the shift locks on, so a well-formed matrix never gets near
-    * either bound.
+  /** Implicit-QR sweeps allowed per singular value before the typed failure. The classical Golub–Reinsch budget is 30;
+    * doubled for slack — convergence is cubic once the shift locks on, so a well-formed matrix never gets near either
+    * bound.
     */
   private inline val MaxSweepsPerValue = 60
 
-  /** Full/economy dense SVD of `a` (any `m×n`, both dimensions positive —
-    * validated by the facade, not here). Returns the raw factor carrier; the
-    * facade sorts, measures residuals, and builds the sealed [[SVD]].
+  /** Full/economy dense SVD of `a` (any `m×n`, both dimensions positive — validated by the facade, not here). Returns
+    * the raw factor carrier; the facade sorts, measures residuals, and builds the sealed [[SVD]].
     */
   def svd(a: DMat, wantVectors: Boolean): Either[SvdKernelFailure, RawSvd] =
     if a.rows >= a.cols then svdTall(a, wantVectors)
@@ -68,8 +58,8 @@ private[gale] object DenseSvdKernel:
     val m = a.rows
     val n = a.cols
     val u = a.toDoubleArrayCopyRowMajor // m×n row-major; becomes economy U in place
-    val w = DoubleArray.alloc(n)        // singular values
-    val rv1 = DoubleArray.alloc(n)      // superdiagonal workspace
+    val w = DoubleArray.alloc(n) // singular values
+    val rv1 = DoubleArray.alloc(n) // superdiagonal workspace
     val v = if wantVectors then DoubleArray.alloc(n * n) else DoubleArray.alloc(0)
 
     val anorm = bidiagonalize(m, n, u, w, rv1)
@@ -78,15 +68,14 @@ private[gale] object DenseSvdKernel:
       accumulateLeft(m, n, u, w)
     diagonalize(m, n, u, w, rv1, v, anorm, wantVectors) match
       case Some(failure) => Left(failure)
-      case None =>
+      case None          =>
         val sigma = gale.linalg.DVec.tabulate(n)(i => w(i))
         if wantVectors then
           Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(m, n, u), DMat.fromDoubleArrayOwned(n, n, v).t))
         else Right(RawSvd(sigma, DMat.zeros(m, 0), DMat.zeros(0, n)))
 
-  /** Householder bidiagonalization of the m×n row-major `u` in place: on return
-    * `w` holds the diagonal, `rv1` the superdiagonal (`rv1(0) = 0`), and `u`
-    * the scaled Householder reflectors the accumulation phases expand. Returns
+  /** Householder bidiagonalization of the m×n row-major `u` in place: on return `w` holds the diagonal, `rv1` the
+    * superdiagonal (`rv1(0) = 0`), and `u` the scaled Householder reflectors the accumulation phases expand. Returns
     * `anorm = max_i(|w_i| + |rv1_i|)`, the deflation scale.
     */
   private def bidiagonalize(m: Int, n: Int, u: DoubleArray, w: DoubleArray, rv1: DoubleArray): Double =
@@ -175,9 +164,8 @@ private[gale] object DenseSvdKernel:
       i += 1
     anorm
 
-  /** Expand the right-hand Householder reflectors stored in `u`'s rows into the
-    * n×n row-major `v` (columns are right singular vectors of the bidiagonal
-    * reduction), walking i from n−1 down so each reflector is applied to the
+  /** Expand the right-hand Householder reflectors stored in `u`'s rows into the n×n row-major `v` (columns are right
+    * singular vectors of the bidiagonal reduction), walking i from n−1 down so each reflector is applied to the
     * already-accumulated trailing block.
     */
   private def accumulateRight(n: Int, u: DoubleArray, v: DoubleArray, rv1: DoubleArray): Unit =
@@ -214,8 +202,8 @@ private[gale] object DenseSvdKernel:
       l = i
       i -= 1
 
-  /** Expand the left-hand Householder reflectors into the economy `U` (m×n, in
-    * place over the reflector storage), walking i from n−1 down.
+  /** Expand the left-hand Householder reflectors into the economy `U` (m×n, in place over the reflector storage),
+    * walking i from n−1 down.
     */
   private def accumulateLeft(m: Int, n: Int, u: DoubleArray, w: DoubleArray): Unit =
     var i = n - 1
@@ -253,11 +241,9 @@ private[gale] object DenseSvdKernel:
       u(i * n + i) = u(i * n + i) + 1.0
       i -= 1
 
-  /** Implicit-shift QR on the bidiagonal `(w, rv1)`, rotations accumulated into
-    * `u`/`v` when `wantVectors`. Deflation and cancellation both test against
-    * the scale-aware `ε·anorm`. On success every `w(i) ≥ 0` (a converged
-    * negative value flips sign along with its `v` column). Returns the typed
-    * failure when a value exhausts its sweep budget.
+  /** Implicit-shift QR on the bidiagonal `(w, rv1)`, rotations accumulated into `u`/`v` when `wantVectors`. Deflation
+    * and cancellation both test against the scale-aware `ε·anorm`. On success every `w(i) ≥ 0` (a converged negative
+    * value flips sign along with its `v` column). Returns the typed failure when a value exhausts its sweep budget.
     */
   private def diagonalize(
       m: Int,
@@ -396,9 +382,8 @@ private[gale] object DenseSvdKernel:
   // them private; both stay tiny and platform-identical)
   // ===========================================================================
 
-  /** `sqrt(a² + b²)` without the overflow-prone intermediate, using only
-    * correctly-rounded operations so the result is identical on JVM and
-    * Scala.js (unlike `math.hypot`).
+  /** `sqrt(a² + b²)` without the overflow-prone intermediate, using only correctly-rounded operations so the result is
+    * identical on JVM and Scala.js (unlike `math.hypot`).
     */
   private def pythag(a: Double, b: Double): Double =
     val absa = math.abs(a)

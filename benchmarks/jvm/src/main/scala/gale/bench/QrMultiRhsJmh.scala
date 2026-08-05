@@ -8,15 +8,12 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Copy-inclusive court for applying a stored pivoted QR factor to dense
-  * matrix right-hand sides.
+/** Copy-inclusive court for applying a stored pivoted QR factor to dense matrix right-hand sides.
   *
-  * The QR factor and immutable RHS are prepared outside the timed boundary.
-  * Both timed factor-application methods include Gale's mandatory RHS copy and
-  * owned result construction. `solveLeastSquares` additionally includes the
-  * strided triangular solves, pivot permutation, and coefficient ownership.
-  * `factorPivotedQr` is a protected control for the factorization path; it does
-  * not materialize `Q`.
+  * The QR factor and immutable RHS are prepared outside the timed boundary. Both timed factor-application methods
+  * include Gale's mandatory RHS copy and owned result construction. `solveLeastSquares` additionally includes the
+  * strided triangular solves, pivot permutation, and coefficient ownership. `factorPivotedQr` is a protected control
+  * for the factorization path; it does not materialize `Q`.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)

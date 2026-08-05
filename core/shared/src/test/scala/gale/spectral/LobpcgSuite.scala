@@ -26,8 +26,10 @@ class LobpcgSuite extends munit.FunSuite:
       options: GeneralizedSpectralOptions,
       preconditioner: Preconditioner = Preconditioner.Identity
   ): Either[LinAlgError, EigenDecomposition] =
-    val operatorDiagonal = generalizedValues.zip(metricDiagonal).map:
-      case (value, weight) => value * weight
+    val operatorDiagonal = generalizedValues
+      .zip(metricDiagonal)
+      .map:
+        case (value, weight) => value * weight
     Lobpcg.solve(
       diagonalOperator(operatorDiagonal),
       diagonalOperator(metricDiagonal),
@@ -163,11 +165,7 @@ class LobpcgSuite extends munit.FunSuite:
           i += 1
 
     val initial = Matrix.dense(5, 2)(
-      1.0, 0.0,
-      0.0, 0.0,
-      0.0, 1.0,
-      0.0, 1.0,
-      0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0
     )
     val result = solveDiagonal(
       IndexedSeq(1.0, 2.0, 4.0, 8.0, 16.0),

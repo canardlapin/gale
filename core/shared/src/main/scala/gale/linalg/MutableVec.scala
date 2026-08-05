@@ -6,22 +6,19 @@ import gale.platform.DoubleArray.*
 
 /** A vector that may be written in place.
   *
-  * `MutableVec` is the explicit destination tier: pure APIs return immutable
-  * [[Vec]] values, while `mulInto`-style APIs write into a `MutableVec`
-  * provided by the caller. Element access is a convenience API, not a
-  * performance contract; kernels operate on validated storage directly.
+  * `MutableVec` is the explicit destination tier: pure APIs return immutable [[Vec]] values, while `mulInto`-style APIs
+  * write into a `MutableVec` provided by the caller. Element access is a convenience API, not a performance contract;
+  * kernels operate on validated storage directly.
   */
 trait MutableVec[A] extends Vec[A]:
   def update(index: Int, value: A): Unit
 
 /** The primitive `Double` mutable vector.
   *
-  * Shares the same storage discipline as [[DVec]] (platform array, offset,
-  * stride). Obtain one from `MutableVec.zeros`, `MutableVec.from`, or
-  * `DVec.mutableCopy`; [[toVec]] is the public conversion to an independently
-  * owned immutable value. Gale internals may also borrow an aliasing read-only
-  * view while they retain the mutable owner, but that view is deliberately not
-  * part of the public API.
+  * Shares the same storage discipline as [[DVec]] (platform array, offset, stride). Obtain one from `MutableVec.zeros`,
+  * `MutableVec.from`, or `DVec.mutableCopy`; [[toVec]] is the public conversion to an independently owned immutable
+  * value. Gale internals may also borrow an aliasing read-only view while they retain the mutable owner, but that view
+  * is deliberately not part of the public API.
   */
 final class MutableDVec private[gale] (
     private[gale] val data: DoubleArray,
@@ -41,9 +38,8 @@ final class MutableDVec private[gale] (
     checkIndex(index)
     data(offset.value + index * stride.value) = value
 
-  /** Internal borrowed view sharing this vector's storage. Mutations made
-    * through this `MutableDVec` remain visible through the returned value.
-    * Public callers must use [[toVec]], which returns an independent snapshot.
+  /** Internal borrowed view sharing this vector's storage. Mutations made through this `MutableDVec` remain visible
+    * through the returned value. Public callers must use [[toVec]], which returns an independent snapshot.
     */
   private[gale] def asVec: DVec =
     new DVec(data, offsetValue, lengthValue, strideValue)
@@ -98,12 +94,10 @@ final class MutableDVec private[gale] (
       i += 1
 
   private def requireSameLength(thatLength: Int): Unit =
-    if length != thatLength then
-      throw LinAlgError.VectorLengthMismatch(length, thatLength)
+    if length != thatLength then throw LinAlgError.VectorLengthMismatch(length, thatLength)
 
   private def checkIndex(index: Int): Unit =
-    if index < 0 || index >= length then
-      throw LinAlgError.IndexOutOfBounds(index, length)
+    if index < 0 || index >= length then throw LinAlgError.IndexOutOfBounds(index, length)
 
 object MutableDVec:
   def zeros(length: Int): MutableDVec =

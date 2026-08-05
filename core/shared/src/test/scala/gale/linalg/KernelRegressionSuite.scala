@@ -46,9 +46,7 @@ class KernelRegressionSuite extends munit.FunSuite:
   // rather than silently produce garbage.
   test("DMat.mulInto rejects a destination aliasing the source vector") {
     val a = Matrix.dense(3, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0,
-      7.0, 8.0, 9.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0
     )
     val y = MutableDVec.zeros(3)
     y(0) = 1.0

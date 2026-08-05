@@ -7,12 +7,11 @@ import gale.platform.DoubleArray.*
 
 /** Reusable, capability-driven conformance suite for optional `Backend` modules.
   *
-  * The kernel checks use independently accumulated `BigDecimal` references rather
-  * than Gale's pure kernel, so a defect shared by two implementations cannot make
-  * the suite self-confirming. Fixtures cover offsets, padded leading dimensions,
-  * transposed storage, non-unit vector strides, `alpha`/`beta`, and both triangles
-  * of `syrk`. A backend advertising `NativeLapack` additionally has to reconstruct
-  * LU/Cholesky/QR factors and solve a system with a small residual.
+  * The kernel checks use independently accumulated `BigDecimal` references rather than Gale's pure kernel, so a defect
+  * shared by two implementations cannot make the suite self-confirming. Fixtures cover offsets, padded leading
+  * dimensions, transposed storage, non-unit vector strides, `alpha`/`beta`, and both triangles of `syrk`. A backend
+  * advertising `NativeLapack` additionally has to reconstruct LU/Cholesky/QR factors and solve a system with a small
+  * residual.
   */
 abstract class BackendConformanceSuite extends munit.FunSuite:
   def backend: Backend
@@ -24,8 +23,10 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
   private def close(actual: Double, expected: Double, clue: String): Unit =
     val tolerance = absoluteTolerance + relativeTolerance * math.max(math.abs(actual), math.abs(expected))
     assert(actual.isFinite == expected.isFinite, s"$clue: finiteness mismatch: $actual vs $expected")
-    assert(math.abs(actual - expected) <= tolerance,
-      s"$clue: $actual vs $expected (|delta|=${math.abs(actual - expected)}, tolerance=$tolerance)")
+    assert(
+      math.abs(actual - expected) <= tolerance,
+      s"$clue: $actual vs $expected (|delta|=${math.abs(actual - expected)}, tolerance=$tolerance)"
+    )
 
   private def decimalDot(n: Int)(left: Int => Double, right: Int => Double): Double =
     var total = BigDecimal(0)
@@ -47,7 +48,7 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
     val aRowStride = 8
     val aColStride = 1
     val bOffset = 1
-    val bRowStride = 1       // logical B is a transpose view of row-major storage
+    val bRowStride = 1 // logical B is a transpose view of row-major storage
     val bColStride = 7
     val cOffset = 2
     val cRowStride = 6
@@ -84,10 +85,23 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
       i += 1
 
     backend.denseDouble.gemm(
-      rows, cols, shared, alpha,
-      a, aOffset, aRowStride, aColStride,
-      b, bOffset, bRowStride, bColStride,
-      beta, c, cOffset, cRowStride, cColStride
+      rows,
+      cols,
+      shared,
+      alpha,
+      a,
+      aOffset,
+      aRowStride,
+      aColStride,
+      b,
+      bOffset,
+      bRowStride,
+      bColStride,
+      beta,
+      c,
+      cOffset,
+      cRowStride,
+      cColStride
     )
 
     i = 0
@@ -134,8 +148,20 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
       j += 1
 
     backend.denseDouble.gemv(
-      rows, cols, alpha, a, aOffset, rowStride, 1,
-      x, xOffset, xStride, beta, y, yOffset, yStride
+      rows,
+      cols,
+      alpha,
+      a,
+      aOffset,
+      rowStride,
+      1,
+      x,
+      xOffset,
+      xStride,
+      beta,
+      y,
+      yOffset,
+      yStride
     )
 
     i = 0
@@ -196,10 +222,7 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
       MatrixLaws.assertCloseRel(chol.lower.*(chol.lower.t)(using PureBackend), spd, relativeTolerance)
 
       val rectangular = Matrix.dense(4, 3)(
-        1.0, 2.0, -1.0,
-        3.0, 0.5, 4.0,
-        -2.0, 1.0, 3.0,
-        0.25, -1.5, 2.0
+        1.0, 2.0, -1.0, 3.0, 0.5, 4.0, -2.0, 1.0, 3.0, 0.25, -1.5, 2.0
       )
       val qr = backend.denseFactorizations.get.qr(rectangular).orThrow
       MatrixLaws.assertCloseRel(qr.q.*(qr.r)(using PureBackend), rectangular, 5.0 * relativeTolerance)

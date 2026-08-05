@@ -4,10 +4,7 @@ import gale.linalg.*
 
 class CgWorkspaceSuite extends munit.FunSuite:
   private val matrix = Matrix.dense(4, 4)(
-    5.0, -1.0, 0.2, 0.0,
-    -1.0, 4.0, -0.5, 0.1,
-    0.2, -0.5, 3.0, -0.4,
-    0.0, 0.1, -0.4, 2.5
+    5.0, -1.0, 0.2, 0.0, -1.0, 4.0, -0.5, 0.1, 0.2, -0.5, 3.0, -0.4, 0.0, 0.1, -0.4, 2.5
   )
 
   test("cgWith matches cg with relative tolerance and preconditioning"):

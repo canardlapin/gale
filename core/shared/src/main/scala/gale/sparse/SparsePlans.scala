@@ -9,9 +9,8 @@ import scala.collection.mutable.ArrayBuffer
 
 /** Reusable mutable numeric storage tied to one immutable [[CSRPattern]].
   *
-  * No backing array is exposed or adopted. Symbolic plans overwrite the stored
-  * values in place; [[snapshot]] makes an independent immutable CSR when a value
-  * must outlive later evaluations.
+  * No backing array is exposed or adopted. Symbolic plans overwrite the stored values in place; [[snapshot]] makes an
+  * independent immutable CSR when a value must outlive later evaluations.
   */
 final class CSRValuesDestination private[sparse] (
     val pattern: CSRPattern,
@@ -27,8 +26,7 @@ final class CSRValuesDestination private[sparse] (
     checkStoredIndex(storedIndex)
     values(storedIndex) = value
 
-  /** Stored value at a matrix coordinate, or zero when the canonical result
-    * pattern has no entry there.
+  /** Stored value at a matrix coordinate, or zero when the canonical result pattern has no entry there.
     */
   def apply(row: Int, col: Int): Double =
     if row < 0 || row >= pattern.rows then throw LinAlgError.IndexOutOfBounds(row, pattern.rows)
@@ -71,9 +69,8 @@ final class CSRValuesDestination private[sparse] (
 
 /** Symbolic union of two exact canonical CSR patterns.
   *
-  * Analysis merges structure once and records, for every result position, the
-  * corresponding left/right stored indices (`-1` for a structural absence).
-  * Numeric replay therefore performs one fixed pass with no index search.
+  * Analysis merges structure once and records, for every result position, the corresponding left/right stored indices
+  * (`-1` for a structural absence). Numeric replay therefore performs one fixed pass with no index search.
   */
 final class CSRUnionPlan private (
     val leftPattern: CSRPattern,
@@ -85,8 +82,8 @@ final class CSRUnionPlan private (
   def newDestination(initialValue: Double = 0.0): CSRValuesDestination =
     resultPattern.valuesDestination(initialValue)
 
-  /** Allocate one owned numeric result while sharing the analyzed result
-    * pattern. Numeric cancellation remains an explicit stored zero.
+  /** Allocate one owned numeric result while sharing the analyzed result pattern. Numeric cancellation remains an
+    * explicit stored zero.
     */
   def evaluate(
       left: CSR,
@@ -96,14 +93,13 @@ final class CSRUnionPlan private (
   ): Either[LinAlgError, CSR] =
     validateInputs(left, right) match
       case Left(error) => Left(error)
-      case Right(()) =>
+      case Right(())   =>
         val out = DoubleArray.alloc(resultPattern.nnz)
         evaluateValues(left.values, right.values, out, leftScale, rightScale)
         Right(resultPattern.bindOwned(out))
 
-  /** Replay into caller-owned numeric storage. On success no result structure or
-    * numeric array is allocated; callers snapshot only when immutable ownership
-    * is required.
+  /** Replay into caller-owned numeric storage. On success no result structure or numeric array is allocated; callers
+    * snapshot only when immutable ownership is required.
     */
   def evaluateInto(
       left: CSR,
@@ -114,7 +110,7 @@ final class CSRUnionPlan private (
   ): Either[LinAlgError, Unit] =
     validateInputs(left, right) match
       case Left(error) => Left(error)
-      case Right(()) =>
+      case Right(())   =>
         if !destination.matches(resultPattern) then
           Left(LinAlgError.InvalidArgument("union destination pattern differs from the analyzed result pattern"))
         else
@@ -146,8 +142,8 @@ final class CSRUnionPlan private (
       p += 1
 
 object CSRUnionPlan:
-  /** Checked symbolic analysis. Inputs must be same-shaped canonical patterns;
-    * the result pattern is deterministic and canonical.
+  /** Checked symbolic analysis. Inputs must be same-shaped canonical patterns; the result pattern is deterministic and
+    * canonical.
     */
   def analyze(left: CSRPattern, right: CSRPattern): Either[LinAlgError, CSRUnionPlan] =
     if left.rows != right.rows || left.cols != right.cols then
@@ -156,8 +152,7 @@ object CSRUnionPlan:
           s"CSR union requires equal shapes, got ${left.rows}x${left.cols} and ${right.rows}x${right.cols}"
         )
       )
-    else if !left.hasCanonicalFormat then
-      Left(LinAlgError.InvalidArgument("CSR union left pattern must be canonical"))
+    else if !left.hasCanonicalFormat then Left(LinAlgError.InvalidArgument("CSR union left pattern must be canonical"))
     else if !right.hasCanonicalFormat then
       Left(LinAlgError.InvalidArgument("CSR union right pattern must be canonical"))
     else
@@ -199,20 +194,21 @@ object CSRUnionPlan:
             pb += 1
         row += 1
       offsets(left.rows) = columns.length
-      CSRPattern.checked(left.rows, left.cols, offsets, columns.toArray).map: result =>
-        new CSRUnionPlan(
-          left,
-          right,
-          result,
-          IndexArray.fromArray(leftMap.toArray),
-          IndexArray.fromArray(rightMap.toArray)
-        )
+      CSRPattern
+        .checked(left.rows, left.cols, offsets, columns.toArray)
+        .map: result =>
+          new CSRUnionPlan(
+            left,
+            right,
+            result,
+            IndexArray.fromArray(leftMap.toArray),
+            IndexArray.fromArray(rightMap.toArray)
+          )
 
 /** Symbolic sparse matrix-product plan for exact canonical CSR patterns.
   *
-  * Analysis computes the Boolean product pattern and stores every contributing
-  * pair of input positions grouped by output position. Numeric replay is a
-  * deterministic sequence of dot products with no sparse lookup or scratch.
+  * Analysis computes the Boolean product pattern and stores every contributing pair of input positions grouped by
+  * output position. Numeric replay is a deterministic sequence of dot products with no sparse lookup or scratch.
   */
 final class CSRProductPlan private (
     val leftPattern: CSRPattern,
@@ -227,8 +223,8 @@ final class CSRProductPlan private (
   def newDestination(initialValue: Double = 0.0): CSRValuesDestination =
     resultPattern.valuesDestination(initialValue)
 
-  /** Allocate one owned numeric product while sharing the analyzed result
-    * pattern. Numeric cancellation remains an explicit stored zero.
+  /** Allocate one owned numeric product while sharing the analyzed result pattern. Numeric cancellation remains an
+    * explicit stored zero.
     */
   def evaluate(
       left: CSR,
@@ -237,13 +233,13 @@ final class CSRProductPlan private (
   ): Either[LinAlgError, CSR] =
     validateInputs(left, right) match
       case Left(error) => Left(error)
-      case Right(()) =>
+      case Right(())   =>
         val out = DoubleArray.alloc(resultPattern.nnz)
         evaluateValues(left.values, right.values, out, scale)
         Right(resultPattern.bindOwned(out))
 
-  /** Replay into caller-owned numeric storage without allocating result
-    * structure, numeric arrays, or algorithm scratch on the success path.
+  /** Replay into caller-owned numeric storage without allocating result structure, numeric arrays, or algorithm scratch
+    * on the success path.
     */
   def evaluateInto(
       left: CSR,
@@ -253,7 +249,7 @@ final class CSRProductPlan private (
   ): Either[LinAlgError, Unit] =
     validateInputs(left, right) match
       case Left(error) => Left(error)
-      case Right(()) =>
+      case Right(())   =>
         if !destination.matches(resultPattern) then
           Left(LinAlgError.InvalidArgument("product destination pattern differs from the analyzed result pattern"))
         else
@@ -287,9 +283,8 @@ final class CSRProductPlan private (
       output += 1
 
 object CSRProductPlan:
-  /** Checked symbolic analysis of the Boolean CSR product. Inputs must be
-    * canonical and inner dimensions compatible. Contribution mappings are
-    * rejected if their addressable count would overflow an `Int`.
+  /** Checked symbolic analysis of the Boolean CSR product. Inputs must be canonical and inner dimensions compatible.
+    * Contribution mappings are rejected if their addressable count would overflow an `Int`.
     */
   def analyze(left: CSRPattern, right: CSRPattern): Either[LinAlgError, CSRProductPlan] =
     if left.cols != right.rows then
@@ -302,8 +297,7 @@ object CSRProductPlan:
       Left(LinAlgError.InvalidArgument("CSR product left pattern must be canonical"))
     else if !right.hasCanonicalFormat then
       Left(LinAlgError.InvalidArgument("CSR product right pattern must be canonical"))
-    else
-      analyzeCanonical(left, right)
+    else analyzeCanonical(left, right)
 
   private def analyzeCanonical(left: CSRPattern, right: CSRPattern): Either[LinAlgError, CSRProductPlan] =
     val leftStorage = left.storage
@@ -354,7 +348,7 @@ object CSRProductPlan:
 
     val columns = resultColumns.toArray
     CSRPattern.checked(left.rows, right.cols, resultOffsets, columns) match
-      case Left(error) => Left(error)
+      case Left(error)          => Left(error)
       case Right(resultPattern) =>
         val outputCount = columns.length
         val termCounts = new Array[Int](outputCount)

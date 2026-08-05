@@ -27,10 +27,9 @@ import org.openjdk.jmh.infra.Blackhole
 
 /** Allocation baseline for the allocation-control architecture epic.
   *
-  * Run with JMH's `-prof gc`. The paired allocating/reuse methods deliberately
-  * consume the same logical work so normalized bytes/op identify storage that a
-  * destination or workspace contract can actually remove. Input construction is
-  * confined to `@Setup` and is never part of a timed invocation.
+  * Run with JMH's `-prof gc`. The paired allocating/reuse methods deliberately consume the same logical work so
+  * normalized bytes/op identify storage that a destination or workspace contract can actually remove. Input
+  * construction is confined to `@Setup` and is never part of a timed invocation.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -129,9 +128,8 @@ class AllocationArchitectureJmh:
     denseA.gemmInto(denseB, denseGemmDestination)(using PureBackend)
     denseGemmDestination(0, 0)
 
-  /** Current public construction route for `0.5 * (A + B)`: the sum and scaled
-    * result are separately owned. This is the baseline for a future fused AXPBY
-    * destination path, not a proposed public implementation.
+  /** Current public construction route for `0.5 * (A + B)`: the sum and scaled result are separately owned. This is the
+    * baseline for a future fused AXPBY destination path, not a proposed public implementation.
     */
   @Benchmark
   def denseAddScalePipeline(blackhole: Blackhole): Unit =

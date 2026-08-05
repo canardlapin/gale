@@ -2,9 +2,8 @@ package gale.sparse
 
 import gale.TestAccess
 
-/** CSC arithmetic/reduction parity with CSR (the two agree because CSC reuses the
-  * CSR code through the zero-copy transpose), plus the CSR/COO apply-agreement
-  * contract.
+/** CSC arithmetic/reduction parity with CSR (the two agree because CSC reuses the CSR code through the zero-copy
+  * transpose), plus the CSR/COO apply-agreement contract.
   */
 class CSCParitySuite extends munit.FunSuite:
   private val entriesA = Seq((0, 0, 1.0), (0, 2, 2.0), (1, 1, 3.0), (2, 0, 4.0), (2, 2, 5.0))

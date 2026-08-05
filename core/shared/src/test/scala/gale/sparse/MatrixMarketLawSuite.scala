@@ -2,9 +2,8 @@ package gale.sparse
 
 /** Plain regression suite for Matrix Market I/O that stays in core.
   *
-  * The property-based sparse matvec law moved to the gale-laws module
-  * (`gale.laws.MatrixMarketLawSuite`), driven through [[gale.laws.SparseLaws]].
-  * The write/read round-trip below is a concrete regression, so it stays here.
+  * The property-based sparse matvec law moved to the gale-laws module (`gale.laws.MatrixMarketLawSuite`), driven
+  * through [[gale.laws.SparseLaws]]. The write/read round-trip below is a concrete regression, so it stays here.
   */
 class MatrixMarketLawSuite extends munit.FunSuite:
   test("Matrix Market coordinate round-trips CSR matrices") {

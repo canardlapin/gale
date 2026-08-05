@@ -5,8 +5,10 @@ import gale.linalg.*
 class SolverRegressionSuite extends munit.FunSuite:
   private def spd2: DMat =
     Matrix.dense(2, 2)(
-      2.0, 0.0,
-      0.0, 3.0
+      2.0,
+      0.0,
+      0.0,
+      3.0
     )
 
   // Item 8: a non-empty initial guess whose length does not match the system
@@ -40,7 +42,13 @@ class SolverRegressionSuite extends munit.FunSuite:
   test("a correctly sized initial guess is still accepted") {
     val truth = Vec(0.5, 1.0 / 3.0)
     val result =
-      cg(spd2, Vec(1.0, 1.0), SolverConfig(tolerance = 1e-12, maxIterations = 50), Preconditioner.Identity, Some(Vec(0.4, 0.3)))
+      cg(
+        spd2,
+        Vec(1.0, 1.0),
+        SolverConfig(tolerance = 1e-12, maxIterations = 50),
+        Preconditioner.Identity,
+        Some(Vec(0.4, 0.3))
+      )
     assert(result.converged)
     assert(norm(result.x - truth) < 1e-9)
   }
@@ -49,8 +57,10 @@ class SolverRegressionSuite extends munit.FunSuite:
   // it at construction rather than producing silent NaNs during solve.
   test("SymmetricGaussSeidel rejects a zero diagonal at construction") {
     val singular = Matrix.dense(2, 2)(
-      0.0, 1.0,
-      1.0, 3.0
+      0.0,
+      1.0,
+      1.0,
+      3.0
     )
     intercept[LinAlgError.SingularMatrix] {
       Preconditioner.SymmetricGaussSeidel(singular)

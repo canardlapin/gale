@@ -29,8 +29,10 @@ class IterativeSolversSuite extends munit.FunSuite:
 
   test("BiCGSTAB and GMRES solve a nonsymmetric dense system") {
     val A = Matrix.dense(2, 2)(
-      4.0, 1.0,
-      2.0, 3.0
+      4.0,
+      1.0,
+      2.0,
+      3.0
     )
     val truth = Vec(1.0, -2.0)
     val b = A * truth
@@ -47,9 +49,7 @@ class IterativeSolversSuite extends munit.FunSuite:
 
   test("CGNR normal-equation solve recovers full-rank least-squares coefficients") {
     val A = Matrix.dense(3, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0
     )
     val truth = Vec(1.0, 2.0)
     val b = A * truth
@@ -61,8 +61,10 @@ class IterativeSolversSuite extends munit.FunSuite:
 
   test("CG returns nonconvergence diagnostics when iteration budget is too small") {
     val A = Matrix.dense(2, 2)(
-      2.0, 0.0,
-      0.0, 3.0
+      2.0,
+      0.0,
+      0.0,
+      3.0
     )
     val b = Vec(1.0, 1.0)
     val result = cg(A, b, SolverConfig(tolerance = 1e-30, maxIterations = 0))

@@ -8,49 +8,37 @@ import gale.linalg.ScratchRequirement
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
-/** Internal dense spectral kernels — the numerical foundation every v0.3.5
-  * spectral feature builds on (`docs/spectral-parity.md`, fixed constraint 5).
+/** Internal dense spectral kernels — the numerical foundation every v0.3.5 spectral feature builds on
+  * (`docs/spectral-parity.md`, fixed constraint 5).
   *
   * Two paths, all `private[gale]`:
   *
-  *   - '''Symmetric.''' Householder tridiagonalization `A = Q T Qᵀ`
-  *     ([[tridiagonalize]], Golub & Van Loan Alg. 8.3.1 / EISPACK `tred2`
-  *     conventions) feeding an implicit-shift tridiagonal QL/QR eigensolver with
-  *     Wilkinson shifts ([[symmetricTridiagonalEigen]], EISPACK `tql2`). The
-  *     solver accumulates eigenvectors into a provided basis, so it composes both
-  *     with the tridiagonalization `Q` (dense symmetric eigen, [[symmetricEigen]])
-  *     and with an identity (the standalone tridiagonal problem the Lanczos
-  *     projected problems need). Eigenvalues come out '''ascending-algebraic''',
-  *     eigenvector columns permuted to match.
+  *   - '''Symmetric.''' Householder tridiagonalization `A = Q T Qᵀ` ([[tridiagonalize]], Golub & Van Loan Alg. 8.3.1 /
+  *     EISPACK `tred2` conventions) feeding an implicit-shift tridiagonal QL/QR eigensolver with Wilkinson shifts
+  *     ([[symmetricTridiagonalEigen]], EISPACK `tql2`). The solver accumulates eigenvectors into a provided basis, so
+  *     it composes both with the tridiagonalization `Q` (dense symmetric eigen, [[symmetricEigen]]) and with an
+  *     identity (the standalone tridiagonal problem the Lanczos projected problems need). Eigenvalues come out
+  *     '''ascending-algebraic''', eigenvector columns permuted to match.
+  *   - '''Nonsymmetric.''' Householder reduction to upper Hessenberg form `A = Q H Qᵀ` ([[hessenberg]], EISPACK
+  *     `orthes`/`ortran`) feeding Francis double-shift QR on the Hessenberg form ([[nonsymmetricEigen]], EISPACK
+  *     `hqr2`). Eigenvalues are real/imaginary structure-of-arrays honouring the conjugate-pair convention (adjacent,
+  *     positive-imaginary member first) with exact conjugate symmetry, so the [[NonsymmetricEigenDecomposition]]
+  *     constructor accepts them directly; eigenvectors are returned in LAPACK real-Schur packed columns.
   *
-  *   - '''Nonsymmetric.''' Householder reduction to upper Hessenberg form
-  *     `A = Q H Qᵀ` ([[hessenberg]], EISPACK `orthes`/`ortran`) feeding Francis
-  *     double-shift QR on the Hessenberg form ([[nonsymmetricEigen]], EISPACK
-  *     `hqr2`). Eigenvalues are real/imaginary structure-of-arrays honouring the
-  *     conjugate-pair convention (adjacent, positive-imaginary member first) with
-  *     exact conjugate symmetry, so the [[NonsymmetricEigenDecomposition]]
-  *     constructor accepts them directly; eigenvectors are returned in LAPACK
-  *     real-Schur packed columns.
+  * '''Determinism.''' Every routine uses only `scala.math` (`sqrt`, `abs`, comparisons) and a hand-rolled [[pythag]]
+  * built on IEEE-correctly-rounded `sqrt`, so a given input yields bit-identical output on the JVM and Scala.js — no
+  * `hypot`, no fused-multiply-add assumptions. Householder norms scale explicitly (the `tred2`/`orthes` `scale` factor)
+  * to avoid intermediate overflow/underflow, matching the dense QR kernel's discipline.
   *
-  * '''Determinism.''' Every routine uses only `scala.math` (`sqrt`, `abs`,
-  * comparisons) and a hand-rolled [[pythag]] built on IEEE-correctly-rounded
-  * `sqrt`, so a given input yields bit-identical output on the JVM and Scala.js —
-  * no `hypot`, no fused-multiply-add assumptions. Householder norms scale
-  * explicitly (the `tred2`/`orthes` `scale` factor) to avoid intermediate
-  * overflow/underflow, matching the dense QR kernel's discipline.
-  *
-  * '''Failure.''' The iterative solvers guard their sweep count. Reductions
-  * ([[tridiagonalize]], [[hessenberg]]) are finite and cannot fail, so they
-  * return their result directly; the QR iterations return
-  * `Either[`[[SpectralKernelFailure]]`, _]`, signalling exhaustion as a typed
-  * `Left` rather than looping forever. Callers map this onto the public
-  * `SpectralDiagnostics` / `LinAlgError.DidNotConverge` idiom.
+  * '''Failure.''' The iterative solvers guard their sweep count. Reductions ([[tridiagonalize]], [[hessenberg]]) are
+  * finite and cannot fail, so they return their result directly; the QR iterations return
+  * `Either[`[[SpectralKernelFailure]]`, _]`, signalling exhaustion as a typed `Left` rather than looping forever.
+  * Callers map this onto the public `SpectralDiagnostics` / `LinAlgError.DidNotConverge` idiom.
   */
 private[gale] object DenseSpectralKernels:
 
-  /** A spectral kernel exhausted its iteration budget without converging. Carries
-    * the sweep count actually performed, which the caller surfaces as the
-    * `iterations` of a `LinAlgError.DidNotConverge`.
+  /** A spectral kernel exhausted its iteration budget without converging. Carries the sweep count actually performed,
+    * which the caller surfaces as the `iterations` of a `LinAlgError.DidNotConverge`.
     */
   enum SpectralKernelFailure:
     case DidNotConverge(iterations: Int)
@@ -58,31 +46,26 @@ private[gale] object DenseSpectralKernels:
   /** Householder tridiagonalization `A = Q T Qᵀ` of a symmetric matrix.
     *
     *   - `diagonal` — the length-`n` diagonal of `T`.
-    *   - `offDiagonal` — the length-`max(n - 1, 0)` off-diagonal of `T`, with
-    *     `offDiagonal(k) = T(k, k+1) = T(k+1, k)`.
-    *   - `q` — the accumulated orthogonal factor (`n x n`) when requested, else
-    *     `None` (the values-only reduction skips all accumulation work).
+    *   - `offDiagonal` — the length-`max(n - 1, 0)` off-diagonal of `T`, with `offDiagonal(k) = T(k, k+1) = T(k+1, k)`.
+    *   - `q` — the accumulated orthogonal factor (`n x n`) when requested, else `None` (the values-only reduction skips
+    *     all accumulation work).
     */
   final case class Tridiagonalization(diagonal: DVec, offDiagonal: DVec, q: Option[DMat])
 
-  /** Ascending-algebraic eigenvalues with, optionally, the matching orthonormal
-    * eigenvectors as aligned columns (`vectors.get.col(i)` pairs with
-    * `values(i)`).
+  /** Ascending-algebraic eigenvalues with, optionally, the matching orthonormal eigenvectors as aligned columns
+    * (`vectors.get.col(i)` pairs with `values(i)`).
     */
   final case class SymmetricEigen(values: DVec, vectors: Option[DMat])
 
-  /** Householder reduction `A = Q H Qᵀ` to upper Hessenberg form. `h` has exact
-    * zeros strictly below the subdiagonal; `q` is the accumulated orthogonal
-    * factor when requested.
+  /** Householder reduction `A = Q H Qᵀ` to upper Hessenberg form. `h` has exact zeros strictly below the subdiagonal;
+    * `q` is the accumulated orthogonal factor when requested.
     */
   final case class Hessenberg(h: DMat, q: Option[DMat])
 
-  /** Real/imaginary eigenvalue parts in real-Schur diagonal order — conjugate
-    * pairs adjacent, positive-imaginary member first, with `im(j+1) == -im(j)`
-    * and `re(j+1) == re(j)` holding '''exactly''' for a pair. `vectors`, when
-    * present, holds the right eigenvectors in LAPACK real-Schur packed columns
-    * (a real eigenvalue owns one column; a complex pair owns two, real part in
-    * the lower-indexed column, imaginary part in the higher).
+  /** Real/imaginary eigenvalue parts in real-Schur diagonal order — conjugate pairs adjacent, positive-imaginary member
+    * first, with `im(j+1) == -im(j)` and `re(j+1) == re(j)` holding '''exactly''' for a pair. `vectors`, when present,
+    * holds the right eigenvectors in LAPACK real-Schur packed columns (a real eigenvalue owns one column; a complex
+    * pair owns two, real part in the lower-indexed column, imaginary part in the higher).
     */
   final case class NonsymmetricEigen(re: DVec, im: DVec, vectors: Option[DMat])
 
@@ -90,9 +73,8 @@ private[gale] object DenseSpectralKernels:
   // Symmetric path
   // ---------------------------------------------------------------------------
 
-  /** Tridiagonalize a symmetric `A` (`n x n`). Only the '''lower triangle''' of
-    * `A` is read; the strict upper triangle is treated as its mirror image, so
-    * any asymmetry there is ignored — matching the `Cholesky` precedent. When
+  /** Tridiagonalize a symmetric `A` (`n x n`). Only the '''lower triangle''' of `A` is read; the strict upper triangle
+    * is treated as its mirror image, so any asymmetry there is ignored — matching the `Cholesky` precedent. When
     * `wantQ` is false the accumulation of `Q` is skipped entirely.
     */
   def tridiagonalize(a: DMat, wantQ: Boolean): Tridiagonalization =
@@ -116,16 +98,13 @@ private[gale] object DenseSpectralKernels:
       q
     )
 
-  /** Eigenvalues (ascending) and optionally eigenvectors of a symmetric
-    * tridiagonal matrix given by its `diagonal` (length `n`) and `offDiagonal`
-    * (length `n - 1`, `offDiagonal(k) = T(k, k+1)`).
+  /** Eigenvalues (ascending) and optionally eigenvectors of a symmetric tridiagonal matrix given by its `diagonal`
+    * (length `n`) and `offDiagonal` (length `n - 1`, `offDiagonal(k) = T(k, k+1)`).
     *
-    * This is the standalone tridiagonal solver: with `wantVectors` the
-    * eigenvectors are accumulated onto an identity basis, so the returned columns
-    * are the eigenvectors of `T` itself — exactly what a Lanczos projected
-    * problem needs before transforming by its Krylov basis. `maxSweepsPerValue`
-    * caps the QL/QR sweeps spent on any single eigenvalue (EISPACK's classic
-    * bound is 30); exhaustion returns `Left(DidNotConverge)`.
+    * This is the standalone tridiagonal solver: with `wantVectors` the eigenvectors are accumulated onto an identity
+    * basis, so the returned columns are the eigenvectors of `T` itself — exactly what a Lanczos projected problem needs
+    * before transforming by its Krylov basis. `maxSweepsPerValue` caps the QL/QR sweeps spent on any single eigenvalue
+    * (EISPACK's classic bound is 30); exhaustion returns `Left(DidNotConverge)`.
     */
   def symmetricTridiagonalEigen(
       diagonal: DVec,
@@ -148,28 +127,24 @@ private[gale] object DenseSpectralKernels:
     val z = if wantVectors then Some(identityRowMajor(n)) else None
     solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
-  /** Primitive scratch required by [[symmetricEigenWith]]. Values-only execution
-    * reuses the n² reduction matrix plus the length-n off-diagonal; when vectors
-    * are returned, the n² matrix is result storage and only the off-diagonal is
+  /** Primitive scratch required by [[symmetricEigenWith]]. Values-only execution reuses the n² reduction matrix plus
+    * the length-n off-diagonal; when vectors are returned, the n² matrix is result storage and only the off-diagonal is
     * scratch.
     */
   def symmetricEigenRequirement(
       order: Int,
       wantVectors: Boolean
   ): Either[LinAlgError, ScratchRequirement] =
-    if order < 0 then
-      Left(LinAlgError.InvalidArgument(s"symmetric eigen order must be non-negative, got $order"))
+    if order < 0 then Left(LinAlgError.InvalidArgument(s"symmetric eigen order must be non-negative, got $order"))
     else
       val doubles =
         if wantVectors then order.toLong
         else order.toLong * order.toLong + order.toLong
       ScratchRequirement.checked(doubles, 0L)
 
-  /** Dense symmetric eigendecomposition `A V = V diag(λ)` with `λ` ascending and
-    * `V` orthonormal (columns aligned with `values`). Composes
-    * [[tridiagonalize]] with the tridiagonal QL/QR solver, accumulating
-    * eigenvectors through the tridiagonalization `Q` when `wantVectors`. Reads
-    * only the lower triangle of `A`.
+  /** Dense symmetric eigendecomposition `A V = V diag(λ)` with `λ` ascending and `V` orthonormal (columns aligned with
+    * `values`). Composes [[tridiagonalize]] with the tridiagonal QL/QR solver, accumulating eigenvectors through the
+    * tridiagonalization `Q` when `wantVectors`. Reads only the lower triangle of `A`.
     */
   def symmetricEigen(
       a: DMat,
@@ -186,9 +161,8 @@ private[gale] object DenseSpectralKernels:
     val z = if wantVectors then Some(work) else None
     solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
-  /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own
-    * their storage; reduction and off-diagonal scratch come from `workspace` and
-    * are safe to overwrite on the next call.
+  /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own their storage; reduction and
+    * off-diagonal scratch come from `workspace` and are safe to overwrite on the next call.
     */
   def symmetricEigenWith(
       a: DMat,
@@ -211,17 +185,14 @@ private[gale] object DenseSpectralKernels:
     val z = if wantVectors then Some(work) else None
     solveTridiagonal(n, d, scratch, eOffset, z, maxSweepsPerValue)
 
-  /** Symmetric Householder tridiagonalization (EISPACK `tred2`), in place on the
-    * `n x n` row-major `a`.
+  /** Symmetric Householder tridiagonalization (EISPACK `tred2`), in place on the `n x n` row-major `a`.
     *
-    * On exit `d(0..n-1)` is the diagonal of `T` and `e(1..n-1)` its subdiagonal
-    * (`e(0) = 0`). When `accumulate` is true `a` is overwritten with the
-    * orthogonal `Q` such that `A = Q T Qᵀ`; when false the accumulation stores
-    * and the final back-transform are skipped, and `a`'s contents are scratch.
+    * On exit `d(0..n-1)` is the diagonal of `T` and `e(1..n-1)` its subdiagonal (`e(0) = 0`). When `accumulate` is true
+    * `a` is overwritten with the orthogonal `Q` such that `A = Q T Qᵀ`; when false the accumulation stores and the
+    * final back-transform are skipped, and `a`'s contents are scratch.
     *
-    * The reduction reads and updates only the lower triangle plus the row being
-    * eliminated, so `A`'s upper triangle is never consulted. Householder norms
-    * are formed on the explicitly `scale`-normalized row to avoid overflow.
+    * The reduction reads and updates only the lower triangle plus the row being eliminated, so `A`'s upper triangle is
+    * never consulted. Householder norms are formed on the explicitly `scale`-normalized row to avoid overflow.
     */
   private def tred2(
       n: Int,
@@ -261,8 +232,7 @@ private[gale] object DenseSpectralKernels:
           var f = 0.0
           var j = 0
           while j <= l do
-            if accumulate then
-              a(aOffset + j * n + i) = a(aOffset + i * n + j) / h
+            if accumulate then a(aOffset + j * n + i) = a(aOffset + i * n + j) / h
             // g = (A u)_j using only the lower triangle.
             var g = 0.0
             var kk = 0
@@ -288,8 +258,7 @@ private[gale] object DenseSpectralKernels:
               a(idx) = a(idx) - (fj * e(eOffset + kk) + gj * a(aOffset + i * n + kk))
               kk += 1
             j += 1
-      else
-        e(eOffset + i) = a(aOffset + i * n + l)
+      else e(eOffset + i) = a(aOffset + i * n + l)
       d(i) = h
       i -= 1
 
@@ -320,18 +289,15 @@ private[gale] object DenseSpectralKernels:
           a(aOffset + j * n + i) = 0.0
           a(aOffset + i * n + j) = 0.0
           j += 1
-      else
-        d(i) = a(aOffset + i * n + i)
+      else d(i) = a(aOffset + i * n + i)
       i += 1
 
   /** Implicit-shift tridiagonal QL solver with Wilkinson shifts (EISPACK `tql2`).
     *
-    * `d` holds the diagonal on entry, the eigenvalues on exit; `e(1..n-1)` holds
-    * the subdiagonal on entry (`e(0)` arbitrary — the routine shifts it out).
-    * When `z` is `Some(zData)` (an `n x n` row-major basis) its columns are
-    * rotated in lockstep so that, starting from `Q` or the identity, they end as
-    * the eigenvectors. Eigenvalues are sorted ascending afterwards with `z`'s
-    * columns permuted to match. Returns `Left(DidNotConverge)` if any eigenvalue
+    * `d` holds the diagonal on entry, the eigenvalues on exit; `e(1..n-1)` holds the subdiagonal on entry (`e(0)`
+    * arbitrary — the routine shifts it out). When `z` is `Some(zData)` (an `n x n` row-major basis) its columns are
+    * rotated in lockstep so that, starting from `Q` or the identity, they end as the eigenvectors. Eigenvalues are
+    * sorted ascending afterwards with `z`'s columns permuted to match. Returns `Left(DidNotConverge)` if any eigenvalue
     * needs more than `maxSweeps` QL sweeps.
     */
   private def solveTridiagonal(
@@ -342,8 +308,7 @@ private[gale] object DenseSpectralKernels:
       z: Option[DoubleArray],
       maxSweeps: Int
   ): Either[SpectralKernelFailure, SymmetricEigen] =
-    if n == 0 then
-      return Right(SymmetricEigen(DVec.fromDoubleArrayOwned(d), z.map(_ => DMat.zeros(0, 0))))
+    if n == 0 then return Right(SymmetricEigen(DVec.fromDoubleArrayOwned(d), z.map(_ => DMat.zeros(0, 0))))
     // Renumber the subdiagonal down by one (e(i-1) := e(i)), EISPACK convention.
     var i = 1
     while i < n do
@@ -363,11 +328,9 @@ private[gale] object DenseSpectralKernels:
           val dd = math.abs(d(m)) + math.abs(d(m + 1))
           if math.abs(e(eOffset + m)) <= Epsilon * dd then found = true
           else m += 1
-        if m == l then
-          continue = false
+        if m == l then continue = false
         else
-          if iter == maxSweeps then
-            return Left(SpectralKernelFailure.DidNotConverge(iter))
+          if iter == maxSweeps then return Left(SpectralKernelFailure.DidNotConverge(iter))
           iter += 1
           // Wilkinson-shifted implicit QL step on the block [l..m].
           var g = (d(l + 1) - d(l)) / (2.0 * e(eOffset + l))
@@ -418,9 +381,8 @@ private[gale] object DenseSpectralKernels:
     val vectors = z.map(zData => DMat.fromDoubleArrayOwned(n, n, zData))
     Right(SymmetricEigen(values, vectors))
 
-  /** Selection sort of `d` ascending, permuting the columns of the optional
-    * `n x n` row-major `z` in lockstep. `n` is small (dense spectra), so the
-    * `O(n²)` comparisons are irrelevant against the eigensolve.
+  /** Selection sort of `d` ascending, permuting the columns of the optional `n x n` row-major `z` in lockstep. `n` is
+    * small (dense spectra), so the `O(n²)` comparisons are irrelevant against the eigensolve.
     */
   private def sortAscending(n: Int, d: DoubleArray, z: Option[DoubleArray]): Unit =
     var i = 0
@@ -449,10 +411,9 @@ private[gale] object DenseSpectralKernels:
   // Nonsymmetric path
   // ---------------------------------------------------------------------------
 
-  /** Householder reduction of a general `A` (`n x n`) to upper Hessenberg form
-    * `A = Q H Qᵀ`. `H` has exact zeros strictly below the subdiagonal; `Q` is
-    * accumulated only when `wantQ` is true. No balancing is applied (deferred per
-    * `docs/spectral-parity.md` § 2).
+  /** Householder reduction of a general `A` (`n x n`) to upper Hessenberg form `A = Q H Qᵀ`. `H` has exact zeros
+    * strictly below the subdiagonal; `Q` is accumulated only when `wantQ` is true. No balancing is applied (deferred
+    * per `docs/spectral-parity.md` § 2).
     */
   def hessenberg(a: DMat, wantQ: Boolean): Hessenberg =
     val n = a.rows
@@ -466,12 +427,10 @@ private[gale] object DenseSpectralKernels:
     zeroBelowSubdiagonal(n, h)
     Hessenberg(DMat.fromDoubleArrayOwned(n, n, h), q)
 
-  /** Nonsymmetric eigendecomposition via Hessenberg reduction + Francis
-    * double-shift QR. Eigenvalues come out in real-Schur diagonal order with the
-    * conjugate-pair convention (adjacent, positive-imaginary first, exact
-    * conjugate symmetry). With `wantVectors` the right eigenvectors are returned
-    * in LAPACK real-Schur packed columns. `maxSweeps` (default `30·n`) bounds the
-    * total QR steps; exhaustion returns `Left(DidNotConverge)`.
+  /** Nonsymmetric eigendecomposition via Hessenberg reduction + Francis double-shift QR. Eigenvalues come out in
+    * real-Schur diagonal order with the conjugate-pair convention (adjacent, positive-imaginary first, exact conjugate
+    * symmetry). With `wantVectors` the right eigenvectors are returned in LAPACK real-Schur packed columns. `maxSweeps`
+    * (default `30·n`) bounds the total QR steps; exhaustion returns `Left(DidNotConverge)`.
     */
   def nonsymmetricEigen(
       a: DMat,
@@ -499,11 +458,10 @@ private[gale] object DenseSpectralKernels:
           else None
         Right(NonsymmetricEigen(DVec.fromDoubleArrayOwned(wr), DVec.fromDoubleArrayOwned(wi), vectors))
 
-  /** Householder reduction to upper Hessenberg form (EISPACK `orthes`), in place
-    * on the `n x n` row-major `h`, with `low = 0`, `high = n - 1`. The Householder
-    * vectors are left in the strictly-below-subdiagonal cells (column `m-1`, rows
-    * `m+1..high`) and in `ort(m)`, for [[ortran]] to accumulate `Q`. Norms are
-    * formed on the explicitly `scale`-normalized column to avoid overflow.
+  /** Householder reduction to upper Hessenberg form (EISPACK `orthes`), in place on the `n x n` row-major `h`, with
+    * `low = 0`, `high = n - 1`. The Householder vectors are left in the strictly-below-subdiagonal cells (column `m-1`,
+    * rows `m+1..high`) and in `ort(m)`, for [[ortran]] to accumulate `Q`. Norms are formed on the explicitly
+    * `scale`-normalized column to avoid overflow.
     */
   private def orthes(n: Int, h: DoubleArray, ort: DoubleArray): Unit =
     val high = n - 1
@@ -560,9 +518,8 @@ private[gale] object DenseSpectralKernels:
         h(m * n + (m - 1)) = scale * g
       m += 1
 
-  /** Accumulate the orthogonal `Q` (EISPACK `ortran`) from the reflectors
-    * [[orthes]] left in `h` and `ort`. Returns a fresh `n x n` row-major `Q`.
-    * Must run before the reflector cells in `h` are cleared.
+  /** Accumulate the orthogonal `Q` (EISPACK `ortran`) from the reflectors [[orthes]] left in `h` and `ort`. Returns a
+    * fresh `n x n` row-major `Q`. Must run before the reflector cells in `h` are cleared.
     */
   private def ortran(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
     val high = n - 1
@@ -593,8 +550,8 @@ private[gale] object DenseSpectralKernels:
       mp -= 1
     z
 
-  /** Zero the strictly-below-subdiagonal cells of an `n x n` row-major matrix,
-    * turning the reflector-carrying reduction output into a clean Hessenberg.
+  /** Zero the strictly-below-subdiagonal cells of an `n x n` row-major matrix, turning the reflector-carrying reduction
+    * output into a clean Hessenberg.
     */
   private def zeroBelowSubdiagonal(n: Int, h: DoubleArray): Unit =
     var i = 2
@@ -605,19 +562,16 @@ private[gale] object DenseSpectralKernels:
         j += 1
       i += 1
 
-  /** Francis double-shift QR on the upper-Hessenberg `h` (EISPACK `hqr2`),
-    * `low = 0`, `high = n - 1`.
+  /** Francis double-shift QR on the upper-Hessenberg `h` (EISPACK `hqr2`), `low = 0`, `high = n - 1`.
     *
-    * Reduces `h` to real-Schur (quasi-triangular) form and fills `wr`/`wi` with
-    * the eigenvalues in diagonal order — conjugate pairs adjacent, positive-
-    * imaginary member first, with exact conjugate symmetry (`wr(j+1) == wr(j)`,
-    * `wi(j+1) == -wi(j)`). When `hasVectors` is true, `z` holds the accumulated
-    * `Q` on entry and, on success, the real-Schur packed right eigenvectors on
-    * exit (back-substitution through the quasi-triangular `T` followed by the `Q`
-    * transform). When false, `z` is untouched and only the eigenvalues are formed.
+    * Reduces `h` to real-Schur (quasi-triangular) form and fills `wr`/`wi` with the eigenvalues in diagonal order —
+    * conjugate pairs adjacent, positive- imaginary member first, with exact conjugate symmetry (`wr(j+1) == wr(j)`,
+    * `wi(j+1) == -wi(j)`). When `hasVectors` is true, `z` holds the accumulated `Q` on entry and, on success, the
+    * real-Schur packed right eigenvectors on exit (back-substitution through the quasi-triangular `T` followed by the
+    * `Q` transform). When false, `z` is untouched and only the eigenvalues are formed.
     *
-    * Returns `None` on success or `Some(sweeps)` if the total QR-step budget
-    * `maxSweeps` is exhausted before every eigenvalue deflates.
+    * Returns `None` on success or `Some(sweeps)` if the total QR-step budget `maxSweeps` is exhausted before every
+    * eigenvalue deflates.
     */
   private def francisSchur(
       n: Int,
@@ -729,8 +683,7 @@ private[gale] object DenseSpectralKernels:
               wi(en) = -zz
             en -= 2
             deflated = true
-          else if itn == 0 then
-            ierr = en
+          else if itn == 0 then ierr = en
           else
             if its == 10 || its == 20 then
               // Exceptional shift after stalling, to break periodic cycles.
@@ -903,10 +856,8 @@ private[gale] object DenseSpectralKernels:
                   val q2 = (wr(i) - p) * (wr(i) - p) + wi(i) * wi(i)
                   val tval = (x2 * sCarry - zzCarry * r) / q2
                   sh(i, en2, tval)
-                  if math.abs(x2) > math.abs(zzCarry) then
-                    sh(i + 1, en2, (-r - w * tval) / x2)
-                  else
-                    sh(i + 1, en2, (-sCarry - y2 * tval) / zzCarry)
+                  if math.abs(x2) > math.abs(zzCarry) then sh(i + 1, en2, (-r - w * tval) / x2)
+                  else sh(i + 1, en2, (-sCarry - y2 * tval) / zzCarry)
                 val tabs = math.abs(hv(i, en2))
                 if tabs != 0.0 && !(tabs + 1.0 / tabs > tabs) then
                   var j2 = i
@@ -1003,8 +954,8 @@ private[gale] object DenseSpectralKernels:
 
     None
 
-  /** Complex division `(ar + ai·i) / (br + bi·i)` via the EISPACK `cdiv`
-    * scaled formula (scale by `|br| + |bi|`), avoiding intermediate overflow.
+  /** Complex division `(ar + ai·i) / (br + bi·i)` via the EISPACK `cdiv` scaled formula (scale by `|br| + |bi|`),
+    * avoiding intermediate overflow.
     */
   private def cdiv(ar: Double, ai: Double, br: Double, bi: Double): (Double, Double) =
     val s = math.abs(br) + math.abs(bi)
@@ -1015,10 +966,9 @@ private[gale] object DenseSpectralKernels:
     val d = brs * brs + bis * bis
     ((ars * brs + ais * bis) / d, (ais * brs - ars * bis) / d)
 
-  /** Normalize each real-Schur packed eigenvector to unit 2-norm — a real column
-    * to `‖v‖ = 1`, a conjugate pair's two columns so the complex vector
-    * `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair,
-    * so the packing invariant and the `A v = λ v` relation are preserved.
+  /** Normalize each real-Schur packed eigenvector to unit 2-norm — a real column to `‖v‖ = 1`, a conjugate pair's two
+    * columns so the complex vector `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair, so the
+    * packing invariant and the `A v = λ v` relation are preserved.
     */
   private def normalizeSchurVectors(n: Int, wi: DoubleArray, z: DoubleArray): Unit =
     var col = 0
@@ -1063,9 +1013,8 @@ private[gale] object DenseSpectralKernels:
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
-  /** `sqrt(a² + b²)` without forming the overflow-prone intermediate, using only
-    * correctly-rounded `sqrt` so the result is identical on JVM and Scala.js
-    * (unlike `math.hypot`, whose last bit can differ across platforms).
+  /** `sqrt(a² + b²)` without forming the overflow-prone intermediate, using only correctly-rounded `sqrt` so the result
+    * is identical on JVM and Scala.js (unlike `math.hypot`, whose last bit can differ across platforms).
     */
   private def pythag(a: Double, b: Double): Double =
     val absa = math.abs(a)
@@ -1082,17 +1031,16 @@ private[gale] object DenseSpectralKernels:
   private inline def sign(a: Double, b: Double): Double =
     if b >= 0.0 then math.abs(a) else -math.abs(a)
 
-  /** A fresh `n x n` row-major array whose lower triangle (and diagonal) is
-    * copied from `a` and whose upper triangle mirrors it, so downstream reductions
-    * see a genuinely symmetric matrix built from `a`'s lower triangle alone.
+  /** A fresh `n x n` row-major array whose lower triangle (and diagonal) is copied from `a` and whose upper triangle
+    * mirrors it, so downstream reductions see a genuinely symmetric matrix built from `a`'s lower triangle alone.
     */
   private def symmetrizedLowerRowMajor(a: DMat, n: Int): DoubleArray =
     val out = DoubleArray.alloc(n * n)
     symmetrizeLowerInto(a, n, out, 0)
     out
 
-  /** Copy the lower triangle of `a`, mirrored across the diagonal, into the
-    * row-major `n x n` region beginning at `outOffset`.
+  /** Copy the lower triangle of `a`, mirrored across the diagonal, into the row-major `n x n` region beginning at
+    * `outOffset`.
     */
   private def symmetrizeLowerInto(a: DMat, n: Int, out: DoubleArray, outOffset: Int): Unit =
     var i = 0

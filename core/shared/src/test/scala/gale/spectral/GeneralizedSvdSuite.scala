@@ -5,11 +5,10 @@ import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** Tests for the pure generalized SVD `Svds.gsvd(A, B)` — `A = U C Xᵀ`,
-  * `B = V S Xᵀ`, `CᵀC + SᵀS = I` — over full-column-rank pencils. Covers the
-  * analytic Infinite/Zero construction, reconstruction and the CS identity on
-  * random pencils, descending-ratio ordering, the B = I cross-check against the
-  * ordinary SVD, and the rank-deficiency / shape `Left`s.
+/** Tests for the pure generalized SVD `Svds.gsvd(A, B)` — `A = U C Xᵀ`, `B = V S Xᵀ`, `CᵀC + SᵀS = I` — over
+  * full-column-rank pencils. Covers the analytic Infinite/Zero construction, reconstruction and the CS identity on
+  * random pencils, descending-ratio ordering, the B = I cross-check against the ordinary SVD, and the rank-deficiency /
+  * shape `Left`s.
   */
 class GeneralizedSvdSuite extends munit.FunSuite:
 
@@ -54,16 +53,10 @@ class GeneralizedSvdSuite extends munit.FunSuite:
     // A, B with X = I: value 0 has (c,s)=(1,0) → Infinite; value 1 (0.8,0.6) →
     // Finite(4/3); value 2 (0,1) → Zero. [A;B] stays full column rank (n=3).
     val a = Matrix.dense(4, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 0.8, 0.0,
-      0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     )
     val b = Matrix.dense(4, 3)(
-      0.0, 0.0, 0.0,
-      0.0, 0.6, 0.0,
-      0.0, 0.0, 1.0,
-      0.0, 0.0, 0.0
+      0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
     )
     val g = Svds.gsvd(a, b).toOption.get
     assertEquals(g.size, 3)
@@ -90,15 +83,10 @@ class GeneralizedSvdSuite extends munit.FunSuite:
     // value 2 Zero. Degenerate columns must reorder to head/last, and A/B must
     // reconstruct through the nontrivial X with the undetermined columns zeroed.
     val u = Matrix.dense(4, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0,
-      0.0, 0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
     )
     val x = Matrix.dense(3, 3)(
-      1.0, 0.0, 0.0,
-      0.5, 1.0, 0.0,
-      0.3, 0.2, 1.0
+      1.0, 0.0, 0.0, 0.5, 1.0, 0.0, 0.3, 0.2, 1.0
     )
     val a = u * diag(Array(1.0, 0.6, 0.0)) * x.t
     val b = u * diag(Array(0.0, 0.8, 1.0)) * x.t
@@ -119,10 +107,7 @@ class GeneralizedSvdSuite extends munit.FunSuite:
     // Two directions with s = 0 (c = 1) give a repeated ∞ ratio; the finite value
     // sits last. The (−ratio, index) key is a total order, so the layout is fixed.
     val u = Matrix.dense(4, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0,
-      0.0, 0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
     )
     val a = u * diag(Array(1.0, 1.0, 0.6)) * Matrix.eye(3).t
     val b = u * diag(Array(0.0, 0.0, 0.8)) * Matrix.eye(3).t
@@ -209,14 +194,10 @@ class GeneralizedSvdSuite extends munit.FunSuite:
   test("gsvd: rank-deficient stacked pencil returns Left(RankDeficient)") {
     // A and B share an identical column pair, so the stacked matrix has rank 2 < 3.
     val a = Matrix.dense(3, 3)(
-      1.0, 2.0, 1.0,
-      3.0, 1.0, 3.0,
-      0.0, 4.0, 0.0
+      1.0, 2.0, 1.0, 3.0, 1.0, 3.0, 0.0, 4.0, 0.0
     )
     val b = Matrix.dense(3, 3)(
-      2.0, 1.0, 2.0,
-      0.0, 5.0, 0.0,
-      1.0, 1.0, 1.0
+      2.0, 1.0, 2.0, 0.0, 5.0, 0.0, 1.0, 1.0, 1.0
     )
     Svds.gsvd(a, b) match
       case Left(_: LinAlgError.RankDeficient) => ()

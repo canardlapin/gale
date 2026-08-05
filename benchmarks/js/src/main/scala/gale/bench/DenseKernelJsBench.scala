@@ -210,9 +210,8 @@ object DenseKernelJsBench:
       sparseDestination(0)
     }
 
-  /** A small wall-clock profile rather than a statistical benchmark framework:
-    * five complete warmup batches, then the median of nine batches. Both JS and
-    * Wasm run this exact linked program with the checksum consumed and printed.
+  /** A small wall-clock profile rather than a statistical benchmark framework: five complete warmup batches, then the
+    * median of nine batches. Both JS and Wasm run this exact linked program with the checksum consumed and printed.
     */
   private def profile(name: String, iterations: Int)(body: (ScenarioCounters, Int) => Double): Unit =
     val counters = new ScenarioCounters
@@ -249,10 +248,9 @@ object DenseKernelJsBench:
         f"checksum=$checksum%.6f"
     )
 
-  /** Contract-level construction counters for Scala.js, where JMH's JVM GC
-    * profiler is unavailable. They count public owned results and explicit
-    * destination/workspace reuse in the executed scenario; they are not a claim
-    * about all internal JavaScript engine allocations.
+  /** Contract-level construction counters for Scala.js, where JMH's JVM GC profiler is unavailable. They count public
+    * owned results and explicit destination/workspace reuse in the executed scenario; they are not a claim about all
+    * internal JavaScript engine allocations.
     */
   private final class ScenarioCounters:
     var ownedResults = 0L

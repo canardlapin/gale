@@ -16,17 +16,16 @@ import gale.solvers.ToleranceMode
 
 /** Provenance of an executable linear solve.
   *
-  * This is an ADT rather than a string tag so routing and diagnostics cannot
-  * silently invent new, unhandled solve modes.
+  * This is an ADT rather than a string tag so routing and diagnostics cannot silently invent new, unhandled solve
+  * modes.
   */
 enum LinearSolveKind:
   case DirectFactor, ConjugateGradient, BackendProvided
 
 /** Diagnostics for one application of a [[LinearSolveOperator]].
   *
-  * `operatorApplications` counts applications of the system operator made by
-  * this solve. A reusable direct factor reports zero because triangular solves
-  * do not reapply the original operator. `residualNorm = None` means the solve
+  * `operatorApplications` counts applications of the system operator made by this solve. A reusable direct factor
+  * reports zero because triangular solves do not reapply the original operator. `residualNorm = None` means the solve
   * provider did not measure a residual; it never means a measured zero.
   */
 final case class LinearSolveDiagnostics(
@@ -53,9 +52,9 @@ final case class LinearSolveSummary(
   private[spectral] def append(diagnostics: LinearSolveDiagnostics): LinearSolveSummary =
     val worst =
       (worstResidualNorm, diagnostics.residualNorm) match
-        case (None, next)             => next
-        case (current, None)          => current
-        case (Some(a), Some(b))       => Some(math.max(a, b))
+        case (None, next)       => next
+        case (current, None)    => current
+        case (Some(a), Some(b)) => Some(math.max(a, b))
     LinearSolveSummary(
       solves = solves + 1,
       converged = converged + (if diagnostics.converged then 1 else 0),
@@ -70,16 +69,13 @@ object LinearSolveSummary:
 
 /** An executable solve capability for one fixed square linear system.
   *
-  * This deliberately does not extend `DoubleLinearOperator`: applying a matrix
-  * and solving a system are different operations with different failure and
-  * work-accounting contracts. Implementations receive a snapshot of the right
-  * hand side. [[solve]] validates and snapshots the returned solution, so a
-  * later factor/workspace reuse cannot mutate a published result.
+  * This deliberately does not extend `DoubleLinearOperator`: applying a matrix and solving a system are different
+  * operations with different failure and work-accounting contracts. Implementations receive a snapshot of the right
+  * hand side. [[solve]] validates and snapshots the returned solution, so a later factor/workspace reuse cannot mutate
+  * a published result.
   *
-  * Structural failures are `Left(LinAlgError)`. Iterative non-convergence is a
-  * successful call carrying the best iterate with
-  * `diagnostics.converged == false`; an outer algorithm decides whether that
-  * condition is fatal.
+  * Structural failures are `Left(LinAlgError)`. Iterative non-convergence is a successful call carrying the best
+  * iterate with `diagnostics.converged == false`; an outer algorithm decides whether that condition is fatal.
   */
 trait LinearSolveOperator:
   def size: Int
@@ -88,19 +84,15 @@ trait LinearSolveOperator:
   protected def solveImpl(rhs: DVec): Either[LinAlgError, LinearSolveResult]
 
   final def solve(rhs: DVec): Either[LinAlgError, LinearSolveResult] =
-    if size < 0 then
-      Left(LinAlgError.InvalidArgument(s"linear solve size must be non-negative, got $size"))
-    else if rhs.length != size then
-      Left(LinAlgError.VectorLengthMismatch(size, rhs.length))
+    if size < 0 then Left(LinAlgError.InvalidArgument(s"linear solve size must be non-negative, got $size"))
+    else if rhs.length != size then Left(LinAlgError.VectorLengthMismatch(size, rhs.length))
     else
-      try
-        solveImpl(rhs.copy).flatMap(validateResult)
+      try solveImpl(rhs.copy).flatMap(validateResult)
       catch case error: LinAlgError => Left(error)
 
   private def validateResult(result: LinearSolveResult): Either[LinAlgError, LinearSolveResult] =
     val diagnostics = result.diagnostics
-    if result.solution.length != size then
-      Left(LinAlgError.VectorLengthMismatch(size, result.solution.length))
+    if result.solution.length != size then Left(LinAlgError.VectorLengthMismatch(size, result.solution.length))
     else if diagnostics.iterations < 0 then
       Left(LinAlgError.InvalidArgument(s"linear solve reported negative iterations: ${diagnostics.iterations}"))
     else if diagnostics.operatorApplications < 0L then
@@ -134,22 +126,23 @@ object LinearSolveOperator:
       val kind: LinearSolveKind = LinearSolveKind.DirectFactor
 
       protected def solveImpl(rhs: DVec): Either[LinAlgError, LinearSolveResult] =
-        factor.solve(rhs).map: solution =>
-          LinearSolveResult(
-            solution,
-            LinearSolveDiagnostics(
-              converged = true,
-              iterations = 0,
-              residualNorm = None,
-              operatorApplications = 0L
+        factor
+          .solve(rhs)
+          .map: solution =>
+            LinearSolveResult(
+              solution,
+              LinearSolveDiagnostics(
+                converged = true,
+                iterations = 0,
+                residualNorm = None,
+                operatorApplications = 0L
+              )
             )
-          )
 
   /** Build a repeated conjugate-gradient solve for a caller-asserted SPD system.
     *
-    * Every call owns its CG workspace. The application count includes CG's
-    * initial residual evaluation and every Krylov step. A custom preconditioner
-    * remains responsible for its own concurrency contract.
+    * Every call owns its CG workspace. The application count includes CG's initial residual evaluation and every Krylov
+    * step. A custom preconditioner remains responsible for its own concurrency contract.
     */
   def conjugateGradient[A <: DoubleLinearOperator](
       operator: PositiveDefinite[A],
@@ -209,16 +202,15 @@ object LinearSolveOperator:
             )
       )
 
-  /** Build an optional-backend solve while retaining gale's validation and
-    * ownership boundary around every returned result.
+  /** Build an optional-backend solve while retaining gale's validation and ownership boundary around every returned
+    * result.
     */
   def backendProvided(
       systemSize: Int
   )(
       solveOne: DVec => Either[LinAlgError, LinearSolveResult]
   ): Either[LinAlgError, LinearSolveOperator] =
-    if systemSize < 0 then
-      Left(LinAlgError.InvalidArgument(s"linear solve size must be non-negative, got $systemSize"))
+    if systemSize < 0 then Left(LinAlgError.InvalidArgument(s"linear solve size must be non-negative, got $systemSize"))
     else
       Right(
         new LinearSolveOperator:
@@ -231,11 +223,9 @@ object LinearSolveOperator:
 
 /** A solve explicitly bound to the positive-definite metric it inverts.
   *
-  * If `A` is symmetric and every solve is the action of `B^-1`, then
-  * `T = B^-1 A` is self-adjoint in the `B` inner product:
-  * `<x, T y>_B = x^T A y = (A x)^T y = <T x, y>_B`.
-  * The wrapper records the identity of that metric contract and rejects a
-  * dimensionally incompatible solver; it never forms `B^-1`.
+  * If `A` is symmetric and every solve is the action of `B^-1`, then `T = B^-1 A` is self-adjoint in the `B` inner
+  * product: `<x, T y>_B = x^T A y = (A x)^T y = <T x, y>_B`. The wrapper records the identity of that metric contract
+  * and rejects a dimensionally incompatible solver; it never forms `B^-1`.
   */
 final class MetricSolveOperator[B <: DoubleLinearOperator] private (
     val metric: PositiveDefinite[B],
@@ -251,8 +241,6 @@ object MetricSolveOperator:
       metric: PositiveDefinite[B],
       solver: LinearSolveOperator
   ): Either[LinAlgError, MetricSolveOperator[B]] =
-    if metric.rows != metric.cols then
-      Left(LinAlgError.NonSquareMatrix(Shape(Rows(metric.rows), Cols(metric.cols))))
-    else if solver.size != metric.rows then
-      Left(LinAlgError.VectorLengthMismatch(metric.rows, solver.size))
+    if metric.rows != metric.cols then Left(LinAlgError.NonSquareMatrix(Shape(Rows(metric.rows), Cols(metric.cols))))
+    else if solver.size != metric.rows then Left(LinAlgError.VectorLengthMismatch(metric.rows, solver.size))
     else Right(new MetricSolveOperator(metric, solver))

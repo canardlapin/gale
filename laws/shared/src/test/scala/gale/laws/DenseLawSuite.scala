@@ -5,9 +5,8 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
-/** Property-based algebraic laws for the dense types, driven through the reusable
-  * [[VecLaws]] / [[MatrixLaws]] bundles. Lives in the laws module (not core)
-  * because it depends only on the public API and on the bundles it exercises.
+/** Property-based algebraic laws for the dense types, driven through the reusable [[VecLaws]] / [[MatrixLaws]] bundles.
+  * Lives in the laws module (not core) because it depends only on the public API and on the bundles it exercises.
   */
 class DenseLawSuite extends ScalaCheckSuite:
   override def scalaCheckInitialSeed =
@@ -150,8 +149,8 @@ class DenseLawSuite extends ScalaCheckSuite:
     MatrixLaws.multiplicationAssociates(a, b, c)
   }
 
-  /** A stride-2 view of `x`'s values over a fresh backing buffer, built through
-    * the public API: column 0 of an `n x 2` row-major matrix has row-stride 2.
+  /** A stride-2 view of `x`'s values over a fresh backing buffer, built through the public API: column 0 of an `n x 2`
+    * row-major matrix has row-stride 2.
     */
   private def strided(x: DVec): DVec =
     val values = new Array[Double](x.length * 2)

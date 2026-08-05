@@ -4,17 +4,14 @@ import gale.linalg.*
 
 /** Shared configuration for the iterative solvers.
   *
-  *   - `tolerance` is the convergence threshold on a residual norm. What residual,
-  *     and whether the threshold is absolute or relative, is set by the solver's
-  *     [[ToleranceMode]]: `cg`/`bicgstab`/`gmres` test the linear residual
-  *     `||b − A x||`, while `cgnr`/`lsqr` test the least-squares (normal-equation)
-  *     residual `||Aᵀ(b − A x)||`. `RelativeToRhs` scales the threshold by the
-  *     norm of the relevant right-hand side (`||b||`, or `||Aᵀ b||` for the
+  *   - `tolerance` is the convergence threshold on a residual norm. What residual, and whether the threshold is
+  *     absolute or relative, is set by the solver's [[ToleranceMode]]: `cg`/`bicgstab`/`gmres` test the linear residual
+  *     `||b − A x||`, while `cgnr`/`lsqr` test the least-squares (normal-equation) residual `||Aᵀ(b − A x)||`.
+  *     `RelativeToRhs` scales the threshold by the norm of the relevant right-hand side (`||b||`, or `||Aᵀ b||` for the
   *     least-squares solvers).
-  *   - `maxIterations` caps the total iteration count; on reaching it the solver
-  *     returns [[SolverResult.NotConverged]] with the best iterate so far.
-  *   - `restart` is the GMRES restart length (inner Krylov dimension); ignored by
-  *     the other solvers.
+  *   - `maxIterations` caps the total iteration count; on reaching it the solver returns [[SolverResult.NotConverged]]
+  *     with the best iterate so far.
+  *   - `restart` is the GMRES restart length (inner Krylov dimension); ignored by the other solvers.
   */
 final case class SolverConfig(
     tolerance: Double = 1e-10,
@@ -24,8 +21,8 @@ final case class SolverConfig(
 
 /** How [[SolverConfig.tolerance]] is compared against the residual norm.
   *
-  * `Absolute` tests `||r|| <= tolerance` directly (the historical behaviour);
-  * `RelativeToRhs` tests `||r|| <= tolerance * ||b||`, i.e. a relative residual.
+  * `Absolute` tests `||r|| <= tolerance` directly (the historical behaviour); `RelativeToRhs` tests
+  * `||r|| <= tolerance * ||b||`, i.e. a relative residual.
   */
 enum ToleranceMode:
   case Absolute, RelativeToRhs
@@ -46,13 +43,11 @@ object SolverResult:
   final case class NotConverged(x: DVec, iterations: Int, residual: Double) extends SolverResult:
     val converged: Boolean = false
 
-/** Caller-owned storage for repeated conjugate-gradient solves of one fixed
-  * dimension.
+/** Caller-owned storage for repeated conjugate-gradient solves of one fixed dimension.
   *
-  * [[solution]] returns an immutable snapshot that remains stable across later
-  * workspace reuse. [[unsafeSolutionView]] is the explicitly borrowed,
-  * allocation-free alternative; a later [[IterativeSolvers.cgWith]] call using
-  * this workspace overwrites values visible through that view.
+  * [[solution]] returns an immutable snapshot that remains stable across later workspace reuse. [[unsafeSolutionView]]
+  * is the explicitly borrowed, allocation-free alternative; a later [[IterativeSolvers.cgWith]] call using this
+  * workspace overwrites values visible through that view.
   */
 final class CgWorkspace private (val size: Int):
   private[solvers] val x = MutableDVec.zeros(size)
@@ -80,9 +75,8 @@ final class CgWorkspace private (val size: Int):
 
   /** Borrow the workspace's live solution storage without allocating.
     *
-    * The returned value is not an immutable snapshot: every subsequent solve
-    * using this workspace may change its observed elements. It must not be
-    * retained when stable value semantics are required.
+    * The returned value is not an immutable snapshot: every subsequent solve using this workspace may change its
+    * observed elements. It must not be retained when stable value semantics are required.
     */
   def unsafeSolutionView: DVec = xView
   def iterations: Int = iterationCount
@@ -111,8 +105,7 @@ trait Preconditioner:
 object Preconditioner:
   object Identity extends Preconditioner:
     def solve(r: DVec, into: MutableVec[Double]): Unit =
-      if r.length != into.length then
-        throw LinAlgError.VectorLengthMismatch(r.length, into.length)
+      if r.length != into.length then throw LinAlgError.VectorLengthMismatch(r.length, into.length)
       var i = 0
       while i < r.length do
         into(i) = r(i)
@@ -136,21 +129,18 @@ object Preconditioner:
 
   object Jacobi:
     def apply(A: Matrix[Double]): Jacobi =
-      if A.rows != A.cols then
-        throw LinAlgError.NonSquareMatrix(A.shape)
+      if A.rows != A.cols then throw LinAlgError.NonSquareMatrix(A.shape)
       val inv = new Array[Double](A.rows)
       var i = 0
       while i < A.rows do
         val diag = A(i, i)
-        if diag == 0.0 then
-          throw LinAlgError.SingularMatrix(i)
+        if diag == 0.0 then throw LinAlgError.SingularMatrix(i)
         inv(i) = 1.0 / diag
         i += 1
       new Jacobi(inv)
 
-  /** Block-diagonal preconditioner: `M` is the block diagonal of `A`, applied
-    * by exactly solving each diagonal block. Reduces to point [[Jacobi]] when
-    * `blockSize == 1` and to a direct solve of `A` when `blockSize >= n`.
+  /** Block-diagonal preconditioner: `M` is the block diagonal of `A`, applied by exactly solving each diagonal block.
+    * Reduces to point [[Jacobi]] when `blockSize == 1` and to a direct solve of `A` when `blockSize >= n`.
     */
   final class BlockJacobi private[solvers] (
       private val blockStarts: Array[Int],
@@ -158,10 +148,8 @@ object Preconditioner:
       private val dimension: Int
   ) extends Preconditioner:
     def solve(r: DVec, into: MutableVec[Double]): Unit =
-      if r.length != dimension then
-        throw LinAlgError.VectorLengthMismatch(dimension, r.length)
-      if into.length != dimension then
-        throw LinAlgError.VectorLengthMismatch(dimension, into.length)
+      if r.length != dimension then throw LinAlgError.VectorLengthMismatch(dimension, r.length)
+      if into.length != dimension then throw LinAlgError.VectorLengthMismatch(dimension, into.length)
       val rData = r.data
       val rBase = r.offset.value
       val rStep = r.stride.value
@@ -190,11 +178,9 @@ object Preconditioner:
   object BlockJacobi:
     def apply(A: Matrix[Double], blockSize: Int): Preconditioner =
       require(blockSize > 0, "blockSize must be positive")
-      if A.rows != A.cols then
-        throw LinAlgError.NonSquareMatrix(A.shape)
+      if A.rows != A.cols then throw LinAlgError.NonSquareMatrix(A.shape)
       val n = A.rows
-      if n == 0 then
-        new BlockJacobi(Array.empty[Int], Array.empty[LU], 0)
+      if n == 0 then new BlockJacobi(Array.empty[Int], Array.empty[LU], 0)
       else
         val numBlocks = (n + blockSize - 1) / blockSize
         val starts = new Array[Int](numBlocks)
@@ -252,12 +238,10 @@ object Preconditioner:
 
   object SymmetricGaussSeidel:
     def apply(A: Matrix[Double]): SymmetricGaussSeidel =
-      if A.rows != A.cols then
-        throw LinAlgError.NonSquareMatrix(A.shape)
+      if A.rows != A.cols then throw LinAlgError.NonSquareMatrix(A.shape)
       var i = 0
       while i < A.rows do
-        if A(i, i) == 0.0 then
-          throw LinAlgError.SingularMatrix(i)
+        if A(i, i) == 0.0 then throw LinAlgError.SingularMatrix(i)
         i += 1
       new SymmetricGaussSeidel(A)
 
@@ -279,8 +263,7 @@ object IterativeSolvers:
     A.applyTo(x.asVec, ax)
     val r = (b - ax.asVec).mutableCopy
     var residual = r.asVec.norm2
-    if residual <= tol then
-      return SolverResult.Converged(x.asVec, 0, residual)
+    if residual <= tol then return SolverResult.Converged(x.asVec, 0, residual)
 
     val z = MutableDVec.zeros(A.rows)
     preconditioner.solve(r.asVec, z)
@@ -291,19 +274,16 @@ object IterativeSolvers:
     while iteration < config.maxIterations do
       A.applyTo(p.asVec, ap)
       val denom = p.asVec.dot(ap.asVec)
-      if denom == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if denom == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       val alpha = rzOld / denom
       x.axpyInPlace(alpha, p.asVec)
       r.axpyInPlace(-alpha, ap.asVec)
       residual = r.asVec.norm2
       iteration += 1
-      if residual <= tol then
-        return SolverResult.Converged(x.asVec, iteration, residual)
+      if residual <= tol then return SolverResult.Converged(x.asVec, iteration, residual)
       preconditioner.solve(r.asVec, z)
       val rzNew = r.asVec.dot(z.asVec)
-      if rzOld == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if rzOld == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       val beta = rzNew / rzOld
       p *= beta
       p += z.asVec
@@ -312,11 +292,9 @@ object IterativeSolvers:
 
   /** Allocation-controlled conjugate gradient using caller-owned workspace.
     *
-    * The recurrence, tolerance modes, preconditioner semantics, and breakdown
-    * behavior match [[cg]]. The returned object is the supplied workspace;
-    * [[CgWorkspace.solution]] returns a stable copy, while
-    * [[CgWorkspace.unsafeSolutionView]] is overwritten by the next solve using
-    * the same workspace.
+    * The recurrence, tolerance modes, preconditioner semantics, and breakdown behavior match [[cg]]. The returned
+    * object is the supplied workspace; [[CgWorkspace.solution]] returns a stable copy, while
+    * [[CgWorkspace.unsafeSolutionView]] is overwritten by the next solve using the same workspace.
     */
   def cgWith(
       A: DoubleLinearOperator,
@@ -330,14 +308,12 @@ object IterativeSolvers:
     requireSquare(A)
     if b.length != A.rows then
       throw LinAlgError.DimensionMismatch(Shape(Rows(A.rows), Cols(1)), Shape(Rows(b.length), Cols(1)))
-    if workspace.size != A.cols then
-      throw LinAlgError.VectorLengthMismatch(A.cols, workspace.size)
+    if workspace.size != A.cols then throw LinAlgError.VectorLengthMismatch(A.cols, workspace.size)
 
     initial match
-      case None => workspace.x.clear()
+      case None        => workspace.x.clear()
       case Some(guess) =>
-        if guess.length != A.cols then
-          throw LinAlgError.VectorLengthMismatch(A.cols, guess.length)
+        if guess.length != A.cols then throw LinAlgError.VectorLengthMismatch(A.cols, guess.length)
         workspace.x := guess
 
     val tolerance = effectiveTolerance(toleranceMode, config.tolerance, b)
@@ -408,14 +384,12 @@ object IterativeSolvers:
     var alpha = 1.0
     var omega = 1.0
     var residual = r.asVec.norm2
-    if residual <= tol then
-      return SolverResult.Converged(x.asVec, 0, residual)
+    if residual <= tol then return SolverResult.Converged(x.asVec, 0, residual)
 
     var iteration = 0
     while iteration < config.maxIterations do
       val rhoNew = rHat.dot(r.asVec)
-      if rhoNew == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if rhoNew == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       val beta = (rhoNew / rhoOld) * (alpha / omega)
       // p := r + beta * (p - omega * v)
       p *= beta
@@ -426,8 +400,7 @@ object IterativeSolvers:
       preconditioner.solve(p.asVec, pHat)
       A.applyTo(pHat.asVec, v)
       val denom = rHat.dot(v.asVec)
-      if denom == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if denom == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       alpha = rhoNew / denom
       val s = r.asVec - (v.asVec * alpha)
       val sNorm = s.norm2
@@ -437,8 +410,7 @@ object IterativeSolvers:
       preconditioner.solve(s, sHat)
       A.applyTo(sHat.asVec, t)
       val tt = t.asVec.dot(t.asVec)
-      if tt == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if tt == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       omega = t.asVec.dot(s) / tt
       x.axpyInPlace(alpha, pHat.asVec)
       x.axpyInPlace(omega, sHat.asVec)
@@ -447,10 +419,8 @@ object IterativeSolvers:
       r.axpyInPlace(-omega, t.asVec)
       residual = r.asVec.norm2
       iteration += 1
-      if residual <= tol then
-        return SolverResult.Converged(x.asVec, iteration, residual)
-      if omega == 0.0 then
-        return SolverResult.NotConverged(x.asVec, iteration, residual)
+      if residual <= tol then return SolverResult.Converged(x.asVec, iteration, residual)
+      if omega == 0.0 then return SolverResult.NotConverged(x.asVec, iteration, residual)
       rhoOld = rhoNew
     SolverResult.NotConverged(x.asVec, iteration, residual)
 
@@ -474,8 +444,7 @@ object IterativeSolvers:
     // true residual when M is the identity. Each inner step costs one matvec and
     // one preconditioner apply — no per-step dense QR and no extra residual matvec.
     var residual = preconditionedResidualNorm(A, preconditioner, b, x.asVec)
-    if residual <= tol then
-      return SolverResult.Converged(x.asVec, 0, residual)
+    if residual <= tol then return SolverResult.Converged(x.asVec, 0, residual)
 
     while totalIterations < config.maxIterations do
       val ax = MutableDVec.zeros(A.rows)
@@ -483,8 +452,7 @@ object IterativeSolvers:
       val r0 = MutableDVec.zeros(A.rows)
       preconditioner.solve(b - ax.asVec, r0)
       val beta = r0.asVec.norm2
-      if beta <= tol then
-        return SolverResult.Converged(x.asVec, totalIterations, beta)
+      if beta <= tol then return SolverResult.Converged(x.asVec, totalIterations, beta)
       val innerLimit = math.min(restart, config.maxIterations - totalIterations)
       val basis = Array.fill(innerLimit + 1)(MutableDVec.zeros(A.cols))
       scaleInto(basis(0), r0.asVec, 1.0 / beta)
@@ -515,8 +483,7 @@ object IterativeSolvers:
         // Happy breakdown: the next basis vector is (numerically) zero, so the
         // Krylov space is exhausted at this step.
         val happyBreakdown = hNext <= 1e-14 * beta
-        if !happyBreakdown && j + 1 < basis.length then
-          scaleInto(basis(j + 1), w.asVec, 1.0 / hNext)
+        if !happyBreakdown && j + 1 < basis.length then scaleInto(basis(j + 1), w.asVec, 1.0 / hNext)
         // Apply the accumulated Givens rotations to the new Hessenberg column.
         i = 0
         while i < j do
@@ -564,21 +531,17 @@ object IterativeSolvers:
           if diag == 0.0 then
             singular = true
             y(ii) = 0.0
-          else
-            y(ii) = sum / diag
+          else y(ii) = sum / diag
           ii -= 1
-        if singular then
-          return SolverResult.NotConverged(x.asVec, totalIterations + k, residual)
+        if singular then return SolverResult.NotConverged(x.asVec, totalIterations + k, residual)
         var i = 0
         while i < k do
           x.axpyInPlace(y(i), basis(i).asVec)
           i += 1
 
       totalIterations += innerSteps
-      if converged then
-        return SolverResult.Converged(x.asVec, totalIterations, residual)
-      if brokeDown then
-        return SolverResult.NotConverged(x.asVec, totalIterations, residual)
+      if converged then return SolverResult.Converged(x.asVec, totalIterations, residual)
+      if brokeDown then return SolverResult.NotConverged(x.asVec, totalIterations, residual)
     SolverResult.NotConverged(x.asVec, totalIterations, residual)
 
   def cgnr(
@@ -598,15 +561,13 @@ object IterativeSolvers:
     // tolerance by ||Aᵀb|| — the natural reference for the residual CG tracks.
     cg(normal, rhs.asVec, config, toleranceMode = toleranceMode)
 
-  /** LSQR (Paige & Saunders, 1982): Golub–Kahan bidiagonalization driving the
-    * Paige–Saunders recurrences to solve `min ||A x - b||₂` for any `m x n` `A`.
+  /** LSQR (Paige & Saunders, 1982): Golub–Kahan bidiagonalization driving the Paige–Saunders recurrences to solve
+    * `min ||A x - b||₂` for any `m x n` `A`.
     *
-    * Unlike [[cgnr]] it never forms `AᵀA`, so it is numerically well-conditioned
-    * for ill-conditioned `A`. The stopping test is a simplified single-tolerance
-    * variant of the paper's rules: convergence on the least-squares (normal-
-    * equation) residual `||Aᵀ(b − A x)||`, which drives to zero for both
-    * consistent and inconsistent systems. As in [[cgnr]], `RelativeToRhs` scales
-    * the tolerance by `||Aᵀ b||`; the reported `residual` is `||Aᵀ r||`.
+    * Unlike [[cgnr]] it never forms `AᵀA`, so it is numerically well-conditioned for ill-conditioned `A`. The stopping
+    * test is a simplified single-tolerance variant of the paper's rules: convergence on the least-squares (normal-
+    * equation) residual `||Aᵀ(b − A x)||`, which drives to zero for both consistent and inconsistent systems. As in
+    * [[cgnr]], `RelativeToRhs` scales the tolerance by `||Aᵀ b||`; the reported `residual` is `||Aᵀ r||`.
     */
   def lsqr(
       A: DoubleLinearOperator,
@@ -616,8 +577,7 @@ object IterativeSolvers:
   ): SolverResult =
     val m = A.rows
     val n = A.cols
-    if b.length != m then
-      throw LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1)))
+    if b.length != m then throw LinAlgError.DimensionMismatch(Shape(Rows(m), Cols(1)), Shape(Rows(b.length), Cols(1)))
 
     val x = MutableDVec.zeros(n)
     // beta_1 u_1 = b.
@@ -715,14 +675,13 @@ object IterativeSolvers:
     out := x
     out *= alpha
 
-  /** Materialise the starting iterate: a fresh zero vector when no guess is given,
-    * or a mutable copy of the supplied guess. A guess of any length other than
-    * `cols` — including a length-0 vector for a nonzero-dimension system — is a
+  /** Materialise the starting iterate: a fresh zero vector when no guess is given, or a mutable copy of the supplied
+    * guess. A guess of any length other than `cols` — including a length-0 vector for a nonzero-dimension system — is a
     * dimension mismatch, not a silent fallback to zero.
     */
   private def initialGuess(initial: Option[DVec], cols: Int): MutableDVec =
     initial match
-      case None => MutableDVec.zeros(cols)
+      case None        => MutableDVec.zeros(cols)
       case Some(guess) =>
         if guess.length == cols then guess.mutableCopy
         else throw LinAlgError.VectorLengthMismatch(cols, guess.length)
@@ -770,13 +729,11 @@ def gmres(
 
 /** Conjugate gradient on the normal equations AᵀA x = Aᵀb (CGNR).
   *
-  * Solves the least-squares / minimum-residual problem by running CG on the
-  * symmetric positive (semi-)definite normal-equation operator. Forming AᵀA
-  * squares the condition number of `A`, so this suits well-conditioned problems;
+  * Solves the least-squares / minimum-residual problem by running CG on the symmetric positive (semi-)definite
+  * normal-equation operator. Forming AᵀA squares the condition number of `A`, so this suits well-conditioned problems;
   * the `tolerance` applies to the normal-equation residual ‖Aᵀ(b − Ax)‖.
   *
-  * Formerly named `lsqr`: it never implemented the Paige–Saunders LSQR
-  * recurrence, so the honest name is CGNR.
+  * Formerly named `lsqr`: it never implemented the Paige–Saunders LSQR recurrence, so the honest name is CGNR.
   */
 def cgnr(
     A: DoubleLinearOperator,
@@ -788,9 +745,8 @@ def cgnr(
 
 /** LSQR (Paige–Saunders): Golub–Kahan bidiagonalization for `min ||A x − b||₂`.
   *
-  * Numerically well-conditioned where [[cgnr]] struggles, because it never forms
-  * `AᵀA`. Stopping is a simplified single-tolerance variant on the least-squares
-  * residual `||Aᵀ(b − A x)||`; see [[IterativeSolvers.lsqr]].
+  * Numerically well-conditioned where [[cgnr]] struggles, because it never forms `AᵀA`. Stopping is a simplified
+  * single-tolerance variant on the least-squares residual `||Aᵀ(b − A x)||`; see [[IterativeSolvers.lsqr]].
   */
 def lsqr(
     A: DoubleLinearOperator,

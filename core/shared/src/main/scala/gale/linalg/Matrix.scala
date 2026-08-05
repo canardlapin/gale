@@ -20,22 +20,19 @@ trait Matrix[A] extends LinearOperator[A]:
   def col(index: Int): Vec[A]
   def t: Matrix[A]
 
-/** A dense `Double` matrix: a rows×cols window over platform storage described by
-  * an offset and independent (strictly positive) row and column strides.
+/** A dense `Double` matrix: a rows×cols window over platform storage described by an offset and independent (strictly
+  * positive) row and column strides.
   *
-  *   - '''Views vs copies.''' [[row]], [[col]], [[slice]], and [[t]] (transpose)
-  *     are `O(1)` aliasing views sharing the backing storage — `t` just swaps the
-  *     strides. [[gatherRows]], [[gatherColumns]], [[updated]], and [[toBuilder]]
-  *     return independently owned data. `DMat` exposes no element mutators; the
-  *     write path is `mulInto`-style APIs that take a caller-supplied
-  *     [[MutableDVec]] destination.
+  *   - '''Views vs copies.''' [[row]], [[col]], [[slice]], and [[t]] (transpose) are `O(1)` aliasing views sharing the
+  *     backing storage — `t` just swaps the strides. [[gatherRows]], [[gatherColumns]], [[updated]], and [[toBuilder]]
+  *     return independently owned data. `DMat` exposes no element mutators; the write path is `mulInto`-style APIs that
+  *     take a caller-supplied [[MutableDVec]] destination.
   *   - '''Positive strides only,''' arbitrary otherwise: element `(i, j)` lives at
-  *     `offset + i*rowStride + j*colStride`, so row-major, column-major, and
-  *     strided submatrix layouts are all valid inputs to the kernels.
-  *   - '''NaN / `beta == 0` policy.''' When a kernel forms `y := alpha*A*x` with an
-  *     implicit `beta == 0` (as `mulInto`/`*` do), the destination is '''assigned''',
-  *     never read-and-scaled — so a pre-existing `NaN`/`Inf` in the destination
-  *     buffer cannot poison the result via `0*NaN`.
+  *     `offset + i*rowStride + j*colStride`, so row-major, column-major, and strided submatrix layouts are all valid
+  *     inputs to the kernels.
+  *   - '''NaN / `beta == 0` policy.''' When a kernel forms `y := alpha*A*x` with an implicit `beta == 0` (as
+  *     `mulInto`/`*` do), the destination is '''assigned''', never read-and-scaled — so a pre-existing `NaN`/`Inf` in
+  *     the destination buffer cannot poison the result via `0*NaN`.
   */
 final class DMat private[gale] (
     private[gale] val data: DoubleArray,
@@ -96,9 +93,8 @@ final class DMat private[gale] (
 
   /** Contiguous half-open row/column window as an `O(1)` strided view.
     *
-    * The result aliases this matrix storage and retains its row/column strides;
-    * use [[gatherRows]], [[gatherColumns]], or [[toBuilder]] when an owned copy is
-    * required. Empty windows are supported.
+    * The result aliases this matrix storage and retains its row/column strides; use [[gatherRows]], [[gatherColumns]],
+    * or [[toBuilder]] when an owned copy is required. Empty windows are supported.
     */
   def slice(rowFrom: Int, rowUntil: Int, colFrom: Int, colUntil: Int): DMat =
     if rowFrom < 0 || rowUntil < rowFrom || rowUntil > rows ||
@@ -116,8 +112,8 @@ final class DMat private[gale] (
       colStride
     )
 
-  /** Gather rows in caller-specified order into one independently owned,
-    * contiguous row-major matrix. Repeated indices repeat rows.
+  /** Gather rows in caller-specified order into one independently owned, contiguous row-major matrix. Repeated indices
+    * repeat rows.
     */
   def gatherRows(indices: IndexedSeq[Int]): DMat =
     var i = 0
@@ -135,8 +131,8 @@ final class DMat private[gale] (
       row += 1
     out.result()
 
-  /** Gather columns in caller-specified order into one independently owned,
-    * contiguous row-major matrix. Repeated indices repeat columns.
+  /** Gather columns in caller-specified order into one independently owned, contiguous row-major matrix. Repeated
+    * indices repeat columns.
     */
   def gatherColumns(indices: IndexedSeq[Int]): DMat =
     var i = 0
@@ -160,14 +156,14 @@ final class DMat private[gale] (
     out(row * cols + col) = value
     DMat.fromDoubleArrayOwned(rows, cols, out)
 
-  /** One owned logical row-major copy, ready for in-place construction edits.
-    * Calling [[DMatBuilder.result]] transfers that storage without another copy.
+  /** One owned logical row-major copy, ready for in-place construction edits. Calling [[DMatBuilder.result]] transfers
+    * that storage without another copy.
     */
   def toBuilder: DMatBuilder =
     DMatBuilder.from(this)
 
-  /** Add `amount` to every element on the main diagonal, returning one owned
-    * copy. Rectangular matrices update `min(rows, cols)` diagonal elements.
+  /** Add `amount` to every element on the main diagonal, returning one owned copy. Rectangular matrices update
+    * `min(rows, cols)` diagonal elements.
     */
   def addToDiagonal(amount: Double): DMat =
     val out = toBuilder
@@ -177,11 +173,10 @@ final class DMat private[gale] (
       i += 1
     out.result()
 
-  /** Average a square matrix with its transpose:
-    * `B(i,j) = 0.5*A(i,j) + 0.5*A(j,i)`.
+  /** Average a square matrix with its transpose: `B(i,j) = 0.5*A(i,j) + 0.5*A(j,i)`.
     *
-    * The explicit name distinguishes this from lower- or upper-triangle
-    * symmetrization conventions used by factorization kernels.
+    * The explicit name distinguishes this from lower- or upper-triangle symmetrization conventions used by
+    * factorization kernels.
     */
   def symmetrizedAverage: DMat =
     if rows != cols then throw LinAlgError.NonSquareMatrix(shape)
@@ -223,8 +218,8 @@ final class DMat private[gale] (
       i += 1
     builder.result()
 
-  /** Visit logical elements in row-major order without allocating an
-    * intermediate collection. The callback receives primitive `Double` values.
+  /** Visit logical elements in row-major order without allocating an intermediate collection. The callback receives
+    * primitive `Double` values.
     */
   def foreachRowMajor(f: Double => Unit): Unit =
     var i = 0
@@ -237,8 +232,8 @@ final class DMat private[gale] (
         j += 1
       i += 1
 
-  /** Copy logical elements into caller-owned primitive storage in row-major
-    * order. No Gale backing storage is exposed or adopted.
+  /** Copy logical elements into caller-owned primitive storage in row-major order. No Gale backing storage is exposed
+    * or adopted.
     */
   def copyRowMajorTo(destination: Array[Double], destinationOffset: Int = 0): Unit =
     val required = rows.toLong * cols.toLong
@@ -259,8 +254,8 @@ final class DMat private[gale] (
         j += 1
       i += 1
 
-  /** Contiguous row-major platform copy owned by the caller (offset 0,
-    * colStride 1). One copy, even from a strided or transposed view.
+  /** Contiguous row-major platform copy owned by the caller (offset 0, colStride 1). One copy, even from a strided or
+    * transposed view.
     */
   private[gale] def toDoubleArrayCopyRowMajor: DoubleArray =
     val out = DoubleArray.alloc(rows * cols)
@@ -276,8 +271,7 @@ final class DMat private[gale] (
     out
 
   override def *(x: DVec)(using backend: Backend): DVec =
-    if cols != x.length then
-      throw LinAlgError.VectorLengthMismatch(cols, x.length)
+    if cols != x.length then throw LinAlgError.VectorLengthMismatch(cols, x.length)
     val out = MutableDVec.zeros(rows)
     mulInto(x, out)
     out.asVec
@@ -286,10 +280,8 @@ final class DMat private[gale] (
     mulIntoWithBackend(x, y, backend)
 
   private def mulIntoWithBackend(x: DVec, y: MutableDVec, backend: Backend): Unit =
-    if cols != x.length then
-      throw LinAlgError.VectorLengthMismatch(cols, x.length)
-    if rows != y.length then
-      throw LinAlgError.VectorLengthMismatch(rows, y.length)
+    if cols != x.length then throw LinAlgError.VectorLengthMismatch(cols, x.length)
+    if rows != y.length then throw LinAlgError.VectorLengthMismatch(rows, y.length)
     if DoubleArray.sameStorage(x.data, y.data) then
       throw LinAlgError.UnsupportedOperation("aliased mulInto destination")
     val rowStep = rowStride.value
@@ -330,7 +322,6 @@ final class DMat private[gale] (
         y.offset.value,
         yStep
       )
-
     else if rowStep == 1 then
       DoubleKernels.dgemvColMajor(
         rows,
@@ -376,13 +367,12 @@ final class DMat private[gale] (
   def asLinearOperator: DoubleLinearOperator =
     this
 
-  /** Matrix product `this * that`. The coarse gemm dispatch seam (doc §A.2): with no
-    * acceleration import the `given` resolves to [[gale.backend.Backend.pure]], whose
-    * `acceleratesGemm` is `false`, so the pure `DoubleKernels` path runs — byte-identical
-    * to before the seam. An imported accelerating backend routes the general product to
-    * `backend.denseDouble.gemm` once the work clears its measured `nativeGemmMinFlops`.
-    * The structural `AᵀA` fast-path routes to `backend.denseDouble.syrk` under the same
-    * gate, and stays on the dedicated pure symmetric kernel below it.
+  /** Matrix product `this * that`. The coarse gemm dispatch seam (doc §A.2): with no acceleration import the `given`
+    * resolves to [[gale.backend.Backend.pure]], whose `acceleratesGemm` is `false`, so the pure `DoubleKernels` path
+    * runs — byte-identical to before the seam. An imported accelerating backend routes the general product to
+    * `backend.denseDouble.gemm` once the work clears its measured `nativeGemmMinFlops`. The structural `AᵀA` fast-path
+    * routes to `backend.denseDouble.syrk` under the same gate, and stays on the dedicated pure symmetric kernel below
+    * it.
     */
   def *(that: DMat)(using backend: Backend): DMat =
     requireProductShape(that)
@@ -402,12 +392,10 @@ final class DMat private[gale] (
   /** General matrix product into caller-owned single-owner storage:
     * `destination := alpha * this * that + beta * destination`.
     *
-    * `beta == 0.0` is replacement semantics: every destination element is
-    * assigned without reading its old value, so pre-existing NaN or infinity
-    * cannot poison the result. Any nonzero `beta` is accumulation semantics and
-    * reads the previous destination. Inputs may be row-major, transposed, or
-    * strided; the destination is the open contiguous row-major storage owned by
-    * a [[DMatBuilder]]. No intermediate matrix is allocated.
+    * `beta == 0.0` is replacement semantics: every destination element is assigned without reading its old value, so
+    * pre-existing NaN or infinity cannot poison the result. Any nonzero `beta` is accumulation semantics and reads the
+    * previous destination. Inputs may be row-major, transposed, or strided; the destination is the open contiguous
+    * row-major storage owned by a [[DMatBuilder]]. No intermediate matrix is allocated.
     */
   def gemmInto(
       that: DMat,
@@ -431,14 +419,12 @@ final class DMat private[gale] (
       backend = backend
     )
 
-  /** Fused elementwise replacement:
-    * `destination := alpha * this + beta * that`.
+  /** Fused elementwise replacement: `destination := alpha * this + beta * that`.
     *
-    * Unlike GEMM's `beta`, both coefficients scale immutable inputs; the old
-    * destination is never read. A zero coefficient also suppresses reading its
-    * corresponding input, so `0 * NaN` cannot contaminate the result. Structural
-    * aliasing with either input is rejected even though public builders normally
-    * make such an alias impossible.
+    * Unlike GEMM's `beta`, both coefficients scale immutable inputs; the old destination is never read. A zero
+    * coefficient also suppresses reading its corresponding input, so `0 * NaN` cannot contaminate the result.
+    * Structural aliasing with either input is rejected even though public builders normally make such an alias
+    * impossible.
     */
   def linearCombinationInto(
       that: DMat,
@@ -590,8 +576,8 @@ final class DMat private[gale] (
         Shape(Rows(destination.rows), Cols(destination.cols))
       )
 
-  /** True when `this` is exactly the transpose view of `that` — same backing
-    * storage and offset, swapped shape and strides — so `this * that` is `AᵀA`.
+  /** True when `this` is exactly the transpose view of `that` — same backing storage and offset, swapped shape and
+    * strides — so `this * that` is `AᵀA`.
     */
   private def isTransposeOf(that: DMat): Boolean =
     DoubleArray.sameStorage(data, that.data) &&
@@ -608,19 +594,16 @@ final class DMat private[gale] (
     requireSameShape(that)
     addSub(that, subtract = true)
 
-  /** Elementwise add/subtract through the `dadd`/`dsub` kernels. When both
-    * operands are contiguous row-major the whole block is a single kernel call;
-    * otherwise each row is one strided call, honouring arbitrary layouts.
+  /** Elementwise add/subtract through the `dadd`/`dsub` kernels. When both operands are contiguous row-major the whole
+    * block is a single kernel call; otherwise each row is one strided call, honouring arbitrary layouts.
     */
   private def addSub(that: DMat, subtract: Boolean): DMat =
     val out = DMat.zeros(rows, cols)
     val outData = out.data
     if isContiguousRowMajor && that.isContiguousRowMajor then
       val n = rows * cols
-      if subtract then
-        DoubleKernels.dsub(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
-      else
-        DoubleKernels.dadd(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
+      if subtract then DoubleKernels.dsub(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
+      else DoubleKernels.dadd(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
     else
       val ncols = cols
       val aColStep = colStride.value
@@ -647,11 +630,10 @@ final class DMat private[gale] (
           i += 1
     out
 
-  /** The factorization dispatch gate in one place: the backend's provider, iff it
-    * accelerates factorizations and the work clears the routine's size threshold.
-    * (`acceleratesFactorizations` implies `denseFactorizations.isDefined`.) Structural
-    * validation stays in the facade, BEFORE this gate, so a provider only ever sees
-    * inputs the pure path would accept.
+  /** The factorization dispatch gate in one place: the backend's provider, iff it accelerates factorizations and the
+    * work clears the routine's size threshold. (`acceleratesFactorizations` implies `denseFactorizations.isDefined`.)
+    * Structural validation stays in the facade, BEFORE this gate, so a provider only ever sees inputs the pure path
+    * would accept.
     */
   private def factorizationProvider(size: Int, minSize: Int)(using backend: Backend) =
     if backend.acceleratesFactorizations && size >= minSize then backend.denseFactorizations
@@ -671,35 +653,32 @@ final class DMat private[gale] (
         case Some(provider) => provider.cholesky(this)
         case None           => DenseDecompositions.cholesky(this)
 
-  /** Cholesky with an explicit absolute pivot tolerance. Explicit numerical
-    * policy is handled by the portable implementation because native provider
-    * contracts do not currently expose a matching tolerance parameter.
+  /** Cholesky with an explicit absolute pivot tolerance. Explicit numerical policy is handled by the portable
+    * implementation because native provider contracts do not currently expose a matching tolerance parameter.
     */
   def cholesky(options: CholeskyOptions)(using Backend): Either[LinAlgError, Cholesky] =
     val _ = summon[Backend]
     DenseDecompositions.cholesky(this, options)
 
-  /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder
-    * path always succeeds. A provider that declines the input (`Left`) is therefore a
-    * fallback, not a failure: the pure path computes the answer instead.
+  /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder path always succeeds. A provider
+    * that declines the input (`Left`) is therefore a fallback, not a failure: the pure path computes the answer
+    * instead.
     */
   def qr(using backend: Backend): QR =
     factorizationProvider(math.max(rows, cols), backend.thresholds.nativeQrMinSize) match
       case Some(provider) => provider.qr(this).getOrElse(DenseDecompositions.qr(this))
       case None           => DenseDecompositions.qr(this)
 
-  /** QR with explicit pivoting and rank policy. Explicit policy uses the
-    * portable factorization so every platform and backend observes the same
-    * permutation and rank decision.
+  /** QR with explicit pivoting and rank policy. Explicit policy uses the portable factorization so every platform and
+    * backend observes the same permutation and rank decision.
     */
   def qr(options: QROptions)(using Backend): QR =
     val _ = summon[Backend]
     DenseDecompositions.qr(this, options)
 
-  /** QR into a caller-supplied workspace. This is the '''allocation-controlled''' facade:
-    * it always runs the pure kernels against `workspace` and never routes to a native
-    * provider (whose factor storage gale cannot place in the workspace) — routing would
-    * silently void the reuse contract the caller allocated for. Use [[qr]] for the
+  /** QR into a caller-supplied workspace. This is the '''allocation-controlled''' facade: it always runs the pure
+    * kernels against `workspace` and never routes to a native provider (whose factor storage gale cannot place in the
+    * workspace) — routing would silently void the reuse contract the caller allocated for. Use [[qr]] for the
     * backend-routed path.
     */
   def qrWith(workspace: DenseWorkspace)(using Backend): QR =
@@ -708,9 +687,8 @@ final class DMat private[gale] (
   def qrWith(options: QROptions, workspace: DenseWorkspace)(using Backend): QR =
     DenseDecompositions.qr(this, options, workspace)
 
-  /** Factor the algebraic row-scaled matrix `diag(scales) * this` without
-    * materializing that matrix. Zero and negative finite scales are supported;
-    * non-finite scales are rejected with a typed error.
+  /** Factor the algebraic row-scaled matrix `diag(scales) * this` without materializing that matrix. Zero and negative
+    * finite scales are supported; non-finite scales are rejected with a typed error.
     */
   def qrScaledRows(scales: DVec)(using Backend): Either[LinAlgError, QR] =
     DenseDecompositions.qrScaledRows(this, scales, QROptions.Default, DenseWorkspace.forQR(rows, cols))
@@ -740,16 +718,15 @@ final class DMat private[gale] (
   def leastSquares(b: DMat, options: QROptions)(using Backend): Either[LinAlgError, DMat] =
     qr(options).solveLeastSquares(b)
 
-  /** Rank from a QR factorization on the SAME dispatch policy as [[qr]]'s pure path
-    * (the ambient backend drives blocked QR's internal gemms), so `rankEstimate` and
-    * `qr.diagnostics.rank` agree under any imported gemm-accelerating backend.
+  /** Rank from a QR factorization on the SAME dispatch policy as [[qr]]'s pure path (the ambient backend drives blocked
+    * QR's internal gemms), so `rankEstimate` and `qr.diagnostics.rank` agree under any imported gemm-accelerating
+    * backend.
     */
   def rankEstimate(using Backend): Int =
     DenseDecompositions.rankEstimate(this)
 
-  /** Deliberately pinned to the pure, deterministic LU path: the estimate is
-    * gemm-free, so an accelerating backend could not change its cost profile —
-    * only its reproducibility.
+  /** Deliberately pinned to the pure, deterministic LU path: the estimate is gemm-free, so an accelerating backend
+    * could not change its cost profile — only its reproducibility.
     */
   def conditionEstimate: Either[LinAlgError, Double] =
     DenseDecompositions.conditionEstimate(this)
@@ -759,49 +736,42 @@ final class DMat private[gale] (
 
   /** Solves `A x = b` for one vector right-hand side.
     *
-    * The matrix is factored once for this call. Retain [[lu]] when solving
-    * several independent systems with the same matrix.
+    * The matrix is factored once for this call. Retain [[lu]] when solving several independent systems with the same
+    * matrix.
     */
   def solve(b: DVec)(using Backend): Either[LinAlgError, DVec] =
     lu.flatMap(_.solve(b))
 
   /** Solves `A X = B` for all columns of a matrix right-hand side.
     *
-    * The matrix is factored once, then the same factor is applied to every
-    * column of `b`. Shape and singularity failures remain typed
-    * [[LinAlgError]] values.
+    * The matrix is factored once, then the same factor is applied to every column of `b`. Shape and singularity
+    * failures remain typed [[LinAlgError]] values.
     */
   def solve(b: DMat)(using Backend): Either[LinAlgError, DMat] =
     lu.flatMap(_.solve(b))
 
-  /** Full (economy) singular value decomposition `A = U Σ Vᵀ`: singular values
-    * '''descending''', `U` `m×k`, `Vᵀ` `k×n` with `k = min(m, n)`. The spectral
-    * dispatch gate follows `docs/spectral-backend-boundary.md` (seam S7): a
-    * [[gale.spectral.SpectralCapability.DenseSvd]]-capable `given SpectralBackend`
-    * computes the raw factors, and with no import the pure bidiagonal kernel runs —
-    * unlike the kernel-`Backend` factorization gates there is no size threshold, and
-    * canonical order, residuals, and rank are always the facade's. `Left` on an
-    * empty dimension or (in practice unreachable) kernel non-convergence.
+  /** Full (economy) singular value decomposition `A = U Σ Vᵀ`: singular values '''descending''', `U` `m×k`, `Vᵀ` `k×n`
+    * with `k = min(m, n)`. The spectral dispatch gate follows `docs/spectral-backend-boundary.md` (seam S7): a
+    * [[gale.spectral.SpectralCapability.DenseSvd]]-capable `given SpectralBackend` computes the raw factors, and with
+    * no import the pure bidiagonal kernel runs — unlike the kernel-`Backend` factorization gates there is no size
+    * threshold, and canonical order, residuals, and rank are always the facade's. `Left` on an empty dimension or (in
+    * practice unreachable) kernel non-convergence.
     */
   def svd(using SpectralBackend): Either[LinAlgError, SVD] =
     Svds.svd(this, SingularSelection.All)
 
-  /** Moore–Penrose pseudo-inverse (`n×m` for an `m×n` matrix) via the economy
-    * [[svd]], on the same spectral dispatch gate. Singular values at or below
-    * the MATLAB/SciPy-convention cutoff `max(m, n) · ε · σ_max` are treated as zero (see
-    * [[gale.spectral.Svds.pinv]] for the exact convention), so a rank-deficient —
-    * even all-zero — matrix pseudo-inverts cleanly rather than failing. `Left`
-    * exactly when [[svd]] is.
+  /** Moore–Penrose pseudo-inverse (`n×m` for an `m×n` matrix) via the economy [[svd]], on the same spectral dispatch
+    * gate. Singular values at or below the MATLAB/SciPy-convention cutoff `max(m, n) · ε · σ_max` are treated as zero
+    * (see [[gale.spectral.Svds.pinv]] for the exact convention), so a rank-deficient — even all-zero — matrix
+    * pseudo-inverts cleanly rather than failing. `Left` exactly when [[svd]] is.
     */
   def pinv(using SpectralBackend): Either[LinAlgError, DMat] =
     Svds.pinv(this)
 
-  /** Kronecker product `this ⊗ that`: the `(m·p)×(n·q)` block matrix whose
-    * `(i, j)` block is `this(i, j) * that`. Total on every shape (including
-    * empty operands) like the other structural products; the only throw is the
-    * standard storable-size guard when the result would exceed `Int.MaxValue`
-    * elements. Strided/transposed views are read through their strides — no
-    * copy of either operand.
+  /** Kronecker product `this ⊗ that`: the `(m·p)×(n·q)` block matrix whose `(i, j)` block is `this(i, j) * that`. Total
+    * on every shape (including empty operands) like the other structural products; the only throw is the standard
+    * storable-size guard when the result would exceed `Int.MaxValue` elements. Strided/transposed views are read
+    * through their strides — no copy of either operand.
     */
   def kron(that: DMat): DMat =
     val outRowsL = rows.toLong * that.rows.toLong
@@ -846,20 +816,17 @@ final class DMat private[gale] (
     offset.value + row * rowStride.value + col * colStride.value
 
   private def requireSameShape(that: DMat): Unit =
-    if rows != that.rows || cols != that.cols then
-      throw LinAlgError.DimensionMismatch(shape, that.shape)
+    if rows != that.rows || cols != that.cols then throw LinAlgError.DimensionMismatch(shape, that.shape)
 
   private def checkRow(row: Int): Unit =
-    if row < 0 || row >= rows then
-      throw LinAlgError.IndexOutOfBounds(row, rows)
+    if row < 0 || row >= rows then throw LinAlgError.IndexOutOfBounds(row, rows)
 
   private def checkCol(col: Int): Unit =
-    if col < 0 || col >= cols then
-      throw LinAlgError.IndexOutOfBounds(col, cols)
+    if col < 0 || col >= cols then throw LinAlgError.IndexOutOfBounds(col, cols)
 
 object DMat:
-  /** Reject shapes whose element count is negative or overflows an Int index,
-    * so we never allocate a wrapped-around buffer while claiming the full shape.
+  /** Reject shapes whose element count is negative or overflows an Int index, so we never allocate a wrapped-around
+    * buffer while claiming the full shape.
     */
   private[gale] def requireStorable(rows: Int, cols: Int): Unit =
     require(rows >= 0 && cols >= 0, "rows and cols must be non-negative")
@@ -879,8 +846,8 @@ object DMat:
       Stride.unsafe(1)
     )
 
-  /** Allocate a single-owner row-major builder whose [[DMatBuilder.result]]
-    * transfers storage into an immutable matrix without copying.
+  /** Allocate a single-owner row-major builder whose [[DMatBuilder.result]] transfers storage into an immutable matrix
+    * without copying.
     */
   def newBuilder(rows: Int, cols: Int): DMatBuilder =
     DMatBuilder.zeros(rows, cols)
@@ -914,8 +881,8 @@ object DMat:
     require(values.length == rows * cols, s"expected ${rows * cols} values, got ${values.length}")
     fromDoubleArrayOwned(rows, cols, DoubleArray.fromArray(values))
 
-  /** Wrap a contiguous row-major platform array as a matrix without copying;
-    * the caller transfers ownership of `data` and must not mutate it afterwards.
+  /** Wrap a contiguous row-major platform array as a matrix without copying; the caller transfers ownership of `data`
+    * and must not mutate it afterwards.
     */
   private[gale] def fromDoubleArrayOwned(rows: Int, cols: Int, data: DoubleArray): DMat =
     requireStorable(rows, cols)
@@ -943,8 +910,7 @@ object DMat:
 object Matrix:
   /** Construct an owned dense matrix from row-major literal values.
     *
-    * This is the concise spelling of [[dense]] for handwritten matrices. The
-    * number of values must equal `rows * cols`.
+    * This is the concise spelling of [[dense]] for handwritten matrices. The number of values must equal `rows * cols`.
     */
   def apply(rows: Int, cols: Int)(values: Double*): DMat =
     DMat.dense(rows, cols, values)

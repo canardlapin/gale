@@ -8,8 +8,8 @@ import gale.sparse.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 
-/** Solver-scenario benchmark: conjugate gradient on a 2D 5-point Laplacian over
-  * a 64x64 grid (a 4096 x 4096 SPD system stored as CSR).
+/** Solver-scenario benchmark: conjugate gradient on a 2D 5-point Laplacian over a 64x64 grid (a 4096 x 4096 SPD system
+  * stored as CSR).
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

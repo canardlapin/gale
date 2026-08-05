@@ -117,9 +117,7 @@ class WorkspaceSuite extends munit.FunSuite:
 
   test("qrWith uses the length-m reflector scratch and reuses it without aliasing results") {
     val A = Matrix.dense(3, 3)(
-      12.0, -51.0, 4.0,
-      6.0, 167.0, -68.0,
-      -4.0, 24.0, -41.0
+      12.0, -51.0, 4.0, 6.0, 167.0, -68.0, -4.0, 24.0, -41.0
     )
     val workspace = DenseWorkspace.empty
 

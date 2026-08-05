@@ -6,9 +6,8 @@ import gale.linalg.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 
-/** Dense matrix-matrix product over `n x n` operands. The `n = 512` point
-  * exercises the blocked row-major path; smaller `n` use the unblocked i-k-j
-  * path.
+/** Dense matrix-matrix product over `n x n` operands. The `n = 512` point exercises the blocked row-major path; smaller
+  * `n` use the unblocked i-k-j path.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

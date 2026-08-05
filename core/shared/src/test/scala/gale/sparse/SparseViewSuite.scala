@@ -19,8 +19,7 @@ class SparseViewSuite extends munit.FunSuite:
     val backing = TestAccess.backingSnapshot(dest)
     var i = 0
     while i < backing.length do
-      if i % 2 == 0 then
-        assertEquals(backing(i), Sentinel, s"neighbour cell $i was overwritten")
+      if i % 2 == 0 then assertEquals(backing(i), Sentinel, s"neighbour cell $i was overwritten")
       i += 1
 
   private val csr =
@@ -37,7 +36,7 @@ class SparseViewSuite extends munit.FunSuite:
     csr.mulInto(x, dest)
     val denseExpected = (csr.toDense() * x).toSeq
     assertEquals(denseExpected, Seq(7.0, 6.0))
-    assertStrided(dest,denseExpected)
+    assertStrided(dest, denseExpected)
   }
 
   test("CSR.tMulInto writes into a strided destination, neighbours untouched") {
@@ -46,7 +45,7 @@ class SparseViewSuite extends munit.FunSuite:
     csr.tMulInto(x, dest)
     val denseExpected = (csr.toDense().t * x).toSeq
     assertEquals(denseExpected, Seq(10.0, 60.0, 20.0))
-    assertStrided(dest,denseExpected)
+    assertStrided(dest, denseExpected)
   }
 
   test("Diagonal.applyTo writes into a strided destination, neighbours untouched") {
@@ -54,7 +53,7 @@ class SparseViewSuite extends munit.FunSuite:
     val x = Vec(1.0, 1.0, 1.0)
     val dest = stridedDest(3)
     d.applyTo(x, dest)
-    assertStrided(dest,Seq(2.0, 3.0, 4.0))
+    assertStrided(dest, Seq(2.0, 3.0, 4.0))
   }
 
   test("Identity.applyTo writes into a strided destination, neighbours untouched") {
@@ -62,7 +61,7 @@ class SparseViewSuite extends munit.FunSuite:
     val x = Vec(5.0, 6.0, 7.0)
     val dest = stridedDest(3)
     id.applyTo(x, dest)
-    assertStrided(dest,Seq(5.0, 6.0, 7.0))
+    assertStrided(dest, Seq(5.0, 6.0, 7.0))
   }
 
   test("Permutation.applyTo writes into a strided destination, neighbours untouched") {
@@ -71,5 +70,5 @@ class SparseViewSuite extends munit.FunSuite:
     val dest = stridedDest(3)
     p.applyTo(x, dest)
     // into(row) = x(columnsByRow(row)); columnsByRow = [2, 0, 1]
-    assertStrided(dest,Seq(30.0, 10.0, 20.0))
+    assertStrided(dest, Seq(30.0, 10.0, 20.0))
   }

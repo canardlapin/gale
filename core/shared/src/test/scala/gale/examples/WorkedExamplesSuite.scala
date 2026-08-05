@@ -10,15 +10,14 @@ import gale.spectral.EigenSelection
 import gale.spectral.EigenVectors
 import gale.sparse.Sparse
 
-/** Four worked, end-to-end examples of gale's public API, each recovering a value
-  * with a known, independently-derived correct answer (not merely "it ran"). This
-  * suite is the compiled, always-green source backing `docs/user/guides/examples.md` — every
-  * code block there corresponds to a call pattern exercised here.
+/** Four worked, end-to-end examples of gale's public API, each recovering a value with a known, independently-derived
+  * correct answer (not merely "it ran"). This suite is the compiled, always-green source backing
+  * `docs/user/guides/examples.md` — every code block there corresponds to a call pattern exercised here.
   */
 class WorkedExamplesSuite extends munit.FunSuite:
 
-  /** Unwrap an `Either[LinAlgError, A]`, failing the test with the error's message
-    * on `Left` rather than throwing it raw.
+  /** Unwrap an `Either[LinAlgError, A]`, failing the test with the error's message on `Left` rather than throwing it
+    * raw.
     */
   private def unwrap[A](result: Either[LinAlgError, A]): A =
     result.fold(error => fail(error.toString), identity)

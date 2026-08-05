@@ -9,12 +9,10 @@ import gale.linalg.Vec
 
 /** Shared fixtures and comparison helpers for the Breeze parity suites.
   *
-  * Every input is generated once as a plain `Array[Array[Double]]` / `Array[Double]`
-  * and then handed to '''both''' libraries via identical `tabulate` closures, so
-  * gale and Breeze see bit-for-bit identical data. Any disagreement is therefore a
-  * genuine numerical difference between the two implementations, never a
-  * construction artifact. Comparisons use a mixed absolute/relative tolerance:
-  * `|x − y| ≤ tol · max(1, |x|, |y|)`.
+  * Every input is generated once as a plain `Array[Array[Double]]` / `Array[Double]` and then handed to '''both'''
+  * libraries via identical `tabulate` closures, so gale and Breeze see bit-for-bit identical data. Any disagreement is
+  * therefore a genuine numerical difference between the two implementations, never a construction artifact. Comparisons
+  * use a mixed absolute/relative tolerance: `|x − y| ≤ tol · max(1, |x|, |y|)`.
   */
 object ParitySupport:
 
@@ -32,9 +30,8 @@ object ParitySupport:
     val rng = new scala.util.Random(seed)
     Array.tabulate(n)(_ => rng.nextDouble() * 2.0 - 1.0)
 
-  /** An `n × n` strictly diagonally dominant (hence well-conditioned, nonsingular)
-    * matrix: off-diagonals in `[-1, 1)`, each diagonal set to the row's absolute
-    * off-diagonal sum plus one.
+  /** An `n × n` strictly diagonally dominant (hence well-conditioned, nonsingular) matrix: off-diagonals in `[-1, 1)`,
+    * each diagonal set to the row's absolute off-diagonal sum plus one.
     */
   def diagonallyDominant(n: Int, seed: Long): Array[Array[Double]] =
     val a = matrixData(n, n, seed)
@@ -49,9 +46,8 @@ object ParitySupport:
       i += 1
     a
 
-  /** An `n × n` symmetric positive-definite matrix `B Bᵀ + n·I`, built into an
-    * exactly-symmetric array (lower triangle computed, then mirrored) so Breeze's
-    * `requireSymmetricMatrix` accepts it.
+  /** An `n × n` symmetric positive-definite matrix `B Bᵀ + n·I`, built into an exactly-symmetric array (lower triangle
+    * computed, then mirrored) so Breeze's `requireSymmetricMatrix` accepts it.
     */
   def spd(n: Int, seed: Long): Array[Array[Double]] =
     val b = matrixData(n, n, seed)
@@ -86,9 +82,8 @@ object ParitySupport:
       i += 1
     a
 
-  /** A symmetric matrix `Q diag(spectrum) Qᵀ` with a prescribed spectrum and a
-    * random orthonormal `Q` (from a gale QR of a random matrix). Built into an
-    * exactly-symmetric array. Lets a suite compare recovered eigenvalues against a
+  /** A symmetric matrix `Q diag(spectrum) Qᵀ` with a prescribed spectrum and a random orthonormal `Q` (from a gale QR
+    * of a random matrix). Built into an exactly-symmetric array. Lets a suite compare recovered eigenvalues against a
     * known reference and probe repeated/clustered eigenvalues.
     */
   def withSpectrum(spectrum: Array[Double], seed: Long): Array[Array[Double]] =
@@ -140,12 +135,10 @@ object ParitySupport:
     math.abs(x - y) <= tol * scale
 
   def assertScalarClose(g: Double, b: Double, tol: Double, clue: => String): Unit =
-    if !isClose(g, b, tol) then
-      throw new AssertionError(s"$clue: gale=$g breeze=$b |Δ|=${math.abs(g - b)} tol=$tol")
+    if !isClose(g, b, tol) then throw new AssertionError(s"$clue: gale=$g breeze=$b |Δ|=${math.abs(g - b)} tol=$tol")
 
   def assertVecClose(g: DVec, b: BDV[Double], tol: Double, clue: => String): Unit =
-    if g.length != b.length then
-      throw new AssertionError(s"$clue: length gale=${g.length} breeze=${b.length}")
+    if g.length != b.length then throw new AssertionError(s"$clue: length gale=${g.length} breeze=${b.length}")
     var i = 0
     while i < g.length do
       if !isClose(g(i), b(i), tol) then
@@ -160,12 +153,14 @@ object ParitySupport:
       var j = 0
       while j < g.cols do
         if !isClose(g(i, j), b(i, j), tol) then
-          throw new AssertionError(s"$clue: ($i,$j) gale=${g(i, j)} breeze=${b(i, j)} |Δ|=${math.abs(g(i, j) - b(i, j))} tol=$tol")
+          throw new AssertionError(
+            s"$clue: ($i,$j) gale=${g(i, j)} breeze=${b(i, j)} |Δ|=${math.abs(g(i, j) - b(i, j))} tol=$tol"
+          )
         j += 1
       i += 1
 
-  /** Compare two Breeze matrices (used for gale-side reconstructions expressed as
-    * Breeze products, or Breeze-vs-Breeze invariants).
+  /** Compare two Breeze matrices (used for gale-side reconstructions expressed as Breeze products, or Breeze-vs-Breeze
+    * invariants).
     */
   def assertBreezeMatClose(x: BDM[Double], y: BDM[Double], tol: Double, clue: => String): Unit =
     if x.rows != y.rows || x.cols != y.cols then
@@ -175,6 +170,8 @@ object ParitySupport:
       var j = 0
       while j < x.cols do
         if !isClose(x(i, j), y(i, j), tol) then
-          throw new AssertionError(s"$clue: ($i,$j) ${x(i, j)} vs ${y(i, j)} |Δ|=${math.abs(x(i, j) - y(i, j))} tol=$tol")
+          throw new AssertionError(
+            s"$clue: ($i,$j) ${x(i, j)} vs ${y(i, j)} |Δ|=${math.abs(x(i, j) - y(i, j))} tol=$tol"
+          )
         j += 1
       i += 1

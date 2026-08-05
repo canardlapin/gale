@@ -32,10 +32,7 @@ class GeneralizedBlockKernelsSuite extends munit.FunSuite:
   test("full-rank block is Cholesky-whitened in the B inner product") {
     val metric = diagonalOperator(IndexedSeq(1.0, 2.0, 3.0, 4.0))
     val candidates = Matrix.dense(4, 2)(
-      1.0, 2.0,
-      -1.0, 1.0,
-      0.5, -2.0,
-      3.0, 0.25
+      1.0, 2.0, -1.0, 1.0, 0.5, -2.0, 3.0, 0.25
     )
 
     val block = GeneralizedBlockKernels.bOrthonormalize(candidates, metric).toOption.get
@@ -211,8 +208,10 @@ class GeneralizedBlockKernelsSuite extends munit.FunSuite:
   test("symmetricProjection averages roundoff asymmetry") {
     val basis = Matrix.eye(2)
     val image = Matrix.dense(2, 2)(
-      2.0, 1.0 + 1e-12,
-      1.0, 4.0
+      2.0,
+      1.0 + 1e-12,
+      1.0,
+      4.0
     )
     val projected = GeneralizedBlockKernels.symmetricProjection(basis, image).toOption.get
     assertEqualsDouble(projected(0, 1), 1.0 + 0.5e-12, 1e-15)
@@ -221,14 +220,10 @@ class GeneralizedBlockKernelsSuite extends munit.FunSuite:
 
   test("small projected generalized solve returns the analytic pencil spectrum") {
     val projectedA = Matrix.dense(3, 3)(
-      2.0, 0.0, 0.0,
-      0.0, 6.0, 0.0,
-      0.0, 0.0, 20.0
+      2.0, 0.0, 0.0, 0.0, 6.0, 0.0, 0.0, 0.0, 20.0
     )
     val projectedB = Matrix.dense(3, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 2.0, 0.0,
-      0.0, 0.0, 4.0
+      1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 4.0
     )
     val result = GeneralizedBlockKernels
       .projectedGeneralizedEigen(projectedA, projectedB, 2, EigenOrder.SmallestAlgebraic)

@@ -48,9 +48,7 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         closed = true
         closeCount += 1
 
-  private final class TestWorkspace(val provider: SparseDirectProvider)
-      extends SparseDirectWorkspace,
-        TrackedResource
+  private final class TestWorkspace(val provider: SparseDirectProvider) extends SparseDirectWorkspace, TrackedResource
 
   private final class TestAnalysis(
       val provider: TestProvider,
@@ -78,11 +76,15 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     ): Either[LinAlgError, SparseDirectNumericFactor] =
       provider.factorCalls.incrementAndGet()
       val dense = matrix.toDense()
-      DenseDecompositions.lu(dense).flatMap: normal =>
-        DenseDecompositions.lu(dense.t).map: transpose =>
-          val factor = new TestFactor(numericProvider.getOrElse(provider), normal, transpose, dense.rows)
-          onFactorCreated(factor)
-          factor
+      DenseDecompositions
+        .lu(dense)
+        .flatMap: normal =>
+          DenseDecompositions
+            .lu(dense.t)
+            .map: transpose =>
+              val factor = new TestFactor(numericProvider.getOrElse(provider), normal, transpose, dense.rows)
+              onFactorCreated(factor)
+              factor
 
   private final class TestFactor(
       val provider: TestProvider,
@@ -122,14 +124,16 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     ): Either[LinAlgError, SparseSolveDiagnostics] =
       solveCalls.incrementAndGet()
       lastVectorDestination = Some(destination)
-      selected(operation).solve(rhs).map: solution =>
-        var i = 0
-        while i < solution.length do
-          destination(i) = solution(i)
-          i += 1
-        diagnosticsOverride.getOrElse(
-          SparseSolveDiagnostics(provider.name, operation, 1, residualNorm = None, refinementSteps = 0)
-        )
+      selected(operation)
+        .solve(rhs)
+        .map: solution =>
+          var i = 0
+          while i < solution.length do
+            destination(i) = solution(i)
+            i += 1
+          diagnosticsOverride.getOrElse(
+            SparseSolveDiagnostics(provider.name, operation, 1, residualNorm = None, refinementSteps = 0)
+          )
 
     def solveMatrixInto(
         rhs: DMat,
@@ -138,17 +142,19 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         workspace: SparseDirectWorkspace
     ): Either[LinAlgError, SparseSolveDiagnostics] =
       solveCalls.incrementAndGet()
-      selected(operation).solve(rhs).map: solution =>
-        var row = 0
-        while row < solution.rows do
-          var col = 0
-          while col < solution.cols do
-            destination(row, col) = solution(row, col)
-            col += 1
-          row += 1
-        diagnosticsOverride.getOrElse(
-          SparseSolveDiagnostics(provider.name, operation, rhs.cols, residualNorm = None, refinementSteps = 0)
-        )
+      selected(operation)
+        .solve(rhs)
+        .map: solution =>
+          var row = 0
+          while row < solution.rows do
+            var col = 0
+            while col < solution.cols do
+              destination(row, col) = solution(row, col)
+              col += 1
+            row += 1
+          diagnosticsOverride.getOrElse(
+            SparseSolveDiagnostics(provider.name, operation, rhs.cols, residualNorm = None, refinementSteps = 0)
+          )
 
   private final class TestProvider(
       providerName: String = "deterministic-test-lu",
@@ -234,7 +240,8 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     val provider = new TestProvider
     val matrix = csr(2, 2, (0, 0, 4.0), (0, 1, 1.0), (1, 0, 2.0), (1, 1, 3.0))
     val workspace = SparseDirect.newWorkspace()(using provider).toOption.get
-    val analysis = SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
+    val analysis =
+      SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
     val factor = SparseDirect.factor(analysis, matrix, workspace).toOption.get.asInstanceOf[TestFactor]
     val rhs = Vec(1.0, 2.0)
 
@@ -281,7 +288,8 @@ class SparseDirectProviderSuite extends munit.FunSuite:
         .isLeft
     )
 
-    val analysis = SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
+    val analysis =
+      SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
     val factor = SparseDirect.factor(analysis, matrix, workspace).toOption.get.asInstanceOf[TestFactor]
     val calls = factor.solveCalls.get()
 
@@ -297,7 +305,8 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     val provider = new TestProvider
     val matrix = csr(2, 2, (0, 0, 4.0), (0, 1, 1.0), (1, 0, 2.0), (1, 1, 3.0))
     val workspace = SparseDirect.newWorkspace()(using provider).toOption.get
-    val analysis = SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
+    val analysis =
+      SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
     val factor = SparseDirect.factor(analysis, matrix, workspace).toOption.get.asInstanceOf[TestFactor]
     val valid = SparseSolveDiagnostics(
       provider.name,
@@ -332,7 +341,8 @@ class SparseDirectProviderSuite extends munit.FunSuite:
     val provider = new TestProvider
     val matrix = csr(2, 2, (0, 0, 4.0), (0, 1, 1.0), (1, 0, 2.0), (1, 1, 3.0))
     val workspace = SparseDirect.newWorkspace()(using provider).toOption.get
-    val analysis = SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
+    val analysis =
+      SparseDirect.analyze(matrix.pattern, SparseDirectFactorization.LU, workspace)(using provider).toOption.get
 
     val changed = csr(2, 2, (0, 0, 4.0), (1, 1, 3.0))
     val factorCalls = provider.factorCalls.get()

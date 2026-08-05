@@ -2,9 +2,8 @@ package gale.laws
 
 import gale.sparse.*
 
-/** Canonicalization laws over the public sparse API. Publicly-constructed
-  * matrices never carry duplicate coordinates, so the reachable non-canonical
-  * feature is an explicitly-stored zero; these laws exercise that and the
+/** Canonicalization laws over the public sparse API. Publicly-constructed matrices never carry duplicate coordinates,
+  * so the reachable non-canonical feature is an explicitly-stored zero; these laws exercise that and the
   * already-canonical case.
   */
 class CanonicalizationLawSuite extends munit.FunSuite:

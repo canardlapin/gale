@@ -11,17 +11,16 @@ import gale.platform.IndexArray.*
 trait SparsePositionConsumer:
   def apply(row: Int, col: Int): Unit
 
-/** Allocation-free callback for an entry within one compressed lane.
-  * `storedIndex` addresses the corresponding numeric value in storage order.
+/** Allocation-free callback for an entry within one compressed lane. `storedIndex` addresses the corresponding numeric
+  * value in storage order.
   */
 trait SparseLaneEntryConsumer:
   def apply(minorIndex: Int, storedIndex: Int): Unit
 
 /** Immutable, validated CSR structure independent of numeric values.
   *
-  * Public factories defensively copy offsets and indices. The backing storage is
-  * never exposed; traversal and lane queries are the interop surface. A pattern
-  * may be shared by any number of immutable matrices.
+  * Public factories defensively copy offsets and indices. The backing storage is never exposed; traversal and lane
+  * queries are the interop surface. A pattern may be shared by any number of immutable matrices.
   */
 final class CSRPattern private[sparse] (
     private[sparse] val storage: CompressedPatternStorage,
@@ -74,9 +73,9 @@ final class CSRPattern private[sparse] (
     if initialValue != 0.0 then builder.fill(initialValue)
     builder
 
-  /** Allocate reusable numeric destination storage for symbolic sparse plans.
-    * Unlike [[valuesBuilder]], this destination remains open across evaluations;
-    * [[CSRValuesDestination.snapshot]] makes the explicit owned immutable copy.
+  /** Allocate reusable numeric destination storage for symbolic sparse plans. Unlike [[valuesBuilder]], this
+    * destination remains open across evaluations; [[CSRValuesDestination.snapshot]] makes the explicit owned immutable
+    * copy.
     */
   def valuesDestination(initialValue: Double = 0.0): CSRValuesDestination =
     val destination = new CSRValuesDestination(this, DoubleArray.alloc(nnz))
@@ -253,8 +252,7 @@ final class CSRValuesBuilder private[sparse] (
     pattern.bindOwned(values)
 
   private def requireOpen(): Unit =
-    if !open then
-      throw LinAlgError.UnsupportedOperation("CSRValuesBuilder is closed after result()")
+    if !open then throw LinAlgError.UnsupportedOperation("CSRValuesBuilder is closed after result()")
 
   private def checkIndex(index: Int): Unit =
     if index < 0 || index >= length then throw LinAlgError.IndexOutOfBounds(index, length)
@@ -292,8 +290,7 @@ final class CSCValuesBuilder private[sparse] (
     pattern.bindOwned(values)
 
   private def requireOpen(): Unit =
-    if !open then
-      throw LinAlgError.UnsupportedOperation("CSCValuesBuilder is closed after result()")
+    if !open then throw LinAlgError.UnsupportedOperation("CSCValuesBuilder is closed after result()")
 
   private def checkIndex(index: Int): Unit =
     if index < 0 || index >= length then throw LinAlgError.IndexOutOfBounds(index, length)
@@ -310,8 +307,7 @@ private[sparse] final class CompressedPatternStorage private[sparse] (
   def laneEnd(lane: Int): Int = majorOffsets(lane + 1)
 
   def minorAt(storedIndex: Int): Int =
-    if storedIndex < 0 || storedIndex >= nnz then
-      throw LinAlgError.IndexOutOfBounds(storedIndex, nnz)
+    if storedIndex < 0 || storedIndex >= nnz then throw LinAlgError.IndexOutOfBounds(storedIndex, nnz)
     minorIndices(storedIndex)
 
   def minorAtUnchecked(storedIndex: Int): Int = minorIndices(storedIndex)
@@ -397,8 +393,7 @@ private[sparse] object CompressedPatternStorage:
           s"$offsetsName length must be major dimension + 1 (${majorSize.toLong + 1L}), got ${offsets.length}"
         )
       )
-    else if offsets(0) != 0 then
-      Left(LinAlgError.InvalidArgument(s"$offsetsName must start at 0, got ${offsets(0)}"))
+    else if offsets(0) != 0 then Left(LinAlgError.InvalidArgument(s"$offsetsName must start at 0, got ${offsets(0)}"))
     else
       var lane = 0
       while lane < majorSize do

@@ -8,9 +8,8 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Allocation baseline for the owned dense transformation APIs. The primitive
-  * copy methods write into caller-owned arrays through direct loops; run with
-  * `-prof gc` to contrast them with the boxed compatibility exports.
+/** Allocation baseline for the owned dense transformation APIs. The primitive copy methods write into caller-owned
+  * arrays through direct loops; run with `-prof gc` to contrast them with the boxed compatibility exports.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

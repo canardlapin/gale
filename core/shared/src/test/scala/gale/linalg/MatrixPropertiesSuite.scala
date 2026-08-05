@@ -2,9 +2,7 @@ package gale.linalg
 
 class MatrixPropertiesSuite extends munit.FunSuite:
   private val symmetric = Matrix.dense(3, 3)(
-    4.0, 1.0, -2.0,
-    1.0, 5.0, 0.5,
-    -2.0, 0.5, 6.0
+    4.0, 1.0, -2.0, 1.0, 5.0, 0.5, -2.0, 0.5, 6.0
   )
 
   test("assume wrappers are zero-cost subtypes and compose") {
@@ -44,8 +42,10 @@ class MatrixPropertiesSuite extends munit.FunSuite:
 
   test("verifySymmetric uses a scale-aware tolerance") {
     val nearly = Matrix.dense(2, 2)(
-      1.0e12, 3.0e8,
-      3.0e8 + 1.0e-4, 2.0e12
+      1.0e12,
+      3.0e8,
+      3.0e8 + 1.0e-4,
+      2.0e12
     )
 
     assert(nearly.verifySymmetric(tolerance = 1.0e-12).isRight)
@@ -62,7 +62,12 @@ class MatrixPropertiesSuite extends munit.FunSuite:
     assert(asymmetric.verifySymmetric().left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
     assert(nonFinite.verifySymmetric().left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
     assert(symmetric.verifySymmetric(tolerance = -1.0).left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
-    assert(symmetric.verifySymmetric(tolerance = Double.PositiveInfinity).left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
+    assert(
+      symmetric
+        .verifySymmetric(tolerance = Double.PositiveInfinity)
+        .left
+        .exists(_.isInstanceOf[LinAlgError.InvalidArgument])
+    )
   }
 
   test("verifyPositiveDefinite proves symmetry as well as Cholesky success") {
@@ -72,16 +77,20 @@ class MatrixPropertiesSuite extends munit.FunSuite:
     assert(spd.cholesky.isRight)
 
     val indefinite = Matrix.dense(2, 2)(
-      1.0, 2.0,
-      2.0, 1.0
+      1.0,
+      2.0,
+      2.0,
+      1.0
     )
     assertEquals(indefinite.verifyPositiveDefinite, Left(LinAlgError.NotPositiveDefinite(1)))
 
     // Cholesky itself reads only the lower triangle; property verification must
     // not certify this matrix merely because that triangle is SPD.
     val nonsymmetric = Matrix.dense(2, 2)(
-      2.0, 99.0,
-      0.0, 2.0
+      2.0,
+      99.0,
+      0.0,
+      2.0
     )
     assert(nonsymmetric.cholesky.isRight)
     assert(nonsymmetric.verifyPositiveDefinite.left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
@@ -97,9 +106,7 @@ class MatrixPropertiesSuite extends munit.FunSuite:
 
   test("triangular verification checks the forbidden triangle with tolerance") {
     val lower = Matrix.dense(3, 3)(
-      1.0, 0.0, 0.0,
-      2.0, 3.0, 0.0,
-      4.0, 5.0, 6.0
+      1.0, 0.0, 0.0, 2.0, 3.0, 0.0, 4.0, 5.0, 6.0
     )
     val upper = lower.t
     assert(lower.verifyLowerTriangular.isRight)

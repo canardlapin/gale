@@ -3,11 +3,10 @@ package gale.sparse
 import gale.TestAccess
 import gale.linalg.*
 
-/** Full canonicalization path (sort + sum duplicates + prune zeros) exercised on
-  * deliberately non-canonical CSR/CSC input built through [[TestAccess]], which
-  * the public API never produces. Correctness is checked through the
-  * sum-semantics matvec and an explicit expected dense, because a
-  * duplicate-bearing matrix's `toDense` is last-write-wins, not the sum.
+/** Full canonicalization path (sort + sum duplicates + prune zeros) exercised on deliberately non-canonical CSR/CSC
+  * input built through [[TestAccess]], which the public API never produces. Correctness is checked through the
+  * sum-semantics matvec and an explicit expected dense, because a duplicate-bearing matrix's `toDense` is
+  * last-write-wins, not the sum.
   */
 class SparseCanonicalSuite extends munit.FunSuite:
   // Row 0 (cols 4): unsorted, a duplicate column (3), and an explicit zero (col 1).

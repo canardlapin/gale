@@ -16,11 +16,10 @@ import org.openjdk.jmh.infra.Blackhole
 /** Dense factorization / solve paired benchmarks (`O(n³)`), gale vs Breeze.
   *
   *   - `solve`: gale `A.solve(b)` (LU) vs breeze `A \ b`.
-  *   - `lu`: the factorization only — gale `A.lu` vs breeze `LU.primitive` (raw
-  *     `dgetrf`, no `P`/`L`/`U` assembly), the honest factorization-cost match.
+  *   - `lu`: the factorization only — gale `A.lu` vs breeze `LU.primitive` (raw `dgetrf`, no `P`/`L`/`U` assembly), the
+  *     honest factorization-cost match.
   *   - `chol`: gale `S.cholesky` vs breeze `cholesky(S)` on an SPD matrix.
-  *   - `qr`: the reflector factorization without materialising `Q` — gale `A.qr`
-  *     (Q is lazy) vs breeze `qr.justR(A)`.
+  *   - `qr`: the reflector factorization without materialising `Q` — gale `A.qr` (Q is lazy) vs breeze `qr.justR(A)`.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -32,9 +31,9 @@ class FactorizationBreezeJmh:
   @Param(Array("16", "64", "256"))
   var n: Int = 0
 
-  private var gA: DMat       = uninitialized
-  private var gS: DMat       = uninitialized
-  private var gb: DVec       = uninitialized
+  private var gA: DMat = uninitialized
+  private var gS: DMat = uninitialized
+  private var gb: DVec = uninitialized
   private var bA: BDM[Double] = uninitialized
   private var bS: BDM[Double] = uninitialized
   private var bb: BDV[Double] = uninitialized
@@ -51,21 +50,20 @@ class FactorizationBreezeJmh:
     bS = breezeMatrix(sData)
     bb = breezeVector(bData)
 
-  @Benchmark def galeSolve(bh: Blackhole): Unit   = bh.consume(gA.solve(gb))
+  @Benchmark def galeSolve(bh: Blackhole): Unit = bh.consume(gA.solve(gb))
   @Benchmark def breezeSolve(bh: Blackhole): Unit = bh.consume(bA \ bb)
 
-  @Benchmark def galeLu(bh: Blackhole): Unit   = bh.consume(gA.lu)
+  @Benchmark def galeLu(bh: Blackhole): Unit = bh.consume(gA.lu)
   @Benchmark def breezeLu(bh: Blackhole): Unit = bh.consume(BreezeLU.primitive(bA))
 
-  @Benchmark def galeChol(bh: Blackhole): Unit   = bh.consume(gS.cholesky)
+  @Benchmark def galeChol(bh: Blackhole): Unit = bh.consume(gS.cholesky)
   @Benchmark def breezeChol(bh: Blackhole): Unit = bh.consume(cholesky(bS))
 
-  @Benchmark def galeQr(bh: Blackhole): Unit   = bh.consume(gA.qr)
+  @Benchmark def galeQr(bh: Blackhole): Unit = bh.consume(gA.qr)
   @Benchmark def breezeQr(bh: Blackhole): Unit = bh.consume(qr.justR(bA))
 
-/** Tall least-squares paired benchmark: an overdetermined `m × n` system with
-  * `m = 4n`, solved via QR both ways — gale `A.leastSquares(b)` vs breeze `A \ b`
-  * (which dispatches to LAPACK `dgels` for a non-square operand).
+/** Tall least-squares paired benchmark: an overdetermined `m × n` system with `m = 4n`, solved via QR both ways — gale
+  * `A.leastSquares(b)` vs breeze `A \ b` (which dispatches to LAPACK `dgels` for a non-square operand).
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -77,14 +75,14 @@ class LeastSquaresBreezeJmh:
   @Param(Array("16", "64", "256"))
   var n: Int = 0
 
-  private var gA: DMat       = uninitialized
-  private var gb: DVec       = uninitialized
+  private var gA: DMat = uninitialized
+  private var gb: DVec = uninitialized
   private var bA: BDM[Double] = uninitialized
   private var bb: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =
-    val m     = 4 * n
+    val m = 4 * n
     val aData = matrixData(m, n, 400L)
     val bData = vectorData(m, 500L)
     gA = galeMatrix(aData)
@@ -92,14 +90,12 @@ class LeastSquaresBreezeJmh:
     bA = breezeMatrix(aData)
     bb = breezeVector(bData)
 
-  @Benchmark def galeLstsq(bh: Blackhole): Unit   = bh.consume(gA.leastSquares(gb))
+  @Benchmark def galeLstsq(bh: Blackhole): Unit = bh.consume(gA.leastSquares(gb))
   @Benchmark def breezeLstsq(bh: Blackhole): Unit = bh.consume(bA \ bb)
 
-/** Representative Scalafim migration workloads. The shapes model a modest fMRI
-  * design (`240 x 24`) applied to a batch of 128 voxel time series. Keep these
-  * benchmarks allocation-profileable with `-prof gc`: each timed path consumes
-  * a matrix result, so JMH reports the owned result cost rather than allowing it
-  * to be optimized away.
+/** Representative Scalafim migration workloads. The shapes model a modest fMRI design (`240 x 24`) applied to a batch
+  * of 128 voxel time series. Keep these benchmarks allocation-profileable with `-prof gc`: each timed path consumes a
+  * matrix result, so JMH reports the owned result cost rather than allowing it to be optimized away.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -109,15 +105,15 @@ class LeastSquaresBreezeJmh:
 @State(Scope.Thread)
 class ScalafimMigrationJmh:
   private val observations = 240
-  private val regressors   = 24
-  private val responses    = 128
+  private val regressors = 24
+  private val responses = 128
 
-  private var design: DMat           = uninitialized
-  private var responseBatch: DMat    = uninitialized
+  private var design: DMat = uninitialized
+  private var responseBatch: DMat = uninitialized
   private var coefficientBatch: DMat = uninitialized
-  private var qr: QR                  = uninitialized
-  private var cholesky: Cholesky      = uninitialized
-  private var designTranspose: DMat   = uninitialized
+  private var qr: QR = uninitialized
+  private var cholesky: Cholesky = uninitialized
+  private var designTranspose: DMat = uninitialized
 
   @Setup(Level.Trial)
   def setupTrial(): Unit =

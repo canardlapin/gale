@@ -3,8 +3,10 @@ package gale.linalg
 class CholeskySuite extends munit.FunSuite:
   test("Cholesky reconstructs a symmetric positive-definite matrix") {
     val A = Matrix.dense(2, 2)(
-      4.0, 1.0,
-      1.0, 3.0
+      4.0,
+      1.0,
+      1.0,
+      3.0
     )
 
     val ch = A.cholesky.orThrow
@@ -15,8 +17,10 @@ class CholeskySuite extends munit.FunSuite:
 
   test("Cholesky solve has small residual") {
     val A = Matrix.dense(2, 2)(
-      4.0, 1.0,
-      1.0, 3.0
+      4.0,
+      1.0,
+      1.0,
+      3.0
     )
     val b = Vec(1.0, 2.0)
 
@@ -30,8 +34,10 @@ class CholeskySuite extends munit.FunSuite:
 
   test("Cholesky reports non-positive-definite and non-square inputs") {
     val indefinite = Matrix.dense(2, 2)(
-      1.0, 2.0,
-      2.0, 1.0
+      1.0,
+      2.0,
+      2.0,
+      1.0
     )
     val rectangular = Matrix.zeros(2, 3)
 
@@ -41,14 +47,10 @@ class CholeskySuite extends munit.FunSuite:
 
   test("Cholesky solves matrix right-hand sides in one result") {
     val A = Matrix.dense(3, 3)(
-      6.0, 2.0, 1.0,
-      2.0, 5.0, 2.0,
-      1.0, 2.0, 4.0
+      6.0, 2.0, 1.0, 2.0, 5.0, 2.0, 1.0, 2.0, 4.0
     )
     val expected = Matrix.dense(3, 2)(
-      1.0, -2.0,
-      3.0, 0.5,
-      -1.0, 4.0
+      1.0, -2.0, 3.0, 0.5, -1.0, 4.0
     )
 
     val actual = A.cholesky.orThrow.solve(A * expected).orThrow
@@ -58,8 +60,10 @@ class CholeskySuite extends munit.FunSuite:
 
   test("explicit Cholesky pivot tolerance rejects numerically tiny pivots") {
     val A = Matrix.dense(2, 2)(
-      1.0, 0.0,
-      0.0, 1.0e-14
+      1.0,
+      0.0,
+      0.0,
+      1.0e-14
     )
 
     assert(A.cholesky.isRight)

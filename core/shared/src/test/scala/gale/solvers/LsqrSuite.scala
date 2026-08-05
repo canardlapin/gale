@@ -12,10 +12,7 @@ class LsqrSuite extends munit.FunSuite:
 
   // Overdetermined 4x2 with a consistent right-hand side b = A x_true.
   private val a = Matrix.dense(4, 2)(
-    1.0, 1.0,
-    1.0, 2.0,
-    1.0, 3.0,
-    1.0, 4.0
+    1.0, 1.0, 1.0, 2.0, 1.0, 3.0, 1.0, 4.0
   )
 
   test("consistent overdetermined system matches the QR least-squares solution") {

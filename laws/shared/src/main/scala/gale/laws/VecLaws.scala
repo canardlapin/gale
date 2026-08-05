@@ -3,13 +3,12 @@ package gale.laws
 import gale.linalg.*
 import munit.Assertions
 
-/** Reusable algebraic laws for [[gale.linalg.DVec]], expressed entirely against
-  * the public API so they hold identically on every platform.
+/** Reusable algebraic laws for [[gale.linalg.DVec]], expressed entirely against the public API so they hold identically
+  * on every platform.
   *
-  * Each method throws a munit failure (via the inherited [[munit.Assertions]])
-  * when the law is violated and returns `Unit` otherwise, so it drops straight
-  * into a plain munit `test` body or a ScalaCheck property body — munit-scalacheck
-  * treats a non-throwing `Unit` as a passing property.
+  * Each method throws a munit failure (via the inherited [[munit.Assertions]]) when the law is violated and returns
+  * `Unit` otherwise, so it drops straight into a plain munit `test` body or a ScalaCheck property body —
+  * munit-scalacheck treats a non-throwing `Unit` as a passing property.
   */
 object VecLaws extends Assertions:
   /** Two vectors are elementwise equal within an absolute `tolerance`. */
@@ -23,8 +22,8 @@ object VecLaws extends Assertions:
       )
       i += 1
 
-  /** Two vectors are elementwise equal within a `rel`-relative tolerance,
-    * floored so near-zero expected values still admit a small absolute slack.
+  /** Two vectors are elementwise equal within a `rel`-relative tolerance, floored so near-zero expected values still
+    * admit a small absolute slack.
     */
   def assertCloseRel(actual: DVec, expected: DVec, rel: Double = 1e-9): Unit =
     assertEquals(actual.length, expected.length, "vector length mismatch")
@@ -39,8 +38,7 @@ object VecLaws extends Assertions:
   def additionCommutes(x: DVec, y: DVec): Unit =
     assertClose(x + y, y + x)
 
-  /** Scalar multiplication distributes over vector addition:
-    * `alpha * (x + y) == alpha * x + alpha * y`.
+  /** Scalar multiplication distributes over vector addition: `alpha * (x + y) == alpha * x + alpha * y`.
     */
   def scalarDistributesOverAddition(alpha: Double, x: DVec, y: DVec): Unit =
     assertCloseRel(alpha * (x + y), (alpha * x) + (alpha * y))

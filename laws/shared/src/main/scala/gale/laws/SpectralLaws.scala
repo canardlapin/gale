@@ -4,15 +4,12 @@ import gale.linalg.*
 import gale.spectral.*
 import munit.Assertions
 
-/** Reusable laws for the frozen v0.3.5 spectral surface (`gale.spectral`),
-  * expressed against the public API and the parity-doc guarantees
-  * (`docs/spectral-parity.md`). Each law is a throwing/`Unit` assertion so it can
-  * be driven from both munit tests and ScalaCheck property bodies, matching the
-  * [[MatrixLaws]] / [[SolverLaws]] convention.
+/** Reusable laws for the frozen v0.3.5 spectral surface (`gale.spectral`), expressed against the public API and the
+  * parity-doc guarantees (`docs/spectral-parity.md`). Each law is a throwing/`Unit` assertion so it can be driven from
+  * both munit tests and ScalaCheck property bodies, matching the [[MatrixLaws]] / [[SolverLaws]] convention.
   *
-  * The six families: residual (`A v = λ v` and friends), orthogonality, the
-  * canonical ordering guarantees, top/bottom membership, rank-deficiency, and the
-  * generalized-problem identities.
+  * The six families: residual (`A v = λ v` and friends), orthogonality, the canonical ordering guarantees, top/bottom
+  * membership, rank-deficiency, and the generalized-problem identities.
   */
 object SpectralLaws extends Assertions:
 
@@ -20,8 +17,7 @@ object SpectralLaws extends Assertions:
   // Norm helpers
   // ===========================================================================
 
-  /** Frobenius norm — a convenient upper bound on the spectral norm, used to scale
-    * the residual tolerances.
+  /** Frobenius norm — a convenient upper bound on the spectral norm, used to scale the residual tolerances.
     */
   def frobenius(a: DMat): Double =
     var sum = 0.0
@@ -41,8 +37,8 @@ object SpectralLaws extends Assertions:
   // Residual laws
   // ===========================================================================
 
-  /** Symmetric (dense or the converged iterative pairs): `‖A vᵢ − λᵢ vᵢ‖ ≤
-    * relTol·max(1, ‖A‖)` for every returned pair. `a` must be symmetric.
+  /** Symmetric (dense or the converged iterative pairs): `‖A vᵢ − λᵢ vᵢ‖ ≤ relTol·max(1, ‖A‖)` for every returned pair.
+    * `a` must be symmetric.
     */
   def symmetricResidual(a: DMat, d: EigenDecomposition, relTol: Double): Unit =
     val bound = relTol * scaleOf(a)
@@ -53,9 +49,8 @@ object SpectralLaws extends Assertions:
       assert(res <= bound, s"symmetric residual $i = $res exceeds $bound")
       i += 1
 
-  /** Nonsymmetric (dense or the converged Arnoldi pairs): the complex residual
-    * `‖A(v_re + i·v_im) − λ(v_re + i·v_im)‖`, computed in real arithmetic, is
-    * `≤ relTol·max(1, ‖A‖)` for every returned eigenvalue.
+  /** Nonsymmetric (dense or the converged Arnoldi pairs): the complex residual `‖A(v_re + i·v_im) − λ(v_re + i·v_im)‖`,
+    * computed in real arithmetic, is `≤ relTol·max(1, ‖A‖)` for every returned eigenvalue.
     */
   def nonsymmetricResidual(a: DMat, d: NonsymmetricEigenDecomposition, relTol: Double): Unit =
     val bound = relTol * scaleOf(a)
@@ -69,8 +64,8 @@ object SpectralLaws extends Assertions:
       assert(res <= bound, s"nonsymmetric residual $i = $res exceeds $bound")
       i += 1
 
-  /** SVD (dense-`A` or operator): the two-sided singular-triplet residuals
-    * `‖A vᵢ − σᵢ uᵢ‖` and `‖Aᵀ uᵢ − σᵢ vᵢ‖` are both `≤ relTol·max(1, ‖A‖)`.
+  /** SVD (dense-`A` or operator): the two-sided singular-triplet residuals `‖A vᵢ − σᵢ uᵢ‖` and `‖Aᵀ uᵢ − σᵢ vᵢ‖` are
+    * both `≤ relTol·max(1, ‖A‖)`.
     */
   def svdResidual(a: DMat, svd: SVD, relTol: Double): Unit =
     val bound = relTol * scaleOf(a)
@@ -86,8 +81,8 @@ object SpectralLaws extends Assertions:
       assert(r2 <= bound, s"‖Aᵀ u − σ v‖ $i = $r2 exceeds $bound")
       i += 1
 
-  /** Generalized symmetric-definite: `‖A xᵢ − λᵢ B xᵢ‖ ≤ relTol·max(1, ‖A‖, ‖B‖)`
-    * for every returned pair. `a`, `b` must be symmetric.
+  /** Generalized symmetric-definite: `‖A xᵢ − λᵢ B xᵢ‖ ≤ relTol·max(1, ‖A‖, ‖B‖)` for every returned pair. `a`, `b`
+    * must be symmetric.
     */
   def generalizedResidual(a: DMat, b: DMat, d: EigenDecomposition, relTol: Double): Unit =
     val bound = relTol * math.max(scaleOf(a), frobenius(b))
@@ -98,8 +93,7 @@ object SpectralLaws extends Assertions:
       assert(res <= bound, s"generalized residual $i = $res exceeds $bound")
       i += 1
 
-  /** GSVD reconstruction: `‖A − U C Xᵀ‖ ≤ relTol·max(1, ‖A‖)` and the analogous
-    * `‖B − V S Xᵀ‖`.
+  /** GSVD reconstruction: `‖A − U C Xᵀ‖ ≤ relTol·max(1, ‖A‖)` and the analogous `‖B − V S Xᵀ‖`.
     */
   def gsvdReconstruction(a: DMat, b: DMat, g: GeneralizedSVD, relTol: Double): Unit =
     val reconA = g.u * diagOf(g.c) * g.x.t
@@ -119,17 +113,15 @@ object SpectralLaws extends Assertions:
     val err = gramError((0 until m.cols).map(m.col))
     assert(err <= tol, s"columns not orthonormal: ‖MᵀM − I‖ = $err")
 
-  /** The columns of `x` are `B`-orthonormal: `‖Xᵀ B X − I‖_F ≤ tol` (`b`
-    * symmetric).
+  /** The columns of `x` are `B`-orthonormal: `‖Xᵀ B X − I‖_F ≤ tol` (`b` symmetric).
     */
   def bOrthonormal(x: DMat, b: DMat, tol: Double): Unit =
     val g = x.t * (b * x)
     val err = frobenius(g - Matrix.eye(g.rows))
     assert(err <= tol, s"columns not B-orthonormal: ‖XᵀBX − I‖ = $err")
 
-  /** GSVD `U`/`V` orthonormality '''on the well-determined columns only''' — a
-    * `GeneralizedSingularValue.Zero` leaves its `U` column undetermined (zeroed),
-    * a `GeneralizedSingularValue.Infinite` leaves its `V` column (the documented
+  /** GSVD `U`/`V` orthonormality '''on the well-determined columns only''' — a `GeneralizedSingularValue.Zero` leaves
+    * its `U` column undetermined (zeroed), a `GeneralizedSingularValue.Infinite` leaves its `V` column (the documented
     * contract).
     */
   def gsvdWellDeterminedOrthonormal(g: GeneralizedSVD, tol: Double): Unit =
@@ -171,9 +163,8 @@ object SpectralLaws extends Assertions:
       assert(values(i) <= values(i - 1) + tol, s"not descending at $i: ${values(i - 1)} < ${values(i)}")
       i += 1
 
-  /** Nonsymmetric canonical order: the selection criterion is monotonic in the
-    * order's direction (ties allowed), and every conjugate pair is '''adjacent
-    * with the positive-imaginary member first''' and exact conjugate symmetry.
+  /** Nonsymmetric canonical order: the selection criterion is monotonic in the order's direction (ties allowed), and
+    * every conjugate pair is '''adjacent with the positive-imaginary member first''' and exact conjugate symmetry.
     */
   def nonsymmetricOrdering(d: NonsymmetricEigenDecomposition, order: EigenOrder, tol: Double): Unit =
     val largest = isLargest(order)
@@ -194,9 +185,8 @@ object SpectralLaws extends Assertions:
         else assert(prev <= cur + tol, s"criterion not non-decreasing at $i: $prev > $cur")
       i += 1
 
-  /** GSVD ratios are non-increasing — which, since `GeneralizedSingularValue`'s
-    * value is `+∞` / finite / `0`, is exactly "Infinite first, descending, Zero
-    * last".
+  /** GSVD ratios are non-increasing — which, since `GeneralizedSingularValue`'s value is `+∞` / finite / `0`, is
+    * exactly "Infinite first, descending, Zero last".
     */
   def gsvdDescendingRatio(g: GeneralizedSVD): Unit =
     var i = 1
@@ -207,7 +197,7 @@ object SpectralLaws extends Assertions:
   private def isLargest(order: EigenOrder): Boolean =
     order match
       case EigenOrder.LargestMagnitude | EigenOrder.LargestRealPart | EigenOrder.LargestAlgebraic => true
-      case _                                                                                       => false
+      case _                                                                                      => false
 
   private def criterion(lambda: Complex, order: EigenOrder): Double =
     order match
@@ -222,11 +212,13 @@ object SpectralLaws extends Assertions:
   /** Two real spectra agree as multisets (sorted, within `tol`). */
   def sameSortedValues(actual: Seq[Double], expected: Seq[Double], tol: Double): Unit =
     assertEquals(actual.length, expected.length, s"count mismatch: $actual vs $expected")
-    actual.sorted.zip(expected.sorted).foreach: (x, y) =>
-      assert(math.abs(x - y) <= tol, s"membership mismatch: $x != $y")
+    actual.sorted
+      .zip(expected.sorted)
+      .foreach: (x, y) =>
+        assert(math.abs(x - y) <= tol, s"membership mismatch: $x != $y")
 
-  /** Symmetric `Count(k, order)` selects exactly the `k` extremes of the full
-    * ascending spectrum named by `order` (compared against the dense `All` solve).
+  /** Symmetric `Count(k, order)` selects exactly the `k` extremes of the full ascending spectrum named by `order`
+    * (compared against the dense `All` solve).
     */
   def symmetricMembership(full: DVec, subsetValues: Seq[Double], k: Int, order: EigenOrder, tol: Double): Unit =
     val all = (0 until full.length).map(full(_))
@@ -239,8 +231,8 @@ object SpectralLaws extends Assertions:
         case _                            => all.take(k)
     sameSortedValues(subsetValues, expected, tol)
 
-  /** Singular `Count(k, order)` selects exactly the `k` largest/smallest singular
-    * values of the full descending spectrum.
+  /** Singular `Count(k, order)` selects exactly the `k` largest/smallest singular values of the full descending
+    * spectrum.
     */
   def singularMembership(full: DVec, subsetValues: Seq[Double], k: Int, order: SingularOrder, tol: Double): Unit =
     val all = (0 until full.length).map(full(_))
@@ -250,9 +242,8 @@ object SpectralLaws extends Assertions:
         case SingularOrder.Smallest => all.sorted.take(k)
     sameSortedValues(subsetValues, expected, tol)
 
-  /** Nonsymmetric `Count(k, order)`: the '''never-split''' contract — the result
-    * holds `k` or `k+1` eigenvalues (a boundary conjugate pair is kept whole), and
-    * they are exactly the top-`size` of the full spectrum by the criterion.
+  /** Nonsymmetric `Count(k, order)`: the '''never-split''' contract — the result holds `k` or `k+1` eigenvalues (a
+    * boundary conjugate pair is kept whole), and they are exactly the top-`size` of the full spectrum by the criterion.
     */
   def nonsymmetricMembership(
       full: NonsymmetricEigenDecomposition,
@@ -269,9 +260,8 @@ object SpectralLaws extends Assertions:
     val actual = (0 until subset.size).map(i => criterion(subset.eigenvalue(i), order))
     sameSortedValues(actual, expected, tol)
 
-  /** Each returned value lies within `tol` of some value of the full spectrum — a
-    * weaker membership check for the iterative paths, robust to partial
-    * convergence.
+  /** Each returned value lies within `tol` of some value of the full spectrum — a weaker membership check for the
+    * iterative paths, robust to partial convergence.
     */
   def subsetOfSpectrum(subsetValues: Seq[Double], full: DVec, tol: Double): Unit =
     val all = (0 until full.length).map(full(_))

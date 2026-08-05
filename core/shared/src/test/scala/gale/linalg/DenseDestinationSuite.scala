@@ -6,13 +6,10 @@ import gale.platform.DoubleArray
 
 class DenseDestinationSuite extends munit.FunSuite:
   private val a = Matrix.dense(2, 3)(
-    1.0, 2.0, 3.0,
-    4.0, 5.0, 6.0
+    1.0, 2.0, 3.0, 4.0, 5.0, 6.0
   )
   private val b = Matrix.dense(3, 2)(
-    2.0, -1.0,
-    0.5, 3.0,
-    -2.0, 4.0
+    2.0, -1.0, 0.5, 3.0, -2.0, 4.0
   )
 
   test("gemmInto accepts row-major, transposed, and strided inputs") {

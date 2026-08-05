@@ -11,16 +11,14 @@ import gale.platform.DoubleArray
 import jdk.incubator.vector.DoubleVector
 import jdk.incubator.vector.VectorSpecies
 
-/** SIMD dense-`Double` kernels built on the JDK Vector API
-  * ([[jdk.incubator.vector.DoubleVector]]). Contiguous row-major `gemv` and `gemm`
-  * have explicit SIMD kernels; every other operation forwards to
+/** SIMD dense-`Double` kernels built on the JDK Vector API ([[jdk.incubator.vector.DoubleVector]]). Contiguous
+  * row-major `gemv` and `gemm` have explicit SIMD kernels; every other operation forwards to
   * [[gale.backend.PureDenseDoubleKernel]], the portable reference.
   *
-  * The SIMD path handles only fully row-major inputs. GEMV uses a four-output
-  * row tile; GEMM packs `B` by columns and uses a 3×3 SIMD dot-product tile.
-  * Any strided or transposed operand falls back verbatim to the pure kernel — correctness over
-  * cleverness. Reassociation (SIMD lane order, FMA) makes the result law-equivalent to
-  * the pure kernel within a small tolerance, NOT bit-identical.
+  * The SIMD path handles only fully row-major inputs. GEMV uses a four-output row tile; GEMM packs `B` by columns and
+  * uses a 3×3 SIMD dot-product tile. Any strided or transposed operand falls back verbatim to the pure kernel —
+  * correctness over cleverness. Reassociation (SIMD lane order, FMA) makes the result law-equivalent to the pure kernel
+  * within a small tolerance, NOT bit-identical.
   */
 object VectorDenseDoubleKernel extends DenseDoubleKernel:
   private final val Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED
@@ -84,14 +82,25 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       )
     else
       PureDenseDoubleKernel.gemv(
-        rows, cols, alpha, a, aOffset, rowStride, colStride,
-        x, xOffset, xStride, beta, y, yOffset, yStride
+        rows,
+        cols,
+        alpha,
+        a,
+        aOffset,
+        rowStride,
+        colStride,
+        x,
+        xOffset,
+        xStride,
+        beta,
+        y,
+        yOffset,
+        yStride
       )
 
-  /** Four-output row-major matrix-vector tile. Each output row and `x` are
-    * contiguous, so four independent vector accumulators hide the horizontal
-    * reduction latency even on a two-double ARM species. This is the row-major
-    * dual of a column-major BLAS transpose-GEMV kernel.
+  /** Four-output row-major matrix-vector tile. Each output row and `x` are contiguous, so four independent vector
+    * accumulators hide the horizontal reduction latency even on a two-double ARM species. This is the row-major dual of
+    * a column-major BLAS transpose-GEMV kernel.
     */
   private def gemvRowMajorSimd(
       rows: Int,
@@ -164,8 +173,8 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     if beta == 0.0 then alpha * sum
     else Math.fma(beta, prior, alpha * sum)
 
-  /** The coarse `AᵀA` seam can route here, but this first Vector backend has no
-    * independently faster symmetric kernel. Preserve the half-work pure routine.
+  /** The coarse `AᵀA` seam can route here, but this first Vector backend has no independently faster symmetric kernel.
+    * Preserve the half-work pure routine.
     */
   def syrk(
       m: Int,
@@ -205,25 +214,46 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     // the pure kernel unchanged — it already honours arbitrary strides correctly.
     if Species.length() >= 2 && aColStride == 1 && bColStride == 1 && cColStride == 1 then
       gemmRowMajorDotSimd(
-        rows, cols, shared, alpha,
-        DoubleArray.asArray(a), aOffset, aRowStride,
-        DoubleArray.asArray(b), bOffset, bRowStride,
-        beta, DoubleArray.asArray(c), cOffset, cRowStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        DoubleArray.asArray(a),
+        aOffset,
+        aRowStride,
+        DoubleArray.asArray(b),
+        bOffset,
+        bRowStride,
+        beta,
+        DoubleArray.asArray(c),
+        cOffset,
+        cRowStride
       )
     else
       PureDenseDoubleKernel.gemm(
-        rows, cols, shared, alpha,
-        a, aOffset, aRowStride, aColStride,
-        b, bOffset, bRowStride, bColStride,
-        beta, c, cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
 
-  /** Pack `B` by columns, then compute 3×3 output tiles as nine independent SIMD
-    * dot products over the shared dimension. The old across-column kernel pays too
-    * much broadcast/load overhead on a two-double ARM species; this shape instead
-    * keeps nine accumulators live and hides horizontal-reduction latency. Packing
-    * is included in the public-facade benchmark and is amortized only above the
-    * measured threshold.
+  /** Pack `B` by columns, then compute 3×3 output tiles as nine independent SIMD dot products over the shared
+    * dimension. The old across-column kernel pays too much broadcast/load overhead on a two-double ARM species; this
+    * shape instead keeps nine accumulators live and hides horizontal-reduction latency. Packing is included in the
+    * public-facade benchmark and is amortized only above the measured threshold.
     */
   private def gemmRowMajorDotSimd(
       rows: Int,
@@ -380,9 +410,8 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
 
 end VectorDenseDoubleKernel
 
-/** Measured Vector-API crossovers. On ARM64/JDK 22 the packed GEMM and four-row
-  * GEMV kernels both win from 128 square; narrower-than-two-double runtimes retain
-  * the pure implementation. Factorizations remain on the pure backend.
+/** Measured Vector-API crossovers. On ARM64/JDK 22 the packed GEMM and four-row GEMV kernels both win from 128 square;
+  * narrower-than-two-double runtimes retain the pure implementation. Factorizations remain on the pure backend.
   */
 object VectorThresholds extends BackendThresholds:
   // The preferred species is fixed for the life of the JVM, so the crossovers are
@@ -392,12 +421,11 @@ object VectorThresholds extends BackendThresholds:
   val nativeGemvMinWork: Long = if simdCapable then 128L * 128L else Long.MaxValue
   val nativeFactorizationMinSize: Int = Int.MaxValue
 
-/** The JVM-only SIMD acceleration backend. Advertises [[Capability.Vectorized]], so the
-  * coarse gemm seam (`Backend.acceleratesGemm`) routes level-3 products to
-  * [[VectorDenseDoubleKernel]] above [[VectorThresholds.nativeGemmMinFlops]]. On a
-  * runtime whose preferred species is narrower than two doubles, that threshold is
-  * infinite and the backend deliberately retains Gale's faster pure kernel. Bring it
-  * into scope with `import gale.backend.jvm.vector.given` (or `using VectorBackend`).
+/** The JVM-only SIMD acceleration backend. Advertises [[Capability.Vectorized]], so the coarse gemm seam
+  * (`Backend.acceleratesGemm`) routes level-3 products to [[VectorDenseDoubleKernel]] above
+  * [[VectorThresholds.nativeGemmMinFlops]]. On a runtime whose preferred species is narrower than two doubles, that
+  * threshold is infinite and the backend deliberately retains Gale's faster pure kernel. Bring it into scope with
+  * `import gale.backend.jvm.vector.given` (or `using VectorBackend`).
   */
 object VectorBackend extends Backend:
   val name: String = "jvm-vector"
@@ -406,10 +434,9 @@ object VectorBackend extends Backend:
   val thresholds: BackendThresholds = VectorThresholds
   val config: BackendConfig = BackendConfig.singleThreaded
 
-/** The `given` a user brings into scope with `import gale.backend.jvm.vector.given`.
-  * Top-level in the package (not nested in [[VectorBackend]]) so that wildcard-given
-  * import resolves it; being in lexical scope it outranks the always-present companion
-  * fallback `Backend.pure`. The module also exposes the plain value [[VectorBackend]], so
-  * a multi-backend user can `Backend.compose` the values and declare one composite given.
+/** The `given` a user brings into scope with `import gale.backend.jvm.vector.given`. Top-level in the package (not
+  * nested in [[VectorBackend]]) so that wildcard-given import resolves it; being in lexical scope it outranks the
+  * always-present companion fallback `Backend.pure`. The module also exposes the plain value [[VectorBackend]], so a
+  * multi-backend user can `Backend.compose` the values and declare one composite given.
   */
 given vectorBackend: Backend = VectorBackend

@@ -6,11 +6,10 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
-/** Conformance suite driving the [[SpectralLaws]] bundle over seeded generators of
-  * symmetric / general / rectangular / SPD-pencil inputs. Sizes are kept JS-sane
-  * (`n ≤ ~9`) and the ScalaCheck iteration count small, so the suite stays fast on
-  * both platforms while covering the residual, orthogonality, ordering,
-  * membership, rank-deficiency, and generalized-problem law families.
+/** Conformance suite driving the [[SpectralLaws]] bundle over seeded generators of symmetric / general / rectangular /
+  * SPD-pencil inputs. Sizes are kept JS-sane (`n ≤ ~9`) and the ScalaCheck iteration count small, so the suite stays
+  * fast on both platforms while covering the residual, orthogonality, ordering, membership, rank-deficiency, and
+  * generalized-problem law families.
   */
 class SpectralLawSuite extends ScalaCheckSuite:
   override def scalaCheckInitialSeed =
@@ -203,7 +202,13 @@ class SpectralLawSuite extends ScalaCheckSuite:
       SpectralLaws.orthonormalColumns(svd.u, 1e-7)
       SpectralLaws.orthonormalColumns(svd.vt.t, 1e-7)
       SpectralLaws.descending(svd.singularValues, 1e-9)
-      SpectralLaws.singularMembership(refSvals, (0 until svd.size).map(svd.singularValues(_)), k, SingularOrder.Largest, 1e-6 * scale)
+      SpectralLaws.singularMembership(
+        refSvals,
+        (0 until svd.size).map(svd.singularValues(_)),
+        k,
+        SingularOrder.Largest,
+        1e-6 * scale
+      )
 
       // Smallest end: residual + descending, and the single smallest σ is small.
       val small = Svds.svd(a, SingularSelection.Count(1, SingularOrder.Smallest)).toOption.get
@@ -265,7 +270,7 @@ class SpectralLawSuite extends ScalaCheckSuite:
       Svds.gsvd(a, b) match
         case Left(_: LinAlgError.RankDeficient) => () // rare rank-deficient draw: not in scope
         case Left(other)                        => fail(s"unexpected Left: $other")
-        case Right(g) =>
+        case Right(g)                           =>
           SpectralLaws.gsvdReconstruction(a, b, g, 1e-6)
           SpectralLaws.csIdentity(g, 1e-10)
           SpectralLaws.gsvdDescendingRatio(g)
@@ -276,14 +281,10 @@ class SpectralLawSuite extends ScalaCheckSuite:
   test("gsvd: rank-deficient stacked pencil → Left(RankDeficient)") {
     // A and B share an identical column pair, so [A;B] has rank 2 < 3.
     val a = Matrix.dense(3, 3)(
-      1.0, 2.0, 1.0,
-      3.0, 1.0, 3.0,
-      0.0, 4.0, 0.0
+      1.0, 2.0, 1.0, 3.0, 1.0, 3.0, 0.0, 4.0, 0.0
     )
     val b = Matrix.dense(3, 3)(
-      2.0, 1.0, 2.0,
-      0.0, 5.0, 0.0,
-      1.0, 1.0, 1.0
+      2.0, 1.0, 2.0, 0.0, 5.0, 0.0, 1.0, 1.0, 1.0
     )
     SpectralLaws.isLeftOf(Svds.gsvd(a, b), { case _: LinAlgError.RankDeficient => () })
   }

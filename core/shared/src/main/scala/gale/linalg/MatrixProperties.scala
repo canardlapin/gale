@@ -2,30 +2,27 @@ package gale.linalg
 
 /** Zero-cost evidence that a value is symmetric.
   *
-  * The wrapper is an opaque subtype of `A`: it allocates nothing and retains the
-  * complete underlying API, while APIs that care about symmetry can require the
-  * stronger type explicitly.
+  * The wrapper is an opaque subtype of `A`: it allocates nothing and retains the complete underlying API, while APIs
+  * that care about symmetry can require the stronger type explicitly.
   */
 opaque type Symmetric[A] <: A = A
 
 object Symmetric:
   private[gale] inline def unsafe[A](value: A): Symmetric[A] = value
 
-  extension [A](wrapped: Symmetric[A])
-    inline def value: A = wrapped
+  extension [A](wrapped: Symmetric[A]) inline def value: A = wrapped
 
 /** Zero-cost evidence that a value is symmetric positive-definite.
   *
-  * Positive-definite evidence refines [[Symmetric]], so it can be passed wherever
-  * either the property wrapper or the underlying value is required.
+  * Positive-definite evidence refines [[Symmetric]], so it can be passed wherever either the property wrapper or the
+  * underlying value is required.
   */
 opaque type PositiveDefinite[A] <: Symmetric[A] = A
 
 object PositiveDefinite:
   private[gale] inline def unsafe[A](value: A): PositiveDefinite[A] = value
 
-  extension [A](wrapped: PositiveDefinite[A])
-    inline def value: A = wrapped
+  extension [A](wrapped: PositiveDefinite[A]) inline def value: A = wrapped
 
 /** Zero-cost evidence that a value is lower triangular. */
 opaque type LowerTriangular[A] <: A = A
@@ -33,8 +30,7 @@ opaque type LowerTriangular[A] <: A = A
 object LowerTriangular:
   private[gale] inline def unsafe[A](value: A): LowerTriangular[A] = value
 
-  extension [A](wrapped: LowerTriangular[A])
-    inline def value: A = wrapped
+  extension [A](wrapped: LowerTriangular[A]) inline def value: A = wrapped
 
 /** Zero-cost evidence that a value is upper triangular. */
 opaque type UpperTriangular[A] <: A = A
@@ -42,8 +38,7 @@ opaque type UpperTriangular[A] <: A = A
 object UpperTriangular:
   private[gale] inline def unsafe[A](value: A): UpperTriangular[A] = value
 
-  extension [A](wrapped: UpperTriangular[A])
-    inline def value: A = wrapped
+  extension [A](wrapped: UpperTriangular[A]) inline def value: A = wrapped
 
 extension (matrix: DMat)
   /** Assert symmetry without inspecting the matrix. */
@@ -64,16 +59,16 @@ extension (matrix: DMat)
 
   /** Verify square shape, finite entries, and pairwise symmetry.
     *
-    * A pair `(aᵢⱼ, aⱼᵢ)` matches when its absolute difference is at most
-    * `tolerance * max(1, |aᵢⱼ|, |aⱼᵢ|)`. This combined absolute/relative rule
-    * keeps the check meaningful for both tiny and large matrices.
+    * A pair `(aᵢⱼ, aⱼᵢ)` matches when its absolute difference is at most `tolerance * max(1, |aᵢⱼ|, |aⱼᵢ|)`. This
+    * combined absolute/relative rule keeps the check meaningful for both tiny and large matrices.
     */
-  def verifySymmetric(tolerance: Double = MatrixPropertyVerification.DefaultSymmetryTolerance)
-      : Either[LinAlgError, Symmetric[DMat]] =
+  def verifySymmetric(
+      tolerance: Double = MatrixPropertyVerification.DefaultSymmetryTolerance
+  ): Either[LinAlgError, Symmetric[DMat]] =
     MatrixPropertyVerification.verifySymmetric(matrix, tolerance)
 
-  /** Verify symmetry with the default tolerance, then prove positive-definiteness
-    * through the existing Cholesky factorization.
+  /** Verify symmetry with the default tolerance, then prove positive-definiteness through the existing Cholesky
+    * factorization.
     */
   def verifyPositiveDefinite: Either[LinAlgError, PositiveDefinite[DMat]] =
     MatrixPropertyVerification.verifyPositiveDefinite(
@@ -81,8 +76,7 @@ extension (matrix: DMat)
       MatrixPropertyVerification.DefaultSymmetryTolerance
     )
 
-  /** Verify symmetry with `tolerance`, then prove positive-definiteness through
-    * the existing Cholesky factorization.
+  /** Verify symmetry with `tolerance`, then prove positive-definiteness through the existing Cholesky factorization.
     */
   def verifyPositiveDefinite(tolerance: Double): Either[LinAlgError, PositiveDefinite[DMat]] =
     MatrixPropertyVerification.verifyPositiveDefinite(matrix, tolerance)
@@ -91,8 +85,7 @@ extension (matrix: DMat)
   def verifyLowerTriangular: Either[LinAlgError, LowerTriangular[DMat]] =
     MatrixPropertyVerification.verifyLowerTriangular(matrix, 0.0)
 
-  /** Verify lower-triangular structure, allowing forbidden entries with
-    * magnitude at most `tolerance`.
+  /** Verify lower-triangular structure, allowing forbidden entries with magnitude at most `tolerance`.
     */
   def verifyLowerTriangular(tolerance: Double): Either[LinAlgError, LowerTriangular[DMat]] =
     MatrixPropertyVerification.verifyLowerTriangular(matrix, tolerance)
@@ -101,29 +94,25 @@ extension (matrix: DMat)
   def verifyUpperTriangular: Either[LinAlgError, UpperTriangular[DMat]] =
     MatrixPropertyVerification.verifyUpperTriangular(matrix, 0.0)
 
-  /** Verify upper-triangular structure, allowing forbidden entries with
-    * magnitude at most `tolerance`.
+  /** Verify upper-triangular structure, allowing forbidden entries with magnitude at most `tolerance`.
     */
   def verifyUpperTriangular(tolerance: Double): Either[LinAlgError, UpperTriangular[DMat]] =
     MatrixPropertyVerification.verifyUpperTriangular(matrix, tolerance)
 
 extension [A <: DoubleLinearOperator](operator: A)
-  /** Assert that a matrix-free operator is symmetric without attempting to
-    * materialize or inspect it.
+  /** Assert that a matrix-free operator is symmetric without attempting to materialize or inspect it.
     *
-    * The `Operator` suffix keeps this explicit at call sites where a dense
-    * [[DMat]] could instead use [[verifySymmetric]]. The returned evidence is
-    * zero-cost and preserves the operator's concrete type.
+    * The `Operator` suffix keeps this explicit at call sites where a dense [[DMat]] could instead use
+    * [[verifySymmetric]]. The returned evidence is zero-cost and preserves the operator's concrete type.
     */
   inline def assumeSymmetricOperator: Symmetric[A] =
     Symmetric.unsafe(operator)
 
-  /** Assert that a matrix-free operator is symmetric positive-definite without
-    * attempting an impossible exhaustive verification.
+  /** Assert that a matrix-free operator is symmetric positive-definite without attempting an impossible exhaustive
+    * verification.
     *
-    * Iterative generalized solvers still reject non-positive metric geometry
-    * encountered in their explored subspaces. This evidence records the
-    * caller's global contract; it is not a runtime proof.
+    * Iterative generalized solvers still reject non-positive metric geometry encountered in their explored subspaces.
+    * This evidence records the caller's global contract; it is not a runtime proof.
     */
   inline def assumePositiveDefiniteOperator: PositiveDefinite[A] =
     PositiveDefinite.unsafe(operator)

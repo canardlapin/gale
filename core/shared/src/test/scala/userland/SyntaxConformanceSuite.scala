@@ -2,17 +2,14 @@ package userland
 
 import gale.linalg.*
 
-/** Conformance for the opt-in ergonomic syntax against the PRD's worked examples
-  * (PRD §"Elementwise operations must be explicit" and §"Symbol aliases … opt-in
-  * syntax modules", lines 614–629): the documented forms compile and compute, the
-  * elementwise product is the Hadamard product (not the core matrix product), the
-  * Unicode aliases are exact synonyms of the core ops, and a shape mismatch throws
-  * `DimensionMismatch` (matching the core arithmetic primitives, not the
-  * Either-returning solve tier).
+/** Conformance for the opt-in ergonomic syntax against the PRD's worked examples (PRD §"Elementwise operations must be
+  * explicit" and §"Symbol aliases … opt-in syntax modules", lines 614–629): the documented forms compile and compute,
+  * the elementwise product is the Hadamard product (not the core matrix product), the Unicode aliases are exact
+  * synonyms of the core ops, and a shape mismatch throws `DimensionMismatch` (matching the core arithmetic primitives,
+  * not the Either-returning solve tier).
   *
-  * Namespace note: the PRD sketches `import gale.linalg.syntax.unicode.*`; gale
-  * exposes these modules at the sibling top-level `gale.syntax.{all, unicode}`
-  * (a deliberate, equivalent choice). The semantics below are the contract.
+  * Namespace note: the PRD sketches `import gale.linalg.syntax.unicode.*`; gale exposes these modules at the sibling
+  * top-level `gale.syntax.{all, unicode}` (a deliberate, equivalent choice). The semantics below are the contract.
   */
 class SyntaxConformanceSuite extends munit.FunSuite:
 

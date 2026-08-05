@@ -1,11 +1,9 @@
 package gale.linalg
 
-/** Tests for the `DMat.pinv` facade (Moore–Penrose pseudo-inverse via the
-  * economy SVD, NumPy-default cutoff) and the total `DMat.kron` Kronecker
-  * product. `pinv` is checked through the four Moore–Penrose conditions —
-  * `A A⁺ A = A`, `A⁺ A A⁺ = A⁺`, `(A A⁺)ᵀ = A A⁺`, `(A⁺ A)ᵀ = A⁺ A` — on
-  * full-rank and rank-deficient fixtures; `kron` through known values, shape
-  * algebra, the mixed-product identity, and strided (transpose-view) operands.
+/** Tests for the `DMat.pinv` facade (Moore–Penrose pseudo-inverse via the economy SVD, NumPy-default cutoff) and the
+  * total `DMat.kron` Kronecker product. `pinv` is checked through the four Moore–Penrose conditions — `A A⁺ A = A`,
+  * `A⁺ A A⁺ = A⁺`, `(A A⁺)ᵀ = A A⁺`, `(A⁺ A)ᵀ = A⁺ A` — on full-rank and rank-deficient fixtures; `kron` through known
+  * values, shape algebra, the mixed-product identity, and strided (transpose-view) operands.
   */
 class PinvKronSuite extends munit.FunSuite:
 
@@ -79,7 +77,7 @@ class PinvKronSuite extends munit.FunSuite:
 
   test("pinv of a rank-1 outer product is the closed form v uT / (|u|^2 |v|^2)") {
     val u = Vec(1.0, 2.0, 2.0) // |u|^2 = 9
-    val v = Vec(3.0, 4.0)      // |v|^2 = 25
+    val v = Vec(3.0, 4.0) // |v|^2 = 25
     val a = Matrix.tabulate(3, 2)((i, j) => u(i) * v(j))
     val p = a.pinv.orThrow
     val expected = Matrix.tabulate(2, 3)((i, j) => v(i) * u(j) / (9.0 * 25.0))
@@ -110,10 +108,7 @@ class PinvKronSuite extends munit.FunSuite:
     assertEquals(k.rows, 4)
     assertEquals(k.cols, 4)
     val expected = Matrix.dense(4, 4)(
-      0.0, 5.0, 0.0, 10.0,
-      6.0, 7.0, 12.0, 14.0,
-      0.0, 15.0, 0.0, 20.0,
-      18.0, 21.0, 24.0, 28.0
+      0.0, 5.0, 0.0, 10.0, 6.0, 7.0, 12.0, 14.0, 0.0, 15.0, 0.0, 20.0, 18.0, 21.0, 24.0, 28.0
     )
     assert(frob(k - expected) == 0.0, s"kron mismatch")
   }

@@ -8,27 +8,22 @@ import gale.linalg.*
 import gale.parity.ParitySupport.*
 import gale.spectral.*
 
-/** Parity for the full/economy dense SVD (`Svds.svd` with
-  * `SingularSelection.All`, the Golub–Kahan–Reinsch bidiagonal kernel), the
-  * Moore–Penrose `pinv`, and the Kronecker `kron` against Breeze.
+/** Parity for the full/economy dense SVD (`Svds.svd` with `SingularSelection.All`, the Golub–Kahan–Reinsch bidiagonal
+  * kernel), the Moore–Penrose `pinv`, and the Kronecker `kron` against Breeze.
   *
-  * Both libraries return singular values '''descending''', so values compare
-  * elementwise across the whole spectrum. Breeze's `svd` returns the '''full'''
-  * square `U` (m×m) / `Vᵀ` (n×n) while gale returns the economy factors, so
-  * vectors compare over the first `min(m, n)` columns/rows — up to sign, via
-  * `|⟨·,·⟩| ≈ 1` per column, exactly as `SvdQrParitySuite` does, and only for
-  * singular values whose relative gap to their neighbours is resolvable (a
-  * clustered pair's individual vectors are not comparable across libraries).
-  * `pinv` compares elementwise on full-rank fixtures (both libraries' default
-  * cutoffs agree that nothing is truncated); rank-deficient `pinv` behaviour is
-  * pinned by the core Moore–Penrose suite instead, keeping cutoff-policy
-  * differences out of the parity claim. `kron` is plain arithmetic and
-  * compares essentially exactly.
+  * Both libraries return singular values '''descending''', so values compare elementwise across the whole spectrum.
+  * Breeze's `svd` returns the '''full''' square `U` (m×m) / `Vᵀ` (n×n) while gale returns the economy factors, so
+  * vectors compare over the first `min(m, n)` columns/rows — up to sign, via `|⟨·,·⟩| ≈ 1` per column, exactly as
+  * `SvdQrParitySuite` does, and only for singular values whose relative gap to their neighbours is resolvable (a
+  * clustered pair's individual vectors are not comparable across libraries). `pinv` compares elementwise on full-rank
+  * fixtures (both libraries' default cutoffs agree that nothing is truncated); rank-deficient `pinv` behaviour is
+  * pinned by the core Moore–Penrose suite instead, keeping cutoff-policy differences out of the parity claim. `kron` is
+  * plain arithmetic and compares essentially exactly.
   */
 class FullSvdParitySuite extends munit.FunSuite:
 
-  private val svdTol  = 1e-9
-  private val vecTol  = 1e-7
+  private val svdTol = 1e-9
+  private val vecTol = 1e-7
   private val pinvTol = 1e-8
   private val kronTol = 1e-12
 

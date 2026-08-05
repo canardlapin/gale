@@ -7,21 +7,16 @@ import gale.linalg.LinAlgError
 import gale.linalg.MutableDVec
 import scala.collection.mutable.ArrayBuffer
 
-/** Portable multiplicity-safe block Krylov solver for partial symmetric
-  * eigenproblems.
+/** Portable multiplicity-safe block Krylov solver for partial symmetric eigenproblems.
   *
-  * A block at least as wide as the requested result is used so a repeated
-  * eigenspace can contribute more than one independent direction. Each restart
-  * retains the wanted Ritz space (soft locking) and expands it again through the
-  * operator (a thick restart). Full reorthogonalization keeps the projected
-  * problem symmetric and the returned basis orthonormal. If a Krylov component
-  * becomes invariant before the requested subspace is full, a deterministic
-  * orthogonal probe replenishes the block; this is important for disconnected
-  * operators and exact multiplicities.
+  * A block at least as wide as the requested result is used so a repeated eigenspace can contribute more than one
+  * independent direction. Each restart retains the wanted Ritz space (soft locking) and expands it again through the
+  * operator (a thick restart). Full reorthogonalization keeps the projected problem symmetric and the returned basis
+  * orthonormal. If a Krylov component becomes invariant before the requested subspace is full, a deterministic
+  * orthogonal probe replenishes the block; this is important for disconnected operators and exact multiplicities.
   *
-  * The implementation only invokes [[DoubleLinearOperator.applyTo]] and never
-  * materializes the input operator. The small Rayleigh-Ritz projection is dense,
-  * as it is for every block Krylov method.
+  * The implementation only invokes [[DoubleLinearOperator.applyTo]] and never materializes the input operator. The
+  * small Rayleigh-Ritz projection is dense, as it is for every block Krylov method.
   */
 private[spectral] object BlockSymmetricEigen:
 
@@ -116,8 +111,8 @@ private[spectral] object BlockSymmetricEigen:
       case Some(error) => Left(error)
       case None        => Right(result)
 
-  /** Build a block Krylov basis, retaining supplied thick-restart vectors first.
-    * Every stored operator image aligns with the basis vector at the same index.
+  /** Build a block Krylov basis, retaining supplied thick-restart vectors first. Every stored operator image aligns
+    * with the basis vector at the same index.
     */
   private def buildBasis(
       op: DoubleLinearOperator,
@@ -196,8 +191,7 @@ private[spectral] object BlockSymmetricEigen:
       coordinate += 1
     false
 
-  /** Classical Gram-Schmidt twice. The second pass is essential for clustered
-    * Ritz vectors and exact repeated roots.
+  /** Classical Gram-Schmidt twice. The second pass is essential for clustered Ritz vectors and exact repeated roots.
     */
   private def orthonormalized(
       candidate: DVec,
@@ -279,8 +273,8 @@ private[spectral] object BlockSymmetricEigen:
       i += 1
     out
 
-  /** Portable deterministic block probe. Distinct streams have distinct LCG
-    * initial states; integer wraparound is identical on JVM and Scala.js.
+  /** Portable deterministic block probe. Distinct streams have distinct LCG initial states; integer wraparound is
+    * identical on JVM and Scala.js.
     */
   private def deterministicVector(n: Int, stream: Int): DVec =
     var state = 123456789 ^ (stream * 0x9e3779b9)
@@ -288,8 +282,8 @@ private[spectral] object BlockSymmetricEigen:
       state = state * 1103515245 + 12345
       ((state >>> 9) & 0x7fffff).toDouble / 0x800000.toDouble * 2.0 - 1.0
 
-  /** Ascending indices for the requested extreme. Projected values are already
-    * ascending; ties retain projected index order and therefore multiplicity.
+  /** Ascending indices for the requested extreme. Projected values are already ascending; ties retain projected index
+    * order and therefore multiplicity.
     */
   private def selectExtremeIndices(values: DVec, k: Int, order: EigenOrder): Array[Int] =
     val n = values.length
@@ -322,8 +316,7 @@ private[spectral] object BlockSymmetricEigen:
     val values = DVec.tabulate(order.length)(i => pairs(order(i)).value)
     val residuals = DVec.tabulate(order.length)(i => pairs(order(i)).residualNorm)
     val vectors =
-      if wantVectors && order.nonEmpty then
-        DMat.tabulate(n, order.length)((row, col) => pairs(order(col)).vector(row))
+      if wantVectors && order.nonEmpty then DMat.tabulate(n, order.length)((row, col) => pairs(order(col)).vector(row))
       else DMat.zeros(n, 0)
     val diagnostics = SpectralDiagnostics(
       requested = requested,

@@ -6,9 +6,7 @@ import gale.platform.PlatformMath.fma
 class QRSuite extends munit.FunSuite:
   test("QR reconstructs a tall dense matrix") {
     val A = Matrix.dense(3, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0
     )
 
     val qr = A.qr
@@ -22,9 +20,7 @@ class QRSuite extends munit.FunSuite:
 
   test("QR least-squares solve recovers full-rank coefficients") {
     val A = Matrix.dense(3, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0
     )
     val b = Vec(1.0, 3.0, 5.0)
 
@@ -38,9 +34,7 @@ class QRSuite extends munit.FunSuite:
 
   test("QR least-squares reports rank deficiency") {
     val A = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      2.0, 4.0,
-      3.0, 6.0
+      1.0, 2.0, 2.0, 4.0, 3.0, 6.0
     )
     val b = Vec(1.0, 2.0, 3.0)
 
@@ -57,10 +51,7 @@ class QRSuite extends munit.FunSuite:
   // laws q * r == A and qᵀq == I.
   test("QR stores compact reflectors and materialises an orthogonal Q on demand") {
     val A = Matrix.dense(4, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0,
-      1.0, 3.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0, 1.0, 3.0
     )
 
     val qr = A.qr
@@ -156,11 +147,7 @@ class QRSuite extends munit.FunSuite:
 
   test("Householder construction remains finite at extreme representable scales") {
     val base = Matrix.dense(5, 3)(
-      1.0, -2.0, 0.5,
-      -3.0, 4.0, 1.5,
-      2.0, 1.0, -1.0,
-      0.25, -0.75, 2.0,
-      -1.5, 0.5, 3.0
+      1.0, -2.0, 0.5, -3.0, 4.0, 1.5, 2.0, 1.0, -1.0, 0.25, -0.75, 2.0, -1.5, 0.5, 3.0
     )
 
     for scale <- Seq(1e155, 1e-170) do
@@ -175,9 +162,7 @@ class QRSuite extends munit.FunSuite:
 
   test("Householder normalization does not overflow when x0 minus beta would") {
     val A = Matrix.dense(3, 2)(
-      1.0e308, 1.0,
-      1.0e307, 2.0,
-      -1.0e307, 3.0
+      1.0e308, 1.0, 1.0e307, 2.0, -1.0e307, 3.0
     )
     val qr = A.qr
 
@@ -189,10 +174,7 @@ class QRSuite extends munit.FunSuite:
 
   test("column-pivoted QR reconstructs the permuted input and unpermutes coefficients") {
     val A = Matrix.dense(4, 3)(
-      1.0e-3, 0.0, 0.0,
-      0.0, 10.0, 0.0,
-      0.0, 0.0, 1.0,
-      0.0, 0.0, 0.0
+      1.0e-3, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
     )
     val expected = Vec(2.0, -3.0, 4.0)
     val options = QROptions(pivoting = QRPivoting.Column)
@@ -212,21 +194,51 @@ class QRSuite extends munit.FunSuite:
     val rng = new scala.util.Random(2026080301L)
     val random = Matrix.dense(31, 8, Seq.fill(31 * 8)(rng.nextDouble() * 2.0 - 1.0))
     val tiedAndDeficient = Matrix.dense(7, 6)(
-      1.0, 0.0, 0.0, 2.0, 0.0, 1.0 + 4.0e-16,
-      0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      1.0,
+      0.0,
+      0.0,
+      2.0,
+      0.0,
+      1.0 + 4.0e-16,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     )
     val overflowSensitive = Matrix.dense(6, 3)(
-      1.0e308, 0.0, 0.0,
-      1.0e308, 0.0, 0.0,
-      0.0, 1.0e150, 0.0,
-      0.0, 0.0, 1.0e-150,
-      0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0
+      1.0e308, 0.0, 0.0, 1.0e308, 0.0, 0.0, 0.0, 1.0e150, 0.0, 0.0, 0.0, 1.0e-150, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     )
 
     for fixture <- Seq(random, tiedAndDeficient, overflowSensitive) do
@@ -276,7 +288,7 @@ class QRSuite extends munit.FunSuite:
         actual.q * actual.r,
         permuteColumns(fixture, actual.columnPermutation),
         rel = 8e-13,
-        abs = 8e-13,
+        abs = 8e-13
       )
 
       val repeated = fixture.qr(options)
@@ -305,10 +317,22 @@ class QRSuite extends munit.FunSuite:
 
   test("pivoted QR preserves column-wise non-finite pivot selection") {
     val fixture = Matrix.dense(4, 4)(
-      Double.NaN, 3.0, Double.PositiveInfinity, 0.0,
-      0.0, 4.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0
+      Double.NaN,
+      3.0,
+      Double.PositiveInfinity,
+      0.0,
+      0.0,
+      4.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
     )
     val reference = columnWisePivotedReference(fixture)
 
@@ -319,9 +343,7 @@ class QRSuite extends munit.FunSuite:
 
   test("caller rank tolerance controls the explicit rank decision") {
     val A = Matrix.dense(3, 2)(
-      1.0, 0.0,
-      0.0, 1.0e-8,
-      0.0, 0.0
+      1.0, 0.0, 0.0, 1.0e-8, 0.0, 0.0
     )
 
     val automatic = A.qr(QROptions(pivoting = QRPivoting.Column))
@@ -340,16 +362,10 @@ class QRSuite extends munit.FunSuite:
 
   test("pivoted QR solves matrix right-hand sides and exposes Q applications") {
     val A = Matrix.dense(5, 3)(
-      1.0, 0.0, 2.0,
-      1.0, 1.0, -1.0,
-      1.0, 2.0, 0.5,
-      1.0, 3.0, 1.5,
-      1.0, 4.0, -0.5
+      1.0, 0.0, 2.0, 1.0, 1.0, -1.0, 1.0, 2.0, 0.5, 1.0, 3.0, 1.5, 1.0, 4.0, -0.5
     )
     val expected = Matrix.dense(3, 2)(
-      1.0, -2.0,
-      0.5, 3.0,
-      -1.0, 4.0
+      1.0, -2.0, 0.5, 3.0, -1.0, 4.0
     )
     val observations = A * expected
     val qr = A.qr(QROptions(pivoting = QRPivoting.Column))
@@ -422,24 +438,20 @@ class QRSuite extends munit.FunSuite:
   }
 
   test("matrix RHS paths preserve rank decisions at exact and near deficiency") {
-    val exact = Matrix.dense(5, 3)(
-      1.0, 2.0, 3.0,
-      2.0, 4.0, 6.0,
-      3.0, 6.0, 9.0,
-      4.0, 8.0, 12.0,
-      5.0, 10.0, 15.0
-    ).qr(QROptions(pivoting = QRPivoting.Column))
+    val exact = Matrix
+      .dense(5, 3)(
+        1.0, 2.0, 3.0, 2.0, 4.0, 6.0, 3.0, 6.0, 9.0, 4.0, 8.0, 12.0, 5.0, 10.0, 15.0
+      )
+      .qr(QROptions(pivoting = QRPivoting.Column))
     val rhs = Matrix.tabulate(5, 4)((row, col) => row.toDouble - 0.5 * col)
     assertEquals(exact.diagnostics.rank, Some(1))
     assert(exact.solveLeastSquares(rhs).left.exists(_.isInstanceOf[LinAlgError.RankDeficient]))
 
-    val near = Matrix.dense(5, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0e-10,
-      0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0
-    ).qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
+    val near = Matrix
+      .dense(5, 3)(
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-10, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      )
+      .qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
     assertEquals(near.diagnostics.rank, Some(2))
     assert(near.solveLeastSquares(rhs).left.exists(_.isInstanceOf[LinAlgError.RankDeficient]))
     assertMatrixRelative(near.applyQ(near.applyQT(rhs).orThrow).orThrow, rhs, rel = 1e-15, abs = 1e-15)
@@ -528,23 +540,21 @@ class QRSuite extends munit.FunSuite:
   }
 
   test("workspace least squares preserves typed failures without acquiring scratch") {
-    val rankDeficient = Matrix.dense(4, 2)(
-      1.0, 2.0,
-      2.0, 4.0,
-      3.0, 6.0,
-      4.0, 8.0
-    ).qr(QROptions(pivoting = QRPivoting.Column))
-    val underdetermined = Matrix.dense(2, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0
-    ).qr
-    val nearRankDeficient = Matrix.dense(5, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0e-10,
-      0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0
-    ).qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
+    val rankDeficient = Matrix
+      .dense(4, 2)(
+        1.0, 2.0, 2.0, 4.0, 3.0, 6.0, 4.0, 8.0
+      )
+      .qr(QROptions(pivoting = QRPivoting.Column))
+    val underdetermined = Matrix
+      .dense(2, 3)(
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0
+      )
+      .qr
+    val nearRankDeficient = Matrix
+      .dense(5, 3)(
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-10, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      )
+      .qr(QROptions(pivoting = QRPivoting.Column, rankTolerance = Some(1.0e-8)))
     val workspace = DenseWorkspace.empty
 
     assert(
@@ -654,7 +664,8 @@ class QRSuite extends munit.FunSuite:
     val source = Matrix.tabulate(cols + 2, rows + 2): (row, col) =>
       math.sin((row + 1.0) * (col + 2.0) * 0.0625) + (if row == col then 2.0 else 0.0)
     val design = source.slice(1, cols + 1, 1, rows + 1).t
-    val rawScales = Vec.tabulate(rows)(row => if row == 3 then 0.0 else if row % 4 == 0 then -0.75 else 0.5 + row * 0.03125)
+    val rawScales =
+      Vec.tabulate(rows)(row => if row == 3 then 0.0 else if row % 4 == 0 then -0.75 else 0.5 + row * 0.03125)
     val scales = TestAccess.stridedCopy(rawScales, 3)
     val options = QROptions(pivoting = QRPivoting.Column)
     val materialized = Matrix.tabulate(rows, cols)((row, col) => scales(row) * design(row, col))
@@ -746,7 +757,7 @@ class QRSuite extends munit.FunSuite:
           if row == 2 then 0.0
           else if row % 4 == 0 then -0.5 - row * 0.01
           else 0.75 + row * 0.015625,
-        3,
+        3
       )
       val vector = TestAccess.stridedCopy(Vec.tabulate(rows)(row => math.sin((row + 1.0) * 0.125)), 2)
       val matrixBacking = Matrix.tabulate(4, rows)((col, row) => math.cos((row + 1.0) * (col + 2.0) * 0.03125))
@@ -826,18 +837,10 @@ class QRSuite extends munit.FunSuite:
 
   test("QR residualization and normalized covariance satisfy independent identities") {
     val A = Matrix.dense(5, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0,
-      1.0, 3.0,
-      1.0, 4.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0, 1.0, 3.0, 1.0, 4.0
     )
     val data = Matrix.dense(5, 2)(
-      2.0, 1.0,
-      -1.0, 3.0,
-      0.5, -2.0,
-      4.0, 0.0,
-      1.0, 5.0
+      2.0, 1.0, -1.0, 3.0, 0.5, -2.0, 4.0, 0.0, 1.0, 5.0
     )
     val qr = A.qr(QROptions(pivoting = QRPivoting.Column))
 
@@ -865,9 +868,8 @@ class QRSuite extends munit.FunSuite:
       rank: Int
   )
 
-  /** Deliberately slow test-only reference for the pre-optimization contract:
-    * recompute every candidate norm in its own strided column scan, then rescan
-    * the selected column while constructing its reflector.
+  /** Deliberately slow test-only reference for the pre-optimization contract: recompute every candidate norm in its own
+    * strided column scan, then rescan the selected column while constructing its reflector.
     */
   private def columnWisePivotedReference(A: DMat): ReferencePivotedQR =
     val m = A.rows

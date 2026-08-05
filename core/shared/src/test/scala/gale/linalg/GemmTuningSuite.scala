@@ -1,8 +1,8 @@
 package gale.linalg
 
-/** Correctness guards for the tuned dense kernels: the `Aᵀ·A` syrk fast path
-  * (routed from `a.t * a`) and the unroll-and-jam gemm across shapes whose row
-  * count is not a multiple of the 4-row unroll (exercising the scalar tail).
+/** Correctness guards for the tuned dense kernels: the `Aᵀ·A` syrk fast path (routed from `a.t * a`) and the
+  * unroll-and-jam gemm across shapes whose row count is not a multiple of the 4-row unroll (exercising the scalar
+  * tail).
   */
 class GemmTuningSuite extends munit.FunSuite:
 

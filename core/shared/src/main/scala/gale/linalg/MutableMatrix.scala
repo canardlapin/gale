@@ -6,11 +6,10 @@ import gale.platform.DoubleArray.*
 
 /** Single-owner, row-major construction buffer for an immutable [[DMat]].
   *
-  * `DMatBuilder` is the allocation-conscious shared construction seam for code
-  * that fills matrices in primitive loops. It exposes logical element writes,
-  * never the platform backing array. [[result]] transfers ownership of that
-  * backing storage to the returned matrix without copying and permanently
-  * closes the builder, preventing mutable aliasing through the public API.
+  * `DMatBuilder` is the allocation-conscious shared construction seam for code that fills matrices in primitive loops.
+  * It exposes logical element writes, never the platform backing array. [[result]] transfers ownership of that backing
+  * storage to the returned matrix without copying and permanently closes the builder, preventing mutable aliasing
+  * through the public API.
   */
 final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val data: DoubleArray):
   private var open = true
@@ -30,13 +29,12 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
     checkCol(col)
     data(row * cols + col) = value
 
-  /** Write by contiguous row-major logical index. This is useful for hot
-    * sequential fill loops while keeping platform storage encapsulated.
+  /** Write by contiguous row-major logical index. This is useful for hot sequential fill loops while keeping platform
+    * storage encapsulated.
     */
   def writeLinear(index: Int, value: Double): Unit =
     requireOpen()
-    if index < 0 || index >= size then
-      throw LinAlgError.IndexOutOfBounds(index, size)
+    if index < 0 || index >= size then throw LinAlgError.IndexOutOfBounds(index, size)
     data(index) = value
 
   def fill(value: Double): Unit =
@@ -46,15 +44,14 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
       data(i) = value
       i += 1
 
-  /** Transfer this builders storage to an immutable matrix without copying.
-    * Every subsequent read, write, fill, or second `result()` call fails.
+  /** Transfer this builders storage to an immutable matrix without copying. Every subsequent read, write, fill, or
+    * second `result()` call fails.
     */
   def result(): DMat =
     DMat.fromDoubleArrayOwned(rows, cols, takeOwnedData())
 
-  /** Consume this builder as the owned working buffer for portable QR.
-    * Every subsequent builder operation fails; factor results own independent
-    * reflector and factor storage and retain no mutable builder alias.
+  /** Consume this builder as the owned working buffer for portable QR. Every subsequent builder operation fails; factor
+    * results own independent reflector and factor storage and retain no mutable builder alias.
     */
   def consumeQR(using Backend): QR =
     consumeQR(QROptions.Default, DenseWorkspace.forQR(rows, cols))
@@ -88,9 +85,8 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
       Stride.unsafe(1)
     )
 
-  /** Validated internal doorway for allocation-free destination kernels. Public
-    * callers never receive the storage handle; a closed builder is rejected
-    * before any kernel can write it.
+  /** Validated internal doorway for allocation-free destination kernels. Public callers never receive the storage
+    * handle; a closed builder is rejected before any kernel can write it.
     */
   private[gale] def writableData: DoubleArray =
     requireOpen()
@@ -103,25 +99,21 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
     data
 
   private def requireOpen(): Unit =
-    if !open then
-      throw LinAlgError.UnsupportedOperation("DMatBuilder is closed after ownership transfer")
+    if !open then throw LinAlgError.UnsupportedOperation("DMatBuilder is closed after ownership transfer")
 
   private def checkRow(row: Int): Unit =
-    if row < 0 || row >= rows then
-      throw LinAlgError.IndexOutOfBounds(row, rows)
+    if row < 0 || row >= rows then throw LinAlgError.IndexOutOfBounds(row, rows)
 
   private def checkCol(col: Int): Unit =
-    if col < 0 || col >= cols then
-      throw LinAlgError.IndexOutOfBounds(col, cols)
+    if col < 0 || col >= cols then throw LinAlgError.IndexOutOfBounds(col, cols)
 
 object DMatBuilder:
   def zeros(rows: Int, cols: Int): DMatBuilder =
     DMat.requireStorable(rows, cols)
     new DMatBuilder(rows, cols, DoubleArray.alloc(rows * cols))
 
-  /** Initialize a builder from exactly one owned logical row-major copy.
-    * Strided and transposed inputs are normalized without exposing their backing
-    * storage; [[DMatBuilder.result]] then transfers this copy without recopying.
+  /** Initialize a builder from exactly one owned logical row-major copy. Strided and transposed inputs are normalized
+    * without exposing their backing storage; [[DMatBuilder.result]] then transfers this copy without recopying.
     */
   def from(matrix: DMat): DMatBuilder =
     new DMatBuilder(matrix.rows, matrix.cols, matrix.toDoubleArrayCopyRowMajor)

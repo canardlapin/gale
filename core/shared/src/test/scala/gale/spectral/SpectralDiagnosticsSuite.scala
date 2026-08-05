@@ -3,7 +3,12 @@ package gale.spectral
 import gale.linalg.*
 
 class SpectralDiagnosticsSuite extends munit.FunSuite:
-  private def diagnostics(requested: Int, converged: Int, residuals: Seq[Double], iterations: Int): SpectralDiagnostics =
+  private def diagnostics(
+      requested: Int,
+      converged: Int,
+      residuals: Seq[Double],
+      iterations: Int
+  ): SpectralDiagnostics =
     SpectralDiagnostics(
       requested = requested,
       converged = converged,

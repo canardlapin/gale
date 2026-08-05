@@ -5,11 +5,10 @@ import gale.linalg.DVec
 import gale.linalg.Matrix
 import gale.linalg.orThrow
 
-/** Residual tests for the nonsymmetric dense spectral kernels: Householder
-  * Hessenberg reduction and Francis double-shift QR. Eigenpairs are verified in
-  * complex arithmetic against the decoded real-Schur packed vectors, and the
-  * kernel output is fed through the `NonsymmetricEigenDecomposition` constructor
-  * so its exact-conjugate-symmetry invariant is exercised on real output.
+/** Residual tests for the nonsymmetric dense spectral kernels: Householder Hessenberg reduction and Francis
+  * double-shift QR. Eigenpairs are verified in complex arithmetic against the decoded real-Schur packed vectors, and
+  * the kernel output is fed through the `NonsymmetricEigenDecomposition` constructor so its exact-conjugate-symmetry
+  * invariant is exercised on real output.
   */
 class DenseSpectralKernelsNonsymmetricSuite extends munit.FunSuite:
 
@@ -36,8 +35,8 @@ class DenseSpectralKernelsNonsymmetricSuite extends munit.FunSuite:
   private def orthogonalityError(q: DMat): Double =
     frobenius(q.t * q - Matrix.eye(q.cols))
 
-  /** Wrap kernel output in the public result so the packing invariant is checked
-    * and the typed accessors decode the vectors.
+  /** Wrap kernel output in the public result so the packing invariant is checked and the typed accessors decode the
+    * vectors.
     */
   private def wrap(result: NonsymmetricEigen): NonsymmetricEigenDecomposition =
     val n = result.re.length
@@ -49,8 +48,8 @@ class DenseSpectralKernelsNonsymmetricSuite extends munit.FunSuite:
       SpectralDiagnostics(n, n, DVec.zeros(n), 0.0, 0)
     )
 
-  /** ‖A v − λ v‖ for the i-th eigenpair in complex arithmetic, using the decoded
-    * (realPart, imagPart) vectors. `A` is real, so `A v = (A vr, A vi)`.
+  /** ‖A v − λ v‖ for the i-th eigenpair in complex arithmetic, using the decoded (realPart, imagPart) vectors. `A` is
+    * real, so `A v = (A vr, A vi)`.
     */
   private def eigenpairResidual(a: DMat, decomp: NonsymmetricEigenDecomposition, i: Int): Double =
     val lambda = decomp.eigenvalue(i)
@@ -143,9 +142,7 @@ class DenseSpectralKernelsNonsymmetricSuite extends munit.FunSuite:
   test("nonsymmetric eigen: companion matrix of (x-1)(x-2)(x-3)") {
     // Companion of x³ - 6x² + 11x - 6; eigenvalues 1, 2, 3.
     val a = Matrix.dense(3, 3)(
-      0.0, 0.0, 6.0,
-      1.0, 0.0, -11.0,
-      0.0, 1.0, 6.0
+      0.0, 0.0, 6.0, 1.0, 0.0, -11.0, 0.0, 1.0, 6.0
     )
     val result = nonsymmetricEigen(a, wantVectors = true).toOption.get
     val values = (0 until 3).map(i => result.re(i)).sorted
@@ -160,9 +157,7 @@ class DenseSpectralKernelsNonsymmetricSuite extends munit.FunSuite:
   test("nonsymmetric eigen: mixed real + complex spectrum with packing") {
     // block diag: real 5, and a 2x2 with eigenvalues 1 ± 2i.
     val a = Matrix.dense(3, 3)(
-      5.0, 0.0, 0.0,
-      0.0, 1.0, -2.0,
-      0.0, 2.0, 1.0
+      5.0, 0.0, 0.0, 0.0, 1.0, -2.0, 0.0, 2.0, 1.0
     )
     val result = nonsymmetricEigen(a, wantVectors = true).toOption.get
     val decomp = wrap(result)

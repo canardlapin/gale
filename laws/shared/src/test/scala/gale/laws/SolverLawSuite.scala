@@ -3,8 +3,8 @@ package gale.laws
 import gale.linalg.*
 import gale.solvers.*
 
-/** Conformance suite exercising the [[SolverLaws]] bundle against a concrete
-  * symmetric-positive-definite system solved by CG.
+/** Conformance suite exercising the [[SolverLaws]] bundle against a concrete symmetric-positive-definite system solved
+  * by CG.
   */
 class SolverLawSuite extends munit.FunSuite:
   private val a = Matrix.dense(2, 2)(4.0, 1.0, 1.0, 3.0)

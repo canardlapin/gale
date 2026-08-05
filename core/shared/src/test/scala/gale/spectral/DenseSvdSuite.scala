@@ -5,12 +5,10 @@ import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** Tests for the full/economy dense SVD — `Svds.svd` with
-  * `SingularSelection.All` (and the now-served `Count(k = min(m, n))` edge),
-  * backed by the Householder-bidiagonalization + Golub–Kahan–Reinsch kernel
-  * (`DenseSvdKernel`). Checks known spectra, reconstruction, orthonormality,
-  * the descending non-negative layout, rank on deficient inputs, degenerate
-  * shapes, and agreement with the partial Golub–Kahan–Lanczos path.
+/** Tests for the full/economy dense SVD — `Svds.svd` with `SingularSelection.All` (and the now-served
+  * `Count(k = min(m, n))` edge), backed by the Householder-bidiagonalization + Golub–Kahan–Reinsch kernel
+  * (`DenseSvdKernel`). Checks known spectra, reconstruction, orthonormality, the descending non-negative layout, rank
+  * on deficient inputs, degenerate shapes, and agreement with the partial Golub–Kahan–Lanczos path.
   */
 class DenseSvdSuite extends munit.FunSuite:
 

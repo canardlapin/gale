@@ -2,9 +2,8 @@ package gale.solvers
 
 import gale.linalg.*
 
-/** Tests for the P5 solver rewrites: Givens-based GMRES with left
-  * preconditioning and preconditioned BiCGSTAB (K6), plus the relative
-  * tolerance mode (K7).
+/** Tests for the P5 solver rewrites: Givens-based GMRES with left preconditioning and preconditioned BiCGSTAB (K6),
+  * plus the relative tolerance mode (K7).
   */
 class PreconditionedSolverSuite extends munit.FunSuite:
   /** 2D 5-point Laplacian on a `g x g` grid (SPD, size `g*g`). */
@@ -20,9 +19,8 @@ class PreconditionedSolverSuite extends munit.FunSuite:
       else 0.0
     }
 
-  /** Nonsymmetric, strongly diagonally dominant matrix whose diagonal spans four
-    * orders of magnitude, so Jacobi (diagonal) preconditioning clusters the
-    * spectrum of `M^{-1}A` near 1.
+  /** Nonsymmetric, strongly diagonally dominant matrix whose diagonal spans four orders of magnitude, so Jacobi
+    * (diagonal) preconditioning clusters the spectrum of `M^{-1}A` near 1.
     */
   private def illConditioned(n: Int): DMat =
     Matrix.tabulate(n, n) { (i, j) =>

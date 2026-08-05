@@ -4,9 +4,8 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.Matrix
 
-/** Residual/orthogonality tests for the symmetric dense spectral kernels:
-  * Householder tridiagonalization and the tridiagonal QL/QR eigensolver. The
-  * kernels are `private[gale]`, reachable directly from this in-package suite.
+/** Residual/orthogonality tests for the symmetric dense spectral kernels: Householder tridiagonalization and the
+  * tridiagonal QL/QR eigensolver. The kernels are `private[gale]`, reachable directly from this in-package suite.
   */
 class DenseSpectralKernelsSymmetricSuite extends munit.FunSuite:
 
@@ -84,7 +83,9 @@ class DenseSpectralKernelsSymmetricSuite extends munit.FunSuite:
     val noQ = tridiagonalize(a, wantQ = false)
     assertEquals(noQ.q, None)
     // The tridiagonal itself is the reduction's contract; both paths must agree.
-    assert(frobenius(tridiagonal(withQ.diagonal, withQ.offDiagonal) - tridiagonal(noQ.diagonal, noQ.offDiagonal)) < 1e-14)
+    assert(
+      frobenius(tridiagonal(withQ.diagonal, withQ.offDiagonal) - tridiagonal(noQ.diagonal, noQ.offDiagonal)) < 1e-14
+    )
   }
 
   // --- standalone tridiagonal solver -----------------------------------------

@@ -4,11 +4,10 @@ import gale.linalg.DMat
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** Tests for '''left''' eigenvectors of the dense nonsymmetric path
-  * (`Eigen.eigNonsymmetric(a, selection, EigenVectors.Left | LeftAndRight)`),
-  * recovered from the right-eigenvector matrix via the biorthogonal `V⁻¹` route.
-  * Convention: `wᴴ A = λ wᴴ`, unit 2-norm, real-Schur SoA packing (positive-imag
-  * member first), read through `leftEigenvector`.
+/** Tests for '''left''' eigenvectors of the dense nonsymmetric path (`Eigen.eigNonsymmetric(a, selection,
+  * EigenVectors.Left | LeftAndRight)`), recovered from the right-eigenvector matrix via the biorthogonal `V⁻¹` route.
+  * Convention: `wᴴ A = λ wᴴ`, unit 2-norm, real-Schur SoA packing (positive-imag member first), read through
+  * `leftEigenvector`.
   */
 class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
 
@@ -16,9 +15,7 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
 
   /** Companion of (x−1)(x−2)(x−3): eigenvalues 1, 2, 3 (real). */
   private val companion: DMat = Matrix.dense(3, 3)(
-    0.0, 0.0, 6.0,
-    1.0, 0.0, -11.0,
-    0.0, 1.0, 6.0
+    0.0, 0.0, 6.0, 1.0, 0.0, -11.0, 0.0, 1.0, 6.0
   )
 
   /** Scaled rotation with eigenvalues 1 ± √3·i. */
@@ -28,9 +25,7 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
 
   /** Block diagonal: real 5 and a 2×2 with eigenvalues 1 ± 2i. */
   private val mixed: DMat = Matrix.dense(3, 3)(
-    5.0, 0.0, 0.0,
-    0.0, 1.0, -2.0,
-    0.0, 2.0, 1.0
+    5.0, 0.0, 0.0, 0.0, 1.0, -2.0, 0.0, 2.0, 1.0
   )
 
   private def randomReal(n: Int, seed: Long): DMat =
@@ -177,7 +172,10 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
   test("selection permutes left columns in lockstep with right and eigenvalues") {
     val a = randomReal(10, 909L)
     val k = 4
-    val d = Eigen.eigNonsymmetric(a, EigenSelection.Count(k, EigenOrder.LargestMagnitude), EigenVectors.LeftAndRight).toOption.get
+    val d = Eigen
+      .eigNonsymmetric(a, EigenSelection.Count(k, EigenOrder.LargestMagnitude), EigenVectors.LeftAndRight)
+      .toOption
+      .get
     val scale = math.max(frobenius(a), 1.0)
     // If a left column had drifted out of lockstep with its eigenvalue, wᴴA = λwᴴ
     // would fail. Both residual sides tiny ⇒ the pair-aware permutation moved left
@@ -195,9 +193,7 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
   test("defective matrices reject left vectors with Left(SingularMatrix)") {
     val j2 = Matrix.dense(2, 2)(2.0, 1.0, 0.0, 2.0) // Jordan block, one eigenvector
     val j3 = Matrix.dense(3, 3)(
-      2.0, 1.0, 0.0,
-      0.0, 2.0, 1.0,
-      0.0, 0.0, 2.0
+      2.0, 1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 2.0
     )
     val nilpotent = Matrix.dense(2, 2)(0.0, 1.0, 0.0, 0.0)
     for (name, a) <- Seq(("J2", j2), ("J3", j3), ("nilpotent", nilpotent)) do

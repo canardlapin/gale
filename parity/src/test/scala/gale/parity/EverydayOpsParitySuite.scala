@@ -10,13 +10,11 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
 
-/** Breeze differential tests for the operations that appear most often while
-  * porting application code: construction, access, slicing, indexed selection,
-  * persistent updates, norms, and elementwise transforms.
+/** Breeze differential tests for the operations that appear most often while porting application code: construction,
+  * access, slicing, indexed selection, persistent updates, norms, and elementwise transforms.
   *
-  * The generators produce dimensions and deterministic data seeds. A failing
-  * property therefore reports a small shape and seed that can be replayed with
-  * [[ParitySupport.matrixData]] or [[ParitySupport.vectorData]].
+  * The generators produce dimensions and deterministic data seeds. A failing property therefore reports a small shape
+  * and seed that can be replayed with [[ParitySupport.matrixData]] or [[ParitySupport.vectorData]].
   */
 class EverydayOpsParitySuite extends ScalaCheckSuite:
   override def scalaCheckInitialSeed =
@@ -49,8 +47,7 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
 
   test("literal, zero, identity, and tabulated constructors match Breeze") {
     val literalGale = Matrix(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
     val literalBreeze = DenseMatrix(
       (1.0, 2.0, 3.0),
@@ -66,33 +63,32 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
   }
 
   property("row, column, and contiguous slice access match Breeze") {
-    forAll(sliceCaseGen) {
-      (sample: (Int, Int, Long, Int, Int, Int, Int)) =>
-        val (rows, cols, seed, rowFrom, rowUntil, colFrom, colUntil) = sample
-        val data = matrixData(rows, cols, seed)
-        val gale = galeMatrix(data)
-        val breeze = breezeMatrix(data)
-        val expectedRow = DenseVector.tabulate(cols)(j => breeze(rowFrom, j))
-        val expectedColumn = DenseVector.tabulate(rows)(i => breeze(i, colFrom))
+    forAll(sliceCaseGen) { (sample: (Int, Int, Long, Int, Int, Int, Int)) =>
+      val (rows, cols, seed, rowFrom, rowUntil, colFrom, colUntil) = sample
+      val data = matrixData(rows, cols, seed)
+      val gale = galeMatrix(data)
+      val breeze = breezeMatrix(data)
+      val expectedRow = DenseVector.tabulate(cols)(j => breeze(rowFrom, j))
+      val expectedColumn = DenseVector.tabulate(rows)(i => breeze(i, colFrom))
 
-        assertVecClose(
-          gale.row(rowFrom),
-          expectedRow,
-          0.0,
-          s"row rows=$rows cols=$cols seed=$seed row=$rowFrom"
-        )
-        assertVecClose(
-          gale.col(colFrom),
-          expectedColumn,
-          0.0,
-          s"column rows=$rows cols=$cols seed=$seed col=$colFrom"
-        )
-        assertMatClose(
-          gale.slice(rowFrom, rowUntil, colFrom, colUntil),
-          breeze(rowFrom until rowUntil, colFrom until colUntil),
-          0.0,
-          s"slice rows=$rows cols=$cols seed=$seed"
-        )
+      assertVecClose(
+        gale.row(rowFrom),
+        expectedRow,
+        0.0,
+        s"row rows=$rows cols=$cols seed=$seed row=$rowFrom"
+      )
+      assertVecClose(
+        gale.col(colFrom),
+        expectedColumn,
+        0.0,
+        s"column rows=$rows cols=$cols seed=$seed col=$colFrom"
+      )
+      assertMatClose(
+        gale.slice(rowFrom, rowUntil, colFrom, colUntil),
+        breeze(rowFrom until rowUntil, colFrom until colUntil),
+        0.0,
+        s"slice rows=$rows cols=$cols seed=$seed"
+      )
     }
   }
 
@@ -116,33 +112,32 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
   }
 
   property("persistent matrix and vector updates match an updated Breeze copy") {
-    forAll(matrixCaseGen, scalarGen) {
-      (sample: (Int, Int, Long), replacement: Double) =>
-        val (rows, cols, seed) = sample
-        val data = matrixData(rows, cols, seed)
-        val row = Math.floorMod(seed, rows.toLong).toInt
-        val col = Math.floorMod(seed * 17L, cols.toLong).toInt
+    forAll(matrixCaseGen, scalarGen) { (sample: (Int, Int, Long), replacement: Double) =>
+      val (rows, cols, seed) = sample
+      val data = matrixData(rows, cols, seed)
+      val row = Math.floorMod(seed, rows.toLong).toInt
+      val col = Math.floorMod(seed * 17L, cols.toLong).toInt
 
-        val breeze = breezeMatrix(data)
-        val updatedBreeze = breeze.copy
-        updatedBreeze(row, col) = replacement
-        assertMatClose(
-          galeMatrix(data).updated(row, col, replacement),
-          updatedBreeze,
-          0.0,
-          s"matrix updated $sample"
-        )
+      val breeze = breezeMatrix(data)
+      val updatedBreeze = breeze.copy
+      updatedBreeze(row, col) = replacement
+      assertMatClose(
+        galeMatrix(data).updated(row, col, replacement),
+        updatedBreeze,
+        0.0,
+        s"matrix updated $sample"
+      )
 
-        val vector = vectorData(cols, seed + 1L)
-        val vectorIndex = Math.floorMod(seed, cols.toLong).toInt
-        val updatedBreezeVector = breezeVector(vector).copy
-        updatedBreezeVector(vectorIndex) = replacement
-        assertVecClose(
-          galeVector(vector).updated(vectorIndex, replacement),
-          updatedBreezeVector,
-          0.0,
-          s"vector updated length=$cols seed=$seed"
-        )
+      val vector = vectorData(cols, seed + 1L)
+      val vectorIndex = Math.floorMod(seed, cols.toLong).toInt
+      val updatedBreezeVector = breezeVector(vector).copy
+      updatedBreezeVector(vectorIndex) = replacement
+      assertVecClose(
+        galeVector(vector).updated(vectorIndex, replacement),
+        updatedBreezeVector,
+        0.0,
+        s"vector updated length=$cols seed=$seed"
+      )
     }
   }
 
@@ -195,29 +190,28 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
   }
 
   property("diagonal addition and average symmetrization match Breeze expressions") {
-    forAll(dimensionGen, seedGen, scalarGen) {
-      (size: Int, seed: Long, diagonalShift: Double) =>
-        val data = matrixData(size, size, seed)
-        val gale = galeMatrix(data)
-        val breeze = breezeMatrix(data)
+    forAll(dimensionGen, seedGen, scalarGen) { (size: Int, seed: Long, diagonalShift: Double) =>
+      val data = matrixData(size, size, seed)
+      val gale = galeMatrix(data)
+      val breeze = breezeMatrix(data)
 
-        val shiftedBreeze = breeze.copy
-        var i = 0
-        while i < size do
-          shiftedBreeze(i, i) = shiftedBreeze(i, i) + diagonalShift
-          i += 1
+      val shiftedBreeze = breeze.copy
+      var i = 0
+      while i < size do
+        shiftedBreeze(i, i) = shiftedBreeze(i, i) + diagonalShift
+        i += 1
 
-        assertMatClose(
-          gale.addToDiagonal(diagonalShift),
-          shiftedBreeze,
-          0.0,
-          s"addToDiagonal size=$size seed=$seed"
-        )
-        assertMatClose(
-          gale.symmetrizedAverage,
-          (breeze + breeze.t) * 0.5,
-          0.0,
-          s"symmetrizedAverage size=$size seed=$seed"
-        )
+      assertMatClose(
+        gale.addToDiagonal(diagonalShift),
+        shiftedBreeze,
+        0.0,
+        s"addToDiagonal size=$size seed=$seed"
+      )
+      assertMatClose(
+        gale.symmetrizedAverage,
+        (breeze + breeze.t) * 0.5,
+        0.0,
+        s"symmetrizedAverage size=$size seed=$seed"
+      )
     }
   }

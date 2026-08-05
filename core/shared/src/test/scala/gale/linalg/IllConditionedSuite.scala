@@ -6,18 +6,14 @@ class IllConditionedSuite extends munit.FunSuite:
   // full rank.
   test("rankEstimate is scale-invariant for a uniformly tiny full-rank matrix") {
     val tiny = Matrix.dense(3, 3)(
-      1e-20, 0.0, 0.0,
-      0.0, 1e-20, 0.0,
-      0.0, 0.0, 1e-20
+      1e-20, 0.0, 0.0, 0.0, 1e-20, 0.0, 0.0, 0.0, 1e-20
     )
     assertEquals(tiny.rankEstimate, 3)
   }
 
   test("rankEstimate still detects genuine rank deficiency and zero matrices") {
     val mixed = Matrix.dense(3, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1e-25, 0.0,
-      0.0, 0.0, 1e-25
+      1.0, 0.0, 0.0, 0.0, 1e-25, 0.0, 0.0, 0.0, 1e-25
     )
     assertEquals(mixed.rankEstimate, 1)
     assertEquals(Matrix.zeros(3, 3).rankEstimate, 0)
@@ -49,8 +45,10 @@ class IllConditionedSuite extends munit.FunSuite:
 
   test("LU of a singular matrix returns Left(SingularMatrix)") {
     val singular = Matrix.dense(2, 2)(
-      1.0, 2.0,
-      2.0, 4.0
+      1.0,
+      2.0,
+      2.0,
+      4.0
     )
     assert(singular.lu.left.exists(_.isInstanceOf[LinAlgError.SingularMatrix]))
   }

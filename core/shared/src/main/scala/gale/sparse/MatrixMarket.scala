@@ -44,8 +44,8 @@ object MatrixMarket:
     require(builder.nnz == expectedNnz, s"expected $expectedNnz entries, got ${builder.nnz}")
     builder.toCSR()
 
-  /** Accept only `matrix coordinate real|integer general`. Any other object,
-    * storage format, field, or symmetry is rejected rather than mis-parsed.
+  /** Accept only `matrix coordinate real|integer general`. Any other object, storage format, field, or symmetry is
+    * rejected rather than mis-parsed.
     */
   private def validateHeader(line: String): Unit =
     val tokens = fields(line)
@@ -60,7 +60,9 @@ object MatrixMarket:
     if format != "coordinate" then
       throw LinAlgError.UnsupportedRepresentation(s"unsupported Matrix Market format '$format' (only 'coordinate')")
     if field != "real" && field != "integer" then
-      throw LinAlgError.UnsupportedRepresentation(s"unsupported Matrix Market field '$field' (only 'real' or 'integer')")
+      throw LinAlgError.UnsupportedRepresentation(
+        s"unsupported Matrix Market field '$field' (only 'real' or 'integer')"
+      )
     if symmetry != "general" then
       throw LinAlgError.UnsupportedRepresentation(s"unsupported Matrix Market symmetry '$symmetry' (only 'general')")
 

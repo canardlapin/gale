@@ -12,10 +12,9 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Matrix-free block-Krylov baseline with an eight-dimensional repeated top
-  * eigenspace target. The diagonal has only twelve distinct roots, so the
-  * benchmark measures block expansion, Rayleigh-Ritz solves, and thick restarts
-  * without hiding operator cost inside dense multiplication.
+/** Matrix-free block-Krylov baseline with an eight-dimensional repeated top eigenspace target. The diagonal has only
+  * twelve distinct roots, so the benchmark measures block expansion, Rayleigh-Ritz solves, and thick restarts without
+  * hiding operator cost inside dense multiplication.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

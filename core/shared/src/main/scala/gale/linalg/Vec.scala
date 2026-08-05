@@ -8,17 +8,15 @@ trait Vec[A]:
   def length: Int
   def apply(index: Int): A
 
-/** An immutable dense `Double` vector: a length-`n` window over platform
-  * storage described by an offset and a (strictly positive) stride.
+/** An immutable dense `Double` vector: a length-`n` window over platform storage described by an offset and a (strictly
+  * positive) stride.
   *
-  *   - '''Views vs copies.''' [[slice]] returns an aliasing view — it shares the
-  *     immutable backing storage, so it is `O(1)`. [[copy]] (and the `Array`/`Seq`
-  *     exporters) return independent data. No unqualified public core API can
-  *     create a mutable alias of a `DVec`; [[mutableCopy]] always owns an
-  *     independent copy. Optional interop modules must prefix any deliberate
-  *     external-storage alias with `unsafe`.
-  *   - '''Positive stride only.''' `gale` supports positive strides; there is no
-  *     negative-stride (reversed) view. Element `i` lives at `offset + i*stride`.
+  *   - '''Views vs copies.''' [[slice]] returns an aliasing view — it shares the immutable backing storage, so it is
+  *     `O(1)`. [[copy]] (and the `Array`/`Seq` exporters) return independent data. No unqualified public core API can
+  *     create a mutable alias of a `DVec`; [[mutableCopy]] always owns an independent copy. Optional interop modules
+  *     must prefix any deliberate external-storage alias with `unsafe`.
+  *   - '''Positive stride only.''' `gale` supports positive strides; there is no negative-stride (reversed) view.
+  *     Element `i` lives at `offset + i*stride`.
   */
 final class DVec private[gale] (
     private[gale] val data: DoubleArray,
@@ -49,8 +47,8 @@ final class DVec private[gale] (
       stride
     )
 
-  /** Gather elements in caller-specified order into one independently owned
-    * contiguous vector. Repeated indices repeat values.
+  /** Gather elements in caller-specified order into one independently owned contiguous vector. Repeated indices repeat
+    * values.
     */
   def gather(indices: IndexedSeq[Int]): DVec =
     var i = 0
@@ -92,8 +90,7 @@ final class DVec private[gale] (
       xi += stride.value
       i += 1
 
-  /** Copy logical elements into caller-owned primitive storage. No Gale backing
-    * storage is exposed or adopted.
+  /** Copy logical elements into caller-owned primitive storage. No Gale backing storage is exposed or adopted.
     */
   def copyTo(destination: Array[Double], destinationOffset: Int = 0): Unit =
     val end = destinationOffset.toLong + length.toLong
@@ -120,8 +117,8 @@ final class DVec private[gale] (
       i += 1
     out
 
-  /** Contiguous, freshly-allocated platform copy of the logical elements; the
-    * returned storage is owned by the caller (stride 1, offset 0).
+  /** Contiguous, freshly-allocated platform copy of the logical elements; the returned storage is owned by the caller
+    * (stride 1, offset 0).
     */
   private[gale] def toDoubleArrayOwnedCopy: DoubleArray =
     val out = DoubleArray.alloc(length)
@@ -192,19 +189,16 @@ final class DVec private[gale] (
     MutableDVec.from(this)
 
   private def requireSameLength(that: DVec): Unit =
-    if length != that.length then
-      throw LinAlgError.VectorLengthMismatch(length, that.length)
+    if length != that.length then throw LinAlgError.VectorLengthMismatch(length, that.length)
 
   private def checkIndex(index: Int): Unit =
-    if index < 0 || index >= length then
-      throw LinAlgError.IndexOutOfBounds(index, length)
+    if index < 0 || index >= length then throw LinAlgError.IndexOutOfBounds(index, length)
 
 /** Single-owner construction buffer for an immutable [[DVec]].
   *
-  * The builder is the primitive-loop construction seam for callers that already
-  * know the vector length. [[result]] transfers the backing storage without a
-  * copy and permanently closes the builder, so no mutable alias survives through
-  * the public API.
+  * The builder is the primitive-loop construction seam for callers that already know the vector length. [[result]]
+  * transfers the backing storage without a copy and permanently closes the builder, so no mutable alias survives
+  * through the public API.
   */
 final class DVecBuilder private (val length: Int, private[gale] val data: DoubleArray):
   private var open = true
@@ -233,12 +227,10 @@ final class DVecBuilder private (val length: Int, private[gale] val data: Double
     DVec.fromDoubleArrayOwned(data)
 
   private def requireOpen(): Unit =
-    if !open then
-      throw LinAlgError.UnsupportedOperation("DVecBuilder is closed after result()")
+    if !open then throw LinAlgError.UnsupportedOperation("DVecBuilder is closed after result()")
 
   private def checkIndex(index: Int): Unit =
-    if index < 0 || index >= length then
-      throw LinAlgError.IndexOutOfBounds(index, length)
+    if index < 0 || index >= length then throw LinAlgError.IndexOutOfBounds(index, length)
 
 object DVecBuilder:
   def zeros(length: Int): DVecBuilder =
@@ -270,8 +262,8 @@ object DVec:
       i += 1
     out
 
-  /** Allocate a single-owner builder whose [[DVecBuilder.result]] transfers its
-    * storage into an immutable vector without copying.
+  /** Allocate a single-owner builder whose [[DVecBuilder.result]] transfers its storage into an immutable vector
+    * without copying.
     */
   def newBuilder(length: Int): DVecBuilder =
     DVecBuilder.zeros(length)
@@ -291,8 +283,8 @@ object DVec:
   private[gale] def fromArray(values: Array[Double]): DVec =
     new DVec(DoubleArray.fromArray(values), Offset.unsafe(0), Length.unsafe(values.length), Stride.unsafe(1))
 
-  /** Wrap a platform array as a contiguous vector without copying; the caller
-    * transfers ownership of `data` and must not mutate it afterwards.
+  /** Wrap a platform array as a contiguous vector without copying; the caller transfers ownership of `data` and must
+    * not mutate it afterwards.
     */
   private[gale] def fromDoubleArrayOwned(data: DoubleArray): DVec =
     new DVec(data, Offset.unsafe(0), Length.unsafe(data.length), Stride.unsafe(1))

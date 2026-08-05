@@ -17,8 +17,8 @@ enum SparseDirectFactorization:
       case Cholesky => SparseDirectCapability.Cholesky
       case QR       => SparseDirectCapability.QR
 
-/** Discoverable operations and optional solve/ordering features. An empty set
-  * means that no sparse-direct implementation is available.
+/** Discoverable operations and optional solve/ordering features. An empty set means that no sparse-direct
+  * implementation is available.
   */
 enum SparseDirectCapability:
   case LU, Cholesky, QR
@@ -26,9 +26,8 @@ enum SparseDirectCapability:
 
 /** Column-ordering request for symbolic analysis.
   *
-  * A user permutation maps new column position to original column through
-  * `columnPermutation.toIndexSeq`. `Natural` is identity; `ProviderDefault`
-  * lets the provider choose and report an owned permutation.
+  * A user permutation maps new column position to original column through `columnPermutation.toIndexSeq`. `Natural` is
+  * identity; `ProviderDefault` lets the provider choose and report an owned permutation.
   */
 enum SparseDirectOrdering:
   case Natural, ProviderDefault
@@ -37,8 +36,7 @@ enum SparseDirectOrdering:
 enum SparseSolveOperation:
   case Normal, Transpose
 
-/** Immutable symbolic-stage diagnostics. No wall-clock time is stored, keeping
-  * deterministic providers deterministic.
+/** Immutable symbolic-stage diagnostics. No wall-clock time is stored, keeping deterministic providers deterministic.
   */
 final case class SparseSymbolicDiagnostics(
     providerName: String,
@@ -69,24 +67,21 @@ final case class SparseSolveDiagnostics(
 final case class SparseVectorSolve(solution: DVec, diagnostics: SparseSolveDiagnostics)
 final case class SparseMatrixSolve(solution: DMat, diagnostics: SparseSolveDiagnostics)
 
-/** Explicit lifecycle shared by provider workspaces and native-capable handles.
-  * `close()` must be idempotent. A closed resource is rejected by the Gale
-  * facade before provider code is entered.
+/** Explicit lifecycle shared by provider workspaces and native-capable handles. `close()` must be idempotent. A closed
+  * resource is rejected by the Gale facade before provider code is entered.
   */
 trait SparseDirectResource extends AutoCloseable:
   def isClosed: Boolean
   override def close(): Unit
 
-/** Mutable provider-owned scratch. A workspace belongs to exactly one provider,
-  * is single-user (not safe for concurrent calls), and may be reused
-  * sequentially for analysis, factorization, and solves.
+/** Mutable provider-owned scratch. A workspace belongs to exactly one provider, is single-user (not safe for concurrent
+  * calls), and may be reused sequentially for analysis, factorization, and solves.
   */
 trait SparseDirectWorkspace extends SparseDirectResource:
   def provider: SparseDirectProvider
 
-/** Reusable symbolic analysis tied to the exact immutable CSR storage analyzed.
-  * Implementations may wrap native resources. The analysis itself may be used
-  * concurrently only with distinct workspaces.
+/** Reusable symbolic analysis tied to the exact immutable CSR storage analyzed. Implementations may wrap native
+  * resources. The analysis itself may be used concurrently only with distinct workspaces.
   */
 trait SparseDirectSymbolicAnalysis extends SparseDirectResource:
   def provider: SparseDirectProvider
@@ -96,19 +91,19 @@ trait SparseDirectSymbolicAnalysis extends SparseDirectResource:
   def columnPermutation: Permutation
   def diagnostics: SparseSymbolicDiagnostics
 
-  /** Low-level provider hook. Call [[SparseDirect.factor]] for Gale's pattern,
-    * workspace, lifecycle, and returned-handle validation.
+  /** Low-level provider hook. Call [[SparseDirect.factor]] for Gale's pattern, workspace, lifecycle, and
+    * returned-handle validation.
     */
   def factorNumeric(
       matrix: CSR,
       workspace: SparseDirectWorkspace
   ): Either[LinAlgError, SparseDirectNumericFactor]
 
-/** Numeric factor handle. Permutations are Gale-owned immutable values: a
-  * provider must copy native index buffers before returning them.
+/** Numeric factor handle. Permutations are Gale-owned immutable values: a provider must copy native index buffers
+  * before returning them.
   *
-  * A factor may be shared across concurrent solves when each invocation uses a
-  * distinct workspace. The same workspace must never be used concurrently.
+  * A factor may be shared across concurrent solves when each invocation uses a distinct workspace. The same workspace
+  * must never be used concurrently.
   */
 trait SparseDirectNumericFactor extends SparseDirectResource:
   def provider: SparseDirectProvider
@@ -119,14 +114,14 @@ trait SparseDirectNumericFactor extends SparseDirectResource:
   def columnPermutation: Permutation
   def diagnostics: SparseNumericDiagnostics
 
-  /** Provider-declared solve dimensions. For normal square LU/Cholesky both are
-    * the matrix order; a rectangular QR provider may report rows -> columns.
+  /** Provider-declared solve dimensions. For normal square LU/Cholesky both are the matrix order; a rectangular QR
+    * provider may report rows -> columns.
     */
   def rhsRows(operation: SparseSolveOperation): Int
   def solutionRows(operation: SparseSolveOperation): Int
 
-  /** Low-level provider hooks. Use the [[SparseDirect.solve]] / `solveInto`
-    * facades for capability, dimension, workspace, and lifecycle validation.
+  /** Low-level provider hooks. Use the [[SparseDirect.solve]] / `solveInto` facades for capability, dimension,
+    * workspace, and lifecycle validation.
     */
   def solveVectorInto(
       rhs: DVec,
@@ -142,10 +137,9 @@ trait SparseDirectNumericFactor extends SparseDirectResource:
       workspace: SparseDirectWorkspace
   ): Either[LinAlgError, SparseSolveDiagnostics]
 
-/** JVM-only provider contract. Provider objects are resolved explicitly through
-  * a `given`, are safe for concurrent invocation, and fix their thread policy in
-  * [[config]] at construction time. Stateful native scratch belongs in distinct
-  * [[SparseDirectWorkspace]] instances, never in the shared provider singleton.
+/** JVM-only provider contract. Provider objects are resolved explicitly through a `given`, are safe for concurrent
+  * invocation, and fix their thread policy in [[config]] at construction time. Stateful native scratch belongs in
+  * distinct [[SparseDirectWorkspace]] instances, never in the shared provider singleton.
   */
 trait SparseDirectProvider:
   def name: String
@@ -186,8 +180,7 @@ object SparseDirectProvider:
     ): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
       Left(LinAlgError.UnsupportedOperation("sparse direct factorization: no JVM provider is installed"))
 
-  /** Capability-less default. The existence of this seam does not imply that LU,
-    * Cholesky, or QR is implemented.
+  /** Capability-less default. The existence of this seam does not imply that LU, Cholesky, or QR is implemented.
     */
   val none: SparseDirectProvider = NoSparseDirectProvider
   given default: SparseDirectProvider = none
@@ -212,8 +205,8 @@ object SparseDirectProvider:
     require(errors.isEmpty, errors.mkString(s"invalid sparse-direct provider '${provider.name}': ", "; ", ""))
     provider
 
-/** Validated sparse-direct facade. Every method is JVM-only and explicitly
-  * provider/workspace based; nothing routes through Gale's portable sparse APIs.
+/** Validated sparse-direct facade. Every method is JVM-only and explicitly provider/workspace based; nothing routes
+  * through Gale's portable sparse APIs.
   */
 object SparseDirect:
   def capabilities(using provider: SparseDirectProvider): Set[SparseDirectCapability] =
@@ -224,13 +217,15 @@ object SparseDirect:
     if validation.nonEmpty then
       Left(LinAlgError.InvalidArgument(validation.mkString("invalid sparse-direct provider: ", "; ", "")))
     else
-      provider.createWorkspace().flatMap: workspace =>
-        acceptReturnedResource(workspace):
-          if !(workspace.provider eq provider) then
-            Left(LinAlgError.InvalidArgument("sparse-direct workspace belongs to a different provider"))
-          else if workspace.isClosed then
-            Left(LinAlgError.InvalidArgument("sparse-direct provider returned a closed workspace"))
-          else Right(())
+      provider
+        .createWorkspace()
+        .flatMap: workspace =>
+          acceptReturnedResource(workspace):
+            if !(workspace.provider eq provider) then
+              Left(LinAlgError.InvalidArgument("sparse-direct workspace belongs to a different provider"))
+            else if workspace.isClosed then
+              Left(LinAlgError.InvalidArgument("sparse-direct provider returned a closed workspace"))
+            else Right(())
 
   def analyze(
       pattern: CSRPattern,
@@ -239,9 +234,11 @@ object SparseDirect:
       ordering: SparseDirectOrdering = SparseDirectOrdering.ProviderDefault
   )(using provider: SparseDirectProvider): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
     validateAnalysisRequest(pattern, factorization, ordering, workspace, provider).flatMap: _ =>
-      provider.analyze(pattern, factorization, ordering, workspace).flatMap: analysis =>
-        acceptReturnedResource(analysis):
-          validateAnalysisResult(analysis, pattern, factorization, provider)
+      provider
+        .analyze(pattern, factorization, ordering, workspace)
+        .flatMap: analysis =>
+          acceptReturnedResource(analysis):
+            validateAnalysisResult(analysis, pattern, factorization, provider)
 
   def factor(
       analysis: SparseDirectSymbolicAnalysis,
@@ -253,9 +250,11 @@ object SparseDirect:
       Left(LinAlgError.InvalidArgument("numeric CSR pattern differs from the exact pattern used for symbolic analysis"))
     else
       validateWorkspace(workspace, analysis.provider).flatMap: _ =>
-        analysis.factorNumeric(matrix, workspace).flatMap: factor =>
-          acceptReturnedResource(factor):
-            validateNumericResult(factor, analysis)
+        analysis
+          .factorNumeric(matrix, workspace)
+          .flatMap: factor =>
+            acceptReturnedResource(factor):
+              validateNumericResult(factor, analysis)
 
   def solve(
       factor: SparseDirectNumericFactor,
@@ -265,11 +264,13 @@ object SparseDirect:
   ): Either[LinAlgError, SparseVectorSolve] =
     validateVectorSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val destination = MutableDVec.zeros(factor.solutionRows(operation))
-      factor.solveVectorInto(rhs, destination, operation, workspace).flatMap: diagnostics =>
-        validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = 1).map: validDiagnostics =>
-          // Provider hooks receive the mutable destination and may retain it.
-          // Snapshot before returning an immutable public result.
-          SparseVectorSolve(destination.toVec, validDiagnostics)
+      factor
+        .solveVectorInto(rhs, destination, operation, workspace)
+        .flatMap: diagnostics =>
+          validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = 1).map: validDiagnostics =>
+            // Provider hooks receive the mutable destination and may retain it.
+            // Snapshot before returning an immutable public result.
+            SparseVectorSolve(destination.toVec, validDiagnostics)
 
   def solveInto(
       factor: SparseDirectNumericFactor,
@@ -302,9 +303,11 @@ object SparseDirect:
   ): Either[LinAlgError, SparseMatrixSolve] =
     validateMatrixSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val destination = DMatBuilder.zeros(factor.solutionRows(operation), rhs.cols)
-      factor.solveMatrixInto(rhs, destination, operation, workspace).flatMap: diagnostics =>
-        validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = rhs.cols).map: validDiagnostics =>
-          SparseMatrixSolve(destination.result(), validDiagnostics)
+      factor
+        .solveMatrixInto(rhs, destination, operation, workspace)
+        .flatMap: diagnostics =>
+          validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = rhs.cols).map: validDiagnostics =>
+            SparseMatrixSolve(destination.result(), validDiagnostics)
 
   def solve(
       factor: SparseDirectNumericFactor,
@@ -390,8 +393,8 @@ object SparseDirect:
       Left(LinAlgError.InvalidArgument("symbolic analysis reports a different input pattern"))
     else if analysis.columnPermutation.rows != pattern.cols || analysis.columnPermutation.cols != pattern.cols then
       Left(LinAlgError.InvalidArgument("symbolic analysis returned a malformed column permutation"))
-    else if analysis.diagnostics.providerName != provider.name || analysis.diagnostics.factorization != factorization then
-      Left(LinAlgError.InvalidArgument("symbolic analysis returned inconsistent diagnostics"))
+    else if analysis.diagnostics.providerName != provider.name || analysis.diagnostics.factorization != factorization
+    then Left(LinAlgError.InvalidArgument("symbolic analysis returned inconsistent diagnostics"))
     else Right(())
 
   private def validateNumericResult(
@@ -409,9 +412,8 @@ object SparseDirect:
       Left(LinAlgError.InvalidArgument("numeric factor returned a malformed row permutation"))
     else if factor.columnPermutation.rows != factor.inputCols || factor.columnPermutation.cols != factor.inputCols then
       Left(LinAlgError.InvalidArgument("numeric factor returned a malformed column permutation"))
-    else if
-      factor.diagnostics.providerName != factor.provider.name ||
-        factor.diagnostics.factorization != factor.factorization
+    else if factor.diagnostics.providerName != factor.provider.name ||
+      factor.diagnostics.factorization != factor.factorization
     then Left(LinAlgError.InvalidArgument("numeric factor returned inconsistent diagnostics"))
     else Right(())
 
@@ -505,14 +507,14 @@ object SparseDirect:
     else if workspace.isClosed then closed("workspace")
     else Right(())
 
-  /** A provider-created resource is provisionally owned by the facade until its
-    * returned-handle contract passes. Rejected resources must not escape or leak.
+  /** A provider-created resource is provisionally owned by the facade until its returned-handle contract passes.
+    * Rejected resources must not escape or leak.
     */
   private def acceptReturnedResource[R <: SparseDirectResource](
       resource: R
   )(validation: => Either[LinAlgError, Unit]): Either[LinAlgError, R] =
     validation match
-      case Right(()) => Right(resource)
+      case Right(())   => Right(resource)
       case Left(error) =>
         try resource.close()
         catch case NonFatal(closeFailure) => error.addSuppressed(closeFailure)

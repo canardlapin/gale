@@ -6,30 +6,24 @@ import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.solvers.Preconditioner
 
-/** Raw numeric carriers a [[SpectralBackend]] returns — public, invariant-free
-  * containers holding only what a native routine naturally produces. The facade
-  * (in `gale.spectral`) canonicalizes each into the corresponding sealed result
-  * type (`private[spectral]` constructor after migration step 0), imposing gale's
-  * ordering/packing and re-deriving residuals; a backend never builds a result
-  * type (§ 1.2 of `docs/spectral-backend-boundary.md`).
+/** Raw numeric carriers a [[SpectralBackend]] returns — public, invariant-free containers holding only what a native
+  * routine naturally produces. The facade (in `gale.spectral`) canonicalizes each into the corresponding sealed result
+  * type (`private[spectral]` constructor after migration step 0), imposing gale's ordering/packing and re-deriving
+  * residuals; a backend never builds a result type (§ 1.2 of `docs/spectral-backend-boundary.md`).
   *
-  * Shape contract (seam S8): for an `n×n` input, `values` must carry exactly `n`
-  * eigenvalues (any order — the facade sorts ascending), and when vectors were
-  * requested `vectors` must carry AT LEAST the leading `n` eigenvector columns
-  * over `n` rows ([[RawSvd]]'s slack rule; excess columns are sliced). The facade
-  * rejects a malformed carrier loudly as a conformance violation.
+  * Shape contract (seam S8): for an `n×n` input, `values` must carry exactly `n` eigenvalues (any order — the facade
+  * sorts ascending), and when vectors were requested `vectors` must carry AT LEAST the leading `n` eigenvector columns
+  * over `n` rows ([[RawSvd]]'s slack rule; excess columns are sliced). The facade rejects a malformed carrier loudly as
+  * a conformance violation.
   */
 final case class RawSymmetricEigen(values: DVec, vectors: DMat)
 
-/** Raw converged Ritz pairs from an iterative generalized symmetric-definite
-  * provider.
+/** Raw converged Ritz pairs from an iterative generalized symmetric-definite provider.
   *
-  * `values` and the leading aligned columns of `vectors` may arrive in any
-  * order. `convergence.converged` must equal `values.length`, and `vectors`
-  * must contain at least that many columns over the ambient `n` rows even when
-  * the caller requested values only: the facade needs vectors to independently
-  * derive true generalized residuals and B-orthogonality before discarding
-  * them from the public result. The facade owns all normalization, ordering,
+  * `values` and the leading aligned columns of `vectors` may arrive in any order. `convergence.converged` must equal
+  * `values.length`, and `vectors` must contain at least that many columns over the ambient `n` rows even when the
+  * caller requested values only: the facade needs vectors to independently derive true generalized residuals and
+  * B-orthogonality before discarding them from the public result. The facade owns all normalization, ordering,
   * validation, and diagnostics.
   */
 final case class RawIterativeGeneralizedEigen(
@@ -41,26 +35,22 @@ final case class RawIterativeGeneralizedEigen(
 /** Raw nonsymmetric eigendecomposition, real-Schur SoA as `geev`/`dgeev` emit. */
 final case class RawNonsymmetricEigen(re: DVec, im: DVec, rightPacked: DMat, leftPacked: Option[DMat])
 
-/** Raw SVD triplets in any order — the facade fixes the descending layout.
-  * Shape contract: for an `m×n` input with `p = min(m, n)`, `sigma.length`
-  * must be exactly `p`. When vectors were requested, `u` must have `m` rows
-  * and at least the leading `p` singular-vector columns (`u.cols >= p`; a full
-  * `m×m` LAPACK `jobz='A'` factor is fine), while `vt` must have at least the
-  * leading `p` rows and exactly `n` columns. The facade slices the leading
-  * economy block and discards only the permitted excess columns/rows.
+/** Raw SVD triplets in any order — the facade fixes the descending layout. Shape contract: for an `m×n` input with
+  * `p = min(m, n)`, `sigma.length` must be exactly `p`. When vectors were requested, `u` must have `m` rows and at
+  * least the leading `p` singular-vector columns (`u.cols >= p`; a full `m×m` LAPACK `jobz='A'` factor is fine), while
+  * `vt` must have at least the leading `p` rows and exactly `n` columns. The facade slices the leading economy block
+  * and discards only the permitted excess columns/rows.
   */
 final case class RawSvd(sigma: DVec, u: DMat, vt: DMat)
 
-/** Raw generalized (QZ) eigendecomposition — the projective `(α, β)` SoA spectrum
-  * (`beta == 0.0` marks an infinite eigenvalue), real-Schur packed vectors, and
-  * the optional generalized-Schur factors (present iff the backend is
+/** Raw generalized (QZ) eigendecomposition — the projective `(α, β)` SoA spectrum (`beta == 0.0` marks an infinite
+  * eigenvalue), real-Schur packed vectors, and the optional generalized-Schur factors (present iff the backend is
   * [[SpectralCapability.GeneralizedSchur]]-capable).
   *
-  * '''Contract: `beta(i) ≥ 0` for every `i`''' (the LAPACK `ggev`/`gges`
-  * convention). This is load-bearing: the facade's projective sorter compares
-  * `α/β` by cross-multiplication, which stays a valid total order only for
-  * non-negative `β`; a negative `β` is rejected by the facade with
-  * `Left(InvalidArgument)` as a conformance violation, not silently mis-sorted.
+  * '''Contract: `beta(i) ≥ 0` for every `i`''' (the LAPACK `ggev`/`gges` convention). This is load-bearing: the
+  * facade's projective sorter compares `α/β` by cross-multiplication, which stays a valid total order only for
+  * non-negative `β`; a negative `β` is rejected by the facade with `Left(InvalidArgument)` as a conformance violation,
+  * not silently mis-sorted.
   */
 final case class RawGeneralizedEigen(
     alphaRe: DVec,
@@ -71,30 +61,26 @@ final case class RawGeneralizedEigen(
     schur: Option[QzSchur]
 )
 
-/** Raw GSVD factors — `c`, `s` as direct column norms (the facade classifies the
-  * typed generalized singular values and imposes the descending order).
+/** Raw GSVD factors — `c`, `s` as direct column norms (the facade classifies the typed generalized singular values and
+  * imposes the descending order).
   */
 final case class RawGsvd(u: DMat, v: DMat, x: DMat, c: DVec, s: DVec)
 
-/** Optional generalized-Schur factors `A = Q·AA·Zᵀ`, `B = Q·BB·Zᵀ` — supplied only
-  * by a [[SpectralCapability.GeneralizedSchur]]-capable backend; not required by the
-  * boundary (§ 4, non-goal 6).
+/** Optional generalized-Schur factors `A = Q·AA·Zᵀ`, `B = Q·BB·Zᵀ` — supplied only by a
+  * [[SpectralCapability.GeneralizedSchur]]-capable backend; not required by the boundary (§ 4, non-goal 6).
   */
 final case class QzSchur(aa: DMat, bb: DMat, q: DMat, z: DMat)
 
-/** The counts an iterative/rank-revealing backend alone knows, carried alongside a
-  * raw carrier: iteration count, requested/converged pair counts, and numerical
-  * rank where meaningful. Dense one-shot methods report `iterations = 0`,
-  * `converged = requested`, and let the facade derive `rank` (§ 1.5).
+/** The counts an iterative/rank-revealing backend alone knows, carried alongside a raw carrier: iteration count,
+  * requested/converged pair counts, and numerical rank where meaningful. Dense one-shot methods report
+  * `iterations = 0`, `converged = requested`, and let the facade derive `rank` (§ 1.5).
   */
 final case class BackendConvergence(requested: Int, converged: Int, iterations: Int, rank: Option[Int] = None)
 
-/** The operation-level capabilities a [[SpectralBackend]] may advertise (§ 1.1).
-  * Distinct from the general kernel-acceleration `Capability` enum: these are
-  * "can this backend do QZ at all?", not "does it make `gemm` fast?".
+/** The operation-level capabilities a [[SpectralBackend]] may advertise (§ 1.1). Distinct from the general
+  * kernel-acceleration `Capability` enum: these are "can this backend do QZ at all?", not "does it make `gemm` fast?".
   *
-  * `ComplexShift` is deliberately absent — off-real-axis targeting needs a complex
-  * tier, which is out (§ 4).
+  * `ComplexShift` is deliberately absent — off-real-axis targeting needs a complex tier, which is out (§ 4).
   */
 enum SpectralCapability:
   case DenseSymmetricEigen, DenseNonsymmetricEigen, DenseSvd
@@ -104,51 +90,41 @@ enum SpectralCapability:
   case ShiftInvertSolve
   case IterativeGeneralized
 
-/** An optional provider of spectral computations the pure core does not ship
-  * (§ 1.1 of `docs/spectral-backend-boundary.md`). Lives in gale-core as an
-  * interface; every implementation is in a separate optional JVM module, brought
-  * into scope by an explicit `given` import (§ 2). Methods take already-validated
-  * dense inputs and return '''raw numeric carriers''' — never the sealed result
-  * types, which the facade builds after canonicalization and residual re-derivation.
+/** An optional provider of spectral computations the pure core does not ship (§ 1.1 of
+  * `docs/spectral-backend-boundary.md`). Lives in gale-core as an interface; every implementation is in a separate
+  * optional JVM module, brought into scope by an explicit `given` import (§ 2). Methods take already-validated dense
+  * inputs and return '''raw numeric carriers''' — never the sealed result types, which the facade builds after
+  * canonicalization and residual re-derivation.
   *
-  * '''Discovery vs invocation.''' [[capabilities]] answers the yes/no question; the
-  * total `Either`-returning methods do the work. A backend that lists a
-  * [[SpectralCapability]] '''MUST''' implement the corresponding method (return a
-  * non-`UnsupportedOperation` for structurally valid input) and '''MUST NOT''' list
-  * one it does not honour. This is a conformance obligation (verified by the laws
-  * conformance suite), not a type-level guarantee.
+  * '''Discovery vs invocation.''' [[capabilities]] answers the yes/no question; the total `Either`-returning methods do
+  * the work. A backend that lists a [[SpectralCapability]] '''MUST''' implement the corresponding method (return a
+  * non-`UnsupportedOperation` for structurally valid input) and '''MUST NOT''' list one it does not honour. This is a
+  * conformance obligation (verified by the laws conformance suite), not a type-level guarantee.
   *
-  * '''Thread-safety (a REQUIREMENT, G1).''' A given `SpectralBackend` is a shared
-  * singleton resolved once and reused across all call sites and threads. An
-  * implementation MUST be safe for concurrent invocation — either stateless, or
-  * internally synchronized (a backend wrapping a non-reentrant native library MUST
-  * serialize internally). Threading configuration does '''not''' flow through this
-  * boundary (G2): a backend reads its thread policy from the shared `BackendConfig`
-  * at construction, and the spectral facades take no per-call threading argument.
+  * '''Thread-safety (a REQUIREMENT, G1).''' A given `SpectralBackend` is a shared singleton resolved once and reused
+  * across all call sites and threads. An implementation MUST be safe for concurrent invocation — either stateless, or
+  * internally synchronized (a backend wrapping a non-reentrant native library MUST serialize internally). Threading
+  * configuration does '''not''' flow through this boundary (G2): a backend reads its thread policy from the shared
+  * `BackendConfig` at construction, and the spectral facades take no per-call threading argument.
   */
 trait SpectralBackend:
   def name: String
   def capabilities: Set[SpectralCapability]
 
-  /** Measured routing crossover for [[denseSymmetricEigen]] — the spectral analog
-    * of `gale.backend.BackendThresholds`' per-routine factorization sizes: the S8
-    * facade (`Eigen.eigSymmetric`) routes the dense symmetric eigendecomposition
-    * to this backend only when the matrix order `n` is at least this. Default `0`:
-    * a capability-advertising backend routes at every size (capability alone
-    * gates, as the S7 dense-SVD seam does). A backend family without a committed,
-    * copy-inclusive measured sweep should override with `Int.MaxValue` (never
-    * routed by default) rather than project another family's crossover — the
-    * `FfmBlasThresholds.forLibrary` discipline. Irrelevant when
-    * [[SpectralCapability.DenseSymmetricEigen]] is not advertised.
+  /** Measured routing crossover for [[denseSymmetricEigen]] — the spectral analog of `gale.backend.BackendThresholds`'
+    * per-routine factorization sizes: the S8 facade (`Eigen.eigSymmetric`) routes the dense symmetric
+    * eigendecomposition to this backend only when the matrix order `n` is at least this. Default `0`: a
+    * capability-advertising backend routes at every size (capability alone gates, as the S7 dense-SVD seam does). A
+    * backend family without a committed, copy-inclusive measured sweep should override with `Int.MaxValue` (never
+    * routed by default) rather than project another family's crossover — the `FfmBlasThresholds.forLibrary` discipline.
+    * Irrelevant when [[SpectralCapability.DenseSymmetricEigen]] is not advertised.
     */
   def denseSymmetricEigenMinSize: Int = 0
 
-  /** The S8 routing gate in one place (the `Backend.routesGemm` discipline): route
-    * the dense symmetric eigendecomposition to this backend iff it advertises
-    * [[SpectralCapability.DenseSymmetricEigen]] and `n` clears
-    * [[denseSymmetricEigenMinSize]]. Every symmetric-eigen seam must call this
-    * rather than re-spelling the predicate, so the routing policy cannot drift
-    * between sites.
+  /** The S8 routing gate in one place (the `Backend.routesGemm` discipline): route the dense symmetric
+    * eigendecomposition to this backend iff it advertises [[SpectralCapability.DenseSymmetricEigen]] and `n` clears
+    * [[denseSymmetricEigenMinSize]]. Every symmetric-eigen seam must call this rather than re-spelling the predicate,
+    * so the routing policy cannot drift between sites.
     */
   final def routesDenseSymmetricEigen(n: Int): Boolean =
     capabilities.contains(SpectralCapability.DenseSymmetricEigen) && n >= denseSymmetricEigenMinSize
@@ -182,9 +158,8 @@ trait SpectralBackend:
     val _ = wantVectors
     unsupported("rank-deficient GSVD")
 
-  /** Iterative generalized symmetric-definite Ritz pairs for already validated
-    * operators. Providers must not infer this capability from a dense
-    * generalized eigendecomposition and must not materialize either operator.
+  /** Iterative generalized symmetric-definite Ritz pairs for already validated operators. Providers must not infer this
+    * capability from a dense generalized eigendecomposition and must not materialize either operator.
     */
   def iterativeGeneralizedEigen(
       a: DoubleLinearOperator,
@@ -206,9 +181,8 @@ trait SpectralBackend:
 
   /** Return an executable solve for `A - sigma I` or `A - sigma B`.
     *
-    * Advertising [[SpectralCapability.ShiftInvertSolve]] commits the backend to
-    * returning gale's typed solve boundary, including ownership and per-call
-    * diagnostics. The backend may factor internally because the caller selected
+    * Advertising [[SpectralCapability.ShiftInvertSolve]] commits the backend to returning gale's typed solve boundary,
+    * including ownership and per-call diagnostics. The backend may factor internally because the caller selected
     * [[LinearSolvePlan.Backend]] explicitly; gale never routes here implicitly.
     */
   def shiftInvertSolve(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, LinearSolveOperator] =
@@ -222,21 +196,18 @@ trait SpectralBackend:
 
 object SpectralBackend:
 
-  /** The always-in-scope, lowest-priority fallback: no capabilities, every
-    * operation `Left(UnsupportedOperation)`. With no acceleration module imported
-    * this is the only candidate for a `using SpectralBackend`, so every
-    * backend-scoped call reproduces today's seam behaviour exactly (§ 2.1).
+  /** The always-in-scope, lowest-priority fallback: no capabilities, every operation `Left(UnsupportedOperation)`. With
+    * no acceleration module imported this is the only candidate for a `using SpectralBackend`, so every backend-scoped
+    * call reproduces today's seam behaviour exactly (§ 2.1).
     */
   given none: SpectralBackend with
     def name: String = "none"
     def capabilities: Set[SpectralCapability] = Set.empty
 
-  /** A composite whose [[SpectralBackend.capabilities]] is the '''union''' of the
-    * parts, dispatching each operation to the '''first''' part whose `capabilities`
-    * contains the needed capability (earlier parts win on overlap). This is how a
-    * user combines several capability-disjoint engines: importing two `given`s is a
-    * compile-time ambiguity, so instead they import the backend '''values''' and
-    * declare one composite `given` (§ 2.2).
+  /** A composite whose [[SpectralBackend.capabilities]] is the '''union''' of the parts, dispatching each operation to
+    * the '''first''' part whose `capabilities` contains the needed capability (earlier parts win on overlap). This is
+    * how a user combines several capability-disjoint engines: importing two `given`s is a compile-time ambiguity, so
+    * instead they import the backend '''values''' and declare one composite `given` (§ 2.2).
     *
     * Thread-safety follows from the parts' (G1): `compose` adds no mutable state.
     */

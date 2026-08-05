@@ -4,8 +4,7 @@ import gale.linalg.DMat
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 
-/** Portable first-order methods selected from the structure exposed by a
-  * downstream objective.
+/** Portable first-order methods selected from the structure exposed by a downstream objective.
   */
 enum FirstOrderMethod:
   case ProximalGradient
@@ -33,13 +32,13 @@ enum FirstOrderError:
 
   def message: String =
     this match
-      case InvalidConfiguration(detail) => detail
+      case InvalidConfiguration(detail)                     => detail
       case ShapeMismatch(context, expectedRows, actualRows) =>
         s"$context expected $expectedRows rows, got $actualRows"
       case NonFiniteValue(context, index, value) =>
         s"$context value at linear index $index is not finite: $value"
-      case OracleFailure(context, detail) => s"$context failed: $detail"
-      case OperatorFailure(context, cause) => s"$context failed: ${cause.getMessage}"
+      case OracleFailure(context, detail)                      => s"$context failed: $detail"
+      case OperatorFailure(context, cause)                     => s"$context failed: ${cause.getMessage}"
       case MissingCapability(requested, compatible, available) =>
         val requestedText = requested.fold("automatic selection")(_.toString)
         s"$requestedText is unavailable; compatible methods are ${compatible.mkString(", ")}; " +
@@ -160,8 +159,8 @@ final case class FirstOrderSettings(
 
 /** A stopping certificate bound to the exact returned primal and dual values.
   *
-  * Residuals certify the implemented fixed-point equations under `settings`;
-  * they do not assert application-specific statistical validity.
+  * Residuals certify the implemented fixed-point equations under `settings`; they do not assert application-specific
+  * statistical validity.
   */
 final case class FirstOrderCertificate(
     primal: ValueSummary,
@@ -230,8 +229,8 @@ trait LinearCompositeFunctional:
 
 /** A linear operator paired with a caller-certified induced-norm upper bound.
   *
-  * Gale validates the shape of the claim, but does not estimate or prove the
-  * bound. An underestimate invalidates the primal-dual step-size premise.
+  * Gale validates the shape of the claim, but does not estimate or prove the bound. An underestimate invalidates the
+  * primal-dual step-size premise.
   */
 final case class BoundedLinearOperator private (
     linearOperator: DoubleLinearOperator,
@@ -250,14 +249,17 @@ object BoundedLinearOperator:
         )
       )
     else if !normUpperBound.isFinite || normUpperBound < 0.0 then
-      Left(FirstOrderError.InvalidConfiguration(s"operator norm bound must be finite and non-negative, got $normUpperBound"))
+      Left(
+        FirstOrderError.InvalidConfiguration(
+          s"operator norm bound must be finite and non-negative, got $normUpperBound"
+        )
+      )
     else Right(BoundedLinearOperator(linearOperator, normUpperBound))
 
 /** Portable proximal, projected, and primal-dual first-order solvers.
   *
-  * Iteration exhaustion returns a successful [[FirstOrderSolution]] with
-  * [[FirstOrderStoppingStatus.IterationLimit]]; it is never relabeled as
-  * convergence.
+  * Iteration exhaustion returns a successful [[FirstOrderSolution]] with [[FirstOrderStoppingStatus.IterationLimit]];
+  * it is never relabeled as convergence.
   */
 object FirstOrderSolvers:
   def proximalGradient(
@@ -269,7 +271,11 @@ object FirstOrderSolvers:
     if smooth.variableRows != term.variableRows then
       Left(FirstOrderError.ShapeMismatch("proximal term", smooth.variableRows, term.variableRows))
     else if !smooth.lipschitz.isFinite || smooth.lipschitz <= 0.0 then
-      Left(FirstOrderError.InvalidConfiguration(s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"))
+      Left(
+        FirstOrderError.InvalidConfiguration(
+          s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"
+        )
+      )
     else
       for
         _ <- validateMatrix("initial value", initial, smooth.variableRows)
@@ -284,7 +290,10 @@ object FirstOrderSolvers:
             for
               gradient <- smooth.gradient(value)
               _ <- validateLike("smooth gradient", gradient, value)
-              next <- term.proximal(subtract(value, scale(gradient, config.stepSafety / smooth.lipschitz)), config.stepSafety / smooth.lipschitz)
+              next <- term.proximal(
+                subtract(value, scale(gradient, config.stepSafety / smooth.lipschitz)),
+                config.stepSafety / smooth.lipschitz
+              )
               _ <- validateLike("proximal result", next, value)
               objective <- combinedValue(smooth, term, next)
             yield next -> objective
@@ -300,7 +309,11 @@ object FirstOrderSolvers:
     if smooth.variableRows != feasible.variableRows then
       Left(FirstOrderError.ShapeMismatch("projection set", smooth.variableRows, feasible.variableRows))
     else if !smooth.lipschitz.isFinite || smooth.lipschitz <= 0.0 then
-      Left(FirstOrderError.InvalidConfiguration(s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"))
+      Left(
+        FirstOrderError.InvalidConfiguration(
+          s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"
+        )
+      )
     else
       val step = config.stepSafety / smooth.lipschitz
       for
@@ -331,9 +344,14 @@ object FirstOrderSolvers:
       config: FirstOrderConfig = FirstOrderConfig.portable
   ): Either[FirstOrderError, FirstOrderSolution] =
     if operator.linearOperator.cols != primalObjective.variableRows then
-      Left(FirstOrderError.ShapeMismatch("linear-composite source", primalObjective.variableRows, operator.linearOperator.cols))
+      Left(
+        FirstOrderError
+          .ShapeMismatch("linear-composite source", primalObjective.variableRows, operator.linearOperator.cols)
+      )
     else if operator.linearOperator.rows != functional.targetRows then
-      Left(FirstOrderError.ShapeMismatch("linear-composite target", functional.targetRows, operator.linearOperator.rows))
+      Left(
+        FirstOrderError.ShapeMismatch("linear-composite target", functional.targetRows, operator.linearOperator.rows)
+      )
     else
       for
         _ <- validateMatrix("initial value", initial, primalObjective.variableRows)
@@ -351,10 +369,9 @@ object FirstOrderSolvers:
 
   /** Condat--Vu splitting for `f(x) + h(x) + g(Kx)`.
     *
-    * `f` is differentiable with a certified Lipschitz bound, `h` has an exact
-    * proximal map, and `g` has an exact conjugate proximal map. The chosen
-    * steps satisfy `tau < 2 / L` and `tau * sigma * ||K||^2 < 1` from the
-    * supplied upper bound, including the zero-operator case.
+    * `f` is differentiable with a certified Lipschitz bound, `h` has an exact proximal map, and `g` has an exact
+    * conjugate proximal map. The chosen steps satisfy `tau < 2 / L` and `tau * sigma * ||K||^2 < 1` from the supplied
+    * upper bound, including the zero-operator case.
     */
   def smoothCompositePrimalDual(
       smooth: SmoothObjective,
@@ -369,9 +386,15 @@ object FirstOrderSolvers:
     else if operator.linearOperator.cols != smooth.variableRows then
       Left(FirstOrderError.ShapeMismatch("smooth-composite source", smooth.variableRows, operator.linearOperator.cols))
     else if operator.linearOperator.rows != functional.targetRows then
-      Left(FirstOrderError.ShapeMismatch("smooth-composite target", functional.targetRows, operator.linearOperator.rows))
+      Left(
+        FirstOrderError.ShapeMismatch("smooth-composite target", functional.targetRows, operator.linearOperator.rows)
+      )
     else if !smooth.lipschitz.isFinite || smooth.lipschitz <= 0.0 then
-      Left(FirstOrderError.InvalidConfiguration(s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"))
+      Left(
+        FirstOrderError.InvalidConfiguration(
+          s"smooth Lipschitz bound must be finite and positive, got ${smooth.lipschitz}"
+        )
+      )
     else
       for
         _ <- validateMatrix("initial value", initial, smooth.variableRows)
@@ -405,7 +428,7 @@ object FirstOrderSolvers:
     var error = Option.empty[FirstOrderError]
     while iteration < config.maxIterations && !converged && error.isEmpty do
       update(current) match
-        case Left(value) => error = Some(value)
+        case Left(value)                  => error = Some(value)
         case Right((next, nextObjective)) =>
           residual = maxAbs(subtract(next, current)) / step
           objectiveChange = Math.abs(nextObjective - objective)
@@ -417,7 +440,7 @@ object FirstOrderSolvers:
             objectiveChange <= config.tolerance.threshold(Math.max(1.0, Math.abs(objective)))
     error match
       case Some(value) => Left(value)
-      case None =>
+      case None        =>
         val status = if converged then FirstOrderStoppingStatus.Converged else FirstOrderStoppingStatus.IterationLimit
         val currentCertificate = certificate(
           method,
@@ -475,7 +498,7 @@ object FirstOrderSolvers:
           )
         yield (nextPrimal, nextDual, nextObjective, residuals._1, residuals._2)
       updated match
-        case Left(value) => error = Some(value)
+        case Left(value)                                                                        => error = Some(value)
         case Right((nextPrimal, nextDual, nextObjective, nextPrimalResidual, nextDualResidual)) =>
           extrapolated = add(
             nextPrimal,
@@ -495,7 +518,7 @@ object FirstOrderSolvers:
             objectiveChange <= config.tolerance.threshold(Math.max(1.0, Math.abs(objective)))
     error match
       case Some(value) => Left(value)
-      case None =>
+      case None        =>
         val status = if converged then FirstOrderStoppingStatus.Converged else FirstOrderStoppingStatus.IterationLimit
         val currentCertificate = certificate(
           FirstOrderMethod.LinearCompositePrimalDual,
@@ -560,7 +583,7 @@ object FirstOrderSolvers:
           )
         yield (nextPrimal, nextDual, nextObjective, residuals._1, residuals._2)
       updated match
-        case Left(value) => error = Some(value)
+        case Left(value)                                                                        => error = Some(value)
         case Right((nextPrimal, nextDual, nextObjective, nextPrimalResidual, nextDualResidual)) =>
           extrapolated = add(nextPrimal, scale(subtract(nextPrimal, primal), config.extrapolation))
           primal = nextPrimal
@@ -577,7 +600,7 @@ object FirstOrderSolvers:
             objectiveChange <= config.tolerance.threshold(Math.max(1.0, Math.abs(objective)))
     error match
       case Some(value) => Left(value)
-      case None =>
+      case None        =>
         val status = if converged then FirstOrderStoppingStatus.Converged else FirstOrderStoppingStatus.IterationLimit
         val currentCertificate = certificate(
           FirstOrderMethod.SmoothCompositePrimalDual,
@@ -738,10 +761,16 @@ object ExactLinearReduction:
       )
     else
       for
-        image <- basis.applyTo(DMat.eye(basis.cols)).left.map: error =>
-          FirstOrderError.OperatorFailure("null-space basis", error)
-        residualValue <- constraint.applyTo(image).left.map: error =>
-          FirstOrderError.OperatorFailure("null-space constraint", error)
+        image <- basis
+          .applyTo(DMat.eye(basis.cols))
+          .left
+          .map: error =>
+            FirstOrderError.OperatorFailure("null-space basis", error)
+        residualValue <- constraint
+          .applyTo(image)
+          .left
+          .map: error =>
+            FirstOrderError.OperatorFailure("null-space constraint", error)
         _ <-
           if residualValue.cols != basis.cols then
             Left(
@@ -755,17 +784,16 @@ object ExactLinearReduction:
         _ <-
           if residual <= threshold then Right(())
           else Left(FirstOrderError.InvalidReduction(s"null-space residual $residual exceeds threshold $threshold"))
-      yield
-        LinearReductionCertificate(
-          basis.cols,
-          basis.rows,
-          constraint.rows,
-          ValueSummary.from(image),
-          ValueSummary.from(residualValue),
-          residual,
-          threshold,
-          tolerance
-        )
+      yield LinearReductionCertificate(
+        basis.cols,
+        basis.rows,
+        constraint.rows,
+        ValueSummary.from(image),
+        ValueSummary.from(residualValue),
+        residual,
+        threshold,
+        tolerance
+      )
 
 final case class LinearReductionCertificate(
     freeRows: Int,
@@ -785,8 +813,7 @@ private def validateMatrix(
     value: DMat,
     expectedRows: Int
 ): Either[FirstOrderError, Unit] =
-  if value.rows != expectedRows then
-    Left(FirstOrderError.ShapeMismatch(context, expectedRows, value.rows))
+  if value.rows != expectedRows then Left(FirstOrderError.ShapeMismatch(context, expectedRows, value.rows))
   else
     var row = 0
     var linearIndex = 0
@@ -795,8 +822,7 @@ private def validateMatrix(
       var column = 0
       while column < value.cols && error.isEmpty do
         val current = value(row, column)
-        if !current.isFinite then
-          error = Some(FirstOrderError.NonFiniteValue(context, linearIndex, current))
+        if !current.isFinite then error = Some(FirstOrderError.NonFiniteValue(context, linearIndex, current))
         column += 1
         linearIndex += 1
       row += 1

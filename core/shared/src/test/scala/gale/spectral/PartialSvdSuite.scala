@@ -7,11 +7,10 @@ import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 import gale.linalg.MutableDVec
 
-/** Tests for the partial SVD facade `Svd.svd` — Golub–Kahan–Lanczos
-  * bidiagonalization solved via the Jordan–Wielandt augmented tridiagonal.
-  * Convergence tests use well-separated spectra (the honest scope for plain GKL,
-  * as with the Lanczos eigensolver); accuracy is checked by two-sided residuals,
-  * U/V orthonormality, and cross-checking against the Gram matrix's eigenvalues.
+/** Tests for the partial SVD facade `Svd.svd` — Golub–Kahan–Lanczos bidiagonalization solved via the Jordan–Wielandt
+  * augmented tridiagonal. Convergence tests use well-separated spectra (the honest scope for plain GKL, as with the
+  * Lanczos eigensolver); accuracy is checked by two-sided residuals, U/V orthonormality, and cross-checking against the
+  * Gram matrix's eigenvalues.
   */
 class PartialSvdSuite extends munit.FunSuite:
 
@@ -24,8 +23,8 @@ class PartialSvdSuite extends munit.FunSuite:
     val rng = new scala.util.Random(seed)
     Matrix.tabulate(m, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
 
-  /** A rectangular diagonal operator `diag(d)` implementing both `A·x` and `Aᵀ·y`,
-    * to exercise the matrix-free path with a genuine (non-`DMat`) operator.
+  /** A rectangular diagonal operator `diag(d)` implementing both `A·x` and `Aᵀ·y`, to exercise the matrix-free path
+    * with a genuine (non-`DMat`) operator.
     */
   private def diagOperator(m: Int, n: Int, d: Array[Double]): DoubleLinearOperator =
     new DoubleLinearOperator:

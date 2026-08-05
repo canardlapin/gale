@@ -13,10 +13,7 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
   //   col1 = v_re, col2 = v_im of the conjugate pair
   //   col3 = real eigenvector of λ = −5
   private val rightPacked = Matrix.dense(4, 4)(
-    1.0, 0.5, 0.1, 0.0,
-    0.0, 0.6, 0.2, 0.0,
-    0.0, 0.0, 0.7, 0.0,
-    0.0, 0.0, 0.8, 1.0
+    1.0, 0.5, 0.1, 0.0, 0.0, 0.6, 0.2, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 0.0, 0.8, 1.0
   )
 
   private def decomp(left: Option[DMat]): NonsymmetricEigenDecomposition =
@@ -35,8 +32,7 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
       assertEqualsDouble(actual(i), expected(i), 1e-12)
       i += 1
 
-  /** Build a decomposition from raw spectrum and packing, with all-converged
-    * diagnostics sized to the spectrum.
+  /** Build a decomposition from raw spectrum and packing, with all-converged diagnostics sized to the spectrum.
     */
   private def build(reV: Seq[Double], imV: Seq[Double], packed: DMat): NonsymmetricEigenDecomposition =
     new NonsymmetricEigenDecomposition(
@@ -130,10 +126,7 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
       Seq(3.0, -2.0, 1.0, 1.0),
       Seq(0.0, 0.0, 5.0, -5.0),
       Matrix.dense(4, 4)(
-        1.0, 0.0, 0.2, 0.6,
-        0.0, 1.0, 0.3, 0.7,
-        0.0, 0.0, 0.4, 0.8,
-        0.0, 0.0, 0.5, 0.9
+        1.0, 0.0, 0.2, 0.6, 0.0, 1.0, 0.3, 0.7, 0.0, 0.0, 0.4, 0.8, 0.0, 0.0, 0.5, 0.9
       )
     )
     assertEquals(d.eigenvalue(2), Complex(1.0, 5.0))
@@ -152,9 +145,7 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
       Seq(4.0, 4.0, -7.0),
       Seq(6.0, -6.0, 0.0),
       Matrix.dense(3, 3)(
-        0.1, 0.4, 0.0,
-        0.2, 0.5, 0.0,
-        0.3, 0.6, 1.0
+        0.1, 0.4, 0.0, 0.2, 0.5, 0.0, 0.3, 0.6, 1.0
       )
     )
     assertEquals(d.eigenvalue(0), Complex(4.0, 6.0))
@@ -174,10 +165,7 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
       Seq(2.0, 2.0, -3.0, -3.0),
       Seq(1.0, -1.0, 8.0, -8.0),
       Matrix.dense(4, 4)(
-        1.0, 1.2, 0.0, 0.0,
-        1.1, 1.3, 0.0, 0.0,
-        0.0, 0.0, 2.0, 2.2,
-        0.0, 0.0, 2.1, 2.3
+        1.0, 1.2, 0.0, 0.0, 1.1, 1.3, 0.0, 0.0, 0.0, 0.0, 2.0, 2.2, 0.0, 0.0, 2.1, 2.3
       )
     )
     val (re0, im0) = d.eigenvector(0)

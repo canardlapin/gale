@@ -2,12 +2,10 @@ package gale.linalg
 
 /** Plain regression suite for dense shape/edge-case behaviour that stays in core.
   *
-  * The algebraic laws (commutativity, distributivity, linearity, transpose
-  * involution, associativity, strided/transposed-view equivalence) moved to the
-  * gale-laws module (`gale.laws.DenseLawSuite`), where they are expressed through
-  * the reusable [[gale.laws.VecLaws]] / [[gale.laws.MatrixLaws]] bundles. What
-  * remains here are the dimension-guard and zero-dimension regressions, which are
-  * edge-case checks rather than algebraic laws.
+  * The algebraic laws (commutativity, distributivity, linearity, transpose involution, associativity,
+  * strided/transposed-view equivalence) moved to the gale-laws module (`gale.laws.DenseLawSuite`), where they are
+  * expressed through the reusable [[gale.laws.VecLaws]] / [[gale.laws.MatrixLaws]] bundles. What remains here are the
+  * dimension-guard and zero-dimension regressions, which are edge-case checks rather than algebraic laws.
   */
 class DenseLawSuite extends munit.FunSuite:
   test("shape checks reject invalid matvec and vector dot inputs") {

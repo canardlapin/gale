@@ -3,8 +3,7 @@ package gale.linalg
 class LinearOperatorSuite extends munit.FunSuite:
   test("DMat acts as a DoubleLinearOperator") {
     val A = Matrix.dense(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
     val y = MutableVec.zeros(2)
 
@@ -45,13 +44,10 @@ class LinearOperatorSuite extends munit.FunSuite:
 
   test("operators apply to matrix right-hand sides in one batch result") {
     val operator = Matrix.dense(2, 3)(
-      1.0, 2.0, 0.0,
-      -1.0, 0.0, 3.0
+      1.0, 2.0, 0.0, -1.0, 0.0, 3.0
     )
     val input = Matrix.dense(3, 2)(
-      1.0, 4.0,
-      2.0, 5.0,
-      3.0, 6.0
+      1.0, 4.0, 2.0, 5.0, 3.0, 6.0
     )
 
     val actual = operator.applyTo(input).orThrow
@@ -62,13 +58,10 @@ class LinearOperatorSuite extends munit.FunSuite:
 
   test("adjoint, composition, scaling, and restrictions obey operator laws") {
     val a = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      0.0, -1.0,
-      3.0, 1.0
+      1.0, 2.0, 0.0, -1.0, 3.0, 1.0
     )
     val b = Matrix.dense(2, 3)(
-      2.0, 0.0, 1.0,
-      -1.0, 4.0, 0.0
+      2.0, 0.0, 1.0, -1.0, 4.0, 0.0
     )
     val x = Vec(0.5, -2.0, 3.0)
     val y = Vec(1.0, -1.0, 2.0)
@@ -87,8 +80,10 @@ class LinearOperatorSuite extends munit.FunSuite:
 
   test("block diagonal and rectangular block operators match dense assembly") {
     val a = Matrix.dense(2, 2)(
-      1.0, 2.0,
-      3.0, 4.0
+      1.0,
+      2.0,
+      3.0,
+      4.0
     )
     val b = Matrix.dense(1, 1)(5.0)
     val diagonal = LinearOperator.blockDiagonal(Vector(a, b)).orThrow
@@ -98,20 +93,22 @@ class LinearOperatorSuite extends munit.FunSuite:
     val topLeft = Matrix.dense(1, 2)(1.0, 2.0)
     val topRight = Matrix.dense(1, 1)(3.0)
     val bottomLeft = Matrix.dense(2, 2)(
-      4.0, 5.0,
-      6.0, 7.0
+      4.0,
+      5.0,
+      6.0,
+      7.0
     )
     val bottomRight = Matrix.dense(2, 1)(8.0, 9.0)
-    val blocked = LinearOperator.block(
-      Vector(
-        Vector(topLeft, topRight),
-        Vector(bottomLeft, bottomRight)
+    val blocked = LinearOperator
+      .block(
+        Vector(
+          Vector(topLeft, topRight),
+          Vector(bottomLeft, bottomRight)
+        )
       )
-    ).orThrow
+      .orThrow
     val dense = Matrix.dense(3, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 8.0,
-      6.0, 7.0, 9.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 8.0, 6.0, 7.0, 9.0
     )
     val input = Vec(1.0, -2.0, 0.5)
 
@@ -121,13 +118,10 @@ class LinearOperatorSuite extends munit.FunSuite:
 
   test("Kronecker operators match dense products without materialization") {
     val left = Matrix.dense(2, 3)(
-      1.0, 2.0, -1.0,
-      0.5, 0.0, 3.0
+      1.0, 2.0, -1.0, 0.5, 0.0, 3.0
     )
     val right = Matrix.dense(3, 2)(
-      2.0, 0.0,
-      -1.0, 4.0,
-      0.5, 1.0
+      2.0, 0.0, -1.0, 4.0, 0.5, 1.0
     )
     val operator = LinearOperator.kronecker(left, right).orThrow
     val dense = left.kron(right)

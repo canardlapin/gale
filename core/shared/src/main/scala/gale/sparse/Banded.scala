@@ -5,14 +5,12 @@ import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
-/** A banded matrix with `kl` subdiagonals and `ku` superdiagonals, stored in the
-  * LAPACK general-band layout.
+/** A banded matrix with `kl` subdiagonals and `ku` superdiagonals, stored in the LAPACK general-band layout.
   *
-  * The band is packed into a `(kl + ku + 1) x cols` dense array `band` (row-major
-  * here), with `A(i, j)` living at `band((ku + i - j) * cols + j)` whenever
-  * `-ku <= i - j <= kl`; entries outside the band are structural zeros and are
-  * not stored. `A(i, i)` sits on band row `ku`. Matvec and transpose-matvec walk
-  * only the stored band, so cost is `O(nnz)` rather than `O(rows * cols)`.
+  * The band is packed into a `(kl + ku + 1) x cols` dense array `band` (row-major here), with `A(i, j)` living at
+  * `band((ku + i - j) * cols + j)` whenever `-ku <= i - j <= kl`; entries outside the band are structural zeros and are
+  * not stored. `A(i, i)` sits on band row `ku`. Matvec and transpose-matvec walk only the stored band, so cost is
+  * `O(nnz)` rather than `O(rows * cols)`.
   */
 final class Banded private[gale] (
     val rows: Int,
@@ -190,8 +188,8 @@ final class Banded private[gale] (
       i += 1
     out
 
-  /** Transpose: an `n x m` banded matrix with `kl` and `ku` swapped. The stored
-    * band is remapped (not shared, since the packed layout differs).
+  /** Transpose: an `n x m` banded matrix with `kl` and `ku` swapped. The stored band is remapped (not shared, since the
+    * packed layout differs).
     */
   def t: Banded =
     val m = rows
@@ -214,9 +212,8 @@ final class Banded private[gale] (
     new Banded(n, m, ku, kl, out)
 
 object Banded:
-  /** Build from diagonals keyed by offset: `0` is the main diagonal, `d > 0` the
-    * `d`-th superdiagonal, `d < 0` the `|d|`-th subdiagonal. Every entry is
-    * `A(i, i + d)` as `i` runs over the diagonal, and each sequence must match its
+  /** Build from diagonals keyed by offset: `0` is the main diagonal, `d > 0` the `d`-th superdiagonal, `d < 0` the
+    * `|d|`-th subdiagonal. Every entry is `A(i, i + d)` as `i` runs over the diagonal, and each sequence must match its
     * diagonal's length. `kl`/`ku` are inferred from the most extreme offsets.
     */
   def fromDiagonals(rows: Int, cols: Int, diagonals: Map[Int, Seq[Double]]): Banded =
@@ -247,8 +244,8 @@ object Banded:
     }
     new Banded(rows, cols, kl, ku, out)
 
-  /** Build from a dense matrix, detecting the tightest lower/upper bandwidth that
-    * contains every nonzero, then packing that band (in-band zeros are stored).
+  /** Build from a dense matrix, detecting the tightest lower/upper bandwidth that contains every nonzero, then packing
+    * that band (in-band zeros are stored).
     */
   def fromDense(A: DMat): Banded =
     val (kl, ku) = detectBandwidth(A)
@@ -266,8 +263,7 @@ object Banded:
       i += 1
     new Banded(rows, cols, kl, ku, out)
 
-  /** The tightest `(kl, ku)` whose band contains every nonzero of `A`. An all-zero
-    * matrix yields `(0, 0)`.
+  /** The tightest `(kl, ku)` whose band contains every nonzero of `A`. An all-zero matrix yields `(0, 0)`.
     */
   def detectBandwidth(A: DMat): (Int, Int) =
     var kl = 0

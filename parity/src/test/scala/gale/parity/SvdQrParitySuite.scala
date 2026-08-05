@@ -7,21 +7,19 @@ import gale.linalg.*
 import gale.parity.ParitySupport.*
 import gale.spectral.*
 
-/** Parity for the two additions that postdate the original harness: partial SVD
-  * (`Svds.svd`, Golub–Kahan–Lanczos) versus Breeze's dense `svd` extremes, and
-  * the blocked / compact-WY QR path (engaged when `min(m, n) > 96`) through the
-  * same invariants the unblocked QR parity uses.
+/** Parity for the two additions that postdate the original harness: partial SVD (`Svds.svd`, Golub–Kahan–Lanczos)
+  * versus Breeze's dense `svd` extremes, and the blocked / compact-WY QR path (engaged when `min(m, n) > 96`) through
+  * the same invariants the unblocked QR parity uses.
   *
-  * Both libraries return singular values '''descending''', so values compare
-  * elementwise. Singular vectors are defined up to sign for simple singular
-  * values — compared via `|⟨u_gale, u_breeze⟩| ≈ 1` per column — and the random
+  * Both libraries return singular values '''descending''', so values compare elementwise. Singular vectors are defined
+  * up to sign for simple singular values — compared via `|⟨u_gale, u_breeze⟩| ≈ 1` per column — and the random
   * rectangular fixtures here have well-separated spectra.
   */
 class SvdQrParitySuite extends munit.FunSuite:
 
-  private val svdTol   = 1e-7
-  private val vecTol   = 1e-6
-  private val qrTol    = 1e-9
+  private val svdTol = 1e-7
+  private val vecTol = 1e-6
+  private val qrTol = 1e-9
   private val solveTol = 1e-9
 
   private def galeColumn(m: DMat, j: Int): IndexedSeq[Double] =
@@ -73,7 +71,12 @@ class SvdQrParitySuite extends munit.FunSuite:
       // gale returns the k smallest, descending; breeze's tail is those values.
       var i = 0
       while i < k do
-        assertScalarClose(g.singularValues(i), b.singularValues(p - k + i), svdTol, s"sigma tail($i) ${m}x$n seed=$seed")
+        assertScalarClose(
+          g.singularValues(i),
+          b.singularValues(p - k + i),
+          svdTol,
+          s"sigma tail($i) ${m}x$n seed=$seed"
+        )
         i += 1
   }
 

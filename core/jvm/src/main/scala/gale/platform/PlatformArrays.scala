@@ -5,20 +5,18 @@ object DoubleArray:
   private[gale] inline def alloc(length: Int): DoubleArray =
     new Array[Double](length)
 
-  /** Expose the raw backing `Array[Double]` without copying. The opaque type is
-    * transparent only inside `gale.platform`, so a JVM-only kernel (e.g. the
-    * Vector-API SIMD backend) that must hand the array to `DoubleVector.fromArray`
-    * calls through here. `private[gale]`, so it is invisible to userland — the
-    * caller owns not mutating storage it does not conceptually own.
+  /** Expose the raw backing `Array[Double]` without copying. The opaque type is transparent only inside
+    * `gale.platform`, so a JVM-only kernel (e.g. the Vector-API SIMD backend) that must hand the array to
+    * `DoubleVector.fromArray` calls through here. `private[gale]`, so it is invisible to userland — the caller owns not
+    * mutating storage it does not conceptually own.
     */
   private[gale] inline def asArray(d: DoubleArray): Array[Double] = d
 
   private[gale] def fromArray(values: Array[Double]): DoubleArray =
     values.clone()
 
-  /** Adopt a raw `Array[Double]` as backing storage without copying. The caller
-    * hands over ownership: it must not mutate `values` afterwards. Used by the
-    * implementation only to avoid a redundant clone of freshly allocated data.
+  /** Adopt a raw `Array[Double]` as backing storage without copying. The caller hands over ownership: it must not
+    * mutate `values` afterwards. Used by the implementation only to avoid a redundant clone of freshly allocated data.
     */
   private[gale] def adopt(values: Array[Double]): DoubleArray =
     values
@@ -27,8 +25,8 @@ object DoubleArray:
   private[gale] def copy(array: DoubleArray): DoubleArray =
     array.clone()
 
-  /** True when both handles refer to the same underlying storage. Used to
-    * reject aliased in-place destinations before a kernel corrupts them.
+  /** True when both handles refer to the same underlying storage. Used to reject aliased in-place destinations before a
+    * kernel corrupts them.
     */
   private[gale] def sameStorage(x: DoubleArray, y: DoubleArray): Boolean =
     x.asInstanceOf[AnyRef] eq y.asInstanceOf[AnyRef]

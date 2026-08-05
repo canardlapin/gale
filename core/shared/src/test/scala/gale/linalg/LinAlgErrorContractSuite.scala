@@ -51,7 +51,10 @@ class LinAlgErrorContractSuite extends munit.FunSuite:
     )
     assert(failure.failure eq cause)
     assertEquals(failure.outerIteration, 2)
-    assertEquals(failure.getMessage, "inner solve failed at outer iteration 2 after 1 completed solves and 9 inner iterations; operatorApplications=11: matrix is not positive definite at leading minor 4")
+    assertEquals(
+      failure.getMessage,
+      "inner solve failed at outer iteration 2 after 1 completed solves and 9 inner iterations; operatorApplications=11: matrix is not positive definite at leading minor 4"
+    )
 
   test("free-form boundary errors preserve their supplied diagnostic"):
     val invalid = LinAlgError.InvalidArgument("tolerance must be finite and non-negative")

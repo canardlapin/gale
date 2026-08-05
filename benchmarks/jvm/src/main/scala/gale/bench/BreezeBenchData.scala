@@ -9,18 +9,15 @@ import gale.linalg.Vec
 
 /** Seeded input generators shared by the paired gale-vs-Breeze JMH benchmarks.
   *
-  * Every input is generated once as a plain array and then handed to '''both'''
-  * libraries, so a gale benchmark and its Breeze twin run on identical data at the
-  * same `@Param` size. Generation happens in `@Setup` (never in a timed method), so
-  * these allocations do not count against per-invocation cost.
+  * Every input is generated once as a plain array and then handed to '''both''' libraries, so a gale benchmark and its
+  * Breeze twin run on identical data at the same `@Param` size. Generation happens in `@Setup` (never in a timed
+  * method), so these allocations do not count against per-invocation cost.
   *
-  * Self-contained on purpose (it does not reach into the parity module): the two
-  * harnesses evolve independently.
+  * Self-contained on purpose (it does not reach into the parity module): the two harnesses evolve independently.
   */
 object BreezeBenchData:
 
-  /** Deterministic pseudo-random `[-1, 1)` sequence — a tiny LCG so a given seed
-    * yields the same data on every fork.
+  /** Deterministic pseudo-random `[-1, 1)` sequence — a tiny LCG so a given seed yields the same data on every fork.
     */
   private def fill(out: Array[Double], seed: Long): Unit =
     var state = seed * 6364136223846793005L + 1442695040888963407L
@@ -38,8 +35,8 @@ object BreezeBenchData:
   def matrixData(rows: Int, cols: Int, seed: Long): Array[Array[Double]] =
     Array.tabulate(rows)(i => vectorData(cols, seed + i * 0x9e3779b9L))
 
-  /** Strictly diagonally dominant (well-conditioned, nonsingular): each diagonal is
-    * set to its row's absolute off-diagonal sum plus one.
+  /** Strictly diagonally dominant (well-conditioned, nonsingular): each diagonal is set to its row's absolute
+    * off-diagonal sum plus one.
     */
   def diagonallyDominant(n: Int, seed: Long): Array[Array[Double]] =
     val a = matrixData(n, n, seed)

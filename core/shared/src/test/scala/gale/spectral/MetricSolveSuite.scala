@@ -131,7 +131,7 @@ class MetricSolveSuite extends munit.FunSuite:
         .orThrow
     throwing.solve(Vec(1.0, 2.0)) match
       case Left(LinAlgError.InvalidArgument("provider failure")) => ()
-      case other                                                 => fail(s"expected retained typed provider failure, got $other")
+      case other => fail(s"expected retained typed provider failure, got $other")
   }
 
   test("CG construction rejects invalid operator and iteration policy before solving") {

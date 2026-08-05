@@ -5,26 +5,23 @@ import gale.linalg.{Cholesky, DMat, LU, LinAlgError, QR}
 import gale.platform.DoubleArray
 import gale.spectral.SpectralBackend
 
-/** A backend '''acceleration class''' — the yes/no question "does this backend make
-  * an operation fast?", carried as a `Set[Capability]` on every [[Backend]]. It is
-  * the dense-kernel counterpart of [[gale.spectral.SpectralCapability]] (which
-  * classifies spectral operations); the two stay distinct enums but read as one
-  * family. See `docs/backend-architecture.md` §A.3.
+/** A backend '''acceleration class''' — the yes/no question "does this backend make an operation fast?", carried as a
+  * `Set[Capability]` on every [[Backend]]. It is the dense-kernel counterpart of [[gale.spectral.SpectralCapability]]
+  * (which classifies spectral operations); the two stay distinct enums but read as one family. See
+  * `docs/backend-architecture.md` §A.3.
   */
 enum Capability:
-  case NativeBlas, NativeLapack, NativeSparse   // native providers (FFM)
-  case Vectorized                               // JDK Vector API SIMD kernels (pure JVM)
-  case Multithreaded                            // uses a compute pool (§B)
-  case WasmFriendly, Deterministic              // pure-path properties
+  case NativeBlas, NativeLapack, NativeSparse // native providers (FFM)
+  case Vectorized // JDK Vector API SIMD kernels (pure JVM)
+  case Multithreaded // uses a compute pool (§B)
+  case WasmFriendly, Deterministic // pure-path properties
 
-/** The accelerable dense-`Double` kernel surface (BLAS levels 1–3), declared with the
-  * exact strided signatures of [[gale.kernel.DoubleKernels]] so an implementation is a
-  * drop-in for the pure kernels. The FULL surface is declared so a native-BLAS backend
-  * can implement all of it, but the '''dispatch policy''' (the facade + [[BackendThresholds]])
-  * decides what is actually ROUTED: only the coarse ops — `gemm`, `syrk`, and standalone
-  * `gemv` — dispatch here; loop-called L1/L2 (`dot`/`axpy`/… as inner-loop steps) never
-  * route through a backend (doc §A.2, §A.2.1). All methods assume validated dimensions
-  * (unsafe). `trsm` and the whole-op factorization hooks belong to a future LAPACK backend
+/** The accelerable dense-`Double` kernel surface (BLAS levels 1–3), declared with the exact strided signatures of
+  * [[gale.kernel.DoubleKernels]] so an implementation is a drop-in for the pure kernels. The FULL surface is declared
+  * so a native-BLAS backend can implement all of it, but the '''dispatch policy''' (the facade + [[BackendThresholds]])
+  * decides what is actually ROUTED: only the coarse ops — `gemm`, `syrk`, and standalone `gemv` — dispatch here;
+  * loop-called L1/L2 (`dot`/`axpy`/… as inner-loop steps) never route through a backend (doc §A.2, §A.2.1). All methods
+  * assume validated dimensions (unsafe). `trsm` and the whole-op factorization hooks belong to a future LAPACK backend
   * and are intentionally not part of this first surface.
   */
 trait DenseDoubleKernel:
@@ -77,9 +74,10 @@ trait DenseDoubleKernel:
       cRowStride: Int,
       cColStride: Int
   ): Unit
-  /** `C(k×k) := AᵀA` for a row-major `A` (m rows × k cols). The result is the FULL
-    * symmetric matrix — an implementation must populate both triangles (the pure
-    * kernel computes the upper and mirrors it into the lower). Assign-only (`beta = 0`).
+
+  /** `C(k×k) := AᵀA` for a row-major `A` (m rows × k cols). The result is the FULL symmetric matrix — an implementation
+    * must populate both triangles (the pure kernel computes the upper and mirrors it into the lower). Assign-only
+    * (`beta = 0`).
     */
   def syrk(
       m: Int,
@@ -93,17 +91,17 @@ trait DenseDoubleKernel:
   ): Unit
 end DenseDoubleKernel
 
-/** Optional whole-operation factorization provider. It is separate from the BLAS
-  * kernel surface because these operations return Gale's typed factor objects.
-  * Only a backend advertising [[Capability.NativeLapack]] may expose one.
+/** Optional whole-operation factorization provider. It is separate from the BLAS kernel surface because these
+  * operations return Gale's typed factor objects. Only a backend advertising [[Capability.NativeLapack]] may expose
+  * one.
   */
 trait DenseDoubleFactorizations:
   def lu(a: DMat): Either[LinAlgError, LU]
   def cholesky(a: DMat): Either[LinAlgError, Cholesky]
   def qr(a: DMat): Either[LinAlgError, QR]
 
-/** The always-present kernel set: forwards verbatim to [[gale.kernel.DoubleKernels]], so
-  * it is the pure, portable, deterministic reference — and the only kernel set on JS.
+/** The always-present kernel set: forwards verbatim to [[gale.kernel.DoubleKernels]], so it is the pure, portable,
+  * deterministic reference — and the only kernel set on JS.
   */
 object PureDenseDoubleKernel extends DenseDoubleKernel:
   def dot(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Double =
@@ -146,7 +144,22 @@ object PureDenseDoubleKernel extends DenseDoubleKernel:
       yOffset: Int,
       yStride: Int
   ): Unit =
-    DoubleKernels.dgemv(rows, cols, alpha, a, aOffset, rowStride, colStride, x, xOffset, xStride, beta, y, yOffset, yStride)
+    DoubleKernels.dgemv(
+      rows,
+      cols,
+      alpha,
+      a,
+      aOffset,
+      rowStride,
+      colStride,
+      x,
+      xOffset,
+      xStride,
+      beta,
+      y,
+      yOffset,
+      yStride
+    )
 
   def gemm(
       rows: Int,
@@ -168,10 +181,23 @@ object PureDenseDoubleKernel extends DenseDoubleKernel:
       cColStride: Int
   ): Unit =
     DoubleKernels.dgemm(
-      rows, cols, shared, alpha,
-      a, aOffset, aRowStride, aColStride,
-      b, bOffset, bRowStride, bColStride,
-      beta, c, cOffset, cRowStride, cColStride
+      rows,
+      cols,
+      shared,
+      alpha,
+      a,
+      aOffset,
+      aRowStride,
+      aColStride,
+      b,
+      bOffset,
+      bRowStride,
+      bColStride,
+      beta,
+      c,
+      cOffset,
+      cRowStride,
+      cColStride
     )
 
   def syrk(
@@ -186,16 +212,16 @@ object PureDenseDoubleKernel extends DenseDoubleKernel:
   ): Unit =
     DoubleKernels.dsyrkRowMajor(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
 
-/** Measured, per-backend-family crossovers (doc §D.4). Above a threshold the coarse op
-  * routes to the backend; below it (and on JS always) the pure kernel runs.
+/** Measured, per-backend-family crossovers (doc §D.4). Above a threshold the coarse op routes to the backend; below it
+  * (and on JS always) the pure kernel runs.
   */
 trait BackendThresholds:
   // NB: the gemm seam compares against the element-count `rows*cols*shared` (not 2·m·n·k
   // FLOPs), matching DoubleKernels' existing GemmBlockThreshold convention — so a value here
   // is on the same scale as that constant.
-  def nativeGemmMinFlops: Long           // the primary crossover; heap vs NativeDMat variants later
-  def nativeGemvMinWork: Long            // standalone `A*x` only
-  def nativeFactorizationMinSize: Int    // per-routine (LU/Cholesky/QR differ)
+  def nativeGemmMinFlops: Long // the primary crossover; heap vs NativeDMat variants later
+  def nativeGemvMinWork: Long // standalone `A*x` only
+  def nativeFactorizationMinSize: Int // per-routine (LU/Cholesky/QR differ)
   def nativeLuMinSize: Int = nativeFactorizationMinSize
   def nativeCholeskyMinSize: Int = nativeFactorizationMinSize
   def nativeQrMinSize: Int = nativeFactorizationMinSize
@@ -206,9 +232,9 @@ object PureThresholds extends BackendThresholds:
   def nativeGemvMinWork: Long = Long.MaxValue
   def nativeFactorizationMinSize: Int = Int.MaxValue
 
-/** Backend threading configuration, read once at construction, never per call (doc §B).
-  * `jvmThreads` sizes gale's one fixed compute pool (1 = single-threaded); `nativeThreads`
-  * is pinned on the native library so a JVM pool and a native pool never oversubscribe.
+/** Backend threading configuration, read once at construction, never per call (doc §B). `jvmThreads` sizes gale's one
+  * fixed compute pool (1 = single-threaded); `nativeThreads` is pinned on the native library so a JVM pool and a native
+  * pool never oversubscribe.
   */
 final case class BackendConfig(jvmThreads: Int, nativeThreads: Int, allowNestedParallelism: Boolean = false):
   require(jvmThreads >= 1, s"jvmThreads must be positive, got $jvmThreads")
@@ -216,13 +242,13 @@ final case class BackendConfig(jvmThreads: Int, nativeThreads: Int, allowNestedP
 object BackendConfig:
   /** The default: gale adds no parallelism, so it is safe embedded in a parallel host. */
   val singleThreaded: BackendConfig = BackendConfig(1, 1)
+
   /** Standalone batch use: gale owns `cores` threads. */
   def dedicated(cores: Int): BackendConfig = BackendConfig(cores, cores)
 
-/** A dense/kernel acceleration backend, selected by an explicit `given` import
-  * (PRD Doctrine 8). The always-present, lowest-priority [[Backend.pure]] computes with
-  * the portable kernels; an acceleration module provides its own `given Backend`.
-  * See `docs/backend-architecture.md` §A.
+/** A dense/kernel acceleration backend, selected by an explicit `given` import (PRD Doctrine 8). The always-present,
+  * lowest-priority [[Backend.pure]] computes with the portable kernels; an acceleration module provides its own
+  * `given Backend`. See `docs/backend-architecture.md` §A.
   */
 trait Backend:
   def name: String
@@ -231,25 +257,24 @@ trait Backend:
   def thresholds: BackendThresholds
   def config: BackendConfig
   def denseFactorizations: Option[DenseDoubleFactorizations] = None
-  /** The spectral half, if this backend also provides one (the bridge, §A.5). A backend
-    * that advertises [[Capability.NativeLapack]] MUST provide it (A-R3).
+
+  /** The spectral half, if this backend also provides one (the bridge, §A.5). A backend that advertises
+    * [[Capability.NativeLapack]] MUST provide it (A-R3).
     */
   def spectral: Option[SpectralBackend] = None
 
-  /** Does this backend provide an accelerated `gemm`/`syrk`? The coarse gemm seam routes
-    * on THIS, not on [[Capability.NativeBlas]] alone, so a `Vectorized` backend triggers
-    * the accelerated path.
+  /** Does this backend provide an accelerated `gemm`/`syrk`? The coarse gemm seam routes on THIS, not on
+    * [[Capability.NativeBlas]] alone, so a `Vectorized` backend triggers the accelerated path.
     */
   final def acceleratesGemm: Boolean =
     capabilities.contains(Capability.NativeBlas) || capabilities.contains(Capability.Vectorized)
 
   final def acceleratesGemv: Boolean = acceleratesGemm
 
-  /** The coarse gemm routing gate in one place (doc §A.2): route to this backend's
-    * `gemm`/`syrk` iff it accelerates gemm and the element-work `rows·cols·shared`
-    * clears `nativeGemmMinFlops` (element count, not 2·m·n·k FLOPs — see
-    * [[BackendThresholds]]). Every gemm-shaped seam must call this rather than
-    * re-spelling the predicate, so the routing policy cannot drift between sites.
+  /** The coarse gemm routing gate in one place (doc §A.2): route to this backend's `gemm`/`syrk` iff it accelerates
+    * gemm and the element-work `rows·cols·shared` clears `nativeGemmMinFlops` (element count, not 2·m·n·k FLOPs — see
+    * [[BackendThresholds]]). Every gemm-shaped seam must call this rather than re-spelling the predicate, so the
+    * routing policy cannot drift between sites.
     */
   final def routesGemm(rows: Int, cols: Int, shared: Int): Boolean =
     acceleratesGemm && rows.toLong * cols.toLong * shared.toLong >= thresholds.nativeGemmMinFlops
@@ -267,9 +292,8 @@ final case class BackendReport(
     hasSpectral: Boolean
 )
 
-/** The always-present pure backend: portable, deterministic, no acceleration. With no
-  * acceleration import this is the only `given Backend`, so every coarse facade call takes
-  * the pure branch — today's behaviour, byte-identical.
+/** The always-present pure backend: portable, deterministic, no acceleration. With no acceleration import this is the
+  * only `given Backend`, so every coarse facade call takes the pure branch — today's behaviour, byte-identical.
   */
 object PureBackend extends Backend:
   val name: String = "pure"
@@ -279,8 +303,8 @@ object PureBackend extends Backend:
   val config: BackendConfig = BackendConfig.singleThreaded
 
 object Backend:
-  /** The always-in-scope, lowest-priority fallback (mirrors `SpectralBackend.none`, but
-    * `pure` COMPUTES rather than returning `Left(Unsupported)`).
+  /** The always-in-scope, lowest-priority fallback (mirrors `SpectralBackend.none`, but `pure` COMPUTES rather than
+    * returning `Left(Unsupported)`).
     */
   given pure: Backend = PureBackend
 
@@ -317,12 +341,11 @@ object Backend:
     require(errors.isEmpty, errors.mkString(s"invalid backend '${backend.name}': ", "; ", ""))
     backend
 
-  /** Union the parts' capabilities and route the coarse dense-kernel surface to the first
-    * part that accelerates `gemm` (earlier parts win), falling back to `primary`. Because
-    * loop-called L1/L2 never routes at the facade, this whole-surface choice only affects
-    * the coarse ops that do. A single-part compose is that part. Mirrors
-    * `SpectralBackend.compose`; two `given Backend`s in scope are a compile-time ambiguity,
-    * so a multi-backend user imports the VALUES and declares one composite given.
+  /** Union the parts' capabilities and route the coarse dense-kernel surface to the first part that accelerates `gemm`
+    * (earlier parts win), falling back to `primary`. Because loop-called L1/L2 never routes at the facade, this
+    * whole-surface choice only affects the coarse ops that do. A single-part compose is that part. Mirrors
+    * `SpectralBackend.compose`; two `given Backend`s in scope are a compile-time ambiguity, so a multi-backend user
+    * imports the VALUES and declares one composite given.
     */
   def compose(primary: Backend, rest: Backend*): Backend =
     if rest.isEmpty then primary

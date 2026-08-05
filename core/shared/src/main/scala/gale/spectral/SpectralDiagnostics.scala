@@ -5,35 +5,31 @@ import gale.linalg.LinAlgError
 
 /** What a spectral solver has established about its requested result.
   *
-  * `ResidualConverged` means every returned pair/triplet passed its residual
-  * test inside the explored subspace. It does not prove that an iterative
-  * solver reached the requested spectral extreme. `ExtremeCertified` adds an
-  * independent membership certificate, currently a full-space reduction.
+  * `ResidualConverged` means every returned pair/triplet passed its residual test inside the explored subspace. It does
+  * not prove that an iterative solver reached the requested spectral extreme. `ExtremeCertified` adds an independent
+  * membership certificate, currently a full-space reduction.
   */
 enum SpectralConvergenceStatus:
   case NotConverged, ResidualConverged, ExtremeCertified
 
 /** Convergence and degeneracy report attached to every spectral result.
   *
-  * This is the contract that lets non-convergence be a `Right` rather than a
-  * `Left` (§ Convergence & failure semantics of `docs/spectral-parity.md`),
-  * mirroring [[gale.linalg.FactorizationDiagnostics]] and
-  * [[gale.solvers.SolverResult]]: a structural/precondition violation is a
-  * `Left(LinAlgError)`, but partial or zero convergence still returns a value
+  * This is the contract that lets non-convergence be a `Right` rather than a `Left` (§ Convergence & failure semantics
+  * of `docs/spectral-parity.md`), mirroring [[gale.linalg.FactorizationDiagnostics]] and [[gale.solvers.SolverResult]]:
+  * a structural/precondition violation is a `Left(LinAlgError)`, but partial or zero convergence still returns a value
   * plus these diagnostics.
   *
   *   - `requested` — how many pairs/triplets the selection asked for.
   *   - `converged` — how many met the tolerance; the result contains exactly these.
   *   - `residuals` — the per-pair residual norms of the returned pairs.
-  *   - `orthogonalityError` — the Gram error of the returned basis in the
-  *     problem's natural inner product: `‖VᵀV − I‖` for ordinary symmetric
-  *     problems, or `‖Vᵀ B V − I‖` for generalized symmetric-definite ones.
+  *   - `orthogonalityError` — the Gram error of the returned basis in the problem's natural inner product: `‖VᵀV − I‖`
+  *     for ordinary symmetric problems, or `‖Vᵀ B V − I‖` for generalized symmetric-definite ones.
   *   - `iterations` — iterations the solver took (`0` for a dense one-shot solve).
   *   - `rank` — numerical rank where meaningful (SVD/GSVD), else `None`.
-  *   - `extremalityCertified` — whether the requested spectral membership was
-  *     established independently of the returned residuals.
-  *   - `innerSolve` — aggregated work for algorithms that explicitly solve an
-  *     inner linear system; `None` means no inner solves were performed.
+  *   - `extremalityCertified` — whether the requested spectral membership was established independently of the returned
+  *     residuals.
+  *   - `innerSolve` — aggregated work for algorithms that explicitly solve an inner linear system; `None` means no
+  *     inner solves were performed.
   */
 final case class SpectralDiagnostics(
     requested: Int,
@@ -45,25 +41,23 @@ final case class SpectralDiagnostics(
     extremalityCertified: Boolean = false,
     innerSolve: Option[LinearSolveSummary] = None
 ):
-  /** True when every requested pair passed the solver's residual test
-    * (`converged == requested`). For an iterative partial solver this is
-    * convergence within the explored subspace, not proof that the requested
-    * global spectral extreme was reached; inspect [[convergenceStatus]] when
-    * that distinction matters.
+  /** True when every requested pair passed the solver's residual test (`converged == requested`). For an iterative
+    * partial solver this is convergence within the explored subspace, not proof that the requested global spectral
+    * extreme was reached; inspect [[convergenceStatus]] when that distinction matters.
     */
   def allConverged: Boolean =
     converged == requested
 
-  /** Distinguishes incomplete residual convergence, residual convergence in an
-    * explored subspace, and independently certified spectral membership.
+  /** Distinguishes incomplete residual convergence, residual convergence in an explored subspace, and independently
+    * certified spectral membership.
     */
   def convergenceStatus: SpectralConvergenceStatus =
     if !allConverged then SpectralConvergenceStatus.NotConverged
     else if extremalityCertified then SpectralConvergenceStatus.ExtremeCertified
     else SpectralConvergenceStatus.ResidualConverged
 
-  /** The largest returned residual (`0.0` when there are none), used as the
-    * residual payload of a [[gale.linalg.LinAlgError.DidNotConverge]].
+  /** The largest returned residual (`0.0` when there are none), used as the residual payload of a
+    * [[gale.linalg.LinAlgError.DidNotConverge]].
     */
   def worstResidual: Double =
     var worst = 0.0
@@ -74,28 +68,23 @@ final case class SpectralDiagnostics(
       i += 1
     worst
 
-  /** Lift a residual-converged `result` to `Right`, or report residual
-    * non-convergence as
-    * `Left(`[[gale.linalg.LinAlgError.DidNotConverge]]`)`. This preserves the
-    * historical residual-based contract; callers that need proof of requested
-    * spectral membership must additionally require [[convergenceStatus]] to be
-    * [[SpectralConvergenceStatus.ExtremeCertified]]. Each diagnostics-carrying
-    * result exposes this as its own `requireConverged`; composing with the
-    * existing `.orThrow` extension (`result.requireConverged.orThrow`) gives the
+  /** Lift a residual-converged `result` to `Right`, or report residual non-convergence as
+    * `Left(`[[gale.linalg.LinAlgError.DidNotConverge]]`)`. This preserves the historical residual-based contract;
+    * callers that need proof of requested spectral membership must additionally require [[convergenceStatus]] to be
+    * [[SpectralConvergenceStatus.ExtremeCertified]]. Each diagnostics-carrying result exposes this as its own
+    * `requireConverged`; composing with the existing `.orThrow` extension (`result.requireConverged.orThrow`) gives the
     * fail-fast residual form.
     */
   def requireConverged[A](result: A): Either[LinAlgError, A] =
     if allConverged then Right(result)
     else Left(LinAlgError.DidNotConverge(iterations, worstResidual))
 
-  /** Require both residual convergence and an independent certificate that the
-    * result belongs to the requested global spectral extreme.
+  /** Require both residual convergence and an independent certificate that the result belongs to the requested global
+    * spectral extreme.
     *
-    * A residual failure returns [[gale.linalg.LinAlgError.DidNotConverge]]. A
-    * residual-converged result without an extremality certificate returns the
-    * distinct typed error
-    * [[gale.linalg.LinAlgError.SpectralExtremeNotCertified]]. This method only
-    * enforces an existing certificate; it never manufactures one.
+    * A residual failure returns [[gale.linalg.LinAlgError.DidNotConverge]]. A residual-converged result without an
+    * extremality certificate returns the distinct typed error [[gale.linalg.LinAlgError.SpectralExtremeNotCertified]].
+    * This method only enforces an existing certificate; it never manufactures one.
     */
   def requireExtremeCertified[A](result: A): Either[LinAlgError, A] =
     convergenceStatus match

@@ -28,8 +28,7 @@ class SpectralBackendLawSuite extends munit.FunSuite:
     val raw = RawIterativeGeneralizedEigen(
       DVec.fromSeq(Seq(2.0, 1.0)),
       DMat.tabulate(4, 2): (row, col) =>
-        if (row == 1 && col == 0) || (row == 0 && col == 1) then
-          (col + 2).toDouble
+        if (row == 1 && col == 0) || (row == 0 && col == 1) then (col + 2).toDouble
         else 0.0,
       BackendConvergence(requested = 2, converged = 2, iterations = 3)
     )

@@ -4,29 +4,22 @@ import gale.linalg.DMat
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** Tests for the dense nonsymmetric facade `Eigen.eigNonsymmetric(a, selection,
-  * vectors)` — full Francis-QR solve with the selection realized as a permutation
-  * of the full spectrum. Selection membership, the canonical ordering guarantee
-  * (§ 2), the never-split boundary-pair rule, and the structural `Left`s are all
-  * exercised here; the packing invariant is additionally enforced by the
-  * `NonsymmetricEigenDecomposition` constructor on every returned result.
+/** Tests for the dense nonsymmetric facade `Eigen.eigNonsymmetric(a, selection, vectors)` — full Francis-QR solve with
+  * the selection realized as a permutation of the full spectrum. Selection membership, the canonical ordering guarantee
+  * (§ 2), the never-split boundary-pair rule, and the structural `Left`s are all exercised here; the packing invariant
+  * is additionally enforced by the `NonsymmetricEigenDecomposition` constructor on every returned result.
   */
 class EigNonsymmetricDenseSuite extends munit.FunSuite:
 
   // --- fixtures --------------------------------------------------------------
 
-  /** Block-diagonal matrix with a fully-known spectrum:
-    *   6 (real),  1 ± 3i  (|λ| = √10),  −4 (real),  0.5 ± 0.5i (|λ| = √0.5).
-    * The two rotation blocks make the complex eigenvectors non-trivial, so the
-    * real-Schur packing is genuinely exercised, while the values stay exact.
+  /** Block-diagonal matrix with a fully-known spectrum: 6 (real), 1 ± 3i (|λ| = √10), −4 (real), 0.5 ± 0.5i (|λ| =
+    * √0.5). The two rotation blocks make the complex eigenvectors non-trivial, so the real-Schur packing is genuinely
+    * exercised, while the values stay exact.
     */
   private val blockDiag: DMat = Matrix.dense(6, 6)(
-    6.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, -3.0, 0.0, 0.0, 0.0,
-    0.0, 3.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, -4.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.5, -0.5,
-    0.0, 0.0, 0.0, 0.0, 0.5, 0.5
+    6.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, -3.0, 0.0, 0.0, 0.0, 0.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -4.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.5, -0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5
   )
 
   private def randomReal(n: Int, seed: Long): DMat =
@@ -58,8 +51,8 @@ class EigNonsymmetricDenseSuite extends munit.FunSuite:
     val imagPart = (a * vi) - (vi * lambda.re + vr * lambda.im)
     math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
 
-  /** Assert conjugate pairs are adjacent, positive-imaginary member first, with
-    * exact conjugate symmetry — a positive check on top of the constructor's.
+  /** Assert conjugate pairs are adjacent, positive-imaginary member first, with exact conjugate symmetry — a positive
+    * check on top of the constructor's.
     */
   private def assertPacking(d: NonsymmetricEigenDecomposition): Unit =
     var i = 0
@@ -160,9 +153,15 @@ class EigNonsymmetricDenseSuite extends munit.FunSuite:
     // the kernel's real-first Schur output.
     val c = math.hypot(1.0, 2.0)
     val a = Matrix.dense(3, 3)(
-      -c, 0.0, 0.0,
-      0.0, 1.0, -2.0,
-      0.0, 2.0, 1.0
+      -c,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      -2.0,
+      0.0,
+      2.0,
+      1.0
     )
     val d = Eigen.eigNonsymmetric(a, EigenSelection.All).toOption.get
     assertEquals(d.eigenvalue(0), Complex(1.0, 2.0))

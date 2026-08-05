@@ -8,40 +8,35 @@ import gale.linalg.Matrix
 
 /** Opt-in ergonomic syntax for `gale.linalg`, in focused import modules.
   *
-  *   - [[all]] — the safe ASCII sugar: elementwise (`pointwise`) operators and
-  *     `zipMapExact`, which the PRD's "Elementwise operations must be explicit" example
-  *     assumes but core does not yet expose. Bring in with `import gale.syntax.all.*`.
-  *   - [[unicode]] — the Unicode operator aliases `×` (matrix product) and `⋅`
-  *     (dot), a '''separate''' opt-in (the PRD keeps symbol aliases out of the
-  *     default surface). Bring in with `import gale.syntax.unicode.*`.
+  *   - [[all]] — the safe ASCII sugar: elementwise (`pointwise`) operators and `zipMapExact`, which the PRD's
+  *     "Elementwise operations must be explicit" example assumes but core does not yet expose. Bring in with
+  *     `import gale.syntax.all.*`.
+  *   - [[unicode]] — the Unicode operator aliases `×` (matrix product) and `⋅` (dot), a '''separate''' opt-in (the PRD
+  *     keeps symbol aliases out of the default surface). Bring in with `import gale.syntax.unicode.*`.
   *
-  * Everything here is zero-cost (opaque wrappers / thin `*`-aliasing extensions),
-  * adds no ambiguity with the core operators, the property wrappers, or the sized
-  * layer under a combined import, and preserves the '''Either-first''' failure model
-  * — the only throwing behavior is an elementwise shape mismatch, which matches the
-  * core arithmetic (`DMat.+` / `DVec.+` already throw `DimensionMismatch` on a shape
-  * mismatch; these are arithmetic primitives, not the Either-returning solve tier).
+  * Everything here is zero-cost (opaque wrappers / thin `*`-aliasing extensions), adds no ambiguity with the core
+  * operators, the property wrappers, or the sized layer under a combined import, and preserves the '''Either-first'''
+  * failure model — the only throwing behavior is an elementwise shape mismatch, which matches the core arithmetic
+  * (`DMat.+` / `DVec.+` already throw `DimensionMismatch` on a shape mismatch; these are arithmetic primitives, not the
+  * Either-returning solve tier).
   *
-  * `all` deliberately excludes the Unicode operators so a wildcard import stays
-  * unsurprising; opt into those explicitly.
+  * `all` deliberately excludes the Unicode operators so a wildcard import stays unsurprising; opt into those
+  * explicitly.
   */
 object all:
 
-  /** An elementwise (Hadamard) '''view''' of a matrix — `a.pointwise * b`,
-    * `a.pointwise / b`, `a.pointwise.map(f)`. Opaque, so it never collides with the
-    * core `DMat.*` (matrix product).
+  /** An elementwise (Hadamard) '''view''' of a matrix — `a.pointwise * b`, `a.pointwise / b`, `a.pointwise.map(f)`.
+    * Opaque, so it never collides with the core `DMat.*` (matrix product).
     */
   opaque type Pointwise = DMat
 
   extension (a: DMat)
-    /** The elementwise view of `a`; combine with another matrix via `* ` / `/` or a
-      * unary `map`.
+    /** The elementwise view of `a`; combine with another matrix via `* ` / `/` or a unary `map`.
       */
     def pointwise: Pointwise = a
 
-    /** Elementwise combine of two '''same-shape''' matrices: `out(i,j) = f(a(i,j),
-      * b(i,j))`. Throws `LinAlgError.DimensionMismatch` on a shape mismatch (as the
-      * core `+`/`-` do).
+    /** Elementwise combine of two '''same-shape''' matrices: `out(i,j) = f(a(i,j), b(i,j))`. Throws
+      * `LinAlgError.DimensionMismatch` on a shape mismatch (as the core `+`/`-` do).
       */
     def zipMapExact(b: DMat)(f: (Double, Double) => Double): DMat =
       zipShape(a, b, f)
@@ -64,18 +59,17 @@ object all:
     if a.rows != b.rows || a.cols != b.cols then throw LinAlgError.DimensionMismatch(a.shape, b.shape)
     Matrix.tabulate(a.rows, a.cols)((i, j) => f(a(i, j), b(i, j)))
 
-/** Unicode operator aliases (PRD § "Symbol aliases … belong in opt-in syntax
-  * modules"): `×` for the matrix product (matrix-vector and matrix-matrix) and `⋅`
-  * for the inner product. Thin aliases of the core `*` / `dot`, so they are exact
-  * synonyms with no new semantics. Kept out of [[all]] — import explicitly.
+/** Unicode operator aliases (PRD § "Symbol aliases … belong in opt-in syntax modules"): `×` for the matrix product
+  * (matrix-vector and matrix-matrix) and `⋅` for the inner product. Thin aliases of the core `*` / `dot`, so they are
+  * exact synonyms with no new semantics. Kept out of [[all]] — import explicitly.
   */
 object unicode:
   extension (a: DMat)
     /** Matrix-vector product (alias of `a * x`). */
     def ×(x: DVec)(using backend: Backend): DVec = a.*(x)(using backend)
 
-    /** Matrix-matrix product (alias of `a * b`). Forwards the ambient `given Backend` so the
-      * alias stays a true synonym of `*` even when an accelerating backend is imported.
+    /** Matrix-matrix product (alias of `a * b`). Forwards the ambient `given Backend` so the alias stays a true synonym
+      * of `*` even when an accelerating backend is imported.
       */
     def ×(b: DMat)(using backend: Backend): DMat = a.*(b)(using backend)
 

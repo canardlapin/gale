@@ -13,10 +13,9 @@ import org.openjdk.jmh.infra.Blackhole
 
 /** Matrix-free generalized symmetric-definite LOBPCG scenarios.
   *
-  * The parameter product covers three ambient dimensions, three block sizes,
-  * two pencils, and three preconditioners. Run with `-prof gc` for allocation
-  * data. [[GeneralizedLobpcgWorkReceipt]] executes the same fixed fixtures once
-  * each and records convergence plus exact operator/preconditioner work.
+  * The parameter product covers three ambient dimensions, three block sizes, two pencils, and three preconditioners.
+  * Run with `-prof gc` for allocation data. [[GeneralizedLobpcgWorkReceipt]] executes the same fixed fixtures once each
+  * and records convergence plus exact operator/preconditioner work.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -49,10 +48,9 @@ class GeneralizedLobpcgJmh:
 
 /** Regression comparison for the two explicit generalized operator engines.
   *
-  * LOBPCG is measured with identity and problem-aware preconditioning. Lanczos
-  * is measured with a reusable exact O(n) metric factor and with a
-  * Jacobi-preconditioned iterative metric solve. Use `-prof gc` to retain
-  * allocation alongside runtime.
+  * LOBPCG is measured with identity and problem-aware preconditioning. Lanczos is measured with a reusable exact O(n)
+  * metric factor and with a Jacobi-preconditioned iterative metric solve. Use `-prof gc` to retain allocation alongside
+  * runtime.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -82,15 +80,13 @@ class GeneralizedEigenComparisonJmh:
         case "lobpcg-preconditioned" =>
           if pencil == "stiffness-mass" then "block-jacobi" else "jacobi"
         case _ => "identity"
-    scenario =
-      GeneralizedLobpcgScenario(n, k, pencil, outerPreconditioner)
+    scenario = GeneralizedLobpcgScenario(n, k, pencil, outerPreconditioner)
 
   @Benchmark
   def solve(blackhole: Blackhole): Unit =
     blackhole.consume(scenario.runEngine(engine))
 
-/** Untimed convergence and work receipt matching
-  * [[GeneralizedEigenComparisonJmh]].
+/** Untimed convergence and work receipt matching [[GeneralizedEigenComparisonJmh]].
   */
 object GeneralizedEigenComparisonWorkReceipt:
   def main(args: Array[String]): Unit =
@@ -145,8 +141,7 @@ object GeneralizedEigenComparisonWorkReceipt:
 
 /** One untimed work-accounting pass over every JMH parameter combination.
   *
-  * Run with:
-  * `sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"`.
+  * Run with: `sbt "benchmarksJVM/Jmh/runMain gale.bench.GeneralizedLobpcgWorkReceipt"`.
   */
 object GeneralizedLobpcgWorkReceipt:
   def main(args: Array[String]): Unit =
@@ -235,9 +230,9 @@ private final class GeneralizedLobpcgScenario private (
   def runEngine(engine: String): EigenDecomposition =
     engine match
       case "lobpcg-identity" | "lobpcg-preconditioned" => run()
-      case "lanczos-exact"                            => runLanczos(exactMetricSolve)
-      case "lanczos-iterative"                        => runLanczos(iterativeMetricSolve)
-      case other =>
+      case "lanczos-exact"                             => runLanczos(exactMetricSolve)
+      case "lanczos-iterative"                         => runLanczos(iterativeMetricSolve)
+      case other                                       =>
         throw new IllegalArgumentException(s"unknown generalized eigen engine '$other'")
 
   private def runLanczos(
@@ -270,11 +265,11 @@ private object GeneralizedLobpcgScenario:
     val counters = new GeneralizedLobpcgCounters
     val data =
       pencil match
-        case "clustered-diagonal" => clusteredDiagonal(n, k, counters)
+        case "clustered-diagonal"       => clusteredDiagonal(n, k, counters)
         case "ill-conditioned-diagonal" =>
           illConditionedDiagonal(n, counters)
-        case "stiffness-mass"     => stiffnessMass(n, counters)
-        case other                => throw new IllegalArgumentException(s"unknown pencil '$other'")
+        case "stiffness-mass" => stiffnessMass(n, counters)
+        case other            => throw new IllegalArgumentException(s"unknown pencil '$other'")
     val preconditioner =
       preconditionerKind match
         case "identity" =>
@@ -416,8 +411,8 @@ private final class TridiagonalOperator(
       into(i) = value
       i += 1
 
-/** Pairwise block-Jacobi for the stiffness matrix; a zero off-diagonal reduces
-  * exactly to diagonal Jacobi for the clustered pencil.
+/** Pairwise block-Jacobi for the stiffness matrix; a zero off-diagonal reduces exactly to diagonal Jacobi for the
+  * clustered pencil.
   */
 private final class CountingPreconditioner(
     counters: GeneralizedLobpcgCounters,
@@ -435,8 +430,8 @@ private final class CountingPreconditioner(
       i += 2
     if i < diagonal.length then into(i) = r(i) / diagonal(i)
 
-/** Reusable Cholesky/Thomas solve for a symmetric positive-definite
-  * tridiagonal metric. Construction is outside JMH timed invocations.
+/** Reusable Cholesky/Thomas solve for a symmetric positive-definite tridiagonal metric. Construction is outside JMH
+  * timed invocations.
   */
 private object TridiagonalMetricSolve:
   def apply(
@@ -454,8 +449,7 @@ private object TridiagonalMetricSolve:
       require(lowerDiagonal(0).isFinite && lowerDiagonal(0) > 0.0)
     var i = 1
     while i < diagonal.length do
-      lowerSubDiagonal(i - 1) =
-        offDiagonal(i - 1) / lowerDiagonal(i - 1)
+      lowerSubDiagonal(i - 1) = offDiagonal(i - 1) / lowerDiagonal(i - 1)
       val pivot =
         diagonal(i) - lowerSubDiagonal(i - 1) * lowerSubDiagonal(i - 1)
       require(pivot > 0.0 && pivot.isFinite)
@@ -468,18 +462,15 @@ private object TridiagonalMetricSolve:
         if diagonal.nonEmpty then work(0) = rhs(0) / lowerDiagonal(0)
         var row = 1
         while row < diagonal.length do
-          work(row) =
-            (rhs(row) - lowerSubDiagonal(row - 1) * work(row - 1)) /
-              lowerDiagonal(row)
+          work(row) = (rhs(row) - lowerSubDiagonal(row - 1) * work(row - 1)) /
+            lowerDiagonal(row)
           row += 1
         if diagonal.nonEmpty then
-          work(diagonal.length - 1) =
-            work(diagonal.length - 1) / lowerDiagonal(diagonal.length - 1)
+          work(diagonal.length - 1) = work(diagonal.length - 1) / lowerDiagonal(diagonal.length - 1)
         row = diagonal.length - 2
         while row >= 0 do
-          work(row) =
-            (work(row) - lowerSubDiagonal(row) * work(row + 1)) /
-              lowerDiagonal(row)
+          work(row) = (work(row) - lowerSubDiagonal(row) * work(row + 1)) /
+            lowerDiagonal(row)
           row -= 1
         Right(
           LinearSolveResult(
@@ -494,11 +485,9 @@ private object TridiagonalMetricSolve:
         )
       .fold(throw _, identity)
 
-/** Jacobi for the SPD metric's inner CG solve. This is distinct from the
-  * outer LOBPCG preconditioner counter.
+/** Jacobi for the SPD metric's inner CG solve. This is distinct from the outer LOBPCG preconditioner counter.
   */
-private final class DiagonalSolve(diagonal: IndexedSeq[Double])
-    extends Preconditioner:
+private final class DiagonalSolve(diagonal: IndexedSeq[Double]) extends Preconditioner:
   def solve(r: DVec, into: MutableVec[Double]): Unit =
     var i = 0
     while i < diagonal.length do

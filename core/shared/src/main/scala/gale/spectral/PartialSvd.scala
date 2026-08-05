@@ -10,61 +10,45 @@ import gale.linalg.MutableDVec
 import gale.linalg.Rows
 import gale.linalg.Shape
 
-/** Public singular value decomposition — partial (`svds`, phase a of
-  * `docs/spectral-parity.md` § 3 / § 8) and, on the dense entry points, the
-  * '''full/economy''' SVD that phase a deferred.
+/** Public singular value decomposition — partial (`svds`, phase a of `docs/spectral-parity.md` § 3 / § 8) and, on the
+  * dense entry points, the '''full/economy''' SVD that phase a deferred.
   *
-  * '''Full dense SVD''' ([[SingularSelection.All]], or `Count(k)` with
-  * `k = min(m, n)`, on the `DMat` overloads). Served by the
-  * [[DenseSvdKernel]] — Householder bidiagonalization plus Golub–Kahan–Reinsch
-  * implicit-shift QR with the Wilkinson shift — in '''economy''' shapes: `U`
-  * is `m×k`, `Vᵀ` is `k×n`, `k = min(m, n)`. This closes seam S7 of
-  * `docs/spectral-backend-boundary.md`: the facade takes a
-  * `using SpectralBackend` and routes to a
-  * [[SpectralCapability.DenseSvd]]-capable backend when one is imported; the
-  * pure kernel is the always-available default (so, unlike the other
-  * backend-scoped seams, no-import is a `Right`, not a `Left`). The operator
-  * (matrix-free) overload stays Count-only — a dense bidiagonal reduction
-  * needs the materialized matrix.
+  * '''Full dense SVD''' ([[SingularSelection.All]], or `Count(k)` with `k = min(m, n)`, on the `DMat` overloads).
+  * Served by the [[DenseSvdKernel]] — Householder bidiagonalization plus Golub–Kahan–Reinsch implicit-shift QR with the
+  * Wilkinson shift — in '''economy''' shapes: `U` is `m×k`, `Vᵀ` is `k×n`, `k = min(m, n)`. This closes seam S7 of
+  * `docs/spectral-backend-boundary.md`: the facade takes a `using SpectralBackend` and routes to a
+  * [[SpectralCapability.DenseSvd]]-capable backend when one is imported; the pure kernel is the always-available
+  * default (so, unlike the other backend-scoped seams, no-import is a `Right`, not a `Left`). The operator
+  * (matrix-free) overload stays Count-only — a dense bidiagonal reduction needs the materialized matrix.
   *
-  * '''Partial SVD.''' The `k < min(m, n)` requested
-  * triplets are computed by '''Golub–Kahan–Lanczos bidiagonalization''' of `A`
-  * (two-sided, with full reorthogonalization of both the left and right vector
-  * sequences), whose small bidiagonal `B` is diagonalized by running the existing
-  * symmetric tridiagonal QL/QR kernel on the '''Jordan–Wielandt augmented
-  * tridiagonal''' — the perfect-shuffle of `[[0, Bᵀ], [B, 0]]`, whose eigenvalues
-  * are `±σ_i`. That augmented form (as opposed to the normal-equation `BᵀB`, whose
-  * `σ²` squares the condition number) is what keeps the '''smallest''' singular
-  * values usable. The generic symmetric QL/QR on the augmented form gives
-  * '''absolute''' accuracy `~ε‖A‖`, not the high relative accuracy of a dedicated
-  * bidiagonal kernel — acceptable for gale's portable-correctness scope, and
-  * called out here so callers know the accuracy floor for tiny `σ`.
+  * '''Partial SVD.''' The `k < min(m, n)` requested triplets are computed by '''Golub–Kahan–Lanczos
+  * bidiagonalization''' of `A` (two-sided, with full reorthogonalization of both the left and right vector sequences),
+  * whose small bidiagonal `B` is diagonalized by running the existing symmetric tridiagonal QL/QR kernel on the
+  * '''Jordan–Wielandt augmented tridiagonal''' — the perfect-shuffle of `[[0, Bᵀ], [B, 0]]`, whose eigenvalues are
+  * `±σ_i`. That augmented form (as opposed to the normal-equation `BᵀB`, whose `σ²` squares the condition number) is
+  * what keeps the '''smallest''' singular values usable. The generic symmetric QL/QR on the augmented form gives
+  * '''absolute''' accuracy `~ε‖A‖`, not the high relative accuracy of a dedicated bidiagonal kernel — acceptable for
+  * gale's portable-correctness scope, and called out here so callers know the accuracy floor for tiny `σ`.
   *
-  * '''Ordering.''' Singular values are returned '''descending always''' (§ 8),
-  * regardless of whether [[SingularOrder.Largest]] or [[SingularOrder.Smallest]]
-  * chose membership — resolving the SciPy-`svds`-ascending trap.
+  * '''Ordering.''' Singular values are returned '''descending always''' (§ 8), regardless of whether
+  * [[SingularOrder.Largest]] or [[SingularOrder.Smallest]] chose membership — resolving the SciPy-`svds`-ascending
+  * trap.
   *
-  * '''Failure model''' (§ Convergence & failure semantics). Structural violations
-  * are `Left`; iterative non-convergence is a `Right` carrying only the converged
-  * triplets plus `SpectralDiagnostics`, never a `Left` — with one carve-out
-  * mirroring [[Eigen]]: exhaustion of the '''inner''' augmented-tridiagonal QL/QR
-  * kernel is a genuine numerical breakdown with no partial result and surfaces as
-  * `Left(DidNotConverge)` (pathological in practice). `requireConverged` is the
-  * caller's opt-in to fail-fast. Rank deficiency surfaces through the `rank`
-  * field / diagnostic and through near-zero singular values in the output, not an
-  * error.
+  * '''Failure model''' (§ Convergence & failure semantics). Structural violations are `Left`; iterative non-convergence
+  * is a `Right` carrying only the converged triplets plus `SpectralDiagnostics`, never a `Left` — with one carve-out
+  * mirroring [[Eigen]]: exhaustion of the '''inner''' augmented-tridiagonal QL/QR kernel is a genuine numerical
+  * breakdown with no partial result and surfaces as `Left(DidNotConverge)` (pathological in practice).
+  * `requireConverged` is the caller's opt-in to fail-fast. Rank deficiency surfaces through the `rank` field /
+  * diagnostic and through near-zero singular values in the output, not an error.
   *
-  * The two entry points mirror [[Eigen]]: a dense [[svd(a:gale\.linalg\.DMat*]]
-  * convenience and a matrix-free
-  * [[svd(op:gale\.linalg\.DoubleLinearOperator*]] operator form. The operator
-  * '''must''' implement both `applyTo` (`A·v`) and `transposeApplyTo` (`Aᵀ·u`) —
-  * a `DMat` does; a one-sided matrix-free operator does not and is unsupported:
-  * its default `transposeApplyTo` '''throws''' `UnsupportedOperation` from the
-  * primitive layer (the library's primitives-throw convention), it does not
-  * return a `Left`.
+  * The two entry points mirror [[Eigen]]: a dense [[svd(a:gale\.linalg\.DMat*]] convenience and a matrix-free
+  * [[svd(op:gale\.linalg\.DoubleLinearOperator*]] operator form. The operator '''must''' implement both `applyTo`
+  * (`A·v`) and `transposeApplyTo` (`Aᵀ·u`) — a `DMat` does; a one-sided matrix-free operator does not and is
+  * unsupported: its default `transposeApplyTo` '''throws''' `UnsupportedOperation` from the primitive layer (the
+  * library's primitives-throw convention), it does not return a `Left`.
   *
-  * (Named `Svds` — the ecosystem's `svds` — rather than `Svd`, which would clash
-  * with the [[SVD]] result type on a case-insensitive filesystem.)
+  * (Named `Svds` — the ecosystem's `svds` — rather than `Svd`, which would clash with the [[SVD]] result type on a
+  * case-insensitive filesystem.)
   */
 object Svds:
 
@@ -72,36 +56,28 @@ object Svds:
   // Dense SVD (full via the bidiagonal kernel; partial via Golub–Kahan–Lanczos)
   // ===========================================================================
 
-  /** SVD of the dense `a`, computing singular vectors ([[EigenVectors.Right]]).
-    * See the three-argument overload for the vector flag and failure details.
+  /** SVD of the dense `a`, computing singular vectors ([[EigenVectors.Right]]). See the three-argument overload for the
+    * vector flag and failure details.
     */
   def svd(a: DMat, selection: SingularSelection)(using SpectralBackend): Either[LinAlgError, SVD] =
     svd(a, selection, EigenVectors.Right)
 
-  /** SVD of the dense `a` — `A = U Σ Vᵀ` with the singular triplets named by
-    * `selection`, `Σ` descending always. [[SingularSelection.All]] (and
-    * equivalently `Count(k)` with `k = min(m, n)`, whichever order — membership
-    * is the whole spectrum either way) computes the '''full/economy''' dense
-    * SVD through the bidiagonal kernel: `U` `m×k`, `Vᵀ` `k×n`,
-    * `k = min(m, n)`, routed to a [[SpectralCapability.DenseSvd]]-capable
-    * `backend` when one is in scope (seam S7) and to the pure
-    * [[DenseSvdKernel]] otherwise. A `Count` with `k < min(m, n)` runs the
-    * partial Golub–Kahan–Lanczos path. `vectors` chooses
-    * [[EigenVectors.ValuesOnly]] versus [[EigenVectors.Right]] (there is no
-    * one-sided singular-vector mode, § 8: vectors means '''both''' `U` and
-    * `V`, or neither; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are
-    * rejected). Uses the default [[SpectralOptions]]; for tolerance/subspace
-    * control of the partial path drive the operator overload with `a` as the
-    * operator.
+  /** SVD of the dense `a` — `A = U Σ Vᵀ` with the singular triplets named by `selection`, `Σ` descending always.
+    * [[SingularSelection.All]] (and equivalently `Count(k)` with `k = min(m, n)`, whichever order — membership is the
+    * whole spectrum either way) computes the '''full/economy''' dense SVD through the bidiagonal kernel: `U` `m×k`,
+    * `Vᵀ` `k×n`, `k = min(m, n)`, routed to a [[SpectralCapability.DenseSvd]]-capable `backend` when one is in scope
+    * (seam S7) and to the pure [[DenseSvdKernel]] otherwise. A `Count` with `k < min(m, n)` runs the partial
+    * Golub–Kahan–Lanczos path. `vectors` chooses [[EigenVectors.ValuesOnly]] versus [[EigenVectors.Right]] (there is no
+    * one-sided singular-vector mode, § 8: vectors means '''both''' `U` and `V`, or neither;
+    * [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected). Uses the default [[SpectralOptions]]; for
+    * tolerance/subspace control of the partial path drive the operator overload with `a` as the operator.
     *
-    * On the full path `rank` (and `diagnostics.rank`) counts the singular
-    * values above the default solve tolerance (`1e-10`) relative to `σ_max`,
-    * the same returned-set policy the [[SVD]] result type documents;
+    * On the full path `rank` (and `diagnostics.rank`) counts the singular values above the default solve tolerance
+    * (`1e-10`) relative to `σ_max`, the same returned-set policy the [[SVD]] result type documents;
     * `diagnostics.iterations` is `0` (a dense one-shot solve).
     *
-    * `Left` on: a non-positive dimension; an illegal vector flag; `k ≤ 0` or
-    * `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
-    * exhaustion, `Left(DidNotConverge)` like the dense eigen paths.
+    * `Left` on: a non-positive dimension; an illegal vector flag; `k ≤ 0` or `k > min(m, n)`; or (in practice
+    * unreachable) bidiagonal-QR sweep exhaustion, `Left(DidNotConverge)` like the dense eigen paths.
     */
   def svd(a: DMat, selection: SingularSelection, vectors: EigenVectors)(using
       backend: SpectralBackend
@@ -111,7 +87,7 @@ object Svds:
     if m <= 0 || n <= 0 then Left(LinAlgError.InvalidArgument(s"dimensions must be positive, got ${m}x$n"))
     else
       validateVectors(vectors) match
-        case Left(error) => Left(error)
+        case Left(error)        => Left(error)
         case Right(wantVectors) =>
           val p = math.min(m, n)
           selection match
@@ -129,17 +105,14 @@ object Svds:
   // ===========================================================================
 
   /** Partial SVD of the `rows × cols` operator `op`, which must apply both `A·v`
-    * ([[gale.linalg.DoubleLinearOperator.applyTo]]) and `Aᵀ·u`
-    * ([[gale.linalg.DoubleLinearOperator.transposeApplyTo]]). Rectangular is
-    * legal (`rows ≠ cols`), so a shape disagreement with the operator is a
-    * `DimensionMismatch`, never `NonSquareMatrix`.
+    * ([[gale.linalg.DoubleLinearOperator.applyTo]]) and `Aᵀ·u` ([[gale.linalg.DoubleLinearOperator.transposeApplyTo]]).
+    * Rectangular is legal (`rows ≠ cols`), so a shape disagreement with the operator is a `DimensionMismatch`, never
+    * `NonSquareMatrix`.
     *
-    * Selection is Count-only (§ 8): [[SingularSelection.Count]] with
-    * [[SingularOrder.Largest]] or [[SingularOrder.Smallest]]; membership by the
-    * order, layout always descending. `options.returnVectors` selects
-    * values-only versus both `U` and `V`. A provided `options.startVector` seeds
-    * the bidiagonalization in `R^min(m,n)` (the taller-oriented start space), so
-    * its length must be `min(m, n)`. Convergence and failure semantics are as
+    * Selection is Count-only (§ 8): [[SingularSelection.Count]] with [[SingularOrder.Largest]] or
+    * [[SingularOrder.Smallest]]; membership by the order, layout always descending. `options.returnVectors` selects
+    * values-only versus both `U` and `V`. A provided `options.startVector` seeds the bidiagonalization in `R^min(m,n)`
+    * (the taller-oriented start space), so its length must be `min(m, n)`. Convergence and failure semantics are as
     * documented on the object.
     */
   def svd(
@@ -155,22 +128,17 @@ object Svds:
   // Full/economy dense SVD (seam S7) + pseudo-inverse
   // ===========================================================================
 
-  /** Moore–Penrose pseudo-inverse of `a` (`n×m` for an `m×n` input) via the
-    * full/economy dense SVD: `A⁺ = V Σ⁺ Uᵀ` with `Σ⁺` inverting exactly the
-    * singular values above the cutoff and zeroing the rest.
+  /** Moore–Penrose pseudo-inverse of `a` (`n×m` for an `m×n` input) via the full/economy dense SVD: `A⁺ = V Σ⁺ Uᵀ` with
+    * `Σ⁺` inverting exactly the singular values above the cutoff and zeroing the rest.
     *
-    * '''Cutoff convention''' (the MATLAB/SciPy `pinv` convention — also NumPy's
-    * `matrix_rank` formula, though NumPy's own `pinv` defaults to a fixed
-    * `rcond = 1e-15`): a singular value is treated as zero unless
-    * `σ_i > rcond · σ_max` with `rcond = max(m, n) · ε` (`ε = 2⁻⁵² ≈ 2.22e-16`)
-    * — i.e. the cutoff is `max(m, n) · ε · σ_max`, scale-aware per
-    * `docs/user/advanced/numerical-contract.md`. An
-    * all-zero `a` therefore yields the all-zero `A⁺` (its correct
+    * '''Cutoff convention''' (the MATLAB/SciPy `pinv` convention — also NumPy's `matrix_rank` formula, though NumPy's
+    * own `pinv` defaults to a fixed `rcond = 1e-15`): a singular value is treated as zero unless `σ_i > rcond · σ_max`
+    * with `rcond = max(m, n) · ε` (`ε = 2⁻⁵² ≈ 2.22e-16`) — i.e. the cutoff is `max(m, n) · ε · σ_max`, scale-aware per
+    * `docs/user/advanced/numerical-contract.md`. An all-zero `a` therefore yields the all-zero `A⁺` (its correct
     * pseudo-inverse), never a division by zero.
     *
-    * `Left` exactly when the underlying [[svd(a:gale\.linalg\.DMat*]] is: a
-    * non-positive dimension, or (in practice unreachable) kernel
-    * non-convergence.
+    * `Left` exactly when the underlying [[svd(a:gale\.linalg\.DMat*]] is: a non-positive dimension, or (in practice
+    * unreachable) kernel non-convergence.
     */
   def pinv(a: DMat)(using SpectralBackend): Either[LinAlgError, DMat] =
     svd(a, SingularSelection.All, EigenVectors.Right).map: s =>
@@ -185,18 +153,14 @@ object Svds:
         if sigma > cutoff then s.vt(l, i) / sigma else 0.0
       w * s.u.t
 
-  /** Route the full dense SVD (already validated: positive dims, legal vector
-    * flag): a [[SpectralCapability.DenseSvd]]-capable backend computes the raw
-    * factors, and a provider `Left` falls back to the pure [[DenseSvdKernel]] —
-    * the S8 discipline (`Eigen.symmetricSpectrum`): routing is an optimization
-    * and must add no failure mode the pure-only path lacks, so after facade
-    * validation the call fails exactly when the pure kernel does. (A structural
-    * `Left` from a conforming provider is indistinguishable from a decline
-    * here by design; provider conformance is enforced by the laws suite, not
-    * by runtime signalling.) Either way the facade canonicalizes and assembles
-    * ([[assembleFullSvd]]). Pure-kernel sweep exhaustion maps to
-    * `Left(DidNotConverge)` exactly like the dense eigen paths (no partial
-    * result to hand back).
+  /** Route the full dense SVD (already validated: positive dims, legal vector flag): a
+    * [[SpectralCapability.DenseSvd]]-capable backend computes the raw factors, and a provider `Left` falls back to the
+    * pure [[DenseSvdKernel]] — the S8 discipline (`Eigen.symmetricSpectrum`): routing is an optimization and must add
+    * no failure mode the pure-only path lacks, so after facade validation the call fails exactly when the pure kernel
+    * does. (A structural `Left` from a conforming provider is indistinguishable from a decline here by design; provider
+    * conformance is enforced by the laws suite, not by runtime signalling.) Either way the facade canonicalizes and
+    * assembles ([[assembleFullSvd]]). Pure-kernel sweep exhaustion maps to `Left(DidNotConverge)` exactly like the
+    * dense eigen paths (no partial result to hand back).
     */
   private def svdFullDense(a: DMat, wantVectors: Boolean)(using backend: SpectralBackend): Either[LinAlgError, SVD] =
     def pure: Either[LinAlgError, RawSvd] =
@@ -207,20 +171,16 @@ object Svds:
           Left(LinAlgError.DidNotConverge(iters, 0.0))
         case Right(factors) => Right(factors)
     val raw: Either[LinAlgError, RawSvd] =
-      if backend.capabilities.contains(SpectralCapability.DenseSvd) then
-        backend.denseSvd(a, wantVectors).orElse(pure)
+      if backend.capabilities.contains(SpectralCapability.DenseSvd) then backend.denseSvd(a, wantVectors).orElse(pure)
       else pure
     raw.map(assembleFullSvd(a, _, wantVectors))
 
-  /** Canonicalize raw full-SVD factors into the sealed [[SVD]]: enforce
-    * `σ ≥ 0` (a negative raw value flips with its `Vᵀ` row — legal because
-    * `σ u vᵀ = (−σ) u (−v)ᵀ`), impose the '''descending''' order (§ 8, ties by
-    * raw index), and re-derive what is checkable — per-triplet two-sided
-    * residuals `max(‖A v − σ u‖, ‖Aᵀ u − σ v‖)`, the worse `U`/`V`
-    * orthogonality error, and `rank` at the default solve tolerance relative
-    * to `σ_max` (the returned-set policy [[SVD]] documents). Values-only
-    * results carry empty factors, zero residuals, and zero orthogonality
-    * error, mirroring [[Eigen]]'s dense assembly.
+  /** Canonicalize raw full-SVD factors into the sealed [[SVD]]: enforce `σ ≥ 0` (a negative raw value flips with its
+    * `Vᵀ` row — legal because `σ u vᵀ = (−σ) u (−v)ᵀ`), impose the '''descending''' order (§ 8, ties by raw index), and
+    * re-derive what is checkable — per-triplet two-sided residuals `max(‖A v − σ u‖, ‖Aᵀ u − σ v‖)`, the worse `U`/`V`
+    * orthogonality error, and `rank` at the default solve tolerance relative to `σ_max` (the returned-set policy
+    * [[SVD]] documents). Values-only results carry empty factors, zero residuals, and zero orthogonality error,
+    * mirroring [[Eigen]]'s dense assembly.
     */
   private def assembleFullSvd(a: DMat, raw: RawSvd, wantVectors: Boolean): SVD =
     val m = a.rows
@@ -313,7 +273,7 @@ object Svds:
           )
         case SingularSelection.Count(k, order) =>
           validateVectors(options.returnVectors) match
-            case Left(error) => Left(error)
+            case Left(error)        => Left(error)
             case Right(wantVectors) =>
               val p = math.min(m, n)
               if k <= 0 || k >= p then
@@ -332,17 +292,16 @@ object Svds:
                 val effRows = if transposed then n else m
                 startVectorFor(options.startVector, p) match
                   case Left(error) => Left(error)
-                  case Right(v0) =>
+                  case Right(v0)   =>
                     runGolubKahan(op, effOp, m, n, effRows, p, transposed, k, order, options, wantVectors, v0)
 
-  /** Map the SVD vector flag to "compute U and V?". Left/LeftAndRight have no
-    * meaning for singular vectors (no left-vs-right eigenvector split) and there
-    * is no one-sided mode in v0.3.5 (§ 8), so both are rejected.
+  /** Map the SVD vector flag to "compute U and V?". Left/LeftAndRight have no meaning for singular vectors (no
+    * left-vs-right eigenvector split) and there is no one-sided mode in v0.3.5 (§ 8), so both are rejected.
     */
   private def validateVectors(vectors: EigenVectors): Either[LinAlgError, Boolean] =
     vectors match
-      case EigenVectors.ValuesOnly => Right(false)
-      case EigenVectors.Right      => Right(true)
+      case EigenVectors.ValuesOnly                       => Right(false)
+      case EigenVectors.Right                            => Right(true)
       case EigenVectors.Left | EigenVectors.LeftAndRight =>
         Left(
           LinAlgError.InvalidArgument(
@@ -448,13 +407,11 @@ object Svds:
 
   /** Golub–Kahan–Lanczos bidiagonalization from the unit right start vector `v0`.
     *
-    * Returns `(uBasis, vBasis, alpha, beta, mEff)` where `mEff ≤ ncv` is the size
-    * of the computed upper-bidiagonal `B` (`mEff < ncv` marks a breakdown — an
-    * exhausted Krylov space), `alpha(0..mEff-1)` is `B`'s diagonal and
-    * `beta(0..mEff-2)` its superdiagonal (`beta(mEff-1)` is the trailing residual
-    * factor). Both the left (`R^m`) and right (`R^n`) sequences are fully
-    * reorthogonalized (classical Gram–Schmidt twice), the discipline that keeps
-    * the bidiagonalization numerically orthogonal.
+    * Returns `(uBasis, vBasis, alpha, beta, mEff)` where `mEff ≤ ncv` is the size of the computed upper-bidiagonal `B`
+    * (`mEff < ncv` marks a breakdown — an exhausted Krylov space), `alpha(0..mEff-1)` is `B`'s diagonal and
+    * `beta(0..mEff-2)` its superdiagonal (`beta(mEff-1)` is the trailing residual factor). Both the left (`R^m`) and
+    * right (`R^n`) sequences are fully reorthogonalized (classical Gram–Schmidt twice), the discipline that keeps the
+    * bidiagonalization numerically orthogonal.
     */
   private def buildGolubKahan(
       op: DoubleLinearOperator,
@@ -504,19 +461,15 @@ object Svds:
         reorthogonalize(wRight, vB, j + 1)
         val bj = wRight.asVec.norm2
         beta(j) = bj
-        if j < ncv - 1 && bj > 1e-12 * math.max(1.0, aMax) then
-          vB(j + 1) = (wRight.asVec * (1.0 / bj)).copy
-        else
-          stop = true // β_j ≈ 0 (right exhausted) or the subspace is full.
+        if j < ncv - 1 && bj > 1e-12 * math.max(1.0, aMax) then vB(j + 1) = (wRight.asVec * (1.0 / bj)).copy
+        else stop = true // β_j ≈ 0 (right exhausted) or the subspace is full.
       j += 1
     (uB, vB, alpha, beta, mEff, pendingRight)
 
-  /** Decode a Jordan–Wielandt eigenvector (column `col` of the augmented
-    * eigenproblem) into an original-space singular triplet: the perfect-shuffle
-    * even components are the projected right vector (combine with `vB`, `R^n`),
-    * the odd components the projected left vector (combine with `uB`, `R^m`). Both
-    * are normalized to unit length; `A v = σ u` holds because the augmented
-    * eigenvector's two halves have equal norm.
+  /** Decode a Jordan–Wielandt eigenvector (column `col` of the augmented eigenproblem) into an original-space singular
+    * triplet: the perfect-shuffle even components are the projected right vector (combine with `vB`, `R^n`), the odd
+    * components the projected left vector (combine with `uB`, `R^m`). Both are normalized to unit length; `A v = σ u`
+    * holds because the augmented eigenvector's two halves have equal norm.
     */
   private def ritzTriplet(
       eigvecs: DMat,
@@ -541,9 +494,8 @@ object Svds:
     val nrm = x.asVec.norm2
     if nrm > 0.0 then (x.asVec * (1.0 / nrm)).copy else x.asVec.copy
 
-  /** A view of `op` transposed: `Aᵀ` as an `n × m` operator, reusing `op`'s
-    * forward/transpose applies swapped. Lets the bidiagonalization always run on
-    * the taller orientation.
+  /** A view of `op` transposed: `Aᵀ` as an `n × m` operator, reusing `op`'s forward/transpose applies swapped. Lets the
+    * bidiagonalization always run on the taller orientation.
     */
   private def transposeOp(op: DoubleLinearOperator, m: Int, n: Int): DoubleLinearOperator =
     new DoubleLinearOperator:
@@ -562,9 +514,8 @@ object Svds:
     atu.axpyInPlace(-sigma, v)
     math.max(av.asVec.norm2, atu.asVec.norm2)
 
-  /** Assemble the result: singular values '''descending''', `U` (`m×count`), `Vᵀ`
-    * (`count×n`), numerical `rank` (count of returned `σ > tol·σ_max`), and
-    * diagnostics whose residuals align with the descending values and whose
+  /** Assemble the result: singular values '''descending''', `U` (`m×count`), `Vᵀ` (`count×n`), numerical `rank` (count
+    * of returned `σ > tol·σ_max`), and diagnostics whose residuals align with the descending values and whose
     * orthogonality error is the worse of `U` and `V`.
     */
   private def assembleSvd(
@@ -631,11 +582,10 @@ object Svds:
       i += 1
     math.sqrt(sum)
 
-  /** A deterministic (LCG) unit start vector in `R^n`, or the caller's normalized.
-    * The seed sequence is bit-for-bit portable (32-bit `Int` wraps identically on
-    * JVM and Scala.js); the bidiagonalization built on it is deterministic '''per
-    * platform''' but may differ between JVM and Scala.js in the last bits — the
-    * dense kernels use the platform's fused multiply-add.
+  /** A deterministic (LCG) unit start vector in `R^n`, or the caller's normalized. The seed sequence is bit-for-bit
+    * portable (32-bit `Int` wraps identically on JVM and Scala.js); the bidiagonalization built on it is deterministic
+    * '''per platform''' but may differ between JVM and Scala.js in the last bits — the dense kernels use the platform's
+    * fused multiply-add.
     */
   private def startVectorFor(provided: Option[DVec], n: Int): Either[LinAlgError, DVec] =
     provided match
@@ -661,63 +611,49 @@ object Svds:
   // Generalized SVD (gsvd) — pure, full-column-rank pencils only
   // ===========================================================================
 
-  /** Below this the cosine/sine snaps to an exact `0`: `s ≤` ⇒
-    * [[GeneralizedSingularValue.Infinite]], `c ≤` ⇒
-    * [[GeneralizedSingularValue.Zero]]. The `c`/`s` here are '''normalized'''
-    * (`c² + s² = 1`), so the tolerance is on the unit CS scale. It sits far above
-    * the `~ε` a direct norm of a true-null direction produces, and far below any
+  /** Below this the cosine/sine snaps to an exact `0`: `s ≤` ⇒ [[GeneralizedSingularValue.Infinite]], `c ≤` ⇒
+    * [[GeneralizedSingularValue.Zero]]. The `c`/`s` here are '''normalized''' (`c² + s² = 1`), so the tolerance is on
+    * the unit CS scale. It sits far above the `~ε` a direct norm of a true-null direction produces, and far below any
     * genuinely finite ratio the tests exercise.
     */
   private val CsSnapTolerance: Double = 1e-9
 
-  /** Generalized SVD of the pencil `(A, B)` (`A` `m×n`, `B` `p×n`) computing the
-    * full factors ([[EigenVectors.Right]]). See the three-argument overload for the
-    * vector flag, algorithm, and failure details.
+  /** Generalized SVD of the pencil `(A, B)` (`A` `m×n`, `B` `p×n`) computing the full factors ([[EigenVectors.Right]]).
+    * See the three-argument overload for the vector flag, algorithm, and failure details.
     */
   def gsvd(a: DMat, b: DMat)(using backend: SpectralBackend): Either[LinAlgError, GeneralizedSVD] =
     gsvd(a, b, EigenVectors.Right)
 
-  /** Generalized SVD of `(A, B)` — `A = U C Xᵀ`, `B = V S Xᵀ`, `CᵀC + SᵀS = I`
-    * (§ 9 of `docs/spectral-parity.md`) — for a '''full-column-rank''' pencil
-    * (`[A;B]` has rank `n`). Values are the generalized singular values `c_i/s_i`
-    * ('''descending''', `Infinite` first / `Zero` last), typed as
-    * [[GeneralizedSingularValue]].
+  /** Generalized SVD of `(A, B)` — `A = U C Xᵀ`, `B = V S Xᵀ`, `CᵀC + SᵀS = I` (§ 9 of `docs/spectral-parity.md`) — for
+    * a '''full-column-rank''' pencil (`[A;B]` has rank `n`). Values are the generalized singular values `c_i/s_i`
+    * ('''descending''', `Infinite` first / `Zero` last), typed as [[GeneralizedSingularValue]].
     *
-    * '''Algorithm''' (the pure route that avoids the not-yet-shipped full dense
-    * SVD): QR of the stacked `[A;B]` (`(m+p)×n`) splits the thin `Q` into `Q1`
-    * (top `m` rows) and `Q2` (bottom `p` rows) with `A = Q1 R`, `B = Q2 R`. The CS
-    * decomposition comes from the symmetric-eigen kernel on the '''A-block Gram'''
-    * `Q1ᵀQ1 = W C² Wᵀ` (the `n×n` block; a single documented choice — `Q2ᵀQ2`
-    * shares `W` since `Q1ᵀQ1 + Q2ᵀQ2 = I`). Crucially the cosines and sines are
-    * then taken as the '''direct column norms''' `c_i = ‖Q1 w_i‖`,
-    * `s_i = ‖Q2 w_i‖` (not `s = √(1−c²)`), which keeps small `s` (and small `c`)
-    * accurate rather than suffering the cancellation of `1−c²`. Finally
-    * `U = Q1 W C⁻¹`, `V = Q2 W S⁻¹`, `Xᵀ = Wᵀ R`.
+    * '''Algorithm''' (the pure route that avoids the not-yet-shipped full dense SVD): QR of the stacked `[A;B]`
+    * (`(m+p)×n`) splits the thin `Q` into `Q1` (top `m` rows) and `Q2` (bottom `p` rows) with `A = Q1 R`, `B = Q2 R`.
+    * The CS decomposition comes from the symmetric-eigen kernel on the '''A-block Gram''' `Q1ᵀQ1 = W C² Wᵀ` (the `n×n`
+    * block; a single documented choice — `Q2ᵀQ2` shares `W` since `Q1ᵀQ1 + Q2ᵀQ2 = I`). Crucially the cosines and sines
+    * are then taken as the '''direct column norms''' `c_i = ‖Q1 w_i‖`, `s_i = ‖Q2 w_i‖` (not `s = √(1−c²)`), which
+    * keeps small `s` (and small `c`) accurate rather than suffering the cancellation of `1−c²`. Finally `U = Q1 W C⁻¹`,
+    * `V = Q2 W S⁻¹`, `Xᵀ = Wᵀ R`.
     *
-    * '''Accuracy caveat.''' The Gram step delivers '''absolute''' accuracy `~ε` in
-    * `c²`/`s²`; for `c` or `s` very near `0` the '''relative''' accuracy degrades
-    * (those are exactly the near-`Infinite`/near-`Zero` values). The exact
-    * `Infinite` (`s = 0`) / `Zero` (`c = 0`) classifications use the documented
-    * snap tolerance `1e-9` on the normalized CS scale. A `Zero` leaves its `U`
-    * column undetermined by this route (stored as zero); an `Infinite` its `V`
-    * column — orthonormality is claimed only on the well-determined columns.
+    * '''Accuracy caveat.''' The Gram step delivers '''absolute''' accuracy `~ε` in `c²`/`s²`; for `c` or `s` very near
+    * `0` the '''relative''' accuracy degrades (those are exactly the near-`Infinite`/near-`Zero` values). The exact
+    * `Infinite` (`s = 0`) / `Zero` (`c = 0`) classifications use the documented snap tolerance `1e-9` on the normalized
+    * CS scale. A `Zero` leaves its `U` column undetermined by this route (stored as zero); an `Infinite` its `V` column
+    * — orthonormality is claimed only on the well-determined columns.
     *
-    * `vectors` selects [[EigenVectors.ValuesOnly]] (only `c`/`s`/values) versus
-    * [[EigenVectors.Right]] (the full `U`, `V`, `X`); there is no one-sided mode
-    * ([[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected).
+    * `vectors` selects [[EigenVectors.ValuesOnly]] (only `c`/`s`/values) versus [[EigenVectors.Right]] (the full `U`,
+    * `V`, `X`); there is no one-sided mode ([[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected).
     *
-    * '''Diagnostics.''' `diagnostics.residuals(i)` is the '''CS-identity defect'''
-    * `|c_raw_i² + s_raw_i² − 1|` (the thin-`Q` column-orthonormality drift), '''not'''
-    * an `A`/`B` reconstruction residual — despite `SpectralDiagnostics`'s generic
-    * "per-pair residual" wording. `orthogonalityError` is the worst column-Gram
-    * error `‖·ᵀ· − I‖_F` over the well-determined `U`/`V` columns.
+    * '''Diagnostics.''' `diagnostics.residuals(i)` is the '''CS-identity defect''' `|c_raw_i² + s_raw_i² − 1|` (the
+    * thin-`Q` column-orthonormality drift), '''not''' an `A`/`B` reconstruction residual — despite
+    * `SpectralDiagnostics`'s generic "per-pair residual" wording. `orthogonalityError` is the worst column-Gram error
+    * `‖·ᵀ· − I‖_F` over the well-determined `U`/`V` columns.
     *
-    * `Left` on: `A`/`B` with disagreeing column counts (`DimensionMismatch`); an
-    * empty dimension (`InvalidArgument`); or a '''rank-deficient stacked pencil'''
-    * (`rank([A;B]) < n`, including `m+p < n`) — `RankDeficient`, the honest scope
-    * boundary (rank-deficient GSVD is deferred to a backend, § 9). Rank is judged
-    * by the QR `R`-diagonal at gale's standard tolerance
-    * (`2·max(m+p,n)·ε·max|R_ii|`).
+    * `Left` on: `A`/`B` with disagreeing column counts (`DimensionMismatch`); an empty dimension (`InvalidArgument`);
+    * or a '''rank-deficient stacked pencil''' (`rank([A;B]) < n`, including `m+p < n`) — `RankDeficient`, the honest
+    * scope boundary (rank-deficient GSVD is deferred to a backend, § 9). Rank is judged by the QR `R`-diagonal at
+    * gale's standard tolerance (`2·max(m+p,n)·ε·max|R_ii|`).
     */
   def gsvd(a: DMat, b: DMat, vectors: EigenVectors)(using
       backend: SpectralBackend
@@ -731,7 +667,7 @@ object Svds:
         Left(LinAlgError.InvalidArgument(s"GSVD requires nonempty A (${m}x$n) and B (${p}x$n)"))
       else
         validateVectors(vectors) match
-          case Left(error) => Left(error)
+          case Left(error)        => Left(error)
           case Right(wantVectors) =>
             // m+p is an upper bound on rank([A;B]) (the QR has not run yet); when
             // it is below n the pencil cannot be full column rank. The reported
@@ -745,9 +681,8 @@ object Svds:
               else runGsvd(m, p, n, qr, wantVectors)
 
   /** Rank-deficient GSVD seam (S6 of `docs/spectral-backend-boundary.md`): a
-    * [[SpectralCapability.RankDeficientGsvd]]-capable backend '''computes''' the
-    * hard pencil (raw factors canonicalized here into a [[GeneralizedSVD]] with
-    * `Infinite`/`Zero` typed values); with no such backend — the pure default — the
+    * [[SpectralCapability.RankDeficientGsvd]]-capable backend '''computes''' the hard pencil (raw factors canonicalized
+    * here into a [[GeneralizedSVD]] with `Infinite`/`Zero` typed values); with no such backend — the pure default — the
     * shipped `Left(RankDeficient)` stands.
     */
   private def rankDeficientRoute(a: DMat, b: DMat, wantVectors: Boolean, rank: Int, n: Int)(using
@@ -842,7 +777,9 @@ object Svds:
         val xFull = rMat.t * w
         val xMat = DMat.tabulate(n, n)((row, k) => xFull(row, order(k)))
         val uErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Zero).map(uMat.col))
-        val vErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col))
+        val vErr = columnGramError(
+          (0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col)
+        )
         (uMat, vMat, xMat, math.max(uErr, vErr))
       else (DMat.zeros(m, 0), DMat.zeros(p, 0), DMat.zeros(n, 0), 0.0)
 
@@ -875,12 +812,11 @@ object Svds:
         i += 1
       math.sqrt(sum)
 
-  /** Canonicalize a backend's raw GSVD factors into the sealed [[GeneralizedSVD]]
-    * (the S6 rank-deficient path): normalize each `(c, s)` to the unit CS scale,
-    * classify the typed generalized singular value, impose the descending-ratio
-    * order (`Infinite` first / `Zero` last), permute `U`/`V`/`X` columns in lockstep,
-    * and report the CS-identity-defect residuals + well-determined orthogonality
-    * error — the same layout the pure full-rank path yields.
+  /** Canonicalize a backend's raw GSVD factors into the sealed [[GeneralizedSVD]] (the S6 rank-deficient path):
+    * normalize each `(c, s)` to the unit CS scale, classify the typed generalized singular value, impose the
+    * descending-ratio order (`Infinite` first / `Zero` last), permute `U`/`V`/`X` columns in lockstep, and report the
+    * CS-identity-defect residuals + well-determined orthogonality error — the same layout the pure full-rank path
+    * yields.
     */
   private def assembleRawGsvd(raw: RawGsvd): GeneralizedSVD =
     val n = raw.c.length
@@ -912,7 +848,9 @@ object Svds:
         val vMat = DMat.tabulate(raw.v.rows, n)((row, k) => raw.v(row, order(k)))
         val xMat = DMat.tabulate(raw.x.rows, n)((row, k) => raw.x(row, order(k)))
         val uErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Zero).map(uMat.col))
-        val vErr = columnGramError((0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col))
+        val vErr = columnGramError(
+          (0 until n).filter(k => valuesOut(k) != GeneralizedSingularValue.Infinite).map(vMat.col)
+        )
         (uMat, vMat, xMat, math.max(uErr, vErr))
       else (DMat.zeros(raw.u.rows, 0), DMat.zeros(raw.v.rows, 0), DMat.zeros(raw.x.rows, 0), 0.0)
     val diagnostics =

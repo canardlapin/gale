@@ -56,11 +56,9 @@ private[gale] object DoubleKernels:
 
   /** Euclidean norm via scaled accumulation (the LAPACK `dnrm2` recurrence).
     *
-    * Tracks the running maximum magnitude `scale` and the scaled sum of squares
-    * `ssq`, so `sqrt(sum x_i^2)` never forms the intermediate `sum x_i^2` that
-    * would overflow for large elements (e.g. 1e155) or underflow to zero for
-    * tiny ones (e.g. 1e-170). Ordinary inputs agree with `sqrt(dot(x, x))` to
-    * full relative precision.
+    * Tracks the running maximum magnitude `scale` and the scaled sum of squares `ssq`, so `sqrt(sum x_i^2)` never forms
+    * the intermediate `sum x_i^2` that would overflow for large elements (e.g. 1e155) or underflow to zero for tiny
+    * ones (e.g. 1e-170). Ordinary inputs agree with `sqrt(dot(x, x))` to full relative precision.
     */
   def dnrm2(
       n: Int,
@@ -335,15 +333,14 @@ private[gale] object DoubleKernels:
       xj += xStride
       col += 1
 
-  /** In-place triangular solve `T x = b` (`x` holds `b` on entry, the solution on
-    * exit). `lower` selects forward vs back substitution; `unit` skips the diagonal
-    * division (implicit unit diagonal, so the stored diagonal is never read).
+  /** In-place triangular solve `T x = b` (`x` holds `b` on entry, the solution on exit). `lower` selects forward vs
+    * back substitution; `unit` skips the diagonal division (implicit unit diagonal, so the stored diagonal is never
+    * read).
     *
-    * Returns the index of the first diagonal whose magnitude is `<= tol` — a
-    * singular / rank-deficient pivot — or `-1` on success. With `tol == 0` only an
-    * exact zero diagonal fails; `unit == true` never inspects the diagonal and
-    * always succeeds. Storage is fully strided, so transposed and submatrix views
-    * (e.g. `Lᵀ` via swapped row/column strides) drive the same loop.
+    * Returns the index of the first diagonal whose magnitude is `<= tol` — a singular / rank-deficient pivot — or `-1`
+    * on success. With `tol == 0` only an exact zero diagonal fails; `unit == true` never inspects the diagonal and
+    * always succeeds. Storage is fully strided, so transposed and submatrix views (e.g. `Lᵀ` via swapped row/column
+    * strides) drive the same loop.
     */
   def dtrsv(
       n: Int,
@@ -437,16 +434,57 @@ private[gale] object DoubleKernels:
     if aColStride == 1 && bColStride == 1 && cColStride == 1 then
       if rows.toLong * cols.toLong * shared.toLong >= GemmBlockThreshold then
         dgemmBlockedRowMajor(
-          rows, cols, shared, alpha, a, aOffset, aRowStride, b, bOffset, bRowStride, beta, c, cOffset, cRowStride
+          rows,
+          cols,
+          shared,
+          alpha,
+          a,
+          aOffset,
+          aRowStride,
+          b,
+          bOffset,
+          bRowStride,
+          beta,
+          c,
+          cOffset,
+          cRowStride
         )
       else
         dgemmRowMajor(
-          rows, cols, shared, alpha, a, aOffset, aRowStride, b, bOffset, bRowStride, beta, c, cOffset, cRowStride
+          rows,
+          cols,
+          shared,
+          alpha,
+          a,
+          aOffset,
+          aRowStride,
+          b,
+          bOffset,
+          bRowStride,
+          beta,
+          c,
+          cOffset,
+          cRowStride
         )
     else
       dgemmStrided(
-        rows, cols, shared, alpha, a, aOffset, aRowStride, aColStride, b, bOffset, bRowStride, bColStride, beta, c,
-        cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
 
   private def dgemmStrided(
@@ -494,8 +532,8 @@ private[gale] object DoubleKernels:
       aRow += aRowStride
       row += 1
 
-  /** Scale C in place by `beta` (or zero it when `beta == 0`) before an i-k-j
-    * accumulation. Row-major with unit column stride, so each row is contiguous.
+  /** Scale C in place by `beta` (or zero it when `beta == 0`) before an i-k-j accumulation. Row-major with unit column
+    * stride, so each row is contiguous.
     */
   private def scaleRowMajor(
       rows: Int,
@@ -539,20 +577,32 @@ private[gale] object DoubleKernels:
     val assign = beta == 0.0 && shared > 0
     if !assign then scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
     gemmPanel(
-      0, rows, 0, cols, 0, shared, alpha, a, aOffset, aRowStride, b, bOffset,
-      bRowStride, c, cOffset, cRowStride, assign
+      0,
+      rows,
+      0,
+      cols,
+      0,
+      shared,
+      alpha,
+      a,
+      aOffset,
+      aRowStride,
+      b,
+      bOffset,
+      bRowStride,
+      c,
+      cOffset,
+      cRowStride,
+      assign
     )
 
-  /** Register-blocked accumulation micro-kernel over the tile `C[iStart:iEnd,
-    * jStart:jEnd] += alpha·A[·, kStart:kEnd]·B[kStart:kEnd, ·]` (row-major, unit
-    * column stride).
+  /** Register-blocked accumulation micro-kernel over the tile `C[iStart:iEnd, jStart:jEnd] += alpha·A[·,
+    * kStart:kEnd]·B[kStart:kEnd, ·]` (row-major, unit column stride).
     *
-    * The `4×4` interior holds a `C` tile in '''16 accumulators across the whole
-    * k-loop''': each k-step loads 4 values of `A` and 4 of `B` and issues 16 fused
-    * multiply-adds, so `C` is read/written once per tile rather than once per
-    * k-step — cutting the `C` memory traffic that limited the plain unroll-and-jam
-    * by a factor of the k-extent. The `0–3` leftover columns (still 4 rows at a
-    * time) and `0–3` leftover rows fall to unrolled/scalar tails.
+    * The `4×4` interior holds a `C` tile in '''16 accumulators across the whole k-loop''': each k-step loads 4 values
+    * of `A` and 4 of `B` and issues 16 fused multiply-adds, so `C` is read/written once per tile rather than once per
+    * k-step — cutting the `C` memory traffic that limited the plain unroll-and-jam by a factor of the k-extent. The
+    * `0–3` leftover columns (still 4 rows at a time) and `0–3` leftover rows fall to unrolled/scalar tails.
     */
   private def gemmPanel(
       iStart: Int,
@@ -690,8 +740,7 @@ private[gale] object DoubleKernels:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    if beta != 0.0 || shared == 0 then
-      scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
+    if beta != 0.0 || shared == 0 then scaleRowMajor(rows, cols, beta, c, cOffset, cRowStride)
     var ii = 0
     while ii < rows do
       val iMax = math.min(ii + GemmBlock, rows)
@@ -702,24 +751,36 @@ private[gale] object DoubleKernels:
         while jj < cols do
           val jMax = math.min(jj + GemmBlock, cols)
           gemmPanel(
-            ii, iMax, jj, jMax, kk, kMax, alpha, a, aOffset, aRowStride, b,
-            bOffset, bRowStride, c, cOffset, cRowStride, assign = beta == 0.0 && kk == 0
+            ii,
+            iMax,
+            jj,
+            jMax,
+            kk,
+            kMax,
+            alpha,
+            a,
+            aOffset,
+            aRowStride,
+            b,
+            bOffset,
+            bRowStride,
+            c,
+            cOffset,
+            cRowStride,
+            assign = beta == 0.0 && kk == 0
           )
           jj += GemmBlock
         kk += GemmBlock
       ii += GemmBlock
 
-  /** Symmetric rank-k product `C := AᵀA` for a '''row-major''' `A` (`m × k`, unit
-    * column stride), writing the full symmetric `k × k` result into `c` (row-major,
-    * unit column stride). '''Assign-only:''' there is no `alpha`/`beta`; every
-    * output cell is overwritten, so the input contents of `C` are ignored.
+  /** Symmetric rank-k product `C := AᵀA` for a '''row-major''' `A` (`m × k`, unit column stride), writing the full
+    * symmetric `k × k` result into `c` (row-major, unit column stride). '''Assign-only:''' there is no `alpha`/`beta`;
+    * every output cell is overwritten, so the input contents of `C` are ignored.
     *
-    * A general gemm computing `Aᵀ·A` sees `Aᵀ` column-strided. This kernel instead
-    * visits the upper triangle in `4×4` output tiles, holds each tile in registers
-    * across the full `m` reduction, and mirrors it once. Compared with a row-wise
-    * rank-1 update, each `C` cell is written once rather than `m` times. Full tiles
-    * use 16 independent FMA accumulators; boundary tiles use the same scalar
-    * reduction with exact triangular bounds.
+    * A general gemm computing `Aᵀ·A` sees `Aᵀ` column-strided. This kernel instead visits the upper triangle in `4×4`
+    * output tiles, holds each tile in registers across the full `m` reduction, and mirrors it once. Compared with a
+    * row-wise rank-1 update, each `C` cell is written once rather than `m` times. Full tiles use 16 independent FMA
+    * accumulators; boundary tiles use the same scalar reduction with exact triangular bounds.
     */
   def dsyrkRowMajor(
       m: Int,

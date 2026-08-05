@@ -9,8 +9,10 @@ class PropertyWrapperInteropSuite extends munit.FunSuite:
 
   test("property wrappers and extensions are available through public wildcard imports") {
     val matrix = Matrix.dense(2, 2)(
-      2.0, 0.5,
-      0.5, 1.0
+      2.0,
+      0.5,
+      0.5,
+      1.0
     )
     val symmetric: Symmetric[DMat] = matrix.verifySymmetric().orThrow
     val spd: PositiveDefinite[DMat] = matrix.verifyPositiveDefinite.orThrow

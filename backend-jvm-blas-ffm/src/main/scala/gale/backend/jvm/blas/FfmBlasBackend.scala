@@ -2,7 +2,20 @@ package gale.backend.jvm.blas
 
 import gale.backend.*
 import gale.backend.jvm.`native`.{Layout, NativeDMat}
-import gale.linalg.{Cholesky, ColumnPermutation, DMat, DVec, DenseDecompositions, FactorizationDiagnostics, LU, LinAlgError, Matrix, PivotVector, QR, QROptions}
+import gale.linalg.{
+  Cholesky,
+  ColumnPermutation,
+  DMat,
+  DVec,
+  DenseDecompositions,
+  FactorizationDiagnostics,
+  LU,
+  LinAlgError,
+  Matrix,
+  PivotVector,
+  QR,
+  QROptions
+}
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 import gale.spectral.{RawSymmetricEigen, SpectralBackend, SpectralCapability}
@@ -10,13 +23,11 @@ import gale.spectral.{RawSymmetricEigen, SpectralBackend, SpectralCapability}
 import java.lang.foreign.{Arena, MemorySegment, ValueLayout}
 import scala.util.control.NonFatal
 
-final case class BlasLoadError(message: String, cause: Throwable)
-    extends RuntimeException(message, cause)
+final case class BlasLoadError(message: String, cause: Throwable) extends RuntimeException(message, cause)
 
-/** Conservative heap-copy-inclusive defaults pending platform JMH sweeps.
-  * `nativeSymmetricEigenMinSize` is the spectral analog of the factorization
-  * sizes: the S8 `Eigen.eigSymmetric` facade routes to the LAPACK spectral
-  * provider only from that matrix order upward (`Int.MaxValue` = never).
+/** Conservative heap-copy-inclusive defaults pending platform JMH sweeps. `nativeSymmetricEigenMinSize` is the spectral
+  * analog of the factorization sizes: the S8 `Eigen.eigSymmetric` facade routes to the LAPACK spectral provider only
+  * from that matrix order upward (`Int.MaxValue` = never).
   */
 final case class FfmBlasThresholds(
     nativeGemmMinFlops: Long = Long.MaxValue,
@@ -35,8 +46,8 @@ final case class FfmBlasThresholds(
   require(nativeSymmetricEigenMinSize >= 0)
 
 object FfmBlasThresholds:
-  /** Only known optimized families dispatch by default. An unknown/reference
-    * `libblas` remains direct-callable but cannot regress Gale's public route.
+  /** Only known optimized families dispatch by default. An unknown/reference `libblas` remains direct-callable but
+    * cannot regress Gale's public route.
     */
   def forLibrary(name: String): FfmBlasThresholds =
     val normalized = name.toLowerCase(java.util.Locale.ROOT)
@@ -74,7 +85,8 @@ final class FfmBlasBackend private[blas] (
     private val bindings: CblasBindings,
     val config: BackendConfig,
     val thresholds: BackendThresholds
-) extends Backend, AutoCloseable:
+) extends Backend,
+      AutoCloseable:
   val libraryInfo: BlasLibraryInfo = BlasLibraryInfo(
     bindings.libraryName(),
     bindings.hasLapack(),
@@ -99,9 +111,8 @@ final class FfmBlasBackend private[blas] (
         case _                      => FfmBlasThresholds.forLibrary(bindings.libraryName()).nativeSymmetricEigenMinSize
       new FfmLapackSpectralBackend(bindings, name, eigenMinSize)
 
-  /** Copy-free explicit native GEMM. The output layout selects CBLAS row/column
-    * major; operands in the other layout are represented with a transpose flag,
-    * so mixed layouts need no repacking.
+  /** Copy-free explicit native GEMM. The output layout selects CBLAS row/column major; operands in the other layout are
+    * represented with a transpose flag, so mixed layouts need no repacking.
     */
   def gemm(
       a: NativeDMat,
@@ -111,8 +122,10 @@ final class FfmBlasBackend private[blas] (
       beta: Double = 0.0
   ): Unit =
     require(a.cols == b.rows, s"native GEMM inner mismatch: ${a.cols} != ${b.rows}")
-    require(c.rows == a.rows && c.cols == b.cols,
-      s"native GEMM output mismatch: ${c.rows} x ${c.cols} != ${a.rows} x ${b.cols}")
+    require(
+      c.rows == a.rows && c.cols == b.cols,
+      s"native GEMM output mismatch: ${c.rows} x ${c.cols} != ${a.rows} x ${b.cols}"
+    )
     val cblasLayout = if c.layout == Layout.RowMajor then CblasBindings.ROW_MAJOR else CblasBindings.COL_MAJOR
     def operand(matrix: NativeDMat): (Int, Int) =
       if matrix.layout == c.layout then (CblasBindings.NO_TRANS, matrix.leadingDimension)
@@ -120,9 +133,20 @@ final class FfmBlasBackend private[blas] (
     val (transA, lda) = operand(a)
     val (transB, ldb) = operand(b)
     bindings.dgemm(
-      cblasLayout, transA, transB,
-      a.rows, b.cols, a.cols, alpha,
-      a.memory, lda, b.memory, ldb, beta, c.memory, c.leadingDimension
+      cblasLayout,
+      transA,
+      transB,
+      a.rows,
+      b.cols,
+      a.cols,
+      alpha,
+      a.memory,
+      lda,
+      b.memory,
+      ldb,
+      beta,
+      c.memory,
+      c.leadingDimension
     )
 
   override def close(): Unit = bindings.close()
@@ -139,16 +163,17 @@ object FfmBlasBackend:
         else false
       if config.nativeThreads != 1 && !threadCountConfigured then
         bindings.close()
-        Left(BlasLoadError(
-          s"${bindings.libraryName()} exposes no supported thread-count setter; " +
-            "use nativeThreads=1 or configure the vendor before JVM startup",
-          IllegalStateException("native thread control unavailable")
-        ))
+        Left(
+          BlasLoadError(
+            s"${bindings.libraryName()} exposes no supported thread-count setter; " +
+              "use nativeThreads=1 or configure the vendor before JVM startup",
+            IllegalStateException("native thread control unavailable")
+          )
+        )
       else
         val selectedThresholds = thresholds.getOrElse(FfmBlasThresholds.forLibrary(bindings.libraryName()))
         Right(Backend.requireValid(new FfmBlasBackend(bindings, config, selectedThresholds)))
-    catch
-      case NonFatal(error) => Left(BlasLoadError(error.getMessage, error))
+    catch case NonFatal(error) => Left(BlasLoadError(error.getMessage, error))
 
   lazy val default: FfmBlasBackend =
     load().fold(throw _, identity)
@@ -159,10 +184,23 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
   private final case class MatrixLayout(transpose: Int, leadingDimension: Int)
 
   def gemm(
-      rows: Int, cols: Int, shared: Int, alpha: Double,
-      a: DoubleArray, aOffset: Int, aRowStride: Int, aColStride: Int,
-      b: DoubleArray, bOffset: Int, bRowStride: Int, bColStride: Int,
-      beta: Double, c: DoubleArray, cOffset: Int, cRowStride: Int, cColStride: Int
+      rows: Int,
+      cols: Int,
+      shared: Int,
+      alpha: Double,
+      a: DoubleArray,
+      aOffset: Int,
+      aRowStride: Int,
+      aColStride: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      bRowStride: Int,
+      bColStride: Int,
+      beta: Double,
+      c: DoubleArray,
+      cOffset: Int,
+      cRowStride: Int,
+      cColStride: Int
   ): Unit =
     val aLayout = matrixLayout(rows, shared, aRowStride, aColStride)
     val bLayout = matrixLayout(shared, cols, bRowStride, bColStride)
@@ -172,35 +210,80 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
     // O(n) arithmetic for O(n) copying. Require enough arithmetic intensity for
     // the heap/native boundary; otherwise the pure kernel is structurally better.
     val copyAmortized = work >= 8L * copiedElements
-    if rows == 0 || cols == 0 || shared == 0 || !copyAmortized || aLayout.isEmpty || bLayout.isEmpty || cColStride != 1 then
+    if rows == 0 || cols == 0 || shared == 0 || !copyAmortized || aLayout.isEmpty || bLayout.isEmpty || cColStride != 1
+    then
       PureDenseDoubleKernel.gemm(
-        rows, cols, shared, alpha,
-        a, aOffset, aRowStride, aColStride,
-        b, bOffset, bRowStride, bColStride,
-        beta, c, cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
     else
       withNative3(a, b, c) { (aSegment, bSegment, cSegment) =>
         bindings.dgemm(
-          CblasBindings.ROW_MAJOR, aLayout.get.transpose, bLayout.get.transpose,
-          rows, cols, shared, alpha,
-          atOffset(aSegment, aOffset), aLayout.get.leadingDimension,
-          atOffset(bSegment, bOffset), bLayout.get.leadingDimension,
-          beta, atOffset(cSegment, cOffset), cRowStride
+          CblasBindings.ROW_MAJOR,
+          aLayout.get.transpose,
+          bLayout.get.transpose,
+          rows,
+          cols,
+          shared,
+          alpha,
+          atOffset(aSegment, aOffset),
+          aLayout.get.leadingDimension,
+          atOffset(bSegment, bOffset),
+          bLayout.get.leadingDimension,
+          beta,
+          atOffset(cSegment, cOffset),
+          cRowStride
         )
       }
 
   def gemv(
-      rows: Int, cols: Int, alpha: Double,
-      a: DoubleArray, aOffset: Int, rowStride: Int, colStride: Int,
-      x: DoubleArray, xOffset: Int, xStride: Int,
-      beta: Double, y: DoubleArray, yOffset: Int, yStride: Int
+      rows: Int,
+      cols: Int,
+      alpha: Double,
+      a: DoubleArray,
+      aOffset: Int,
+      rowStride: Int,
+      colStride: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      beta: Double,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int
   ): Unit =
     val layout = matrixLayout(rows, cols, rowStride, colStride)
     if rows == 0 || cols == 0 || layout.isEmpty then
       PureDenseDoubleKernel.gemv(
-        rows, cols, alpha, a, aOffset, rowStride, colStride,
-        x, xOffset, xStride, beta, y, yOffset, yStride
+        rows,
+        cols,
+        alpha,
+        a,
+        aOffset,
+        rowStride,
+        colStride,
+        x,
+        xOffset,
+        xStride,
+        beta,
+        y,
+        yOffset,
+        yStride
       )
     else
       withNative3(a, x, y) { (aSegment, xSegment, ySegment) =>
@@ -208,24 +291,42 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
         val physicalRows = if transposed then cols else rows
         val physicalCols = if transposed then rows else cols
         bindings.dgemv(
-          layout.get.transpose, physicalRows, physicalCols, alpha,
-          atOffset(aSegment, aOffset), layout.get.leadingDimension,
-          atOffset(xSegment, xOffset), xStride,
-          beta, atOffset(ySegment, yOffset), yStride
+          layout.get.transpose,
+          physicalRows,
+          physicalCols,
+          alpha,
+          atOffset(aSegment, aOffset),
+          layout.get.leadingDimension,
+          atOffset(xSegment, xOffset),
+          xStride,
+          beta,
+          atOffset(ySegment, yOffset),
+          yStride
         )
       }
 
   def syrk(
-      m: Int, k: Int, a: DoubleArray, aOffset: Int, aRowStride: Int,
-      c: DoubleArray, cOffset: Int, cRowStride: Int
+      m: Int,
+      k: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      aRowStride: Int,
+      c: DoubleArray,
+      cOffset: Int,
+      cRowStride: Int
   ): Unit =
-    if m == 0 || k == 0 then
-      PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
+    if m == 0 || k == 0 then PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
     else
       withNative2(a, c) { (aSegment, cSegment) =>
         bindings.dsyrk(
-          k, m, 1.0, atOffset(aSegment, aOffset), aRowStride,
-          0.0, atOffset(cSegment, cOffset), cRowStride
+          k,
+          m,
+          1.0,
+          atOffset(aSegment, aOffset),
+          aRowStride,
+          0.0,
+          atOffset(cSegment, cOffset),
+          cRowStride
         )
       }
       var i = 0
@@ -237,10 +338,8 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
         i += 1
 
   private def matrixLayout(rows: Int, cols: Int, rowStride: Int, colStride: Int): Option[MatrixLayout] =
-    if colStride == 1 && rowStride >= math.max(1, cols) then
-      Some(MatrixLayout(CblasBindings.NO_TRANS, rowStride))
-    else if rowStride == 1 && colStride >= math.max(1, rows) then
-      Some(MatrixLayout(CblasBindings.TRANS, colStride))
+    if colStride == 1 && rowStride >= math.max(1, cols) then Some(MatrixLayout(CblasBindings.NO_TRANS, rowStride))
+    else if rowStride == 1 && colStride >= math.max(1, rows) then Some(MatrixLayout(CblasBindings.TRANS, colStride))
     else None
 
   private def withNative2(a: DoubleArray, b: DoubleArray)(operation: (MemorySegment, MemorySegment) => Unit): Unit =
@@ -344,12 +443,14 @@ private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extend
               permutation(pivot) = tmp
               parity = -parity
             k += 1
-          Right(LU(
-            packed = fromColumnMajor(n, n, packedColumnMajor),
-            pivots = PivotVector.fromArray(permutation),
-            parity = parity,
-            diagnostics = FactorizationDiagnostics()
-          ))
+          Right(
+            LU(
+              packed = fromColumnMajor(n, n, packedColumnMajor),
+              pivots = PivotVector.fromArray(permutation),
+              parity = parity,
+              diagnostics = FactorizationDiagnostics()
+            )
+          )
       finally arena.close()
 
   def cholesky(a: DMat): Either[LinAlgError, Cholesky] =
@@ -383,7 +484,8 @@ private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extend
         val tauSegment = nativeDoubles(arena, limit)
         val query = nativeDoubles(arena, 1)
         val queryInfo = bindings.dgeqrf(m, n, matrix, m, tauSegment, query, -1)
-        if queryInfo != 0 then Left(LinAlgError.InvalidArgument(s"native dgeqrf workspace query failed with info=$queryInfo"))
+        if queryInfo != 0 then
+          Left(LinAlgError.InvalidArgument(s"native dgeqrf workspace query failed with info=$queryInfo"))
         else
           val lwork = math.max(1, math.ceil(query.get(ValueLayout.JAVA_DOUBLE, 0L)).toInt)
           val work = nativeDoubles(arena, lwork)
@@ -397,17 +499,19 @@ private final class FfmDenseDoubleFactorizations(bindings: CblasBindings) extend
               if i < j then 0.0 else if i == j then 1.0 else packedColumnMajor(j * m + i)
             )
             val r = Matrix.tabulate(m, n)((i, j) => if i <= j then packedColumnMajor(j * m + i) else 0.0)
-            Right(QR(
-              reflectors,
-              DoubleArray.adopt(tauArray),
-              r,
-              FactorizationDiagnostics(
-                rank = Some(DenseDecompositions.rankFromMatrix(r)),
-                rankTolerance = Some(DenseDecompositions.rankToleranceFromMatrix(r))
-              ),
-              ColumnPermutation.identity(n),
-              QROptions.Default
-            ))
+            Right(
+              QR(
+                reflectors,
+                DoubleArray.adopt(tauArray),
+                r,
+                FactorizationDiagnostics(
+                  rank = Some(DenseDecompositions.rankFromMatrix(r)),
+                  rankTolerance = Some(DenseDecompositions.rankToleranceFromMatrix(r))
+                ),
+                ColumnPermutation.identity(n),
+                QROptions.Default
+              )
+            )
       finally arena.close()
 
 private final class FfmLapackSpectralBackend(
@@ -434,7 +538,8 @@ private final class FfmLapackSpectralBackend(
         val query = nativeDoubles(arena, 1)
         val jobz = if wantVectors then 'V'.toByte else 'N'.toByte
         val queryInfo = bindings.dsyev(jobz, 'L'.toByte, n, matrix, n, eigenvalues, query, -1)
-        if queryInfo != 0 then Left(LinAlgError.InvalidArgument(s"native dsyev workspace query failed with info=$queryInfo"))
+        if queryInfo != 0 then
+          Left(LinAlgError.InvalidArgument(s"native dsyev workspace query failed with info=$queryInfo"))
         else
           val lwork = math.max(1, math.ceil(query.get(ValueLayout.JAVA_DOUBLE, 0L)).toInt)
           val work = nativeDoubles(arena, lwork)
@@ -452,10 +557,9 @@ private final class FfmLapackSpectralBackend(
 /** Explicit import point. Evaluating it loads the first conforming BLAS/LAPACK candidate. */
 given ffmBlasBackend: Backend = FfmBlasBackend.default
 
-/** Explicit spectral import point (the boundary doc's "value + given" module shape):
-  * the LAPACK spectral half of [[FfmBlasBackend.default]], routing the S7/S8 spectral
-  * facades. When the discovered library has no complete LAPACK symbol set this is
-  * [[gale.spectral.SpectralBackend.none]] — availability is a registration responsibility, so the
+/** Explicit spectral import point (the boundary doc's "value + given" module shape): the LAPACK spectral half of
+  * [[FfmBlasBackend.default]], routing the S7/S8 spectral facades. When the discovered library has no complete LAPACK
+  * symbol set this is [[gale.spectral.SpectralBackend.none]] — availability is a registration responsibility, so the
   * facades fall back to the pure kernels cleanly rather than failing at call time.
   */
 given ffmSpectralBackend: SpectralBackend =

@@ -4,19 +4,16 @@ import gale.platform.DoubleArray
 
 /** JVM-only copy interop between gale's dense types and `Array[Double]` values.
   *
-  * Shared code keeps `Array[Double]` off its public surface. These platform
-  * helpers copy in and copy out, so the public API does not promise or expose
-  * gale's owned storage representation.
+  * Shared code keeps `Array[Double]` off its public surface. These platform helpers copy in and copy out, so the public
+  * API does not promise or expose gale's owned storage representation.
   *
-  * SUBTLE CONTRACT: the `toArray` / `toArrayRowMajor` exporters below share their
-  * names with the `private[gale]` members `DVec.toArray` / `DMat.toArrayRowMajor`.
-  * Inside these extension bodies, `v.toArray` / `m.toArrayRowMajor` resolve to the
-  * private members (a member wins over a same-named extension, and the private
-  * members are visible from this `gale.linalg` file), while external callers —
-  * outside `gale` — see only the public extension. Renaming those private members
-  * would silently break this resolution: `v.toArray` inside the extension would
-  * then bind to the extension itself and recurse. The `userland.InteropSuite`
-  * (deliberately in a non-`gale` package) is the canary that keeps this honest.
+  * SUBTLE CONTRACT: the `toArray` / `toArrayRowMajor` exporters below share their names with the `private[gale]`
+  * members `DVec.toArray` / `DMat.toArrayRowMajor`. Inside these extension bodies, `v.toArray` / `m.toArrayRowMajor`
+  * resolve to the private members (a member wins over a same-named extension, and the private members are visible from
+  * this `gale.linalg` file), while external callers — outside `gale` — see only the public extension. Renaming those
+  * private members would silently break this resolution: `v.toArray` inside the extension would then bind to the
+  * extension itself and recurse. The `userland.InteropSuite` (deliberately in a non-`gale` package) is the canary that
+  * keeps this honest.
   */
 
 extension (companion: Vec.type)
@@ -35,8 +32,8 @@ extension (v: DVec)
     v.toArray
 
 extension (m: DMat)
-  /** Fresh `Array[Double]` copy of this matrix's elements in row-major order,
-    * materialising strided or transposed views.
+  /** Fresh `Array[Double]` copy of this matrix's elements in row-major order, materialising strided or transposed
+    * views.
     */
   def toArrayRowMajor: Array[Double] =
     m.toArrayRowMajor

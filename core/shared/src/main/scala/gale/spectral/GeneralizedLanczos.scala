@@ -12,11 +12,9 @@ import scala.collection.mutable.ArrayBuffer
 
 /** Portable generalized block-Lanczos engine for `A x = lambda B x`.
   *
-  * The Krylov action is `T = B^-1 A`, but the inverse is never formed:
-  * `A` is applied and each resulting column is passed to the caller's explicit
-  * [[MetricSolveOperator]]. Since `T` is self-adjoint in the B inner product,
-  * the basis is maintained with twice-reorthogonalized B geometry and the dense
-  * Rayleigh-Ritz projection remains symmetric.
+  * The Krylov action is `T = B^-1 A`, but the inverse is never formed: `A` is applied and each resulting column is
+  * passed to the caller's explicit [[MetricSolveOperator]]. Since `T` is self-adjoint in the B inner product, the basis
+  * is maintained with twice-reorthogonalized B geometry and the dense Rayleigh-Ritz projection remains symmetric.
   */
 private[spectral] object GeneralizedLanczos:
 
@@ -104,8 +102,8 @@ private[spectral] object GeneralizedLanczos:
     var failure: Option[LinAlgError] = None
 
     while iterations < options.maxIterations &&
-        (convergedCount(state) < k || invariantStartExplorationPending) &&
-        failure.isEmpty
+      (convergedCount(state) < k || invariantStartExplorationPending) &&
+      failure.isEmpty
     do
       expandBasis(
         operator,
@@ -139,7 +137,7 @@ private[spectral] object GeneralizedLanczos:
 
     failure match
       case Some(error) => Left(error)
-      case None =>
+      case None        =>
         Right(
           assemble(
             state,
@@ -152,8 +150,8 @@ private[spectral] object GeneralizedLanczos:
           )
         )
 
-  /** Thick restart begins with all wanted Ritz vectors. Converged vectors remain
-    * in the basis but are soft-locked: they are not used as Krylov frontiers.
+  /** Thick restart begins with all wanted Ritz vectors. Converged vectors remain in the basis but are soft-locked: they
+    * are not used as Krylov frontiers.
     */
   private def expandBasis[B <: DoubleLinearOperator](
       operator: DoubleLinearOperator,
@@ -182,15 +180,19 @@ private[spectral] object GeneralizedLanczos:
     ): Either[LinAlgError, Unit] =
       if directions.cols == 0 then Right(())
       else
-        GeneralizedBlockKernels.applyBlock(operator, directions.vectors).flatMap: images =>
-          val oldColumns = basis.cols
-          GeneralizedBlockKernels.concatenate(basis, directions).map: combined =>
-            basis = combined
-            operatorImages = concatenateMatrices(operatorImages, images)
-            var column = 0
-            while column < directions.cols do
-              frontier += oldColumns + column
-              column += 1
+        GeneralizedBlockKernels
+          .applyBlock(operator, directions.vectors)
+          .flatMap: images =>
+            val oldColumns = basis.cols
+            GeneralizedBlockKernels
+              .concatenate(basis, directions)
+              .map: combined =>
+                basis = combined
+                operatorImages = concatenateMatrices(operatorImages, images)
+                var column = 0
+                while column < directions.cols do
+                  frontier += oldColumns + column
+                  column += 1
 
     while basis.cols < targetDimension do
       if frontierOffset >= frontier.length then
@@ -209,12 +211,12 @@ private[spectral] object GeneralizedLanczos:
             tolerance,
             streamOffset
           ) match
-            case Left(error) => return Left(error)
-            case Right(replenished) =>
-              appendBlock(replenished) match
-                case Left(error) => return Left(error)
-                case Right(_)    => ()
-              streamOffset += width
+          case Left(error)        => return Left(error)
+          case Right(replenished) =>
+            appendBlock(replenished) match
+              case Left(error) => return Left(error)
+              case Right(_)    => ()
+            streamOffset += width
       else
         val take =
           math.min(
@@ -230,11 +232,11 @@ private[spectral] object GeneralizedLanczos:
           outerIteration,
           innerWork
         ) match
-          case Left(error) => return Left(error)
+          case Left(error)                      => return Left(error)
           case Right((directions, updatedWork)) =>
             innerWork = updatedWork
             GeneralizedBlockKernels.applyBlock(metric, directions) match
-              case Left(error) => return Left(error)
+              case Left(error)         => return Left(error)
               case Right(metricImages) =>
                 val raw =
                   GeneralizedBlockKernels.MetricBlock(directions, metricImages)
@@ -245,11 +247,11 @@ private[spectral] object GeneralizedLanczos:
                     basis,
                     tolerance
                   ) match
-                    case Left(error) => return Left(error)
-                    case Right(independent) =>
-                      appendBlock(independent) match
-                        case Left(error) => return Left(error)
-                        case Right(_)    => ()
+                  case Left(error)        => return Left(error)
+                  case Right(independent) =>
+                    appendBlock(independent) match
+                      case Left(error) => return Left(error)
+                      case Right(_)    => ()
 
     // Incremental MGS keeps the Krylov expansion cheap, but a long clustered
     // basis can still accumulate enough drift for its projected B Gram to lose
@@ -388,8 +390,7 @@ private[spectral] object GeneralizedLanczos:
           Shape(Rows(metric.rows), Cols(metric.cols))
         )
       )
-    else if metricSolve.size != n then
-      Left(LinAlgError.VectorLengthMismatch(n, metricSolve.size))
+    else if metricSolve.size != n then Left(LinAlgError.VectorLengthMismatch(n, metricSolve.size))
     else if k <= 0 || k >= n then
       Left(
         LinAlgError.InvalidArgument(
@@ -397,7 +398,7 @@ private[spectral] object GeneralizedLanczos:
         )
       )
     else if order != EigenOrder.SmallestAlgebraic &&
-        order != EigenOrder.LargestAlgebraic
+      order != EigenOrder.LargestAlgebraic
     then
       Left(
         LinAlgError.InvalidArgument(
@@ -423,7 +424,7 @@ private[spectral] object GeneralizedLanczos:
         )
       )
     else if options.returnVectors != EigenVectors.ValuesOnly &&
-        options.returnVectors != EigenVectors.Right
+      options.returnVectors != EigenVectors.Right
     then
       Left(
         LinAlgError.InvalidArgument(
@@ -455,12 +456,8 @@ private[spectral] object GeneralizedLanczos:
       DVec.tabulate(selected.length)(i => state.residualNorms(selected(i)))
     val selectedBlock =
       GeneralizedBlockKernels.MetricBlock(
-        DMat.tabulate(n, selected.length)(
-          (row, col) => state.block.vectors(row, selected(col))
-        ),
-        DMat.tabulate(n, selected.length)(
-          (row, col) => state.block.metricImages(row, selected(col))
-        )
+        DMat.tabulate(n, selected.length)((row, col) => state.block.vectors(row, selected(col))),
+        DMat.tabulate(n, selected.length)((row, col) => state.block.metricImages(row, selected(col)))
       )
     val vectors =
       if wantVectors then selectedBlock.vectors
@@ -473,8 +470,7 @@ private[spectral] object GeneralizedLanczos:
         converged = selected.length,
         residuals = residuals,
         orthogonalityError =
-          if wantVectors then
-            GeneralizedBlockKernels.metricOrthogonalityError(selectedBlock)
+          if wantVectors then GeneralizedBlockKernels.metricOrthogonalityError(selectedBlock)
           else 0.0,
         iterations = iterations,
         rank = None,
@@ -487,9 +483,7 @@ private[spectral] object GeneralizedLanczos:
     state.converged.count(identity)
 
   private def selectColumns(matrix: DMat, columns: Array[Int]): DMat =
-    DMat.tabulate(matrix.rows, columns.length)(
-      (row, col) => matrix(row, columns(col))
-    )
+    DMat.tabulate(matrix.rows, columns.length)((row, col) => matrix(row, columns(col)))
 
   private def concatenateMatrices(left: DMat, right: DMat): DMat =
     DMat.tabulate(left.rows, left.cols + right.cols): (row, col) =>
@@ -505,9 +499,8 @@ private[spectral] object GeneralizedLanczos:
       var row = 0
       while row < n do
         state = state * 1103515245 + 12345
-        destination(row) =
-          ((state >>> 9) & 0x7fffff).toDouble /
-            0x800000.toDouble * 2.0 - 1.0
+        destination(row) = ((state >>> 9) & 0x7fffff).toDouble /
+          0x800000.toDouble * 2.0 - 1.0
         row += 1
       column += 1
     output.result()

@@ -10,9 +10,8 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Allocation baseline contrasting the compatibility `Seq[COOEntry]` export
-  * with reusable primitive COO/CSR consumers. Run with `-prof gc` to record
-  * bytes/op; the primitive paths allocate no per-entry objects or collections.
+/** Allocation baseline contrasting the compatibility `Seq[COOEntry]` export with reusable primitive COO/CSR consumers.
+  * Run with `-prof gc` to record bytes/op; the primitive paths allocate no per-entry objects or collections.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

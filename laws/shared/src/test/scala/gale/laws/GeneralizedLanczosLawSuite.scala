@@ -87,12 +87,8 @@ class GeneralizedLanczosLawSuite extends ScalaCheckSuite:
       val congruence =
         IndexedSeq.tabulate(pencil.values.length)(i => 0.5 + i.toDouble)
       val congruent = solve(
-        pencil.operatorDiagonal.indices.map(i =>
-          pencil.operatorDiagonal(i) * congruence(i) * congruence(i)
-        ),
-        pencil.metric.indices.map(i =>
-          pencil.metric(i) * congruence(i) * congruence(i)
-        )
+        pencil.operatorDiagonal.indices.map(i => pencil.operatorDiagonal(i) * congruence(i) * congruence(i)),
+        pencil.metric.indices.map(i => pencil.metric(i) * congruence(i) * congruence(i))
       )
 
       GeneralizedOperatorLaws.scaledSpectrum(

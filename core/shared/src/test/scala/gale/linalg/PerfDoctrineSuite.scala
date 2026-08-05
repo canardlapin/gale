@@ -3,9 +3,8 @@ package gale.linalg
 import gale.TestAccess
 import scala.util.Random
 
-/** Equivalence tests for the P5 dense performance-doctrine rewrites: matrix
-  * add/subtract kernels (K1), scaled `norm2` (K8), the gemm fast paths (K9), and
-  * the hoisted factorization back/forward substitutions (K2).
+/** Equivalence tests for the P5 dense performance-doctrine rewrites: matrix add/subtract kernels (K1), scaled `norm2`
+  * (K8), the gemm fast paths (K9), and the hoisted factorization back/forward substitutions (K2).
   */
 class PerfDoctrineSuite extends munit.FunSuite:
   // ---- K1: DMat + / - through dadd/dsub kernels ----------------------------

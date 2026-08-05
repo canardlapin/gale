@@ -6,8 +6,8 @@ import munit.ScalaCheckSuite
 import org.scalacheck.{Gen, Shrink}
 import org.scalacheck.Prop.forAll
 
-/** Replayable generators and structure-preserving shrinkers for cases that are
-  * easy to lose when arbitrary tuples shrink outside their original bounds.
+/** Replayable generators and structure-preserving shrinkers for cases that are easy to lose when arbitrary tuples
+  * shrink outside their original bounds.
   */
 class AdversarialGeneratorSuite extends ScalaCheckSuite:
   override def scalaCheckInitialSeed =
@@ -53,7 +53,7 @@ class AdversarialGeneratorSuite extends ScalaCheckSuite:
     yield StrideCase(length, gap, seed)
 
   private enum NonFiniteValue(val value: Double):
-    case NaN              extends NonFiniteValue(Double.NaN)
+    case NaN extends NonFiniteValue(Double.NaN)
     case PositiveInfinity extends NonFiniteValue(Double.PositiveInfinity)
     case NegativeInfinity extends NonFiniteValue(Double.NegativeInfinity)
 
@@ -78,9 +78,15 @@ class AdversarialGeneratorSuite extends ScalaCheckSuite:
         .filter(_ >= 1)
         .map(value => sample.copy(cols = value, col = math.min(sample.col, value - 1)))
     val row =
-      Shrink.shrink(sample.row).filter(value => value >= 0 && value < sample.rows).map(value => sample.copy(row = value))
+      Shrink
+        .shrink(sample.row)
+        .filter(value => value >= 0 && value < sample.rows)
+        .map(value => sample.copy(row = value))
     val col =
-      Shrink.shrink(sample.col).filter(value => value >= 0 && value < sample.cols).map(value => sample.copy(col = value))
+      Shrink
+        .shrink(sample.col)
+        .filter(value => value >= 0 && value < sample.cols)
+        .map(value => sample.copy(col = value))
     rows
       .lazyAppendedAll(cols)
       .lazyAppendedAll(row)

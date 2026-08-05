@@ -14,7 +14,7 @@ enum ConstrainedRayleighError:
     this match
       case DimensionMismatch(nr, nc, dr, dc) =>
         s"generalized-Rayleigh matrices must be non-empty square matrices of equal shape, got ${nr}x${nc} and ${dr}x${dc}"
-      case InvalidConfiguration(reason) => reason
+      case InvalidConfiguration(reason)              => reason
       case NonFiniteInput(label, row, column, value) =>
         s"$label contains non-finite value $value at ($row, $column)"
       case NonPositiveDenominator(value) =>
@@ -24,8 +24,8 @@ enum ConstrainedRayleighError:
 
 /** Closed convex cone used by the projected-Rayleigh numerical kernel.
   *
-  * The catalog is intentionally numerical. Domain meanings and admissible
-  * combinations belong to the consuming model compiler.
+  * The catalog is intentionally numerical. Domain meanings and admissible combinations belong to the consuming model
+  * compiler.
   */
 enum RayleighCone:
   case NonnegativeOrthant
@@ -50,8 +50,7 @@ enum RayleighCone:
           index += 1
         largest
 
-  /** KKT residual after the equality-normalization multiplier has been
-    * eliminated by the Rayleigh root.
+  /** KKT residual after the equality-normalization multiplier has been eliminated by the Rayleigh root.
     */
   private[optim] def stationarity(value: DVec, tangentGradient: DVec, activeTolerance: Double): Double =
     this match
@@ -102,14 +101,12 @@ final case class ProjectedRayleighResult(
 
   def converged: Boolean = termination == ProjectedRayleighTermination.Converged
 
-/** Portable projected ascent for a cone-constrained generalized Rayleigh
-  * quotient `x' A x / x' B x`.
+/** Portable projected ascent for a cone-constrained generalized Rayleigh quotient `x' A x / x' B x`.
   *
-  * The kernel never forms `B^-1`. Every accepted iterate is projected onto the
-  * declared cone and normalized directly in the `B` geometry. The certificate
-  * reports KKT stationarity, feasibility, and normalization independently;
-  * because the feasible normalized problem is non-convex, convergence certifies
-  * a stationary point rather than a global optimum.
+  * The kernel never forms `B^-1`. Every accepted iterate is projected onto the declared cone and normalized directly in
+  * the `B` geometry. The certificate reports KKT stationarity, feasibility, and normalization independently; because
+  * the feasible normalized problem is non-convex, convergence certifies a stationary point rather than a global
+  * optimum.
   */
 object ProjectedRayleigh:
   def solve(
@@ -124,9 +121,8 @@ object ProjectedRayleigh:
       normalized <- normalize(cone.project(initial), denominator)
     yield iterate(numerator, denominator, cone, normalized, config)
 
-  /** Deterministic multi-start solve using the positive uniform vector and all
-    * coordinate rays. The best converged stationary point is returned; if no
-    * start converges, the best finite iterate is retained with its termination.
+  /** Deterministic multi-start solve using the positive uniform vector and all coordinate rays. The best converged
+    * stationary point is returned; if no start converges, the best finite iterate is retained with its termination.
     */
   def solveNonnegative(
       numerator: DMat,
@@ -148,10 +144,10 @@ object ProjectedRayleigh:
     var index = 0
     while index < candidates.length do
       solve(numerator, denominator, RayleighCone.NonnegativeOrthant, candidates(index), config) match
-        case Left(error) => return Left(error)
+        case Left(error)      => return Left(error)
         case Right(candidate) =>
           best match
-            case None => best = Some(candidate)
+            case None          => best = Some(candidate)
             case Some(current) =>
               val betterTermination = candidate.converged && !current.converged
               val sameTermination = candidate.converged == current.converged
@@ -166,8 +162,8 @@ object ProjectedRayleigh:
       config: ProjectedRayleighConfig
   ): Either[ConstrainedRayleighError, Unit] =
     if numerator.rows <= 0 || numerator.rows != numerator.cols ||
-        denominator.rows != denominator.cols || numerator.rows != denominator.rows ||
-        initial.length != numerator.rows
+      denominator.rows != denominator.cols || numerator.rows != denominator.rows ||
+      initial.length != numerator.rows
     then
       Left(
         ConstrainedRayleighError.DimensionMismatch(
@@ -184,8 +180,13 @@ object ProjectedRayleigh:
     else if !config.initialStep.isFinite || config.initialStep <= 0.0 then
       Left(ConstrainedRayleighError.InvalidConfiguration("initialStep must be finite and positive"))
     else if !config.minimumStep.isFinite || config.minimumStep <= 0.0 || config.minimumStep > config.initialStep then
-      Left(ConstrainedRayleighError.InvalidConfiguration("minimumStep must be finite, positive, and no larger than initialStep"))
-    else if !config.backtrackingFactor.isFinite || config.backtrackingFactor <= 0.0 || config.backtrackingFactor >= 1.0 then
+      Left(
+        ConstrainedRayleighError.InvalidConfiguration(
+          "minimumStep must be finite, positive, and no larger than initialStep"
+        )
+      )
+    else if !config.backtrackingFactor.isFinite || config.backtrackingFactor <= 0.0 || config.backtrackingFactor >= 1.0
+    then
       Left(ConstrainedRayleighError.InvalidConfiguration("backtrackingFactor must lie strictly between zero and one"))
     else
       finite("numerator", numerator)
@@ -234,7 +235,7 @@ object ProjectedRayleigh:
       val normalizedError = Math.abs(quadratic(current, denominator) - 1.0)
       val violation = cone.violation(current)
       if stationarity <= config.tolerance * scale &&
-          normalizedError <= config.tolerance && violation <= config.tolerance
+        normalizedError <= config.tolerance && violation <= config.tolerance
       then
         termination = ProjectedRayleighTermination.Converged
         running = false

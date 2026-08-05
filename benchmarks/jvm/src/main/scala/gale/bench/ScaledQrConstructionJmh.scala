@@ -9,10 +9,8 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Copy-inclusive court for transient QR construction and algebraic row
-  * scaling. Immutable source data is prepared outside the timed boundary;
-  * construction, scaling, factorization, solve work, and owned results are
-  * timed.
+/** Copy-inclusive court for transient QR construction and algebraic row scaling. Immutable source data is prepared
+  * outside the timed boundary; construction, scaling, factorization, solve work, and owned results are timed.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)

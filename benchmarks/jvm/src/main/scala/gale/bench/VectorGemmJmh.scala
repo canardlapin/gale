@@ -43,8 +43,8 @@ class VectorGemmJmh:
   def vector(bh: Blackhole): Unit =
     bh.consume(a.*(b)(using VectorBackend))
 
-  /** Same-process control: with the Vector module enabled, Breeze 2.1 delegates
-    * this operation to dev.ludovic's pure-Java VectorBLAS on JDK 22.
+  /** Same-process control: with the Vector module enabled, Breeze 2.1 delegates this operation to dev.ludovic's
+    * pure-Java VectorBLAS on JDK 22.
     */
   @Benchmark
   def breezeVectorBlas(bh: Blackhole): Unit =

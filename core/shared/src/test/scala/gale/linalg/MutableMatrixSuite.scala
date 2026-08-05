@@ -31,11 +31,7 @@ class MutableMatrixSuite extends munit.FunSuite:
 
   test("consumeQR transfers builder storage, matches result then QR, and closes every operation") {
     val values = Seq(
-      1.0, 0.0, 2.0,
-      1.0, 1.0, -1.0,
-      1.0, 2.0, 0.5,
-      1.0, 3.0, 1.5,
-      1.0, 4.0, -0.5
+      1.0, 0.0, 2.0, 1.0, 1.0, -1.0, 1.0, 2.0, 0.5, 1.0, 3.0, 1.5, 1.0, 4.0, -0.5
     )
     def filledBuilder(): DMatBuilder =
       val builder = DMatBuilder.zeros(5, 3)
@@ -58,7 +54,10 @@ class MutableMatrixSuite extends munit.FunSuite:
     assertEquals(actual.q.valuesRowMajor, expected.q.valuesRowMajor)
     val rhs = Vec(1.0, 2.0, -1.0, 0.5, 3.0)
     assertEquals(actual.solveLeastSquares(rhs).orThrow.toSeq, expected.solveLeastSquares(rhs).orThrow.toSeq)
-    assertEquals(actual.normalizedCovariance.orThrow.valuesRowMajor, expected.normalizedCovariance.orThrow.valuesRowMajor)
+    assertEquals(
+      actual.normalizedCovariance.orThrow.valuesRowMajor,
+      expected.normalizedCovariance.orThrow.valuesRowMajor
+    )
 
     val _ = intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
     val _ = intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
@@ -91,7 +90,7 @@ class MutableMatrixSuite extends munit.FunSuite:
       (builder(), _.consumeQR, QROptions.Default),
       (builder(), _.consumeQR(DenseWorkspace.empty), QROptions.Default),
       (builder(), _.consumeQR(pivoted), pivoted),
-      (builder(), _.consumeQR(pivoted, DenseWorkspace.empty), pivoted),
+      (builder(), _.consumeQR(pivoted, DenseWorkspace.empty), pivoted)
     )
 
     for (source, consume, options) <- cases do

@@ -3,9 +3,8 @@ package gale.laws
 import gale.linalg.*
 import munit.Assertions
 
-/** Reusable algebraic laws for [[gale.linalg.DMat]], expressed against the public
-  * API. See [[VecLaws]] for the throwing/`Unit` convention that lets these be
-  * used from both munit tests and ScalaCheck property bodies.
+/** Reusable algebraic laws for [[gale.linalg.DMat]], expressed against the public API. See [[VecLaws]] for the
+  * throwing/`Unit` convention that lets these be used from both munit tests and ScalaCheck property bodies.
   */
 object MatrixLaws extends Assertions:
   /** Two matrices are elementwise equal within an absolute `tolerance`. */
@@ -53,21 +52,17 @@ object MatrixLaws extends Assertions:
   def transposeIsInvolution(a: DMat): Unit =
     assertExact(a.t.t, a)
 
-  /** Matrix-vector product is linear in the vector:
-    * `A (x + y) == A x + A y`.
+  /** Matrix-vector product is linear in the vector: `A (x + y) == A x + A y`.
     */
   def matVecIsLinear(a: DMat, x: DVec, y: DVec): Unit =
     VecLaws.assertCloseRel(a * (x + y), (a * x) + (a * y))
 
   /** Matrix multiplication is associative: `A (B C) == (A B) C`.
     *
-    * The tolerance scales with the '''intermediate''' magnitude
-    * `maxAbs(A)·maxAbs(B)·maxAbs(C)·(inner dims)`, not with the result entry: a
-    * result entry that nearly cancels to zero out of large intermediates carries
-    * roundoff proportional to those intermediates, and the two association
-    * orders round differently. A result-relative tolerance (`rel·max(1, |e|)`)
-    * intermittently fails such draws — the source of a rare ScalaCheck flake
-    * before this scaling.
+    * The tolerance scales with the '''intermediate''' magnitude `maxAbs(A)·maxAbs(B)·maxAbs(C)·(inner dims)`, not with
+    * the result entry: a result entry that nearly cancels to zero out of large intermediates carries roundoff
+    * proportional to those intermediates, and the two association orders round differently. A result-relative tolerance
+    * (`rel·max(1, |e|)`) intermittently fails such draws — the source of a rare ScalaCheck flake before this scaling.
     */
   def multiplicationAssociates(a: DMat, b: DMat, c: DMat): Unit =
     val left = a * (b * c)

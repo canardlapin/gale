@@ -3,9 +3,8 @@ package gale.sparse
 import gale.TestAccess
 import gale.linalg.*
 
-/** Equivalence tests for the P5 sparse rewrites: single-pass CSR column
-  * extraction (K2b), the two-pointer `zipValues` / in-place `mapValues` (K3),
-  * direct CSC kernels, zero-copy transpose, and COO scatter (K4).
+/** Equivalence tests for the P5 sparse rewrites: single-pass CSR column extraction (K2b), the two-pointer `zipValues` /
+  * in-place `mapValues` (K3), direct CSC kernels, zero-copy transpose, and COO scatter (K4).
   */
 class SparsePerfSuite extends munit.FunSuite:
   private def csrOf(rows: Int, cols: Int, entries: (Int, Int, Double)*): CSR =

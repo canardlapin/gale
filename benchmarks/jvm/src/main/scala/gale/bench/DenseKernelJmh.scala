@@ -8,8 +8,8 @@ import org.openjdk.jmh.annotations.*
 
 /** Dense BLAS-1/2 kernels parameterised over problem size.
   *
-  * `dot` and `axpy` run on length-`n` vectors; `gemv` multiplies a
-  * `gemvRows x n` matrix (rows capped so the largest `n` stays in memory).
+  * `dot` and `axpy` run on length-`n` vectors; `gemv` multiplies a `gemvRows x n` matrix (rows capped so the largest
+  * `n` stays in memory).
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

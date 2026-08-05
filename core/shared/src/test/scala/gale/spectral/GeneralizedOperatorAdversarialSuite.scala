@@ -41,8 +41,10 @@ class GeneralizedOperatorAdversarialSuite extends munit.FunSuite:
       order: EigenOrder,
       options: GeneralizedSpectralOptions
   ): Either[LinAlgError, EigenDecomposition] =
-    val operatorDiagonal = values.zip(metricDiagonal).map:
-      case (value, weight) => value * weight
+    val operatorDiagonal = values
+      .zip(metricDiagonal)
+      .map:
+        case (value, weight) => value * weight
     Eigen.eigSymmetricGeneralized(
       diagonalOperator(operatorDiagonal).assumeSymmetricOperator,
       diagonalOperator(metricDiagonal).assumePositiveDefiniteOperator,
@@ -174,12 +176,7 @@ class GeneralizedOperatorAdversarialSuite extends munit.FunSuite:
     val values = IndexedSeq(1.0, 2.0, 4.0, 8.0, 16.0, 32.0)
     val metric = IndexedSeq.fill(values.length)(1.0)
     val partialInitial = Matrix.dense(6, 2)(
-      1.0, 0.0,
-      0.0, 0.0,
-      0.0, 1.0,
-      0.0, 1.0,
-      0.0, 0.0,
-      0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0
     )
     val partial = solveDiagonal(
       values,
@@ -256,11 +253,7 @@ class GeneralizedOperatorAdversarialSuite extends munit.FunSuite:
     val b = new CountingDiagonal(IndexedSeq.fill(5)(1.0))
     val preconditioner = new CountingIdentityPreconditioner
     val initial = Matrix.dense(5, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      0.0, 1.0,
-      1.0, 0.0,
-      0.0, 1.0
+      1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0
     )
 
     val result = Eigen
@@ -290,11 +283,7 @@ class GeneralizedOperatorAdversarialSuite extends munit.FunSuite:
     val b = new CountingDiagonal(IndexedSeq.fill(5)(1.0))
     val preconditioner = new CountingIdentityPreconditioner
     val initial = Matrix.dense(5, 2)(
-      1.0, 0.0,
-      0.0, 0.0,
-      0.0, 1.0,
-      0.0, 1.0,
-      0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0
     )
 
     val _ = Eigen

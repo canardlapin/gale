@@ -7,10 +7,9 @@ import gale.linalg.LinAlgError
 import gale.linalg.LinearOperator
 import gale.linalg.Matrix
 
-/** Tests for the iterative partial symmetric eigensolver
-  * `Eigen.eigSymmetric(op, n, Count, options)` — block Krylov with soft locking,
-  * thick restarts, and full reorthogonalization. Convergence is checked against
-  * dense or analytic oracles; repeated eigenspaces are checked as projectors.
+/** Tests for the iterative partial symmetric eigensolver `Eigen.eigSymmetric(op, n, Count, options)` — block Krylov
+  * with soft locking, thick restarts, and full reorthogonalization. Convergence is checked against dense or analytic
+  * oracles; repeated eigenspaces are checked as projectors.
   */
 class EigSymmetricLanczosSuite extends munit.FunSuite:
 
@@ -271,7 +270,7 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     )
     trapped.requireExtremeCertified match
       case Left(_: LinAlgError.SpectralExtremeNotCertified) => ()
-      case other => fail(s"expected SpectralExtremeNotCertified, got $other")
+      case other                                            => fail(s"expected SpectralExtremeNotCertified, got $other")
 
     val fullSpace = Eigen
       .eigSymmetric(
@@ -335,9 +334,10 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     val repeatedColumns = (0 until result.size).filter(i => math.abs(result.eigenvalues(i) - 2.0) < 1e-8)
     val scale = 1.0 / math.sqrt(2.0)
     val expectedBasis = DMat.tabulate(4, 2): (row, col) =>
-      if col == 0 then
-        if row == 0 then scale else if row == 2 then -scale else 0.0
-      else if row == 1 then scale else if row == 3 then -scale else 0.0
+      if col == 0 then if row == 0 then scale else if row == 2 then -scale else 0.0
+      else if row == 1 then scale
+      else if row == 3 then -scale
+      else 0.0
     assertProjectorClose(
       projector(result.eigenvectors, repeatedColumns),
       expectedBasis * expectedBasis.t,
@@ -352,10 +352,8 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
       while i < n do
         val local = i % 3
         var value = 0.0
-        if local > 0 then
-          value += x(i) - x(i - 1)
-        if local < 2 then
-          value += x(i) - x(i + 1)
+        if local > 0 then value += x(i) - x(i - 1)
+        if local < 2 then value += x(i) - x(i + 1)
         into(i) = value
         i += 1
 
@@ -398,9 +396,10 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
 
     val scale = 1.0 / math.sqrt(2.0)
     val originalBasis = DMat.tabulate(4, 2): (row, col) =>
-      if col == 0 then
-        if row == 0 then scale else if row == 2 then -scale else 0.0
-      else if row == 1 then scale else if row == 3 then -scale else 0.0
+      if col == 0 then if row == 0 then scale else if row == 2 then -scale else 0.0
+      else if row == 1 then scale
+      else if row == 3 then -scale
+      else 0.0
     val originalProjector = originalBasis * originalBasis.t
     val expectedPermuted = DMat.tabulate(n, n)((i, j) => originalProjector(permutation(i), permutation(j)))
     assertProjectorClose(
@@ -440,7 +439,10 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     val options = SpectralOptions(tolerance = 1e-9, maxIterations = 50, subspaceDimension = Some(k + 2))
     val result = Eigen.eigSymmetric(op, n, EigenSelection.Count(k, EigenOrder.SmallestAlgebraic), options).toOption.get
     assert(result.diagnostics.allConverged, s"cluster not resolved: ${result.diagnostics}")
-    assert(result.diagnostics.iterations > 1, s"expected growth, converged in ${result.diagnostics.iterations} build(s)")
+    assert(
+      result.diagnostics.iterations > 1,
+      s"expected growth, converged in ${result.diagnostics.iterations} build(s)"
+    )
     assertClose(values(result), IndexedSeq(1.0, 1.0 + 1e-6), 1e-8)
   }
 
@@ -465,7 +467,8 @@ class EigSymmetricLanczosSuite extends munit.FunSuite:
     val n = 20
     val a = laplacian(n)
     val target = Some(SpectralTarget.ShiftInvert(0.5, LinearSolvePlan.Backend))
-    val result = Eigen.eigSymmetric(a, n, EigenSelection.Count(3, EigenOrder.SmallestAlgebraic), SpectralOptions(), target)
+    val result =
+      Eigen.eigSymmetric(a, n, EigenSelection.Count(3, EigenOrder.SmallestAlgebraic), SpectralOptions(), target)
     result match
       case Left(_: LinAlgError.UnsupportedOperation) => ()
       case other                                     => fail(s"expected UnsupportedOperation, got $other")

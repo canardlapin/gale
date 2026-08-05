@@ -19,12 +19,10 @@ class DenseCoreSuite extends munit.FunSuite:
 
   test("Matrix.apply returns a row-major DMat and Matrix.dense remains its explicit alias") {
     val A = Matrix(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
     val explicit = Matrix.dense(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
 
     assert(A.isInstanceOf[DMat])
@@ -49,17 +47,14 @@ class DenseCoreSuite extends munit.FunSuite:
 
   test("matrix-vector and matrix-matrix products use dense kernels") {
     val A = Matrix.dense(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
     val x = Vec(1.0, 2.0, 1.0)
 
     assertEquals((A * x).toSeq, Seq(8.0, 20.0))
 
     val B = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      0.0, 1.0,
-      1.0, 0.0
+      1.0, 2.0, 0.0, 1.0, 1.0, 0.0
     )
     val C = A * B
     assertEquals(C.rows, 2)
@@ -69,8 +64,7 @@ class DenseCoreSuite extends munit.FunSuite:
 
   test("mulInto handles row-major and transpose-view layouts") {
     val A = Matrix.dense(2, 3)(
-      1.0, 2.0, 3.0,
-      4.0, 5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
 
     val rowMajorBuffer = MutableVec.from(Vec.fill(4)(-7.0))

@@ -6,10 +6,9 @@ import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 import gale.solvers.Preconditioner
 
-/** Tests for the `SpectralBackend` contract skeleton: the `none` fallback (no
-  * capabilities, every op `Left(UnsupportedOperation)`) and `compose` (capability
-  * union, first-capable-wins dispatch). Test doubles are stateless, matching the
-  * thread-safety requirement (G1) — nothing here relies on mutable state.
+/** Tests for the `SpectralBackend` contract skeleton: the `none` fallback (no capabilities, every op
+  * `Left(UnsupportedOperation)`) and `compose` (capability union, first-capable-wins dispatch). Test doubles are
+  * stateless, matching the thread-safety requirement (G1) — nothing here relies on mutable state.
   */
 class SpectralBackendSuite extends munit.FunSuite:
 
@@ -55,14 +54,17 @@ class SpectralBackendSuite extends munit.FunSuite:
 
   // --- stateless test doubles ------------------------------------------------
 
-  /** A backend that "supports" one capability, returning a marker raw value so
-    * dispatch can be observed. Stateless.
+  /** A backend that "supports" one capability, returning a marker raw value so dispatch can be observed. Stateless.
     */
   private def fakeQz(tag: String): SpectralBackend =
     new SpectralBackend:
       def name: String = tag
       def capabilities: Set[SpectralCapability] = Set(SpectralCapability.GeneralizedNonsymmetricEigen)
-      override def generalizedNonsymmetricEigen(x: DMat, y: DMat, v: EigenVectors): Either[LinAlgError, RawGeneralizedEigen] =
+      override def generalizedNonsymmetricEigen(
+          x: DMat,
+          y: DMat,
+          v: EigenVectors
+      ): Either[LinAlgError, RawGeneralizedEigen] =
         Right(
           RawGeneralizedEigen(
             DVec.tabulate(1)(_ => tag.length.toDouble), // marker: encodes which backend answered
@@ -79,7 +81,15 @@ class SpectralBackendSuite extends munit.FunSuite:
       def name: String = tag
       def capabilities: Set[SpectralCapability] = Set(SpectralCapability.RankDeficientGsvd)
       override def rankDeficientGsvd(x: DMat, y: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
-        Right(RawGsvd(DMat.zeros(x.rows, 0), DMat.zeros(y.rows, 0), DMat.zeros(x.cols, 0), DVec.tabulate(1)(_ => tag.length.toDouble), DVec.tabulate(1)(_ => 1.0)))
+        Right(
+          RawGsvd(
+            DMat.zeros(x.rows, 0),
+            DMat.zeros(y.rows, 0),
+            DMat.zeros(x.cols, 0),
+            DVec.tabulate(1)(_ => tag.length.toDouble),
+            DVec.tabulate(1)(_ => 1.0)
+          )
+        )
 
   private def fakeIterative(tag: String): SpectralBackend =
     new SpectralBackend:
@@ -143,7 +153,7 @@ class SpectralBackendSuite extends munit.FunSuite:
 
   test("compose: earlier part wins on capability overlap (documented precedence)") {
     // Both parts support QZ; the FIRST (marker length 5) must answer.
-    val first = fakeQz("first")  // length 5
+    val first = fakeQz("first") // length 5
     val second = fakeQz("secondxxx") // length 9
     val composite = SpectralBackend.compose(first, second)
     val raw = composite.generalizedNonsymmetricEigen(a, b, EigenVectors.Right).toOption.get

@@ -12,9 +12,7 @@ class TinyKernelSuite extends munit.FunSuite:
 
   test("Mat3 uses unrolled matrix-vector multiply and determinant") {
     val A = Mat3(
-      1.0, 2.0, 3.0,
-      0.0, 1.0, 4.0,
-      5.0, 6.0, 0.0
+      1.0, 2.0, 3.0, 0.0, 1.0, 4.0, 5.0, 6.0, 0.0
     )
     val y = A * Vec3(1.0, 2.0, 3.0)
 
@@ -24,19 +22,16 @@ class TinyKernelSuite extends munit.FunSuite:
 
   test("Mat4 uses unrolled matrix-vector multiply and determinant expansion") {
     val A = Mat4(
-      1.0, 0.0, 0.0, 0.0,
-      0.0, 2.0, 0.0, 0.0,
-      0.0, 0.0, 3.0, 0.0,
-      0.0, 0.0, 0.0, 4.0
+      1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 4.0
     )
     val y = A * Vec4(1.0, 2.0, 3.0, 4.0)
 
     assertEquals(y, Vec4(1.0, 4.0, 9.0, 16.0))
     assertEquals(A.det, 24.0)
-    assertEquals(A.toDMat.valuesRowMajor, Seq(
-      1.0, 0.0, 0.0, 0.0,
-      0.0, 2.0, 0.0, 0.0,
-      0.0, 0.0, 3.0, 0.0,
-      0.0, 0.0, 0.0, 4.0
-    ))
+    assertEquals(
+      A.toDMat.valuesRowMajor,
+      Seq(
+        1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 4.0
+      )
+    )
   }

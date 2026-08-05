@@ -7,22 +7,19 @@ import gale.linalg.LinAlgError
 import gale.linalg.LinearOperator
 import gale.linalg.Matrix
 
-/** Tests for the iterative partial nonsymmetric eigensolver
-  * `Eigen.eigNonsymmetric(op, n, Count, options)` — Arnoldi with full
-  * reorthogonalization over a growing subspace. Convergence is checked against the
-  * dense solve's extremes and against a matrix-free operator with a known complex
-  * spectrum; pair adjacency, exact conjugate symmetry, the partial/zero-convergence
-  * boundaries, and the structural `Left`s are exercised too.
+/** Tests for the iterative partial nonsymmetric eigensolver `Eigen.eigNonsymmetric(op, n, Count, options)` — Arnoldi
+  * with full reorthogonalization over a growing subspace. Convergence is checked against the dense solve's extremes and
+  * against a matrix-free operator with a known complex spectrum; pair adjacency, exact conjugate symmetry, the
+  * partial/zero-convergence boundaries, and the structural `Left`s are exercised too.
   */
 class EigNonsymmetricArnoldiSuite extends munit.FunSuite:
 
   // --- fixtures --------------------------------------------------------------
 
-  /** Block-upper-triangular matrix (`n = 2·mags.length`): 2×2 scaled-rotation
-    * blocks `mags(i)·[[c,-s],[s,c]]` on the diagonal (eigenvalues `mags(i)·e^{±iθ}`)
-    * plus a strict block-upper-triangular random perturbation. The spectrum is the
-    * union of the diagonal blocks' pairs (upper-triangular ⇒ perturbation-invariant
-    * eigenvalues), and the perturbation makes it genuinely non-normal.
+  /** Block-upper-triangular matrix (`n = 2·mags.length`): 2×2 scaled-rotation blocks `mags(i)·[[c,-s],[s,c]]` on the
+    * diagonal (eigenvalues `mags(i)·e^{±iθ}`) plus a strict block-upper-triangular random perturbation. The spectrum is
+    * the union of the diagonal blocks' pairs (upper-triangular ⇒ perturbation-invariant eigenvalues), and the
+    * perturbation makes it genuinely non-normal.
     */
   private def blockUpperTriangular(mags: Array[Double], theta: Double, fill: Double, seed: Long): DMat =
     val n = 2 * mags.length
@@ -50,9 +47,8 @@ class EigNonsymmetricArnoldiSuite extends munit.FunSuite:
       else if bc > br then fill * noise(row)(col)
       else 0.0
 
-  /** Matrix-free direct sum of scaled planar rotations: block `b` maps
-    * `(x_{2b}, x_{2b+1})` by `mags(b)·[[c,-s],[s,c]]`. Known complex spectrum
-    * `mags(b)·e^{±iθ}`; never materialized.
+  /** Matrix-free direct sum of scaled planar rotations: block `b` maps `(x_{2b}, x_{2b+1})` by
+    * `mags(b)·[[c,-s],[s,c]]`. Known complex spectrum `mags(b)·e^{±iθ}`; never materialized.
     */
   private def blockRotationOp(mags: Array[Double], theta: Double): DoubleLinearOperator =
     val n = 2 * mags.length
@@ -91,7 +87,11 @@ class EigNonsymmetricArnoldiSuite extends munit.FunSuite:
       i += 1
 
   /** Every eigenvalue of `arn` matches some eigenvalue of `dense` within `tol`. */
-  private def subsetOf(arn: NonsymmetricEigenDecomposition, dense: NonsymmetricEigenDecomposition, tol: Double): Boolean =
+  private def subsetOf(
+      arn: NonsymmetricEigenDecomposition,
+      dense: NonsymmetricEigenDecomposition,
+      tol: Double
+  ): Boolean =
     (0 until arn.size).forall: i =>
       val la = arn.eigenvalue(i)
       (0 until dense.size).exists: j =>
@@ -185,10 +185,7 @@ class EigNonsymmetricArnoldiSuite extends munit.FunSuite:
     // through the iterative path (a DMat is a DoubleLinearOperator). Magnitudes:
     // 10, √40 ≈ 6.32, 3 — so LargestMagnitude order is [10, 6±2i, 3].
     val a: DMat = Matrix.dense(4, 4)(
-      10.0, 0.0, 0.0, 0.0,
-      0.0, 6.0, -2.0, 0.0,
-      0.0, 2.0, 6.0, 0.0,
-      0.0, 0.0, 0.0, 3.0
+      10.0, 0.0, 0.0, 0.0, 0.0, 6.0, -2.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 0.0, 0.0, 3.0
     )
     val n = 4
 

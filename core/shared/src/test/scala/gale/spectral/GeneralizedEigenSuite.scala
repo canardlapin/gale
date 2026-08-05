@@ -2,12 +2,10 @@ package gale.spectral
 
 import gale.linalg.*
 
-/** Tests for the QZ boundary seam: the projective `(α, β)` sorter
-  * (`Eigen.generalizedIndices`), the `GeneralizedEigenDecomposition` packing
-  * invariants, and — the money test — a FAKE in-package backend driving the
-  * `eigGeneralizedNonsymmetric` facade end-to-end (hand-built raw QZ output →
-  * facade canonicalizes → sealed result with correct ordering, packing, and
-  * diagnostics), proving the boundary works before any real backend exists.
+/** Tests for the QZ boundary seam: the projective `(α, β)` sorter (`Eigen.generalizedIndices`), the
+  * `GeneralizedEigenDecomposition` packing invariants, and — the money test — a FAKE in-package backend driving the
+  * `eigGeneralizedNonsymmetric` facade end-to-end (hand-built raw QZ output → facade canonicalizes → sealed result with
+  * correct ordering, packing, and diagnostics), proving the boundary works before any real backend exists.
   */
 class GeneralizedEigenSuite extends munit.FunSuite:
 
@@ -22,27 +20,31 @@ class GeneralizedEigenSuite extends munit.FunSuite:
 
   test("generalizedIndices: finite ordering by descending |α/β|") {
     // ratios 3, 1, 5 → descending 5, 3, 1 → indices [2, 0, 1].
-    val idx = Eigen.generalizedIndices(Vec(3.0, 1.0, 5.0), Vec(0.0, 0.0, 0.0), Vec(1.0, 1.0, 1.0), EigenOrder.LargestMagnitude)
+    val idx =
+      Eigen.generalizedIndices(Vec(3.0, 1.0, 5.0), Vec(0.0, 0.0, 0.0), Vec(1.0, 1.0, 1.0), EigenOrder.LargestMagnitude)
     assertEquals(idx.toSeq, Seq(2, 0, 1))
   }
 
   test("generalizedIndices: multiple infinites tie-break by descending |α|, then index") {
     // β=0 at 0 (|α|=2) and 1 (|α|=5); finite ratio 3 at 2. LargestMagnitude:
     // infinites first (|α| desc → 1 then 0), then the finite.
-    val idx = Eigen.generalizedIndices(Vec(2.0, 5.0, 3.0), Vec(0.0, 0.0, 0.0), Vec(0.0, 0.0, 1.0), EigenOrder.LargestMagnitude)
+    val idx =
+      Eigen.generalizedIndices(Vec(2.0, 5.0, 3.0), Vec(0.0, 0.0, 0.0), Vec(0.0, 0.0, 1.0), EigenOrder.LargestMagnitude)
     assertEquals(idx.toSeq, Seq(1, 0, 2))
   }
 
   test("generalizedIndices: conjugate pair kept adjacent while reordering") {
     // real ratio 1 at 0; pair |3±i|/1 ≈ 3.16 at (1,2). LargestMagnitude puts the
     // pair first (both columns, positive-imag member leading), then the real.
-    val idx = Eigen.generalizedIndices(Vec(1.0, 3.0, 3.0), Vec(0.0, 1.0, -1.0), Vec(1.0, 1.0, 1.0), EigenOrder.LargestMagnitude)
+    val idx =
+      Eigen.generalizedIndices(Vec(1.0, 3.0, 3.0), Vec(0.0, 1.0, -1.0), Vec(1.0, 1.0, 1.0), EigenOrder.LargestMagnitude)
     assertEquals(idx.toSeq, Seq(1, 2, 0))
   }
 
   test("generalizedIndices: SmallestMagnitude puts finites ascending, infinites last") {
     // β=0 at 0; finite ratios 5 at 1, 3 at 2. Smallest → 3, 5, then infinite.
-    val idx = Eigen.generalizedIndices(Vec(2.0, 5.0, 3.0), Vec(0.0, 0.0, 0.0), Vec(0.0, 1.0, 1.0), EigenOrder.SmallestMagnitude)
+    val idx =
+      Eigen.generalizedIndices(Vec(2.0, 5.0, 3.0), Vec(0.0, 0.0, 0.0), Vec(0.0, 1.0, 1.0), EigenOrder.SmallestMagnitude)
     assertEquals(idx.toSeq, Seq(2, 1, 0))
   }
 
@@ -92,8 +94,8 @@ class GeneralizedEigenSuite extends munit.FunSuite:
 
   // --- the money test: fake backend → facade end-to-end ----------------------
 
-  /** A stateless fake QZ backend returning a hand-built raw spectrum for the test
-    * pencil below: real λ=3, complex pair λ=±i, and one infinite (β=0) eigenvalue.
+  /** A stateless fake QZ backend returning a hand-built raw spectrum for the test pencil below: real λ=3, complex pair
+    * λ=±i, and one infinite (β=0) eigenvalue.
     */
   private def fakeQz: SpectralBackend =
     new SpectralBackend:
@@ -111,10 +113,7 @@ class GeneralizedEigenSuite extends munit.FunSuite:
             beta = Vec(1.0, 1.0, 1.0, 0.0),
             // Columns: e0 (λ=3); (0,1,0,0)/(0,0,-1,0) for the ±i pair; e3 (infinite).
             rightPacked = Matrix.dense(4, 4)(
-              1.0, 0.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, 0.0,
-              0.0, 0.0, -1.0, 0.0,
-              0.0, 0.0, 0.0, 1.0
+              1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0
             ),
             leftPacked = None,
             schur = None
@@ -125,16 +124,10 @@ class GeneralizedEigenSuite extends munit.FunSuite:
     // Pencil A x = λ B x with A, B block diagonal so the fake's raw output is an
     // exact eigendecomposition (residuals vanish).
     val a = Matrix.dense(4, 4)(
-      3.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, -1.0, 0.0,
-      0.0, 1.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 2.0
+      3.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0
     )
     val b = Matrix.dense(4, 4)(
-      1.0, 0.0, 0.0, 0.0,
-      0.0, 1.0, 0.0, 0.0,
-      0.0, 0.0, 1.0, 0.0,
-      0.0, 0.0, 0.0, 0.0
+      1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0
     )
     val d = Eigen.eigGeneralizedNonsymmetric(a, b)(using fakeQz).toOption.get
     assertEquals(d.size, 4)
@@ -176,7 +169,11 @@ class GeneralizedEigenSuite extends munit.FunSuite:
     new SpectralBackend:
       def name: String = "fake-qz-raw"
       def capabilities: Set[SpectralCapability] = Set(SpectralCapability.GeneralizedNonsymmetricEigen)
-      override def generalizedNonsymmetricEigen(x: DMat, y: DMat, v: EigenVectors): Either[LinAlgError, RawGeneralizedEigen] =
+      override def generalizedNonsymmetricEigen(
+          x: DMat,
+          y: DMat,
+          v: EigenVectors
+      ): Either[LinAlgError, RawGeneralizedEigen] =
         Right(raw)
 
   test("generalizedQzResiduals: complex pair with a deliberately wrong vector gives ‖√50‖") {
@@ -244,8 +241,8 @@ class GeneralizedEigenSuite extends munit.FunSuite:
 
   // --- S6: rank-deficient GSVD routing ---------------------------------------
 
-  /** A fake rank-deficient GSVD backend returning raw `c`/`s` that classify to
-    * Finite / Infinite / Zero (values-only; empty factor matrices).
+  /** A fake rank-deficient GSVD backend returning raw `c`/`s` that classify to Finite / Infinite / Zero (values-only;
+    * empty factor matrices).
     */
   private def fakeRankDeficientGsvd: SpectralBackend =
     new SpectralBackend:
@@ -253,7 +250,15 @@ class GeneralizedEigenSuite extends munit.FunSuite:
       def capabilities: Set[SpectralCapability] = Set(SpectralCapability.RankDeficientGsvd)
       override def rankDeficientGsvd(x: DMat, y: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
         // ratios: 0.6/0.8 = 0.75 (Finite), 1/0 = ∞ (Infinite), 0/1 = 0 (Zero).
-        Right(RawGsvd(DMat.zeros(x.rows, 0), DMat.zeros(y.rows, 0), DMat.zeros(x.cols, 0), Vec(0.6, 1.0, 0.0), Vec(0.8, 0.0, 1.0)))
+        Right(
+          RawGsvd(
+            DMat.zeros(x.rows, 0),
+            DMat.zeros(y.rows, 0),
+            DMat.zeros(x.cols, 0),
+            Vec(0.6, 1.0, 0.0),
+            Vec(0.8, 0.0, 1.0)
+          )
+        )
 
   test("Svds.gsvd: rank-deficient pencil routes to a capable backend, else Left(RankDeficient)") {
     // m+p = 2 < n = 3 ⇒ rank-deficient stacked pencil.

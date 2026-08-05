@@ -24,7 +24,10 @@ class SpectralSelectionSuite extends munit.FunSuite:
       case other => fail(s"expected Count, got $other")
 
     // No constructor invariants: k <= 0 and reversed ranges are the solver's job.
-    assertEquals(EigenSelection.Count(0, EigenOrder.LargestMagnitude), EigenSelection.Count(0, EigenOrder.LargestMagnitude))
+    assertEquals(
+      EigenSelection.Count(0, EigenOrder.LargestMagnitude),
+      EigenSelection.Count(0, EigenOrder.LargestMagnitude)
+    )
     assertEquals(EigenSelection.IndexRange(4, 1), EigenSelection.IndexRange(4, 1))
 
     EigenSelection.ValueInterval(-1.0, 2.0) match

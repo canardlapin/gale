@@ -6,14 +6,13 @@ trait LinearOperator[A]:
   def rows: Int
   def cols: Int
 
-  /** Apply the operator: `into := this * x`. Total form; dimension and
-    * representation failures are reported as values.
+  /** Apply the operator: `into := this * x`. Total form; dimension and representation failures are reported as values.
     */
   def applyTo(x: Vec[A], into: MutableVec[A]): Either[LinAlgError, Unit]
 
 trait DoubleLinearOperator extends LinearOperator[Double]:
-  /** Primitive apply: `into := this * x`. Throws `LinAlgError` on dimension
-    * mismatch; the generic [[applyTo]] wraps this as a total form.
+  /** Primitive apply: `into := this * x`. Throws `LinAlgError` on dimension mismatch; the generic [[applyTo]] wraps
+    * this as a total form.
     */
   def applyTo(x: DVec, into: MutableDVec): Unit
 
@@ -30,15 +29,14 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
   def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
     throw LinAlgError.UnsupportedOperation("transposeApplyTo")
 
-  /** The explicit real adjoint of this operator. Applying it delegates to
-    * [[transposeApplyTo]]; its transpose delegates back to [[applyTo]].
+  /** The explicit real adjoint of this operator. Applying it delegates to [[transposeApplyTo]]; its transpose delegates
+    * back to [[applyTo]].
     */
   def adjoint: DoubleLinearOperator =
     LinearOperator.adjoint(this)
 
   def apply(x: DVec): DVec =
-    if cols != x.length then
-      throw LinAlgError.VectorLengthMismatch(cols, x.length)
+    if cols != x.length then throw LinAlgError.VectorLengthMismatch(cols, x.length)
     val out = MutableDVec.zeros(rows)
     applyTo(x, out)
     // Implementations receive the destination and may retain it. Snapshot the
@@ -51,8 +49,8 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
     val _ = summon[Backend]
     apply(x)
 
-  /** Apply this operator to every column of `input` in one owned output
-    * allocation. The result has shape `rows x input.cols`.
+  /** Apply this operator to every column of `input` in one owned output allocation. The result has shape
+    * `rows x input.cols`.
     */
   def applyTo(input: DMat): Either[LinAlgError, DMat] =
     if input.rows != cols then
@@ -72,8 +70,8 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
         Right(output.result())
       catch case error: LinAlgError => Left(error)
 
-  /** Apply the real adjoint to every column of `input` in one owned output
-    * allocation. The result has shape `cols x input.cols`.
+  /** Apply the real adjoint to every column of `input` in one owned output allocation. The result has shape
+    * `cols x input.cols`.
     */
   def transposeApplyTo(input: DMat): Either[LinAlgError, DMat] =
     if input.rows != rows then
@@ -112,9 +110,8 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
 
 /** Matrix-free Kronecker product `left ⊗ right`.
   *
-  * Vectors use the same block ordering as [[DMat.kron]]: the right factor's
-  * coordinate varies fastest. Construction is total because the product shape
-  * is checked before it is narrowed to `Int`.
+  * Vectors use the same block ordering as [[DMat.kron]]: the right factor's coordinate varies fastest. Construction is
+  * total because the product shape is checked before it is narrowed to `Int`.
   */
 final class KroneckerLinearOperator private[linalg] (
     val left: DoubleLinearOperator,
@@ -142,10 +139,8 @@ object LinearOperator:
         colsValue
 
       override def applyTo(x: DVec, into: MutableDVec): Unit =
-        if x.length != colsValue then
-          throw LinAlgError.VectorLengthMismatch(colsValue, x.length)
-        if into.length != rowsValue then
-          throw LinAlgError.VectorLengthMismatch(rowsValue, into.length)
+        if x.length != colsValue then throw LinAlgError.VectorLengthMismatch(colsValue, x.length)
+        if into.length != rowsValue then throw LinAlgError.VectorLengthMismatch(rowsValue, into.length)
         f(x, into)
 
   def tabulate(rows: Int, cols: Int)(f: (Int, Int) => Double): DoubleLinearOperator =
@@ -235,8 +230,8 @@ object LinearOperator:
         operator.transposeApplyTo(x, into)
         into *= alpha
 
-  /** Matrix-free Kronecker product `left ⊗ right`, ordered identically to
-    * [[DMat.kron]]. Neither factor nor the product is materialized.
+  /** Matrix-free Kronecker product `left ⊗ right`, ordered identically to [[DMat.kron]]. Neither factor nor the product
+    * is materialized.
     */
   def kronecker(
       left: DoubleLinearOperator,
@@ -310,8 +305,7 @@ object LinearOperator:
   def blockDiagonal(
       operators: IndexedSeq[DoubleLinearOperator]
   ): Either[LinAlgError, DoubleLinearOperator] =
-    if operators.isEmpty then
-      Left(LinAlgError.InvalidArgument("block diagonal operator list must be non-empty"))
+    if operators.isEmpty then Left(LinAlgError.InvalidArgument("block diagonal operator list must be non-empty"))
     else
       val rowOffsets = prefixOffsets(operators.map(_.rows))
       val colOffsets = prefixOffsets(operators.map(_.cols))
@@ -346,9 +340,8 @@ object LinearOperator:
               block += 1
       )
 
-  /** Assemble a rectangular block operator. Every operator in a block row must
-    * have the same row count; every operator in a block column must have the
-    * same column count.
+  /** Assemble a rectangular block operator. Every operator in a block row must have the same row count; every operator
+    * in a block column must have the same column count.
     */
   def block(
       blocks: IndexedSeq[IndexedSeq[DoubleLinearOperator]]
@@ -425,7 +418,7 @@ object LinearOperator:
           row += 1
         error match
           case Some(value) => Left(value)
-          case None =>
+          case None        =>
             Right(
               BlockLayout(
                 rowSizes,
@@ -439,20 +432,17 @@ object LinearOperator:
       indices: IndexedSeq[Int],
       bound: Int
   ): Either[LinAlgError, IndexedSeq[Int]] =
-    if indices.isEmpty then
-      Left(LinAlgError.InvalidArgument("operator restriction must be non-empty"))
+    if indices.isEmpty then Left(LinAlgError.InvalidArgument("operator restriction must be non-empty"))
     else
       val seen = scala.collection.mutable.HashSet.empty[Int]
       var i = 0
       var error = Option.empty[LinAlgError]
       while i < indices.length && error.isEmpty do
         val index = indices(i)
-        if index < 0 || index >= bound then
-          error = Some(LinAlgError.IndexOutOfBounds(index, bound))
+        if index < 0 || index >= bound then error = Some(LinAlgError.IndexOutOfBounds(index, bound))
         else if seen.contains(index) then
           error = Some(LinAlgError.InvalidArgument(s"duplicate operator restriction index $index"))
-        else
-          seen += index
+        else seen += index
         i += 1
       error match
         case Some(value) => Left(value)
@@ -464,10 +454,8 @@ object LinearOperator:
       expectedInput: Int,
       expectedOutput: Int
   ): Unit =
-    if input.length != expectedInput then
-      throw LinAlgError.VectorLengthMismatch(expectedInput, input.length)
-    if output.length != expectedOutput then
-      throw LinAlgError.VectorLengthMismatch(expectedOutput, output.length)
+    if input.length != expectedInput then throw LinAlgError.VectorLengthMismatch(expectedInput, input.length)
+    if output.length != expectedOutput then throw LinAlgError.VectorLengthMismatch(expectedOutput, output.length)
 
   private[linalg] def applyKronecker(
       left: DoubleLinearOperator,

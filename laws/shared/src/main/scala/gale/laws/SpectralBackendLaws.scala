@@ -7,11 +7,10 @@ import munit.Assertions
 
 /** Reusable capability law for iterative generalized spectral providers.
   *
-  * The law exercises a small analytic SPD pencil through both the raw provider
-  * method and Gale's public facade. It rejects a capability that merely inherits
-  * the default `UnsupportedOperation`, malformed raw carrier metadata/shapes,
-  * non-finite factors, and factors that the facade cannot validate against the
-  * true operator residual and B inner product.
+  * The law exercises a small analytic SPD pencil through both the raw provider method and Gale's public facade. It
+  * rejects a capability that merely inherits the default `UnsupportedOperation`, malformed raw carrier metadata/shapes,
+  * non-finite factors, and factors that the facade cannot validate against the true operator residual and B inner
+  * product.
   */
 object SpectralBackendLaws extends Assertions:
 

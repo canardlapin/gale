@@ -9,12 +9,10 @@ import gale.linalg.MutableDVec
 import gale.linalg.TriangularSolve
 import scala.collection.mutable.ArrayBuffer
 
-/** Portable block primitives shared by matrix-free generalized
-  * symmetric-definite eigensolvers.
+/** Portable block primitives shared by matrix-free generalized symmetric-definite eigensolvers.
   *
-  * All returned matrices own their storage. Mutable destinations and work
-  * vectors are confined to this object because user operators may retain a
-  * destination passed to `applyTo`.
+  * All returned matrices own their storage. Mutable destinations and work vectors are confined to this object because
+  * user operators may retain a destination passed to `applyTo`.
   */
 private[spectral] object GeneralizedBlockKernels:
 
@@ -28,8 +26,8 @@ private[spectral] object GeneralizedBlockKernels:
     def rows: Int = vectors.rows
     def cols: Int = vectors.cols
 
-  /** Apply an operator to every block column. The operator overload owns the
-    * result and totalizes `LinAlgError` thrown by a primitive implementation.
+  /** Apply an operator to every block column. The operator overload owns the result and totalizes `LinAlgError` thrown
+    * by a primitive implementation.
     */
   def applyBlock(operator: DoubleLinearOperator, input: DMat): Either[LinAlgError, DMat] =
     if input.rows != operator.cols then
@@ -88,11 +86,9 @@ private[spectral] object GeneralizedBlockKernels:
 
   /** B-orthonormalize the independent part of `candidates`.
     *
-    * A full-rank block uses a Cholesky whitening transform. If its B-Gram is
-    * rank-deficient, twice-reorthogonalized modified Gram-Schmidt retains the
-    * independent columns instead. An encountered negative B norm returns
-    * [[LinAlgError.NotPositiveDefinite]] rather than silently treating an
-    * indefinite direction as dependence.
+    * A full-rank block uses a Cholesky whitening transform. If its B-Gram is rank-deficient, twice-reorthogonalized
+    * modified Gram-Schmidt retains the independent columns instead. An encountered negative B norm returns
+    * [[LinAlgError.NotPositiveDefinite]] rather than silently treating an indefinite direction as dependence.
     */
   def bOrthonormalize(
       candidates: DMat,
@@ -103,14 +99,12 @@ private[spectral] object GeneralizedBlockKernels:
       applyBlock(metric, candidates).flatMap: metricImages =>
         choleskyWhiten(candidates, metricImages, tolerance) match
           case Some(result) => Right(result)
-          case None         => rankReveal(candidates, metricImages, metric, candidates.cols, tolerance, replenish = false)
+          case None => rankReveal(candidates, metricImages, metric, candidates.cols, tolerance, replenish = false)
 
-  /** B-orthonormalize and deterministically replenish a block to exactly
-    * `targetColumns`.
+  /** B-orthonormalize and deterministically replenish a block to exactly `targetColumns`.
     *
-    * Dependent caller columns are not failures. They are removed, then portable
-    * deterministic probes and finally canonical directions fill the missing
-    * span. Failure to reach the target means the encountered metric geometry is
+    * Dependent caller columns are not failures. They are removed, then portable deterministic probes and finally
+    * canonical directions fill the missing span. Failure to reach the target means the encountered metric geometry is
     * not positive-definite on enough independent directions.
     */
   def bOrthonormalizeAndReplenish(
@@ -125,7 +119,7 @@ private[spectral] object GeneralizedBlockKernels:
         if candidates.cols == targetColumns then
           choleskyWhiten(candidates, metricImages, tolerance) match
             case Some(result) => Right(result)
-            case None =>
+            case None         =>
               rankReveal(
                 candidates,
                 metricImages,
@@ -160,8 +154,7 @@ private[spectral] object GeneralizedBlockKernels:
 
   /** Concatenate aligned metric blocks without reapplying the metric. */
   def concatenate(blocks: MetricBlock*): Either[LinAlgError, MetricBlock] =
-    if blocks.isEmpty then
-      Left(LinAlgError.InvalidArgument("at least one metric block is required"))
+    if blocks.isEmpty then Left(LinAlgError.InvalidArgument("at least one metric block is required"))
     else
       val rows = blocks.head.rows
       if blocks.exists(_.rows != rows) then
@@ -175,8 +168,7 @@ private[spectral] object GeneralizedBlockKernels:
 
         def elementAt(metricImage: Boolean, row: Int, column: Int): Double =
           var index = 0
-          while index + 1 < offsets.length && column >= offsets(index + 1) do
-            index += 1
+          while index + 1 < offsets.length && column >= offsets(index + 1) do index += 1
           val block = blocks(index)
           val localColumn = column - offsets(index)
           if metricImage then block.metricImages(row, localColumn)
@@ -190,8 +182,8 @@ private[spectral] object GeneralizedBlockKernels:
           )
         )
 
-  /** B-orthonormalize the independent part of an already imaged block against
-    * an existing B-orthonormal block. No metric application is repeated.
+  /** B-orthonormalize the independent part of an already imaged block against an existing B-orthonormal block. No
+    * metric application is repeated.
     */
   def bOrthonormalizeAgainst(
       candidates: MetricBlock,
@@ -210,10 +202,9 @@ private[spectral] object GeneralizedBlockKernels:
 
   /** B-orthonormalize against an existing block with access to the metric.
     *
-    * The metric is normally not reapplied. It is used only if separately
-    * updated `x` and `B x` work vectors produce a negative squared norm, so the
-    * implementation can distinguish accumulated cancellation from genuinely
-    * indefinite geometry.
+    * The metric is normally not reapplied. It is used only if separately updated `x` and `B x` work vectors produce a
+    * negative squared norm, so the implementation can distinguish accumulated cancellation from genuinely indefinite
+    * geometry.
     */
   def bOrthonormalizeAgainst(
       candidates: MetricBlock,
@@ -231,11 +222,10 @@ private[spectral] object GeneralizedBlockKernels:
       streamOffset = 0
     )
 
-  /** B-orthonormalize against an existing block and deterministically replenish
-    * the independent complement to `targetColumns`.
+  /** B-orthonormalize against an existing block and deterministically replenish the independent complement to
+    * `targetColumns`.
     *
-    * Supplied candidate metric images are consumed directly. The metric is
-    * applied only to replacement probes.
+    * Supplied candidate metric images are consumed directly. The metric is applied only to replacement probes.
     */
   def bOrthonormalizeAgainstAndReplenish(
       candidates: MetricBlock,
@@ -296,11 +286,12 @@ private[spectral] object GeneralizedBlockKernels:
         )
       )
     else if tolerance < 0.0 || !tolerance.isFinite then
-      Left(LinAlgError.InvalidArgument(s"B-orthonormalization tolerance must be finite and non-negative, got $tolerance"))
+      Left(
+        LinAlgError.InvalidArgument(s"B-orthonormalization tolerance must be finite and non-negative, got $tolerance")
+      )
     else requireFinite(candidates, "candidate block").map(_ => ())
 
-  /** Fast full-rank path: if `G = Xᵀ B X = L Lᵀ`, then
-    * `Q = X L⁻ᵀ` satisfies `Qᵀ B Q = I`.
+  /** Fast full-rank path: if `G = Xᵀ B X = L Lᵀ`, then `Q = X L⁻ᵀ` satisfies `Qᵀ B Q = I`.
     */
   private def choleskyWhiten(
       candidates: DMat,
@@ -310,12 +301,15 @@ private[spectral] object GeneralizedBlockKernels:
     if candidates.cols == 0 then Some(MetricBlock(candidates, metricImages))
     else
       val gram = (candidates.t * metricImages).symmetrizedAverage
-      DenseDecompositions.cholesky(gram).toOption.flatMap: factor =>
-        inverseUpper(factor.lower.t).toOption.flatMap: transform =>
-          val result = MetricBlock(candidates * transform, metricImages * transform)
-          val error = metricOrthogonalityError(result)
-          val guard = math.max(1e-10, 100.0 * tolerance * math.sqrt(candidates.cols.toDouble))
-          Option.when(error.isFinite && error <= guard)(result)
+      DenseDecompositions
+        .cholesky(gram)
+        .toOption
+        .flatMap: factor =>
+          inverseUpper(factor.lower.t).toOption.flatMap: transform =>
+            val result = MetricBlock(candidates * transform, metricImages * transform)
+            val error = metricOrthogonalityError(result)
+            val guard = math.max(1e-10, 100.0 * tolerance * math.sqrt(candidates.cols.toDouble))
+            Option.when(error.isFinite && error <= guard)(result)
 
   private def inverseUpper(upper: DMat): Either[LinAlgError, DMat] =
     val n = upper.rows
@@ -362,12 +356,10 @@ private[spectral] object GeneralizedBlockKernels:
 
           val initialNormSquared = work.asVec.dot(metricWork.asVec)
           val checkedMetricImage =
-            if initialNormSquared < 0.0 then
-              applyVector(metric, work.asVec)
+            if initialNormSquared < 0.0 then applyVector(metric, work.asVec)
             else Right(metricWork.asVec)
           checkedMetricImage.flatMap: refreshedMetricWork =>
-            if initialNormSquared < 0.0 then
-              metricWork := refreshedMetricWork
+            if initialNormSquared < 0.0 then metricWork := refreshedMetricWork
             val normSquared = work.asVec.dot(metricWork.asVec)
             val scale = math.max(1.0, finiteCandidate.norm2 * finiteImage.norm2)
             val dependenceThreshold = tolerance * tolerance * scale
@@ -378,15 +370,12 @@ private[spectral] object GeneralizedBlockKernels:
                 vectors.length
               )
             val effectiveDependenceThreshold =
-              if initialNormSquared < 0.0 then
-                math.max(dependenceThreshold, tolerance * scale)
+              if initialNormSquared < 0.0 then math.max(dependenceThreshold, tolerance * scale)
               else dependenceThreshold
             if !normSquared.isFinite then
               Left(LinAlgError.InvalidArgument("B-orthogonalization produced a non-finite squared norm"))
-            else if normSquared < -negativeThreshold then
-              Left(LinAlgError.NotPositiveDefinite(vectors.length))
-            else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then
-              Right(false)
+            else if normSquared < -negativeThreshold then Left(LinAlgError.NotPositiveDefinite(vectors.length))
+            else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then Right(false)
             else
               val inverseNorm = 1.0 / math.sqrt(normSquared)
               val vector = (work.asVec * inverseNorm).copy
@@ -419,8 +408,7 @@ private[spectral] object GeneralizedBlockKernels:
           case Right(_)    => ()
         coordinate += 1
 
-    if replenish && vectors.length < targetColumns then
-      Left(LinAlgError.NotPositiveDefinite(vectors.length))
+    if replenish && vectors.length < targetColumns then Left(LinAlgError.NotPositiveDefinite(vectors.length))
     else
       Right(
         MetricBlock(
@@ -445,7 +433,9 @@ private[spectral] object GeneralizedBlockKernels:
         )
       )
     else if tolerance < 0.0 || !tolerance.isFinite then
-      Left(LinAlgError.InvalidArgument(s"B-orthonormalization tolerance must be finite and non-negative, got $tolerance"))
+      Left(
+        LinAlgError.InvalidArgument(s"B-orthonormalization tolerance must be finite and non-negative, got $tolerance")
+      )
     else if targetColumns < 0 || (replenish && targetColumns > candidates.rows - against.cols) then
       Left(
         LinAlgError.InvalidArgument(
@@ -514,7 +504,7 @@ private[spectral] object GeneralizedBlockKernels:
         metric match
           case Some(operator) =>
             applyVector(operator, work.asVec) match
-              case Left(error) => return Left(error)
+              case Left(error)                => return Left(error)
               case Right(refreshedMetricWork) =>
                 metricWork := refreshedMetricWork
                 normSquared = work.asVec.dot(metricWork.asVec)
@@ -529,15 +519,13 @@ private[spectral] object GeneralizedBlockKernels:
           against.cols + newVectors.length
         )
       val effectiveDependenceThreshold =
-        if refreshed then
-          math.max(dependenceThreshold, tolerance * scale)
+        if refreshed then math.max(dependenceThreshold, tolerance * scale)
         else dependenceThreshold
       if !normSquared.isFinite then
         Left(LinAlgError.InvalidArgument("B-orthogonalization produced a non-finite squared norm"))
       else if normSquared < -negativeThreshold then
         Left(LinAlgError.NotPositiveDefinite(against.cols + newVectors.length))
-      else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then
-        Right(false)
+      else if normSquared <= effectiveDependenceThreshold || normSquared < 0.0 then Right(false)
       else
         val inverseNorm = 1.0 / math.sqrt(normSquared)
         newVectors += (work.asVec * inverseNorm).copy
@@ -555,7 +543,7 @@ private[spectral] object GeneralizedBlockKernels:
       val operator =
         metric match
           case Some(value) => value
-          case None =>
+          case None        =>
             return Left(
               LinAlgError.InvalidArgument(
                 "deterministic complement replenishment requires a metric operator"
@@ -566,7 +554,7 @@ private[spectral] object GeneralizedBlockKernels:
       while newVectors.length < targetColumns && stream < streamOffset + probeLimit do
         val probe = deterministicVector(candidates.rows, stream)
         applyVector(operator, probe) match
-          case Left(error) => return Left(error)
+          case Left(error)  => return Left(error)
           case Right(image) =>
             add(probe, image) match
               case Left(error) => return Left(error)
@@ -577,7 +565,7 @@ private[spectral] object GeneralizedBlockKernels:
       while newVectors.length < targetColumns && coordinate < candidates.rows do
         val unit = DVec.tabulate(candidates.rows)(i => if i == coordinate then 1.0 else 0.0)
         applyVector(operator, unit) match
-          case Left(error) => return Left(error)
+          case Left(error)  => return Left(error)
           case Right(image) =>
             add(unit, image) match
               case Left(error) => return Left(error)
@@ -596,15 +584,12 @@ private[spectral] object GeneralizedBlockKernels:
 
   /** Dependence/indefiniteness threshold for a twice-reorthogonalized B norm.
     *
-    * Subtracting an almost represented direction updates `x` and `B x`
-    * separately. Their final dot product can therefore be a few accumulated
-    * ulps negative even for an exactly SPD metric. Negative values within this
-    * basis-size-scaled roundoff envelope are dependence, while the ordinary
-    * positive dependence threshold remains caller-controlled and a materially
-    * negative norm still reports `NotPositiveDefinite`. A direction whose
-    * metric image had to be refreshed must also clear the unsquared requested
-    * tolerance before normalization; this avoids amplifying a
-    * cancellation-dominated remainder into the basis.
+    * Subtracting an almost represented direction updates `x` and `B x` separately. Their final dot product can
+    * therefore be a few accumulated ulps negative even for an exactly SPD metric. Negative values within this
+    * basis-size-scaled roundoff envelope are dependence, while the ordinary positive dependence threshold remains
+    * caller-controlled and a materially negative norm still reports `NotPositiveDefinite`. A direction whose metric
+    * image had to be refreshed must also clear the unsquared requested tolerance before normalization; this avoids
+    * amplifying a cancellation-dominated remainder into the basis.
     */
   private def negativeBNormThreshold(
       dependenceThreshold: Double,
@@ -616,8 +601,7 @@ private[spectral] object GeneralizedBlockKernels:
     math.max(dependenceThreshold, roundoff)
 
   private def applyVector(operator: DoubleLinearOperator, vector: DVec): Either[LinAlgError, DVec] =
-    if vector.length != operator.cols then
-      Left(LinAlgError.VectorLengthMismatch(operator.cols, vector.length))
+    if vector.length != operator.cols then Left(LinAlgError.VectorLengthMismatch(operator.cols, vector.length))
     else
       try
         val destination = MutableDVec.zeros(operator.rows)
@@ -644,8 +628,7 @@ private[spectral] object GeneralizedBlockKernels:
       i += 1
     Right(vector)
 
-  /** Portable deterministic probe. Integer overflow is defined identically on
-    * JVM and Scala.js.
+  /** Portable deterministic probe. Integer overflow is defined identically on JVM and Scala.js.
     */
   private def deterministicVector(n: Int, stream: Int): DVec =
     var state = 0x6d2b79f5 ^ (stream * 0x9e3779b9)

@@ -11,10 +11,9 @@ import org.openjdk.jmh.infra.Blackhole
 
 /** Copy-inclusive court for Gale's portable tall-skinny column-pivoted QR.
   *
-  * The immutable input is prepared outside the timed boundary. Each invocation
-  * includes the mandatory row-major factor copy, exact pivot-norm computation,
-  * compact reflector and R construction, rank decision, and owned factor
-  * results. Explicit `PureBackend` pins the shared JVM/Scala.js algorithm.
+  * The immutable input is prepared outside the timed boundary. Each invocation includes the mandatory row-major factor
+  * copy, exact pivot-norm computation, compact reflector and R construction, rank decision, and owned factor results.
+  * Explicit `PureBackend` pins the shared JVM/Scala.js algorithm.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)

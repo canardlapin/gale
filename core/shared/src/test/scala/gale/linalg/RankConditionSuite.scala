@@ -3,14 +3,10 @@ package gale.linalg
 class RankConditionSuite extends munit.FunSuite:
   test("rankEstimate distinguishes full rank and rank-deficient matrices") {
     val full = Matrix.dense(3, 2)(
-      1.0, 0.0,
-      1.0, 1.0,
-      1.0, 2.0
+      1.0, 0.0, 1.0, 1.0, 1.0, 2.0
     )
     val deficient = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      2.0, 4.0,
-      3.0, 6.0
+      1.0, 2.0, 2.0, 4.0, 3.0, 6.0
     )
 
     assertEquals(full.rankEstimate, 2)
@@ -19,8 +15,10 @@ class RankConditionSuite extends munit.FunSuite:
 
   test("conditionEstimate is exact for simple diagonal matrices") {
     val A = Matrix.dense(2, 2)(
-      1.0, 0.0,
-      0.0, 0.001
+      1.0,
+      0.0,
+      0.0,
+      0.001
     )
 
     assert(math.abs(Matrix.eye(3).conditionEstimate.orThrow - 1.0) < 1e-12)
@@ -33,9 +31,7 @@ class RankConditionSuite extends munit.FunSuite:
     // semantics. A = [[1,0,0],[0,1,0],[1,1,1]], A^{-1} = [[1,0,0],[0,1,0],[-1,-1,1]].
     // ||A||_1 = 2, ||A^{-1}||_1 = 2  ->  kappa_1 = 4.
     val A = Matrix.dense(3, 3)(
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      1.0, 1.0, 1.0
+      1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0
     )
     val exact1Norm = 4.0
     val cond = A.conditionEstimate.orThrow
@@ -48,8 +44,10 @@ class RankConditionSuite extends munit.FunSuite:
   test("conditionEstimate reports non-square and singular cases") {
     val rectangular = Matrix.zeros(2, 3)
     val singular = Matrix.dense(2, 2)(
-      1.0, 2.0,
-      2.0, 4.0
+      1.0,
+      2.0,
+      2.0,
+      4.0
     )
 
     assert(rectangular.conditionEstimate.left.exists(_.isInstanceOf[LinAlgError.NonSquareMatrix]))

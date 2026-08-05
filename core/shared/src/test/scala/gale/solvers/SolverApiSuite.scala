@@ -28,8 +28,10 @@ class SolverApiSuite extends munit.FunSuite:
 
   test("BlockJacobi and SymmetricGaussSeidel constructors are usable") {
     val A = Matrix.dense(2, 2)(
-      4.0, 1.0,
-      1.0, 3.0
+      4.0,
+      1.0,
+      1.0,
+      3.0
     )
     val r = Vec(1.0, 2.0)
 
@@ -41,11 +43,8 @@ class SolverApiSuite extends munit.FunSuite:
     // Blocks [0,1], [2,3], [4]. Off-block entries are set to 9 to prove the
     // preconditioner reads only the diagonal blocks.
     val A = Matrix.dense(5, 5)(
-      2.0, 1.0, 9.0, 9.0, 9.0,
-      1.0, 2.0, 9.0, 9.0, 9.0,
-      9.0, 9.0, 3.0, 1.0, 9.0,
-      9.0, 9.0, 1.0, 3.0, 9.0,
-      9.0, 9.0, 9.0, 9.0, 5.0
+      2.0, 1.0, 9.0, 9.0, 9.0, 1.0, 2.0, 9.0, 9.0, 9.0, 9.0, 9.0, 3.0, 1.0, 9.0, 9.0, 9.0, 1.0, 3.0, 9.0, 9.0, 9.0, 9.0,
+      9.0, 5.0
     )
     val r = Vec(1.0, 1.0, 1.0, 1.0, 1.0)
     val out = Preconditioner.BlockJacobi(A, blockSize = 2)(r).toSeq
@@ -61,9 +60,7 @@ class SolverApiSuite extends munit.FunSuite:
 
   test("BlockJacobi with blockSize >= n is an exact solve of the whole matrix") {
     val A = Matrix.dense(3, 3)(
-      4.0, 1.0, 0.0,
-      1.0, 3.0, 1.0,
-      0.0, 1.0, 2.0
+      4.0, 1.0, 0.0, 1.0, 3.0, 1.0, 0.0, 1.0, 2.0
     )
     val r = Vec(1.0, 2.0, 3.0)
     val out = Preconditioner.BlockJacobi(A, blockSize = 5)(r).toSeq

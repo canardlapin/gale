@@ -5,10 +5,9 @@ import munit.Assertions
 
 /** Reusable laws for the sparse matrix types, expressed against the public API.
   *
-  * The bundle deliberately takes a [[gale.linalg.DoubleLinearOperator]] for the
-  * matvec and a dense [[gale.linalg.DMat]] as the reference, so it applies to any
-  * sparse representation (CSR, CSC, COO, Banded, Diagonal, ...) without depending
-  * on a shared `toDense` on the sparse trait.
+  * The bundle deliberately takes a [[gale.linalg.DoubleLinearOperator]] for the matvec and a dense [[gale.linalg.DMat]]
+  * as the reference, so it applies to any sparse representation (CSR, CSC, COO, Banded, Diagonal, ...) without
+  * depending on a shared `toDense` on the sparse trait.
   */
 object SparseLaws extends Assertions:
   /** A sparse operator's matvec matches the matvec of its dense equivalent. */
@@ -30,9 +29,8 @@ object SparseLaws extends Assertions:
   def densifiesTo(actualDense: DMat, expectedDense: DMat, tolerance: Double = 1e-12): Unit =
     MatrixLaws.assertClose(actualDense, expectedDense, tolerance)
 
-  /** Canonicalization is idempotent at the dense level: re-canonicalizing a
-    * matrix that already advertises canonical format leaves its dense image
-    * unchanged. `densify` maps each stage to its dense form.
+  /** Canonicalization is idempotent at the dense level: re-canonicalizing a matrix that already advertises canonical
+    * format leaves its dense image unchanged. `densify` maps each stage to its dense form.
     */
   def canonicalizeIsIdempotentDense(first: DMat, second: DMat): Unit =
     MatrixLaws.assertExact(second, first)

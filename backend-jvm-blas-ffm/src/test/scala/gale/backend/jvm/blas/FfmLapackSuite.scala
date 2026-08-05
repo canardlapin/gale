@@ -9,12 +9,16 @@ import scala.concurrent.{Await, Future}
 
 class FfmLapackSuite extends munit.FunSuite:
   private lazy val backend = FfmBlasBackend
-    .load(thresholds = Some(FfmBlasThresholds(
-      nativeLuMinSize = 0,
-      nativeCholeskyMinSize = 0,
-      nativeQrMinSize = 0,
-      nativeSymmetricEigenMinSize = 0
-    )))
+    .load(thresholds =
+      Some(
+        FfmBlasThresholds(
+          nativeLuMinSize = 0,
+          nativeCholeskyMinSize = 0,
+          nativeQrMinSize = 0,
+          nativeSymmetricEigenMinSize = 0
+        )
+      )
+    )
     .fold(throw _, identity)
 
   override def afterAll(): Unit =
@@ -32,8 +36,10 @@ class FfmLapackSuite extends munit.FunSuite:
       var j = 0
       while j < actual.cols do
         val scale = math.max(1.0, math.max(math.abs(actual(i, j)), math.abs(expected(i, j))))
-        assert(math.abs(actual(i, j) - expected(i, j)) <= tolerance * scale,
-          s"($i,$j): ${actual(i, j)} != ${expected(i, j)}")
+        assert(
+          math.abs(actual(i, j) - expected(i, j)) <= tolerance * scale,
+          s"($i,$j): ${actual(i, j)} != ${expected(i, j)}"
+        )
         j += 1
       i += 1
 
@@ -45,10 +51,7 @@ class FfmLapackSuite extends munit.FunSuite:
   test("facade-routed LU solves and reports singular pivots with Gale errors"):
     requireLapack()
     val a = Matrix.dense(4, 4)(
-      0.0, 2.0, 3.0, 1.0,
-      4.0, 5.0, 6.0, -2.0,
-      7.0, 8.0, 10.0, 3.0,
-      2.0, -1.0, 1.0, 8.0
+      0.0, 2.0, 3.0, 1.0, 4.0, 5.0, 6.0, -2.0, 7.0, 8.0, 10.0, 3.0, 2.0, -1.0, 1.0, 8.0
     )
     val b = Vec(3.0, -2.0, 5.0, 7.0)
     val lu = a.lu(using backend).orThrow
@@ -63,15 +66,23 @@ class FfmLapackSuite extends munit.FunSuite:
     requireLapack()
     for scale <- Seq(1e-150, 1.0, 1e150) do
       val spd = Matrix.dense(3, 3)(
-        6.0 * scale, 2.0 * scale, 1.0 * scale,
-        2.0 * scale, 5.0 * scale, 2.0 * scale,
-        1.0 * scale, 2.0 * scale, 4.0 * scale
+        6.0 * scale,
+        2.0 * scale,
+        1.0 * scale,
+        2.0 * scale,
+        5.0 * scale,
+        2.0 * scale,
+        1.0 * scale,
+        2.0 * scale,
+        4.0 * scale
       )
       val chol = spd.cholesky(using backend).orThrow
       assertMatrixClose(chol.lower.*(chol.lower.t)(using PureBackend), spd, 5e-12)
 
     val indefinite = Matrix.dense(2, 2)(1.0, 2.0, 2.0, 1.0)
-    assert(backend.denseFactorizations.get.cholesky(indefinite).left.exists(_.isInstanceOf[LinAlgError.NotPositiveDefinite]))
+    assert(
+      backend.denseFactorizations.get.cholesky(indefinite).left.exists(_.isInstanceOf[LinAlgError.NotPositiveDefinite])
+    )
 
   test("native QR reconstructs tall and wide matrices and supports least squares"):
     requireLapack()
@@ -92,10 +103,7 @@ class FfmLapackSuite extends munit.FunSuite:
   test("symmetric eigen obeys residual, orthogonality, values-only, and scaling contracts"):
     requireLapack()
     val a = Matrix.dense(4, 4)(
-      5.0, 2.0, -1.0, 0.5,
-      2.0, 4.0, 1.5, -0.25,
-      -1.0, 1.5, 3.0, 0.75,
-      0.5, -0.25, 0.75, 2.0
+      5.0, 2.0, -1.0, 0.5, 2.0, 4.0, 1.5, -0.25, -1.0, 1.5, 3.0, 0.75, 0.5, -0.25, 0.75, 2.0
     )
     val spectral = backend.spectral.get
     val raw = spectral.denseSymmetricEigen(a, wantVectors = true).orThrow
@@ -131,9 +139,7 @@ class FfmLapackSuite extends munit.FunSuite:
     val spectral = backend.spectral.get
     assertEquals(spectral.denseSymmetricEigenMinSize, 0) // this suite's explicit thresholds
     assert(spectral.routesDenseSymmetricEigen(1))
-    val a = Matrix.tabulate(8, 8)((i, j) =>
-      if i == j then 5.0 + i else math.sin((i + 1.0) * (j + 2.0)) / 4.0
-    )
+    val a = Matrix.tabulate(8, 8)((i, j) => if i == j then 5.0 + i else math.sin((i + 1.0) * (j + 2.0)) / 4.0)
     val sym = Matrix.tabulate(8, 8)((i, j) => 0.5 * (a(i, j) + a(j, i)))
     val routed = Eigen.eigSymmetric(sym, EigenSelection.All)(using spectral).orThrow
     val pure = Eigen.eigSymmetric(sym, EigenSelection.All)(using SpectralBackend.none).orThrow

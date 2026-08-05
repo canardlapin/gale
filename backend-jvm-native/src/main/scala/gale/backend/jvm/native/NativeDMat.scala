@@ -9,9 +9,8 @@ enum Layout:
 
 /** Dense off-heap matrix with an explicit FFM lifetime and leading dimension.
   *
-  * Instances created by [[NativeDMat.allocate]] own their arena and release it
-  * from `close()`. Instances created by [[NativeDMat.allocateIn]] or `toNative`
-  * borrow the caller's arena; their `close()` is intentionally a no-op and the
+  * Instances created by [[NativeDMat.allocate]] own their arena and release it from `close()`. Instances created by
+  * [[NativeDMat.allocateIn]] or `toNative` borrow the caller's arena; their `close()` is intentionally a no-op and the
   * caller closes the arena. In either case FFM checks use-after-close.
   */
 final class NativeDMat private (
@@ -24,9 +23,10 @@ final class NativeDMat private (
 ) extends AutoCloseable:
   private val elementCount =
     if rows == 0 || cols == 0 then 0L
-    else layout match
-      case Layout.RowMajor => (rows - 1L) * leadingDimension + cols
-      case Layout.ColMajor => (cols - 1L) * leadingDimension + rows
+    else
+      layout match
+        case Layout.RowMajor => (rows - 1L) * leadingDimension + cols
+        case Layout.ColMajor => (cols - 1L) * leadingDimension + rows
 
   require(rows >= 0 && cols >= 0, s"negative native matrix shape: $rows x $cols")
   require(
@@ -35,8 +35,10 @@ final class NativeDMat private (
       case Layout.ColMajor => math.max(1, rows)),
     s"leading dimension $leadingDimension is too small for $rows x $cols $layout"
   )
-  require(memory.byteSize() >= elementCount * java.lang.Double.BYTES,
-    s"memory segment is too small for $rows x $cols $layout")
+  require(
+    memory.byteSize() >= elementCount * java.lang.Double.BYTES,
+    s"memory segment is too small for $rows x $cols $layout"
+  )
 
   def isAlive: Boolean = memory.scope().isAlive()
 

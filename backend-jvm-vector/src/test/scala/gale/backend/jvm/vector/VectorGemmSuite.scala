@@ -7,10 +7,9 @@ import gale.backend.PureDenseDoubleKernel
 import gale.linalg.* // DMat, Matrix, Offset/Rows/Cols/Stride, and the `.value` extensions
 import gale.platform.DoubleArray
 
-/** Correctness parity for the Vector-API (SIMD) `gemm`: it must agree with the pure
-  * reference within a small tolerance (reassociation from SIMD lane order + FMA makes
-  * the result law-equivalent, not bit-identical). Lives in a `gale.*` subpackage so it
-  * can read the `private[gale]` `DMat.data` handle and drive the kernels directly.
+/** Correctness parity for the Vector-API (SIMD) `gemm`: it must agree with the pure reference within a small tolerance
+  * (reassociation from SIMD lane order + FMA makes the result law-equivalent, not bit-identical). Lives in a `gale.*`
+  * subpackage so it can read the `private[gale]` `DMat.data` handle and drive the kernels directly.
   */
 class VectorGemmSuite extends munit.FunSuite:
   private val AbsTol = 1e-12
@@ -57,8 +56,10 @@ class VectorGemmSuite extends munit.FunSuite:
         val e = expected(i, j)
         val tolerance = AbsTol + RelTol * math.max(math.abs(a), math.abs(e))
         assert(a.isFinite == e.isFinite, s"finiteness mismatch at ($i,$j): vector=$a pure=$e")
-        assert(math.abs(a - e) <= tolerance,
-          s"mismatch at ($i,$j): vector=$a pure=$e (|Δ|=${math.abs(a - e)}, tol=$tolerance)")
+        assert(
+          math.abs(a - e) <= tolerance,
+          s"mismatch at ($i,$j): vector=$a pure=$e (|Δ|=${math.abs(a - e)}, tol=$tolerance)"
+        )
         j += 1
       i += 1
 
@@ -93,8 +94,7 @@ class VectorGemmSuite extends munit.FunSuite:
     assertEquals(actual.length, expected.length)
     actual.indices.foreach { i =>
       val tolerance = AbsTol + RelTol * math.max(math.abs(actual(i)), math.abs(expected(i)))
-      assert(math.abs(actual(i) - expected(i)) <= tolerance,
-        s"mismatch at $i: vector=${actual(i)} pure=${expected(i)}")
+      assert(math.abs(actual(i) - expected(i)) <= tolerance, s"mismatch at $i: vector=${actual(i)} pure=${expected(i)}")
     }
 
   /** Parity for `C := A·B` (alpha=1, beta=0 — exactly what the seam issues). */
@@ -153,7 +153,10 @@ class VectorGemmSuite extends munit.FunSuite:
       xBacking(j * 2) = (j - 3).toDouble
       j += 1
     val x = new DVec(
-      DoubleArray.fromArray(xBacking), Offset.unsafe(0), Length.unsafe(cols), Stride.unsafe(2)
+      DoubleArray.fromArray(xBacking),
+      Offset.unsafe(0),
+      Length.unsafe(cols),
+      Stride.unsafe(2)
     )
     val vectorY = Array.fill(rows * 3)(7.0)
     val pureY = vectorY.clone()
@@ -262,17 +265,18 @@ class VectorGemmSuite extends munit.FunSuite:
           val e = expected.toDouble
           val tolerance = 5e-12 * math.max(1.0, math.abs(e))
           assert(actual(i, j).isFinite, s"non-finite result at scale=$scale ($i,$j)")
-          assert(math.abs(actual(i, j) - e) <= tolerance,
-            s"BigDecimal mismatch at scale=$scale ($i,$j): ${actual(i, j)} vs $e")
+          assert(
+            math.abs(actual(i, j) - e) <= tolerance,
+            s"BigDecimal mismatch at scale=$scale ($i,$j): ${actual(i, j)} vs $e"
+          )
           j += 1
         i += 1
 
   // --- review-hardening: cases the exact-integer fixtures above never exercise --------
 
-  /** A `rows × cols` view (unit column stride) over a wider `rows × parentCols` row-major
-    * backing, so `rowStride = parentCols > cols`. Cells beyond `cols` in each row are NaN
-    * poison: a kernel that mistook `rowStride == cols` and read into the stride padding
-    * would produce NaN and fail parity.
+  /** A `rows × cols` view (unit column stride) over a wider `rows × parentCols` row-major backing, so
+    * `rowStride = parentCols > cols`. Cells beyond `cols` in each row are NaN poison: a kernel that mistook
+    * `rowStride == cols` and read into the stride padding would produce NaN and fail parity.
     */
   private def submatrixView(rows: Int, cols: Int, parentCols: Int)(f: (Int, Int) => Double): DMat =
     val backing = new Array[Double](rows * parentCols)

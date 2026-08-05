@@ -9,9 +9,8 @@ import gale.sparse.*
 
 /** Round-trip fidelity and the copy/view contract for the Breeze interop bridge.
   *
-  * Lives in a non-`gale.interop` package so it exercises the module exactly as a
-  * downstream user would (`import gale.interop.breeze.*`) and so the library name
-  * `breeze` is not shadowed by the module's own package.
+  * Lives in a non-`gale.interop` package so it exercises the module exactly as a downstream user would (`import
+  * gale.interop.breeze.*`) and so the library name `breeze` is not shadowed by the module's own package.
   */
 class BreezeConversionsSuite extends munit.FunSuite:
 
@@ -35,8 +34,8 @@ class BreezeConversionsSuite extends munit.FunSuite:
   // ---------------------------------------------------------------------------
 
   test("DMat -> Breeze copy -> DMat: shape + bit-exact, contiguous") {
-    val a  = galeDense(4, 6)
-    val b  = toBreezeCopy(a)
+    val a = galeDense(4, 6)
+    val b = toBreezeCopy(a)
     assertEquals(b.rows, 4)
     assertEquals(b.cols, 6)
     for i <- 0 until 4; j <- 0 until 6 do assertBits(b(i, j), a(i, j), s"->breeze ($i,$j)")
@@ -47,9 +46,9 @@ class BreezeConversionsSuite extends munit.FunSuite:
   }
 
   test("DMat -> Breeze copy: non-contiguous (transposed) gale input") {
-    val a  = galeDense(5, 3)
+    val a = galeDense(5, 3)
     val at = a.t // transposed view: 3x5, column-contiguous, not row-major
-    val b  = toBreezeCopy(at)
+    val b = toBreezeCopy(at)
     assertEquals((b.rows, b.cols), (3, 5))
     for i <- 0 until 3; j <- 0 until 5 do assertBits(b(i, j), a(j, i), s"transposed ($i,$j)")
   }
@@ -62,7 +61,7 @@ class BreezeConversionsSuite extends munit.FunSuite:
     for i <- 0 until 4; j <- 0 until 5 do assertBits(gt(i, j), b(j, i), s"t ($i,$j)")
 
     val slice = b(1 until 4, 1 until 3) // 3x2 view with offset + majorStride
-    val gs    = fromBreezeCopy(slice)
+    val gs = fromBreezeCopy(slice)
     assertEquals((gs.rows, gs.cols), (3, 2))
     for i <- 0 until 3; j <- 0 until 2 do assertBits(gs(i, j), b(1 + i, 1 + j), s"slice ($i,$j)")
   }
@@ -82,13 +81,13 @@ class BreezeConversionsSuite extends munit.FunSuite:
     for i <- 0 until 5; j <- 0 until 4 do assertBits(v2(i, j), b(j, i), s"t ($i,$j)")
 
     val slice = b(1 until 4, 2 until 5)
-    val v3    = unsafeFromBreezeView(slice)
+    val v3 = unsafeFromBreezeView(slice)
     assertEquals((v3.rows, v3.cols), (3, 3))
     for i <- 0 until 3; j <- 0 until 3 do assertBits(v3(i, j), b(1 + i, 2 + j), s"slice ($i,$j)")
   }
 
   test("copy/view aliasing contract (dense matrix)") {
-    val b    = breezeDense(3, 3)
+    val b = breezeDense(3, 3)
     val view = unsafeFromBreezeView(b)
     val copy = fromBreezeCopy(b)
     val before = b(1, 2)
@@ -133,12 +132,12 @@ class BreezeConversionsSuite extends munit.FunSuite:
 
     // A gale column of a row-major matrix is a strided (stride>1) view.
     val col = galeDense(4, 3).col(1)
-    val bc  = toBreezeCopy(col)
+    val bc = toBreezeCopy(col)
     for i <- 0 until 4 do assertBits(bc(i), col(i), s"strided col [$i]")
   }
 
   test("unsafeFromBreezeView (vector) aliases; fromBreezeCopy does not") {
-    val b    = DenseVector.tabulate(5)(i => i * 1.25)
+    val b = DenseVector.tabulate(5)(i => i * 1.25)
     val view = unsafeFromBreezeView(b)
     val copy = fromBreezeCopy(b)
     val before = b(3)
@@ -160,7 +159,12 @@ class BreezeConversionsSuite extends munit.FunSuite:
   // ---------------------------------------------------------------------------
 
   private val sparseEntries = Seq(
-    (0, 0, 1.5), (0, 3, -2.25), (1, 1, 3.0), (2, 0, 0.75), (2, 2, -4.5), (3, 3, 6.125)
+    (0, 0, 1.5),
+    (0, 3, -2.25),
+    (1, 1, 3.0),
+    (2, 0, 0.75),
+    (2, 2, -4.5),
+    (3, 3, 6.125)
   )
 
   private def galeCsr(rows: Int, cols: Int): CSR =
@@ -171,11 +175,10 @@ class BreezeConversionsSuite extends munit.FunSuite:
   test("CSR -> Breeze CSCMatrix -> CSR/CSC: structure + bit-exact values") {
     val rows = 4
     val cols = 4
-    val csr  = galeCsr(rows, cols)
+    val csr = galeCsr(rows, cols)
     val bcsc = toBreezeCopy(csr)
     assertEquals((bcsc.rows, bcsc.cols), (rows, cols))
-    for i <- 0 until rows; j <- 0 until cols do
-      assertBits(bcsc(i, j), csr(i, j), s"csr->breeze ($i,$j)")
+    for i <- 0 until rows; j <- 0 until cols do assertBits(bcsc(i, j), csr(i, j), s"csr->breeze ($i,$j)")
 
     val backCsc = fromBreezeToCsc(bcsc)
     val backCsr = fromBreezeToCsr(bcsc)
@@ -185,7 +188,7 @@ class BreezeConversionsSuite extends munit.FunSuite:
   }
 
   test("CSC -> Breeze CSCMatrix preserves the same matrix") {
-    val csc  = galeCsr(4, 4).toCSC
+    val csc = galeCsr(4, 4).toCSC
     val bcsc = toBreezeCopy(csc)
     for i <- 0 until 4; j <- 0 until 4 do assertBits(bcsc(i, j), csc(i, j), s"csc->breeze ($i,$j)")
   }

@@ -11,12 +11,10 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Dense symmetric eigendecomposition (values + vectors) paired benchmark:
-  * gale `Eigen.eigSymmetric(A, All)` (tridiagonal QL/QR) vs breeze `eigSym(A)`
-  * (LAPACK `dsyev`). Both compute the full spectrum with eigenvectors.
+/** Dense symmetric eigendecomposition (values + vectors) paired benchmark: gale `Eigen.eigSymmetric(A, All)`
+  * (tridiagonal QL/QR) vs breeze `eigSym(A)` (LAPACK `dsyev`). Both compute the full spectrum with eigenvectors.
   *
-  * Sizes stay modest because dense eigen has a larger constant than the pure BLAS-3
-  * kernels above.
+  * Sizes stay modest because dense eigen has a larger constant than the pure BLAS-3 kernels above.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -28,7 +26,7 @@ class SymEigenBreezeJmh:
   @Param(Array("16", "64", "128"))
   var n: Int = 0
 
-  private var gA: DMat        = uninitialized
+  private var gA: DMat = uninitialized
   private var bA: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)

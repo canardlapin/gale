@@ -29,8 +29,10 @@ final case class Mat2(
 
   def toDMat: DMat =
     Matrix.dense(2, 2)(
-      a00, a01,
-      a10, a11
+      a00,
+      a01,
+      a10,
+      a11
     )
 
 final case class Mat3(
@@ -58,9 +60,15 @@ final case class Mat3(
 
   def toDMat: DMat =
     Matrix.dense(3, 3)(
-      a00, a01, a02,
-      a10, a11, a12,
-      a20, a21, a22
+      a00,
+      a01,
+      a02,
+      a10,
+      a11,
+      a12,
+      a20,
+      a21,
+      a22
     )
 
 final case class Mat4(
@@ -97,10 +105,22 @@ final case class Mat4(
 
   def toDMat: DMat =
     Matrix.dense(4, 4)(
-      a00, a01, a02, a03,
-      a10, a11, a12, a13,
-      a20, a21, a22, a23,
-      a30, a31, a32, a33
+      a00,
+      a01,
+      a02,
+      a03,
+      a10,
+      a11,
+      a12,
+      a13,
+      a20,
+      a21,
+      a22,
+      a23,
+      a30,
+      a31,
+      a32,
+      a33
     )
 
   private inline def det3(

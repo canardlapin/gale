@@ -5,15 +5,13 @@ import scala.scalajs.js.typedarray.Float64Array
 
 /** JS-only copy interop between gale's dense types and `Float64Array` values.
   *
-  * Shared code keeps raw storage off its public surface. These helpers copy in
-  * and copy out, so Gale does not expose an owned typed-array representation.
+  * Shared code keeps raw storage off its public surface. These helpers copy in and copy out, so Gale does not expose an
+  * owned typed-array representation.
   *
-  * SUBTLE CONTRACT: unlike the JVM exporters, these are named `toFloat64Array`, so
-  * they do not shadow a like-named member. They do, however, call the
-  * `private[gale]` members `DVec.toDoubleArrayOwnedCopy` /
-  * `DMat.toDoubleArrayCopyRowMajor` by name; renaming those would break these
-  * exporters at compile time. The `userland.InteropSuite` (in a non-`gale`
-  * package) exercises the public surface and is the canary for both platforms.
+  * SUBTLE CONTRACT: unlike the JVM exporters, these are named `toFloat64Array`, so they do not shadow a like-named
+  * member. They do, however, call the `private[gale]` members `DVec.toDoubleArrayOwnedCopy` /
+  * `DMat.toDoubleArrayCopyRowMajor` by name; renaming those would break these exporters at compile time. The
+  * `userland.InteropSuite` (in a non-`gale` package) exercises the public surface and is the canary for both platforms.
   */
 
 extension (companion: Vec.type)
@@ -32,8 +30,7 @@ extension (v: DVec)
     DoubleArray.asFloat64Array(v.toDoubleArrayOwnedCopy)
 
 extension (m: DMat)
-  /** Fresh `Float64Array` copy of this matrix's elements in row-major order,
-    * materialising strided or transposed views.
+  /** Fresh `Float64Array` copy of this matrix's elements in row-major order, materialising strided or transposed views.
     */
   def toFloat64Array: Float64Array =
     DoubleArray.asFloat64Array(m.toDoubleArrayCopyRowMajor)

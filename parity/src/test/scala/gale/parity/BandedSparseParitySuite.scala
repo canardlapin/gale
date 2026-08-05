@@ -4,15 +4,13 @@ import breeze.linalg.CSCMatrix
 import gale.parity.ParitySupport.*
 import gale.sparse.*
 
-/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, and `Diagonal` matvec and
-  * transpose-matvec versus the equivalent `breeze.linalg.CSCMatrix` operations, on
-  * the same sparsity pattern. These are exact same-arithmetic sums of products, so
-  * they must agree to `1e-12`.
+/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, and `Diagonal` matvec and transpose-matvec versus the
+  * equivalent `breeze.linalg.CSCMatrix` operations, on the same sparsity pattern. These are exact same-arithmetic sums
+  * of products, so they must agree to `1e-12`.
   *
-  * gale exposes no public sparse '''solve''' (its solvers take dense `DMat` or a
-  * matrix-free `DoubleLinearOperator`, not a stored sparse factorization), so there
-  * is no sparse-solve surface to compare here; dense solve parity is covered by
-  * `FactorizationParitySuite`.
+  * gale exposes no public sparse '''solve''' (its solvers take dense `DMat` or a matrix-free `DoubleLinearOperator`,
+  * not a stored sparse factorization), so there is no sparse-solve surface to compare here; dense solve parity is
+  * covered by `FactorizationParitySuite`.
   */
 class BandedSparseParitySuite extends munit.FunSuite:
 
@@ -57,13 +55,13 @@ class BandedSparseParitySuite extends munit.FunSuite:
   test("Banded matvec / transpose-matvec vs breeze CSCMatrix") {
     for n <- List(6, 16, 40); (kl, ku) <- List((1, 1), (2, 0), (0, 2), (3, 2)); seed <- List(1L, 2L) do
       val data = bandedData(n, n, kl, ku, seed)
-      val gA   = Sparse.banded(galeMatrix(data))
-      val bA   = breezeCsc(data)
-      val bAt  = breezeCscTransposed(data)
+      val gA = Sparse.banded(galeMatrix(data))
+      val bA = breezeCsc(data)
+      val bAt = breezeCscTransposed(data)
 
       val xData = vectorData(n, seed * 43 + 1)
-      val gx    = galeVector(xData)
-      val bx    = breezeVector(xData)
+      val gx = galeVector(xData)
+      val bx = breezeVector(xData)
 
       assertVecClose(gA * gx, bA * bx, tol, s"Banded A·x n=$n band=($kl,$ku) seed=$seed")
       assertVecClose(gA.t * gx, bAt * bx, tol, s"Banded Aᵀ·x n=$n band=($kl,$ku) seed=$seed")
@@ -76,9 +74,9 @@ class BandedSparseParitySuite extends munit.FunSuite:
   test("CSR matvec / transpose-matvec vs breeze CSCMatrix (rectangular)") {
     for (m, n) <- List((8, 8), (12, 7), (7, 15)); seed <- List(1L, 2L, 3L) do
       val data = sparseData(m, n, 0.3, seed)
-      val gA   = galeCsr(data)
-      val bA   = breezeCsc(data)
-      val bAt  = breezeCscTransposed(data)
+      val gA = galeCsr(data)
+      val bA = breezeCsc(data)
+      val bAt = breezeCscTransposed(data)
 
       val xF = galeVector(vectorData(n, seed * 47 + 1))
       val xT = galeVector(vectorData(m, seed * 53 + 2))
@@ -92,9 +90,9 @@ class BandedSparseParitySuite extends munit.FunSuite:
   test("CSC matvec / transpose-matvec vs breeze CSCMatrix (rectangular)") {
     for (m, n) <- List((8, 8), (12, 7), (7, 15)); seed <- List(4L, 5L) do
       val data = sparseData(m, n, 0.3, seed)
-      val gA   = galeCsr(data).toCSC
-      val bA   = breezeCsc(data)
-      val bAt  = breezeCscTransposed(data)
+      val gA = galeCsr(data).toCSC
+      val bA = breezeCsc(data)
+      val bAt = breezeCscTransposed(data)
 
       val xF = galeVector(vectorData(n, seed * 59 + 1))
       val xT = galeVector(vectorData(m, seed * 61 + 2))
@@ -113,8 +111,8 @@ class BandedSparseParitySuite extends munit.FunSuite:
     for n <- List(4, 10, 25); seed <- List(1L, 2L) do
       val diag = vectorData(n, seed * 67 + 1)
       val data = Array.tabulate(n, n)((i, j) => if i == j then diag(i) else 0.0)
-      val gA   = Sparse.diagonal(diag.toIndexedSeq*)
-      val bA   = breezeCsc(data)
+      val gA = Sparse.diagonal(diag.toIndexedSeq*)
+      val bA = breezeCsc(data)
 
       val xData = vectorData(n, seed * 71 + 3)
       assertVecClose(gA * galeVector(xData), bA * breezeVector(xData), tol, s"Diagonal A·x n=$n seed=$seed")

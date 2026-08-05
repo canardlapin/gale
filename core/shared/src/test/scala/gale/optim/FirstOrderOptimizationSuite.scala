@@ -170,8 +170,7 @@ class FirstOrderOptimizationSuite extends munit.FunSuite:
       def value(at: DMat): Either[FirstOrderError, Double] = Right(weight * l1(at))
       def proximal(at: DMat, step: Double): Either[FirstOrderError, DMat] =
         Right(map(at): value =>
-          Math.signum(value) * Math.max(0.0, Math.abs(value) - weight * step)
-        )
+          Math.signum(value) * Math.max(0.0, Math.abs(value) - weight * step))
 
   private def l1Functional(rows: Int, weight: Double): LinearCompositeFunctional =
     new LinearCompositeFunctional:

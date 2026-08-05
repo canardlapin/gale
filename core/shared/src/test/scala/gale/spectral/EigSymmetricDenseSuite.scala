@@ -4,8 +4,8 @@ import gale.linalg.DMat
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 
-/** Tests for the dense symmetric eigendecomposition facade `Eigen.eigSymmetric`:
-  * selection slicing consistency, fixed spectra, and boundary validation.
+/** Tests for the dense symmetric eigendecomposition facade `Eigen.eigSymmetric`: selection slicing consistency, fixed
+  * spectra, and boundary validation.
   */
 class EigSymmetricDenseSuite extends munit.FunSuite:
 
@@ -134,7 +134,12 @@ class EigSymmetricDenseSuite extends munit.FunSuite:
 
     assert(Eigen.eigSymmetric(rect, EigenSelection.All, EigenVectors.Right).isLeft)
     assertEquals(
-      Eigen.eigSymmetric(a, EigenSelection.Count(0, EigenOrder.LargestAlgebraic), EigenVectors.Right).left.toOption.get.getClass,
+      Eigen
+        .eigSymmetric(a, EigenSelection.Count(0, EigenOrder.LargestAlgebraic), EigenVectors.Right)
+        .left
+        .toOption
+        .get
+        .getClass,
       classOf[LinAlgError.InvalidArgument]
     )
     assert(Eigen.eigSymmetric(a, EigenSelection.Count(7, EigenOrder.LargestAlgebraic), EigenVectors.Right).isLeft)

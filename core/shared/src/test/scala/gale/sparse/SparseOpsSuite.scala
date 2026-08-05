@@ -37,9 +37,7 @@ class SparseOpsSuite extends munit.FunSuite:
     A.tMulInto(Vec(10.0, 20.0), y)
 
     val B = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      3.0, 4.0,
-      5.0, 6.0
+      1.0, 2.0, 3.0, 4.0, 5.0, 6.0
     )
 
     assertEquals(y.asVec.toSeq, Seq(10.0, 60.0, 20.0))

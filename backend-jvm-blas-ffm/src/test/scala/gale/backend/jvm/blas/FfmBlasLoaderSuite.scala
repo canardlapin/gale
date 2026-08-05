@@ -67,11 +67,12 @@ class FfmBlasLoaderSuite extends munit.FunSuite:
     val backend = FfmBlasBackend.load().fold(throw _, identity)
     try
       for (aLayout, bLayout, cLayout) <- Seq(
-        (Layout.RowMajor, Layout.RowMajor, Layout.RowMajor),
-        (Layout.ColMajor, Layout.ColMajor, Layout.ColMajor),
-        (Layout.ColMajor, Layout.RowMajor, Layout.ColMajor),
-        (Layout.RowMajor, Layout.ColMajor, Layout.RowMajor)
-      ) do
+          (Layout.RowMajor, Layout.RowMajor, Layout.RowMajor),
+          (Layout.ColMajor, Layout.ColMajor, Layout.ColMajor),
+          (Layout.ColMajor, Layout.RowMajor, Layout.ColMajor),
+          (Layout.RowMajor, Layout.ColMajor, Layout.RowMajor)
+        )
+      do
         val a = NativeDMat.allocate(3, 4, aLayout)
         val b = NativeDMat.allocate(4, 2, bLayout)
         val c = NativeDMat.allocate(3, 2, cLayout)

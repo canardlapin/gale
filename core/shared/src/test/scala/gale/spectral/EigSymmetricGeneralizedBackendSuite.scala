@@ -9,8 +9,10 @@ class EigSymmetricGeneralizedBackendSuite extends munit.FunSuite:
   private val generalizedValues = IndexedSeq(1.0, 2.0, 4.0, 8.0, 16.0, 32.0)
   private val metricDiagonal = IndexedSeq(1.0, 2.0, 0.5, 3.0, 4.0, 1.5)
   private val operatorDiagonal =
-    generalizedValues.zip(metricDiagonal).map:
-      case (value, weight) => value * weight
+    generalizedValues
+      .zip(metricDiagonal)
+      .map:
+        case (value, weight) => value * weight
 
   private def diagonalOperator(diagonal: IndexedSeq[Double]): DoubleLinearOperator =
     LinearOperator.fromFunction(diagonal.length, diagonal.length): (x, into) =>

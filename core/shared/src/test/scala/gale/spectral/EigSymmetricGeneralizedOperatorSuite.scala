@@ -20,8 +20,10 @@ class EigSymmetricGeneralizedOperatorSuite extends munit.FunSuite:
   test("public typed operator facade agrees with the dense generalized solve") {
     val generalizedValues = IndexedSeq(-2.0, 0.5, 1.0, 3.0, 7.0, 12.0)
     val metricDiagonal = IndexedSeq(1.0, 2.0, 0.5, 3.0, 4.0, 1.5)
-    val operatorDiagonal = generalizedValues.zip(metricDiagonal).map:
-      case (value, weight) => value * weight
+    val operatorDiagonal = generalizedValues
+      .zip(metricDiagonal)
+      .map:
+        case (value, weight) => value * weight
     val operator = diagonalOperator(operatorDiagonal)
     val metric = diagonalOperator(metricDiagonal)
 

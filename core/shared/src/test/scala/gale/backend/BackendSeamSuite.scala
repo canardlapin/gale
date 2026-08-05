@@ -6,17 +6,15 @@ import gale.platform.DoubleArray.*
 import gale.spectral.SpectralBackend
 import gale.spectral.SpectralCapability
 
-/** The coarse gemm dispatch seam on `DMat.*` (doc §A.2). With no acceleration import the
-  * `given` resolves to `Backend.pure` and the pure kernel runs — the entire existing test
-  * suite is the byte-identical witness for that; these tests add the ROUTING behaviour: an
-  * imported accelerating backend takes over the general product above its threshold, a
-  * below-threshold product stays pure, and every documented coarse path is observable.
+/** The coarse gemm dispatch seam on `DMat.*` (doc §A.2). With no acceleration import the `given` resolves to
+  * `Backend.pure` and the pure kernel runs — the entire existing test suite is the byte-identical witness for that;
+  * these tests add the ROUTING behaviour: an imported accelerating backend takes over the general product above its
+  * threshold, a below-threshold product stays pure, and every documented coarse path is observable.
   */
 class BackendSeamSuite extends munit.FunSuite:
 
-  /** A kernel that computes `2·(A·B)` for `gemm` — a deliberately WRONG product, so a
-    * routed call is unmistakably distinguishable from the true pure result — and forwards
-    * every other method to the pure kernels.
+  /** A kernel that computes `2·(A·B)` for `gemm` — a deliberately WRONG product, so a routed call is unmistakably
+    * distinguishable from the true pure result — and forwards every other method to the pure kernels.
     */
   private object DoublingKernel extends DenseDoubleKernel:
     export PureDenseDoubleKernel.{gemm => _, gemv => _, syrk => _, *}
@@ -43,28 +41,67 @@ class BackendSeamSuite extends munit.FunSuite:
     ): Unit =
       gemmCalls += 1
       PureDenseDoubleKernel.gemm(
-        rows, cols, shared, 2.0 * alpha,
-        a, aOffset, aRowStride, aColStride,
-        b, bOffset, bRowStride, bColStride,
-        beta, c, cOffset, cRowStride, cColStride
+        rows,
+        cols,
+        shared,
+        2.0 * alpha,
+        a,
+        aOffset,
+        aRowStride,
+        aColStride,
+        b,
+        bOffset,
+        bRowStride,
+        bColStride,
+        beta,
+        c,
+        cOffset,
+        cRowStride,
+        cColStride
       )
 
     def gemv(
-        rows: Int, cols: Int, alpha: Double,
-        a: DoubleArray, aOffset: Int, rowStride: Int, colStride: Int,
-        x: DoubleArray, xOffset: Int, xStride: Int,
-        beta: Double, y: DoubleArray, yOffset: Int, yStride: Int
+        rows: Int,
+        cols: Int,
+        alpha: Double,
+        a: DoubleArray,
+        aOffset: Int,
+        rowStride: Int,
+        colStride: Int,
+        x: DoubleArray,
+        xOffset: Int,
+        xStride: Int,
+        beta: Double,
+        y: DoubleArray,
+        yOffset: Int,
+        yStride: Int
     ): Unit =
       PureDenseDoubleKernel.gemv(
-        rows, cols, 2.0 * alpha,
-        a, aOffset, rowStride, colStride,
-        x, xOffset, xStride,
-        beta, y, yOffset, yStride
+        rows,
+        cols,
+        2.0 * alpha,
+        a,
+        aOffset,
+        rowStride,
+        colStride,
+        x,
+        xOffset,
+        xStride,
+        beta,
+        y,
+        yOffset,
+        yStride
       )
 
     def syrk(
-        m: Int, k: Int, a: DoubleArray, aOffset: Int, aRowStride: Int,
-        c: DoubleArray, cOffset: Int, cRowStride: Int
+        m: Int,
+        k: Int,
+        a: DoubleArray,
+        aOffset: Int,
+        aRowStride: Int,
+        c: DoubleArray,
+        cOffset: Int,
+        cRowStride: Int
     ): Unit =
       PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
       var i = 0
@@ -86,8 +123,8 @@ class BackendSeamSuite extends munit.FunSuite:
     def nativeGemvMinWork: Long = Long.MaxValue
     def nativeFactorizationMinSize: Int = Int.MaxValue
 
-  /** An accelerating backend (advertises `Vectorized`) whose gemm doubles, with a tunable
-    * threshold so both branches of the seam are reachable.
+  /** An accelerating backend (advertises `Vectorized`) whose gemm doubles, with a tunable threshold so both branches of
+    * the seam are reachable.
     */
   private final class DoublingBackend(th: BackendThresholds) extends Backend:
     val name: String = "doubling"
@@ -126,11 +163,10 @@ class BackendSeamSuite extends munit.FunSuite:
     override val denseFactorizations = Some(RecordingFactorizations)
     override val spectral = Some(new SpectralBackend:
       val name = "recording-spectral"
-      val capabilities = Set(SpectralCapability.DenseSymmetricEigen)
-    )
+      val capabilities = Set(SpectralCapability.DenseSymmetricEigen))
 
-  /** A provider that declines every input, so the facades' fallback/validation
-    * behaviour is observable in isolation from any real factorization.
+  /** A provider that declines every input, so the facades' fallback/validation behaviour is observable in isolation
+    * from any real factorization.
     */
   private object DecliningFactorizations extends DenseDoubleFactorizations:
     def lu(a: DMat): Either[LinAlgError, LU] = Left(LinAlgError.UnsupportedOperation("declined lu"))
@@ -146,8 +182,7 @@ class BackendSeamSuite extends munit.FunSuite:
     override val denseFactorizations = Some(DecliningFactorizations)
     override val spectral = Some(new SpectralBackend:
       val name = "declining-spectral"
-      val capabilities = Set(SpectralCapability.DenseSymmetricEigen)
-    )
+      val capabilities = Set(SpectralCapability.DenseSymmetricEigen))
 
   private val a = Matrix.dense(2, 2)(1.0, 2.0, 3.0, 4.0)
   private val b = Matrix.dense(2, 2)(5.0, 6.0, 7.0, 8.0)

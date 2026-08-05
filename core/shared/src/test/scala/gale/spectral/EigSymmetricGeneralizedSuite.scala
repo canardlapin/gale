@@ -6,13 +6,10 @@ import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 import gale.linalg.TriangularSolve
 
-/** Tests for the dense generalized symmetric-definite solver
-  * `Eigen.eigSymmetricGeneralized(A, B, selection, vectors)` — `A x = λ B x` with
-  * `B` SPD, reduced via Cholesky to the standard symmetric problem. Checks the
-  * analytic diagonal spectrum, true generalized residuals, `B`-orthonormality
-  * (`XᵀBX = I`), ascending order, a cross-check against the naively-formed reduced
-  * matrix, selection slicing, the lower-triangle read convention, and the
-  * structural `Left`s.
+/** Tests for the dense generalized symmetric-definite solver `Eigen.eigSymmetricGeneralized(A, B, selection, vectors)`
+  * — `A x = λ B x` with `B` SPD, reduced via Cholesky to the standard symmetric problem. Checks the analytic diagonal
+  * spectrum, true generalized residuals, `B`-orthonormality (`XᵀBX = I`), ascending order, a cross-check against the
+  * naively-formed reduced matrix, selection slicing, the lower-triangle read convention, and the structural `Left`s.
   */
 class EigSymmetricGeneralizedSuite extends munit.FunSuite:
 
@@ -149,10 +146,12 @@ class EigSymmetricGeneralizedSuite extends munit.FunSuite:
     val full = values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.All).toOption.get)
     val k = 3
 
-    val smallest = values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.Count(k, EigenOrder.SmallestAlgebraic)).toOption.get)
+    val smallest =
+      values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.Count(k, EigenOrder.SmallestAlgebraic)).toOption.get)
     smallest.zip(full.take(k)).foreach { case (x, y) => assert(math.abs(x - y) < 1e-10, s"$x != $y") }
 
-    val largest = values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.Count(k, EigenOrder.LargestAlgebraic)).toOption.get)
+    val largest =
+      values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.Count(k, EigenOrder.LargestAlgebraic)).toOption.get)
     largest.zip(full.takeRight(k)).foreach { case (x, y) => assert(math.abs(x - y) < 1e-10, s"$x != $y") }
 
     val range = values(Eigen.eigSymmetricGeneralized(a, b, EigenSelection.IndexRange(2, 5)).toOption.get)

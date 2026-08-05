@@ -3,12 +3,10 @@ package userland
 import gale.linalg.*
 import gale.sized.*
 
-/** Consumer-vantage guarantees for the optional sized layer. This suite lives
-  * '''outside''' `gale.sized` on purpose: an opaque type is only opaque beyond its
-  * defining scope, so the anti-leak property (an `SVec`/`SMat` cannot be used as
-  * the unsized `DVec`/`DMat`, and the trusted `unsafe`/`raw` constructors are
-  * unreachable) can only be checked from a real downstream package like this one.
-  * The in-package `gale.sized.SizedSuite` sees through the opacity and cannot.
+/** Consumer-vantage guarantees for the optional sized layer. This suite lives '''outside''' `gale.sized` on purpose: an
+  * opaque type is only opaque beyond its defining scope, so the anti-leak property (an `SVec`/`SMat` cannot be used as
+  * the unsized `DVec`/`DMat`, and the trusted `unsafe`/`raw` constructors are unreachable) can only be checked from a
+  * real downstream package like this one. The in-package `gale.sized.SizedSuite` sees through the opacity and cannot.
   */
 class SizedOpacitySuite extends munit.FunSuite:
 

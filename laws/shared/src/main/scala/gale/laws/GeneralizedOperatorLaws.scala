@@ -4,13 +4,11 @@ import gale.linalg.*
 import gale.spectral.EigenDecomposition
 import munit.Assertions
 
-/** Reusable invariants for partial generalized symmetric-definite operator
-  * results.
+/** Reusable invariants for partial generalized symmetric-definite operator results.
   */
 object GeneralizedOperatorLaws extends Assertions:
 
-  /** Every returned pair satisfies the true ambient residual and the diagnostic
-    * records that same norm.
+  /** Every returned pair satisfies the true ambient residual and the diagnostic records that same norm.
     */
   def trueResiduals(
       a: DoubleLinearOperator,
@@ -34,8 +32,7 @@ object GeneralizedOperatorLaws extends Assertions:
       )
       column += 1
 
-  /** Returned vectors form a B-orthonormal block and diagnostics report the same
-    * Frobenius Gram error.
+  /** Returned vectors form a B-orthonormal block and diagnostics report the same Frobenius Gram error.
     */
   def bOrthonormal(
       b: DoubleLinearOperator,
@@ -52,8 +49,7 @@ object GeneralizedOperatorLaws extends Assertions:
       s"diagnostic B-orthogonality ${result.diagnostics.orthogonalityError} != $error"
     )
 
-  /** `actual` equals `scale * reference` under a combined absolute/relative
-    * tolerance.
+  /** `actual` equals `scale * reference` under a combined absolute/relative tolerance.
     */
   def scaledSpectrum(
       actual: EigenDecomposition,
@@ -82,8 +78,8 @@ object GeneralizedOperatorLaws extends Assertions:
     val bx = b.applyTo(vectors).toOption.get
     vectors * bx.t
 
-  /** Two invariant subspaces agree through their projectors, avoiding
-    * eigenvector sign and repeated-eigenspace basis choices.
+  /** Two invariant subspaces agree through their projectors, avoiding eigenvector sign and repeated-eigenspace basis
+    * choices.
     */
   def sameMetricProjector(
       actualVectors: DMat,

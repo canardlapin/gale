@@ -4,8 +4,8 @@ import gale.linalg.*
 import scala.util.Random
 
 class BandedSuite extends munit.FunSuite:
-  /** A dense matrix that is banded with lower/upper bandwidth `kl`/`ku`: band
-    * entries are random nonzeros, everything outside the band is exactly zero.
+  /** A dense matrix that is banded with lower/upper bandwidth `kl`/`ku`: band entries are random nonzeros, everything
+    * outside the band is exactly zero.
     */
   private def bandedDense(rows: Int, cols: Int, kl: Int, ku: Int, rng: Random): DMat =
     Matrix.tabulate(rows, cols): (i, j) =>
@@ -89,10 +89,7 @@ class BandedSuite extends munit.FunSuite:
     assertEquals(banded.kl, 1)
     assertEquals(banded.ku, 1)
     val dense = Matrix.dense(4, 4)(
-      2.0, -1.0, 0.0, 0.0,
-      -1.0, 2.0, -1.0, 0.0,
-      0.0, -1.0, 2.0, -1.0,
-      0.0, 0.0, -1.0, 2.0
+      2.0, -1.0, 0.0, 0.0, -1.0, 2.0, -1.0, 0.0, 0.0, -1.0, 2.0, -1.0, 0.0, 0.0, -1.0, 2.0
     )
     assertEquals(banded.toDense().valuesRowMajor, dense.valuesRowMajor)
     assertVecEquals(banded * Vec(1.0, 2.0, 3.0, 4.0), dense * Vec(1.0, 2.0, 3.0, 4.0))

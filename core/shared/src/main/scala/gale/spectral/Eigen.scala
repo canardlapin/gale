@@ -16,47 +16,38 @@ import gale.linalg.Symmetric
 import gale.linalg.TriangularSolve
 import gale.solvers.Preconditioner
 
-/** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric
-  * (phase b) of `docs/spectral-parity.md`.
+/** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric (phase b) of
+  * `docs/spectral-parity.md`.
   *
-  * '''Symmetric''' ([[EigenDecomposition]], § 1 / § 6). '''Eigenvalues are returned
-  * ascending-algebraic always'''; a selection's `order` decides only *which*
-  * eigenvalues are members, never their layout.
+  * '''Symmetric''' ([[EigenDecomposition]], § 1 / § 6). '''Eigenvalues are returned ascending-algebraic always'''; a
+  * selection's `order` decides only *which* eigenvalues are members, never their layout.
   *
-  *   - [[eigSymmetric(a:gale\.linalg\.DMat*]] — dense full solve via the
-  *     tridiagonal QL/QR kernel, the requested selection realized as a slice of the
-  *     full ascending spectrum (the phase-a scope decision in § 1). Reads only the
+  *   - [[eigSymmetric(a:gale\.linalg\.DMat*]] — dense full solve via the tridiagonal QL/QR kernel, the requested
+  *     selection realized as a slice of the full ascending spectrum (the phase-a scope decision in § 1). Reads only the
   *     lower triangle of `a`.
-  *   - [[eigSymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative partial
-  *     solve (`eigsh`) via Lanczos with full reorthogonalization, for a matrix or
-  *     a matrix-free [[gale.linalg.DoubleLinearOperator]].
-  *   - [[eigSymmetricGeneralized]] — dense one-shot or typed matrix-free
-  *     generalized symmetric-definite solves. The operator route uses portable
-  *     LOBPCG and explicit symmetric / positive-definite evidence.
-  *   - [[eigSymmetricGeneralizedLanczos]] — an explicitly named matrix-free
-  *     generalized block-Lanczos route requiring a typed metric solve.
+  *   - [[eigSymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative partial solve (`eigsh`) via Lanczos with
+  *     full reorthogonalization, for a matrix or a matrix-free [[gale.linalg.DoubleLinearOperator]].
+  *   - [[eigSymmetricGeneralized]] — dense one-shot or typed matrix-free generalized symmetric-definite solves. The
+  *     operator route uses portable LOBPCG and explicit symmetric / positive-definite evidence.
+  *   - [[eigSymmetricGeneralizedLanczos]] — an explicitly named matrix-free generalized block-Lanczos route requiring a
+  *     typed metric solve.
   *
-  * '''Nonsymmetric''' ([[NonsymmetricEigenDecomposition]], § 2 / § 7). A real input
-  * can have complex eigenvalues in conjugate pairs; the output is ordered '''by the
-  * selection criterion''' with conjugate pairs kept adjacent (positive-imaginary
-  * first) and '''never split''' during selection.
+  * '''Nonsymmetric''' ([[NonsymmetricEigenDecomposition]], § 2 / § 7). A real input can have complex eigenvalues in
+  * conjugate pairs; the output is ordered '''by the selection criterion''' with conjugate pairs kept adjacent
+  * (positive-imaginary first) and '''never split''' during selection.
   *
-  *   - [[eigNonsymmetric(a:gale\.linalg\.DMat*]] — dense full solve via Hessenberg
-  *     reduction + Francis double-shift QR, the selection realized as a permutation
-  *     of the full spectrum. Right eigenvectors from the kernel; '''left'''
+  *   - [[eigNonsymmetric(a:gale\.linalg\.DMat*]] — dense full solve via Hessenberg reduction + Francis double-shift QR,
+  *     the selection realized as a permutation of the full spectrum. Right eigenvectors from the kernel; '''left'''
   *     eigenvectors (`wᴴ A = λ wᴴ`) via the biorthogonal `V⁻¹` route.
-  *   - [[eigNonsymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative
-  *     partial solve (`eigs`) via Arnoldi with full reorthogonalization; right
-  *     eigenvectors only (left vectors need the dense path).
+  *   - [[eigNonsymmetric(op:gale\.linalg\.DoubleLinearOperator*]] — iterative partial solve (`eigs`) via Arnoldi with
+  *     full reorthogonalization; right eigenvectors only (left vectors need the dense path).
   *
-  * '''Failure model''' (§ Convergence & failure semantics). Structural /
-  * precondition violations are `Left(LinAlgError)`. For the '''dense''' paths,
-  * kernel sweep exhaustion is also a `Left(DidNotConverge)` — there is no partial
-  * dense result to hand back (in practice the QL/QR and Francis QR kernels always
-  * converge within budget for a well-formed matrix). For the '''iterative''' paths,
-  * non-convergence is never a `Left`: partial or zero convergence returns
-  * `Right(result-with-only-the-converged-pairs + SpectralDiagnostics)`, and the
-  * caller opts into fail-fast via `result.requireConverged`.
+  * '''Failure model''' (§ Convergence & failure semantics). Structural / precondition violations are
+  * `Left(LinAlgError)`. For the '''dense''' paths, kernel sweep exhaustion is also a `Left(DidNotConverge)` — there is
+  * no partial dense result to hand back (in practice the QL/QR and Francis QR kernels always converge within budget for
+  * a well-formed matrix). For the '''iterative''' paths, non-convergence is never a `Left`: partial or zero convergence
+  * returns `Right(result-with-only-the-converged-pairs + SpectralDiagnostics)`, and the caller opts into fail-fast via
+  * `result.requireConverged`.
   */
 object Eigen:
 
@@ -64,50 +55,40 @@ object Eigen:
   // Dense symmetric eigendecomposition
   // ===========================================================================
 
-  /** Dense symmetric eigendecomposition of `a` computing eigenvectors
-    * ([[EigenVectors.Right]]). See the three-argument overload for the vector-flag
-    * and failure details.
+  /** Dense symmetric eigendecomposition of `a` computing eigenvectors ([[EigenVectors.Right]]). See the three-argument
+    * overload for the vector-flag and failure details.
     */
   def eigSymmetric(a: DMat, selection: EigenSelection)(using
       SpectralBackend
   ): Either[LinAlgError, EigenDecomposition] =
     eigSymmetric(a, selection, EigenVectors.Right)
 
-  /** Dense symmetric eigendecomposition of `a`. Only the '''lower triangle''' of
-    * `a` is read (the `Cholesky` precedent); the strict upper triangle is treated
-    * as its mirror. `vectors` selects [[EigenVectors.ValuesOnly]] versus
-    * [[EigenVectors.Right]] (left and right eigenvectors coincide for a symmetric
-    * matrix, so [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected
-    * with `Left(InvalidArgument)`).
+  /** Dense symmetric eigendecomposition of `a`. Only the '''lower triangle''' of `a` is read (the `Cholesky`
+    * precedent); the strict upper triangle is treated as its mirror. `vectors` selects [[EigenVectors.ValuesOnly]]
+    * versus [[EigenVectors.Right]] (left and right eigenvectors coincide for a symmetric matrix, so
+    * [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]] are rejected with `Left(InvalidArgument)`).
     *
-    * The full ascending spectrum is computed once and the `selection` realized as
-    * a slice of it: [[EigenSelection.Count]] takes the `k` extremes named by its
-    * order, [[EigenSelection.IndexRange]] the ascending-rank window, and
-    * [[EigenSelection.ValueInterval]] every eigenvalue in `(lower, upper]`. Output
-    * is ascending regardless.
+    * The full ascending spectrum is computed once and the `selection` realized as a slice of it:
+    * [[EigenSelection.Count]] takes the `k` extremes named by its order, [[EigenSelection.IndexRange]] the
+    * ascending-rank window, and [[EigenSelection.ValueInterval]] every eigenvalue in `(lower, upper]`. Output is
+    * ascending regardless.
     *
     * '''Backend routing (seam S8 of `docs/spectral-backend-boundary.md`).''' A
-    * [[SpectralCapability.DenseSymmetricEigen]]-capable `given SpectralBackend`
-    * whose [[SpectralBackend.denseSymmetricEigenMinSize]] the matrix order clears
-    * supplies the raw spectrum instead of the pure kernel
-    * ([[SpectralBackend.routesDenseSymmetricEigen]] is the one gate). Validation
-    * runs '''before''' the gate, so a provider never sees malformed input; the
-    * facade owns canonicalization regardless of engine — it re-imposes the
-    * ascending order (ties by raw index), realizes the selection, and re-derives
-    * residuals/orthogonality from the returned vectors. A provider `Left` is a
-    * '''decline, not a failure''': the pure kernel computes the answer instead
-    * (the `DMat.qr` fallback precedent — routing is an optimization and must add
-    * no failure mode), while a structurally malformed provider `Right` (wrong
-    * value count or vector shape) throws `LinAlgError.InvalidArgument` loudly, a
-    * conformance violation exactly as the S7 dense-SVD seam treats it. With no
-    * acceleration import the given resolves to [[SpectralBackend.none]]
-    * (capability-less), so this path is byte-identical to the pure v0.3.5
+    * [[SpectralCapability.DenseSymmetricEigen]]-capable `given SpectralBackend` whose
+    * [[SpectralBackend.denseSymmetricEigenMinSize]] the matrix order clears supplies the raw spectrum instead of the
+    * pure kernel ([[SpectralBackend.routesDenseSymmetricEigen]] is the one gate). Validation runs '''before''' the
+    * gate, so a provider never sees malformed input; the facade owns canonicalization regardless of engine — it
+    * re-imposes the ascending order (ties by raw index), realizes the selection, and re-derives residuals/orthogonality
+    * from the returned vectors. A provider `Left` is a '''decline, not a failure''': the pure kernel computes the
+    * answer instead (the `DMat.qr` fallback precedent — routing is an optimization and must add no failure mode), while
+    * a structurally malformed provider `Right` (wrong value count or vector shape) throws `LinAlgError.InvalidArgument`
+    * loudly, a conformance violation exactly as the S7 dense-SVD seam treats it. With no acceleration import the given
+    * resolves to [[SpectralBackend.none]] (capability-less), so this path is byte-identical to the pure v0.3.5
     * behaviour.
     *
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a symmetric problem
-    * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
-    * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or (in
-    * practice unreachable) kernel non-convergence.
+    * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside `[1, n]`; an out-of-bounds
+    * `IndexRange`; an inverted `ValueInterval`; or (in practice unreachable) kernel non-convergence.
     */
   def eigSymmetric(
       a: DMat,
@@ -118,20 +99,19 @@ object Eigen:
     else
       val n = a.rows
       validateVectors(vectors) match
-        case Left(error) => Left(error)
+        case Left(error)        => Left(error)
         case Right(wantVectors) =>
           validateDenseSelection(selection, n) match
             case Left(error) => Left(error)
-            case Right(()) =>
+            case Right(())   =>
               symmetricSpectrum(a, n, wantVectors) match
-                case Left(error) => Left(error)
+                case Left(error)           => Left(error)
                 case Right((values, vecs)) =>
                   val indices = denseSelectionIndices(selection, values, n)
                   Right(assembleDense(a, values, vecs, indices, wantVectors))
 
-  /** Primitive scratch required by [[eigSymmetricWith]] for an `order x order`
-    * dense symmetric problem. This is a checked, allocation-free query; left and
-    * left-and-right vector flags are rejected with the same public contract as
+  /** Primitive scratch required by [[eigSymmetricWith]] for an `order x order` dense symmetric problem. This is a
+    * checked, allocation-free query; left and left-and-right vector flags are rejected with the same public contract as
     * [[eigSymmetric]].
     */
   def symmetricScratchRequirement(
@@ -141,9 +121,8 @@ object Eigen:
     validateVectors(vectors).flatMap: wantVectors =>
       DenseSpectralKernels.symmetricEigenRequirement(order, wantVectors)
 
-  /** Allocation-controlled pure dense symmetric eigendecomposition computing
-    * right eigenvectors. The workspace owns only overwriteable primitive
-    * scratch; every returned value and vector owns its storage.
+  /** Allocation-controlled pure dense symmetric eigendecomposition computing right eigenvectors. The workspace owns
+    * only overwriteable primitive scratch; every returned value and vector owns its storage.
     */
   def eigSymmetricWith(
       a: DMat,
@@ -152,10 +131,9 @@ object Eigen:
   ): Either[LinAlgError, EigenDecomposition] =
     eigSymmetricWith(a, selection, EigenVectors.Right, workspace)
 
-  /** Allocation-controlled pure dense symmetric eigendecomposition. This route
-    * deliberately bypasses optional providers: reuse of the caller's workspace
-    * is part of the method contract, whereas provider scratch ownership is not.
-    * The ordinary [[eigSymmetric]] facade retains backend routing unchanged.
+  /** Allocation-controlled pure dense symmetric eigendecomposition. This route deliberately bypasses optional
+    * providers: reuse of the caller's workspace is part of the method contract, whereas provider scratch ownership is
+    * not. The ordinary [[eigSymmetric]] facade retains backend routing unchanged.
     */
   def eigSymmetricWith(
       a: DMat,
@@ -175,16 +153,13 @@ object Eigen:
               val indices = denseSelectionIndices(selection, kernel.values, n)
               Right(assembleDense(a, kernel.values, kernel.vectors, indices, wantVectors))
 
-  /** The S8 dispatch seam: the full '''ascending''' symmetric spectrum (and full
-    * eigenvector matrix when wanted), from a routed backend or the pure kernel.
-    * The pure branch passes the kernel output through untouched (it is already
-    * ascending), so the no-import path stays byte-identical; a routed backend's
-    * raw factors go through [[canonicalizeRawSymmetric]]. A provider `Left`
-    * falls back to the pure kernel (decline, not failure — see the facade doc);
-    * the same policy governs the S7 dense-SVD seam (`Svds.svdFullDense`). The
-    * catch-all is deliberate: a structural `Left` from a conforming provider is
-    * indistinguishable from a decline here, and provider conformance is the
-    * laws suite's job, not runtime signalling's.
+  /** The S8 dispatch seam: the full '''ascending''' symmetric spectrum (and full eigenvector matrix when wanted), from
+    * a routed backend or the pure kernel. The pure branch passes the kernel output through untouched (it is already
+    * ascending), so the no-import path stays byte-identical; a routed backend's raw factors go through
+    * [[canonicalizeRawSymmetric]]. A provider `Left` falls back to the pure kernel (decline, not failure — see the
+    * facade doc); the same policy governs the S7 dense-SVD seam (`Svds.svdFullDense`). The catch-all is deliberate: a
+    * structural `Left` from a conforming provider is indistinguishable from a decline here, and provider conformance is
+    * the laws suite's job, not runtime signalling's.
     */
   private def symmetricSpectrum(a: DMat, n: Int, wantVectors: Boolean)(using
       backend: SpectralBackend
@@ -202,14 +177,12 @@ object Eigen:
         case Right(raw) => Right(canonicalizeRawSymmetric(raw, n, wantVectors, backend.name))
     else pure
 
-  /** Canonicalize a backend's raw symmetric-eigen factors (facade-owned, § 2.5 of
-    * `docs/spectral-backend-boundary.md`): validate the shapes — `n` eigenvalues,
-    * and when vectors were requested an `n×(≥n)` vector matrix whose leading `n`
-    * columns are the eigenvectors — then impose the '''ascending''' eigenvalue
-    * order (ties by raw index), moving vector columns in lockstep. A malformed
-    * shape is a provider-contract violation and '''throws'''
-    * `LinAlgError.InvalidArgument` (the S7 loud-failure choice), never a silent
-    * fallback that would mask a broken provider.
+  /** Canonicalize a backend's raw symmetric-eigen factors (facade-owned, § 2.5 of `docs/spectral-backend-boundary.md`):
+    * validate the shapes — `n` eigenvalues, and when vectors were requested an `n×(≥n)` vector matrix whose leading `n`
+    * columns are the eigenvectors — then impose the '''ascending''' eigenvalue order (ties by raw index), moving vector
+    * columns in lockstep. A malformed shape is a provider-contract violation and '''throws'''
+    * `LinAlgError.InvalidArgument` (the S7 loud-failure choice), never a silent fallback that would mask a broken
+    * provider.
     */
   private def canonicalizeRawSymmetric(
       raw: RawSymmetricEigen,
@@ -234,49 +207,38 @@ object Eigen:
   // Iterative partial symmetric eigendecomposition (eigsh)
   // ===========================================================================
 
-  /** Partial symmetric eigendecomposition of the operator `op` (an `n x n`
-    * symmetric matrix or matrix-free operator), computing the `k` eigenpairs at
-    * the extreme named by the selection's order through a multiplicity-safe
-    * '''block Krylov''' method.
+  /** Partial symmetric eigendecomposition of the operator `op` (an `n x n` symmetric matrix or matrix-free operator),
+    * computing the `k` eigenpairs at the extreme named by the selection's order through a multiplicity-safe '''block
+    * Krylov''' method.
     *
-    * The initial block is at least `k` vectors wide: a caller-supplied
-    * [[SpectralOptions.startVector]] is its first column and deterministic
-    * orthogonal probes fill the remainder. Every Rayleigh-Ritz solve therefore
-    * retains independent directions inside a repeated eigenspace instead of
-    * collapsing it to one root as single-vector Lanczos does. Wanted Ritz vectors
-    * are soft-locked across thick restarts, all bases are fully reorthogonalized,
-    * and an invariant Krylov component is replenished from its orthogonal
-    * complement rather than being mistaken for complete convergence.
+    * The initial block is at least `k` vectors wide: a caller-supplied [[SpectralOptions.startVector]] is its first
+    * column and deterministic orthogonal probes fill the remainder. Every Rayleigh-Ritz solve therefore retains
+    * independent directions inside a repeated eigenspace instead of collapsing it to one root as single-vector Lanczos
+    * does. Wanted Ritz vectors are soft-locked across thick restarts, all bases are fully reorthogonalized, and an
+    * invariant Krylov component is replenished from its orthogonal complement rather than being mistaken for complete
+    * convergence.
     *
-    * [[EigenSelection.Count]] counts algebraic multiplicity. On convergence the
-    * result contains exactly `k` orthonormal eigenvectors, including the required
-    * number of directions from repeated eigenspaces; the particular basis within
-    * such an eigenspace is intentionally unspecified. `allConverged` means all
-    * `k` selected Ritz pairs satisfy the true residual test in the explored
-    * Krylov space. It does not certify that an invariant start exposed the
-    * requested global extreme; inspect
-    * [[SpectralDiagnostics.convergenceStatus]] for the explicit
-    * `ResidualConverged` versus `ExtremeCertified` distinction.
+    * [[EigenSelection.Count]] counts algebraic multiplicity. On convergence the result contains exactly `k` orthonormal
+    * eigenvectors, including the required number of directions from repeated eigenspaces; the particular basis within
+    * such an eigenspace is intentionally unspecified. `allConverged` means all `k` selected Ritz pairs satisfy the true
+    * residual test in the explored Krylov space. It does not certify that an invariant start exposed the requested
+    * global extreme; inspect [[SpectralDiagnostics.convergenceStatus]] for the explicit `ResidualConverged` versus
+    * `ExtremeCertified` distinction.
     *
-    * `subspaceDimension` is the initial dense Rayleigh-Ritz projection size,
-    * clamped to `[k+1, n]`; its default remains `min(n, max(2k+1, 20))`.
-    * A non-converged restart grows that size toward `n`, while
-    * `maxIterations` bounds the number of thick restarts. The input remains matrix-free: only
-    * `op.applyTo` is used, while the projected subproblem is dense. Smallest-
-    * magnitude targets can still converge slowly without shift-invert.
+    * `subspaceDimension` is the initial dense Rayleigh-Ritz projection size, clamped to `[k+1, n]`; its default remains
+    * `min(n, max(2k+1, 20))`. A non-converged restart grows that size toward `n`, while `maxIterations` bounds the
+    * number of thick restarts. The input remains matrix-free: only `op.applyTo` is used, while the projected subproblem
+    * is dense. Smallest- magnitude targets can still converge slowly without shift-invert.
     *
-    * Non-convergence is a `Right`: the result holds only the converged pairs
-    * (ascending), with `SpectralDiagnostics.converged < requested` and per-pair
-    * residuals recorded. Eigenvalues that could not be resolved are simply absent;
-    * `requireConverged` is the caller's opt-in to a `Left(DidNotConverge)`.
+    * Non-convergence is a `Right`: the result holds only the converged pairs (ascending), with
+    * `SpectralDiagnostics.converged < requested` and per-pair residuals recorded. Eigenvalues that could not be
+    * resolved are simply absent; `requireConverged` is the caller's opt-in to a `Left(DidNotConverge)`.
     *
-    * `Left` on: a non-square operator (`NonSquareMatrix`) or a square one whose
-    * shape disagrees with `n` (`DimensionMismatch`); a
-    * non-positive `n`; `k ≤ 0` or `k ≥ n` (the message points at the dense API —
-    * there is no silent dense fallback); an [[EigenOrder]] illegal for a symmetric
-    * problem; a start vector of the wrong length or zero norm; or a `target`
-    * (shift-invert / `Around`), which is '''deferred''' —
-    * `Left(UnsupportedOperation)` until the `LinearSolvePlan` wiring lands.
+    * `Left` on: a non-square operator (`NonSquareMatrix`) or a square one whose shape disagrees with `n`
+    * (`DimensionMismatch`); a non-positive `n`; `k ≤ 0` or `k ≥ n` (the message points at the dense API — there is no
+    * silent dense fallback); an [[EigenOrder]] illegal for a symmetric problem; a start vector of the wrong length or
+    * zero norm; or a `target` (shift-invert / `Around`), which is '''deferred''' — `Left(UnsupportedOperation)` until
+    * the `LinearSolvePlan` wiring lands.
     */
   def eigSymmetric(
       op: DoubleLinearOperator,
@@ -291,7 +253,7 @@ object Eigen:
       case None =>
         selection match
           case count: EigenSelection.Count => eigSymmetricBlockKrylov(op, n, count.k, count.order, options)
-          case other =>
+          case other                       =>
             Left(
               LinAlgError.InvalidArgument(
                 s"the iterative solver requires EigenSelection.Count; ${other.getClass.getSimpleName} is dense-only"
@@ -305,36 +267,38 @@ object Eigen:
       order: EigenOrder,
       options: SpectralOptions
   ): Either[LinAlgError, EigenDecomposition] =
-        if n <= 0 then Left(LinAlgError.InvalidArgument(s"dimension must be positive, got $n"))
-        else if op.rows != op.cols then
-          Left(LinAlgError.NonSquareMatrix(Shape(Rows(op.rows), Cols(op.cols))))
-        else if op.rows != n then
-          Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(n)), Shape(Rows(op.rows), Cols(op.cols))))
-        else
-          validateVectors(options.returnVectors) match
-            case Left(error) => Left(error)
-            case Right(wantVectors) =>
-              if !symmetricOrderLegal(order) then
-                Left(LinAlgError.InvalidArgument(s"$order is nonsymmetric-only; use an algebraic, magnitude, or both-ends order"))
-              else if k <= 0 || k >= n then
-                Left(
-                  LinAlgError.InvalidArgument(
-                    s"k=$k must be in [1, ${n - 1}] for the iterative solver; use the dense eigSymmetric for the full spectrum"
-                  )
-                )
-              else
-                startVectorFor(options.startVector, n) match
-                  case Left(error) => Left(error)
-                  case Right(v0) =>
-                    BlockSymmetricEigen.solve(op, n, k, order, options, wantVectors, v0)
+    if n <= 0 then Left(LinAlgError.InvalidArgument(s"dimension must be positive, got $n"))
+    else if op.rows != op.cols then Left(LinAlgError.NonSquareMatrix(Shape(Rows(op.rows), Cols(op.cols))))
+    else if op.rows != n then
+      Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(n)), Shape(Rows(op.rows), Cols(op.cols))))
+    else
+      validateVectors(options.returnVectors) match
+        case Left(error)        => Left(error)
+        case Right(wantVectors) =>
+          if !symmetricOrderLegal(order) then
+            Left(
+              LinAlgError.InvalidArgument(
+                s"$order is nonsymmetric-only; use an algebraic, magnitude, or both-ends order"
+              )
+            )
+          else if k <= 0 || k >= n then
+            Left(
+              LinAlgError.InvalidArgument(
+                s"k=$k must be in [1, ${n - 1}] for the iterative solver; use the dense eigSymmetric for the full spectrum"
+              )
+            )
+          else
+            startVectorFor(options.startVector, n) match
+              case Left(error) => Left(error)
+              case Right(v0)   =>
+                BlockSymmetricEigen.solve(op, n, k, order, options, wantVectors, v0)
 
   // ===========================================================================
   // Dense nonsymmetric eigendecomposition (eig)
   // ===========================================================================
 
-  /** Dense nonsymmetric eigendecomposition of `a` computing right eigenvectors
-    * ([[EigenVectors.Right]]). See the three-argument overload for the vector-flag
-    * and failure details.
+  /** Dense nonsymmetric eigendecomposition of `a` computing right eigenvectors ([[EigenVectors.Right]]). See the
+    * three-argument overload for the vector-flag and failure details.
     */
   def eigNonsymmetric(
       a: DMat,
@@ -342,53 +306,43 @@ object Eigen:
   ): Either[LinAlgError, NonsymmetricEigenDecomposition] =
     eigNonsymmetric(a, selection, EigenVectors.Right)
 
-  /** Dense nonsymmetric eigendecomposition of `a` (phase b, § 2 of
-    * `docs/spectral-parity.md`) via Hessenberg reduction + Francis double-shift QR
-    * ([[gale.spectral.DenseSpectralKernels.nonsymmetricEigen]]), the requested
-    * `selection` realized as a permutation of the full spectrum.
+  /** Dense nonsymmetric eigendecomposition of `a` (phase b, § 2 of `docs/spectral-parity.md`) via Hessenberg reduction
+    * + Francis double-shift QR ([[gale.spectral.DenseSpectralKernels.nonsymmetricEigen]]), the requested `selection`
+    * realized as a permutation of the full spectrum.
     *
-    * A real input can have complex eigenvalues in conjugate pairs; the result
-    * stores them structure-of-arrays with the real-Schur packing described on
-    * [[NonsymmetricEigenDecomposition]] and read only through its typed accessors.
+    * A real input can have complex eigenvalues in conjugate pairs; the result stores them structure-of-arrays with the
+    * real-Schur packing described on [[NonsymmetricEigenDecomposition]] and read only through its typed accessors.
     *
-    * '''Ordering (§ 2 guarantee).''' The output is ordered '''by the selection
-    * criterion''' — the largest orders descending, the smallest orders ascending
-    * (on magnitude or real part) — with ties broken by descending real part then
-    * descending imaginary part, and '''conjugate pairs kept adjacent, positive-
-    * imaginary member first''' (mandatory for the packing). [[EigenSelection.All]]
-    * uses the [[EigenOrder.LargestMagnitude]] order as its canonical layout.
+    * '''Ordering (§ 2 guarantee).''' The output is ordered '''by the selection criterion''' — the largest orders
+    * descending, the smallest orders ascending (on magnitude or real part) — with ties broken by descending real part
+    * then descending imaginary part, and '''conjugate pairs kept adjacent, positive- imaginary member first'''
+    * (mandatory for the packing). [[EigenSelection.All]] uses the [[EigenOrder.LargestMagnitude]] order as its
+    * canonical layout.
     *
-    * '''Selection operates on pairs as units.''' A conjugate pair is selected and
-    * moved as one two-column unit; it is '''never split'''. Consequently a
-    * [[EigenSelection.Count]] whose `k`-boundary would fall between the two members
-    * of a pair (they share a criterion value, so the boundary is exactly a tie)
-    * returns the '''whole pair''' — i.e. `k+1` eigenvalues rather than `k`. This is
-    * a dense one-shot solve, so `diagnostics.requested` and `converged` both report
-    * the actual count returned and `allConverged` is true.
+    * '''Selection operates on pairs as units.''' A conjugate pair is selected and moved as one two-column unit; it is
+    * '''never split'''. Consequently a [[EigenSelection.Count]] whose `k`-boundary would fall between the two members
+    * of a pair (they share a criterion value, so the boundary is exactly a tie) returns the '''whole pair''' — i.e.
+    * `k+1` eigenvalues rather than `k`. This is a dense one-shot solve, so `diagnostics.requested` and `converged` both
+    * report the actual count returned and `allConverged` is true.
     *
-    * `vectors` chooses [[EigenVectors.ValuesOnly]], [[EigenVectors.Right]],
-    * [[EigenVectors.Left]], or [[EigenVectors.LeftAndRight]]. '''Left eigenvectors'''
-    * follow the convention `wᴴ A = λ wᴴ`, '''unit 2-norm''' — a real `w` for a real
-    * `λ`, and the same real-Schur SoA packing as the right vectors for a conjugate
-    * pair — read through [[NonsymmetricEigenDecomposition.leftEigenvector]]. They are
-    * recovered from the full right-eigenvector matrix `V` via the biorthogonality
-    * identity (the left vectors are the conjugated rows of `V⁻¹`), the complex `V⁻¹`
-    * formed with a real `2n×2n` embedded LU solve (no complex kernel tier), so the
-    * pairing with the right vectors and eigenvalues is '''exact by construction'''.
-    * A '''defective''' (non-diagonalizable) `a` has no full set of left eigenvectors;
-    * gale detects that with a conditioning + residual guard on the recovery (see
-    * `computeLeftVectors`) and returns `Left(SingularMatrix)` rather than a degenerate
-    * basis. '''This diverges from LAPACK `dgeev`''', which returns (possibly
-    * near-parallel, non-orthogonal) left vectors for a defective `A`; gale prefers the
-    * explicit `Left`. Orthogonality error is reported as `0.0`: nonsymmetric
-    * eigenvectors are not orthonormal, so `‖VᵀV − I‖` is not a meaningful signal.
+    * `vectors` chooses [[EigenVectors.ValuesOnly]], [[EigenVectors.Right]], [[EigenVectors.Left]], or
+    * [[EigenVectors.LeftAndRight]]. '''Left eigenvectors''' follow the convention `wᴴ A = λ wᴴ`, '''unit 2-norm''' — a
+    * real `w` for a real `λ`, and the same real-Schur SoA packing as the right vectors for a conjugate pair — read
+    * through [[NonsymmetricEigenDecomposition.leftEigenvector]]. They are recovered from the full right-eigenvector
+    * matrix `V` via the biorthogonality identity (the left vectors are the conjugated rows of `V⁻¹`), the complex `V⁻¹`
+    * formed with a real `2n×2n` embedded LU solve (no complex kernel tier), so the pairing with the right vectors and
+    * eigenvalues is '''exact by construction'''. A '''defective''' (non-diagonalizable) `a` has no full set of left
+    * eigenvectors; gale detects that with a conditioning + residual guard on the recovery (see `computeLeftVectors`)
+    * and returns `Left(SingularMatrix)` rather than a degenerate basis. '''This diverges from LAPACK `dgeev`''', which
+    * returns (possibly near-parallel, non-orthogonal) left vectors for a defective `A`; gale prefers the explicit
+    * `Left`. Orthogonality error is reported as `0.0`: nonsymmetric eigenvectors are not orthonormal, so `‖VᵀV − I‖` is
+    * not a meaningful signal.
     *
-    * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a nonsymmetric
-    * problem ([[EigenOrder.LargestAlgebraic]]/[[EigenOrder.SmallestAlgebraic]]/
-    * [[EigenOrder.BothEnds]] are symmetric-only); a `k` outside `[1, n]`;
-    * [[EigenSelection.IndexRange]] or [[EigenSelection.ValueInterval]]
-    * (symmetric-only); a defective `a` when left vectors are requested
-    * (`SingularMatrix`); or (in practice unreachable) kernel non-convergence.
+    * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a nonsymmetric problem
+    * ([[EigenOrder.LargestAlgebraic]]/[[EigenOrder.SmallestAlgebraic]]/ [[EigenOrder.BothEnds]] are symmetric-only); a
+    * `k` outside `[1, n]`; [[EigenSelection.IndexRange]] or [[EigenSelection.ValueInterval]] (symmetric-only); a
+    * defective `a` when left vectors are requested (`SingularMatrix`); or (in practice unreachable) kernel
+    * non-convergence.
     */
   def eigNonsymmetric(
       a: DMat,
@@ -399,11 +353,11 @@ object Eigen:
     else
       val n = a.rows
       nonsymmetricVectorFlags(vectors) match
-        case Left(error) => Left(error)
+        case Left(error)                  => Left(error)
         case Right((wantRight, wantLeft)) =>
           validateNonsymmetricDenseSelection(selection, n) match
             case Left(error) => Left(error)
-            case Right(()) =>
+            case Right(())   =>
               // Left vectors are derived from the full right-eigenvector matrix, so
               // the kernel must produce right vectors whenever either side is wanted.
               DenseSpectralKernels.nonsymmetricEigen(a, wantRight || wantLeft) match
@@ -415,7 +369,7 @@ object Eigen:
                   val leftFull: Either[LinAlgError, Option[DMat]] =
                     if wantLeft then computeLeftVectors(a, kernel).map(Some(_)) else Right(None)
                   leftFull match
-                    case Left(error) => Left(error)
+                    case Left(error)    => Left(error)
                     case Right(leftOpt) =>
                       val outIdx = nonsymDenseIndices(kernel.re, kernel.im, selection)
                       Right(assembleNonsymDense(a, kernel, leftOpt, outIdx, wantRight, wantLeft))
@@ -424,50 +378,39 @@ object Eigen:
   // Iterative partial nonsymmetric eigendecomposition (eigs)
   // ===========================================================================
 
-  /** Partial nonsymmetric eigendecomposition of the operator `op` (an `n x n`
-    * matrix or matrix-free operator, § 7) — the `k` eigenpairs at the extreme named
-    * by the selection's order — via '''Arnoldi with full reorthogonalization'''
-    * (classical Gram–Schmidt twice) over a '''growing''' Krylov subspace from a
-    * fixed start vector, mirroring the symmetric Lanczos path
-    * ([[eigSymmetric(op:gale\.linalg\.DoubleLinearOperator*]]).
+  /** Partial nonsymmetric eigendecomposition of the operator `op` (an `n x n` matrix or matrix-free operator, § 7) —
+    * the `k` eigenpairs at the extreme named by the selection's order — via '''Arnoldi with full reorthogonalization'''
+    * (classical Gram–Schmidt twice) over a '''growing''' Krylov subspace from a fixed start vector, mirroring the
+    * symmetric Lanczos path ([[eigSymmetric(op:gale\.linalg\.DoubleLinearOperator*]]).
     *
-    * Each build forms an `m`-step Arnoldi factorization, solves the projected
-    * `m×m` upper-Hessenberg Rayleigh quotient `VᵀAV` with the shared Francis QR
-    * kernel (which re-Hessenbergs it internally — a minor waste at the projected
-    * size), lifts the projected Ritz pairs to the big space (`V·s`), and measures
-    * the '''true''' residual `‖A(v_re + i·v_im) − λ(v_re + i·v_im)‖` in real
-    * arithmetic (two matvecs per complex pair, one per real value). A pair is
-    * converged when that residual is `≤ tolerance · max(1, max|λ|)`; '''pairs
-    * converge or not as pairs'''. If the wanted set has not all converged the
-    * subspace '''grows''' (same start vector; exact at `m = n`), up to
+    * Each build forms an `m`-step Arnoldi factorization, solves the projected `m×m` upper-Hessenberg Rayleigh quotient
+    * `VᵀAV` with the shared Francis QR kernel (which re-Hessenbergs it internally — a minor waste at the projected
+    * size), lifts the projected Ritz pairs to the big space (`V·s`), and measures the '''true''' residual
+    * `‖A(v_re + i·v_im) − λ(v_re + i·v_im)‖` in real arithmetic (two matvecs per complex pair, one per real value). A
+    * pair is converged when that residual is `≤ tolerance · max(1, max|λ|)`; '''pairs converge or not as pairs'''. If
+    * the wanted set has not all converged the subspace '''grows''' (same start vector; exact at `m = n`), up to
     * `maxIterations` growth steps or a full `m = n` subspace.
     *
-    * '''Selection on pairs / boundary rule.''' As in the dense path a conjugate
-    * pair is one unit and is never split, so a [[EigenSelection.Count]] whose
-    * `k`-boundary falls inside a pair targets the whole pair (`k+1` values).
-    * `diagnostics.requested` reports that never-split target (`k`, or `k+1` at a
-    * boundary pair); `converged` counts how many of the targeted eigenvalues met
-    * the tolerance, so `allConverged` stays a reliable success signal. (When a
-    * happy breakdown yields an invariant subspace smaller than `k`, `requested`
-    * stays `k` and `converged < k`, so `allConverged` is correctly false.)
+    * '''Selection on pairs / boundary rule.''' As in the dense path a conjugate pair is one unit and is never split, so
+    * a [[EigenSelection.Count]] whose `k`-boundary falls inside a pair targets the whole pair (`k+1` values).
+    * `diagnostics.requested` reports that never-split target (`k`, or `k+1` at a boundary pair); `converged` counts how
+    * many of the targeted eigenvalues met the tolerance, so `allConverged` stays a reliable success signal. (When a
+    * happy breakdown yields an invariant subspace smaller than `k`, `requested` stays `k` and `converged < k`, so
+    * `allConverged` is correctly false.)
     *
-    * '''Left vectors deferred.''' Only right eigenvectors are available (kernel
-    * limitation), so `options.returnVectors` must be [[EigenVectors.ValuesOnly]] or
-    * [[EigenVectors.Right]]; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]]
-    * return `Left(UnsupportedOperation)`. Orthogonality error is `0.0` (the Ritz
-    * vectors of a nonsymmetric matrix are not orthonormal).
+    * '''Left vectors deferred.''' Only right eigenvectors are available (kernel limitation), so `options.returnVectors`
+    * must be [[EigenVectors.ValuesOnly]] or [[EigenVectors.Right]]; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]]
+    * return `Left(UnsupportedOperation)`. Orthogonality error is `0.0` (the Ritz vectors of a nonsymmetric matrix are
+    * not orthonormal).
     *
-    * Non-convergence is a `Right`: the result holds only the converged pairs (in
-    * the canonical order), with `converged < requested` and per-pair residuals
-    * recorded; `requireConverged` is the caller's opt-in to a
+    * Non-convergence is a `Right`: the result holds only the converged pairs (in the canonical order), with
+    * `converged < requested` and per-pair residuals recorded; `requireConverged` is the caller's opt-in to a
     * `Left(DidNotConverge)`.
     *
-    * `Left` on: a non-square operator (`NonSquareMatrix`) or a square one whose
-    * shape disagrees with `n` (`DimensionMismatch`); a non-positive `n`; `k ≤ 0` or
-    * `k ≥ n-1` (§ 7's `k < n-1`; the message points at the dense API); a
-    * non-[[EigenSelection.Count]] selection; an [[EigenOrder]] illegal for a
-    * nonsymmetric problem (algebraic / both-ends); a start vector of the wrong
-    * length or zero norm; or a `target` (shift-invert / `Around`), which is
+    * `Left` on: a non-square operator (`NonSquareMatrix`) or a square one whose shape disagrees with `n`
+    * (`DimensionMismatch`); a non-positive `n`; `k ≤ 0` or `k ≥ n-1` (§ 7's `k < n-1`; the message points at the dense
+    * API); a non-[[EigenSelection.Count]] selection; an [[EigenOrder]] illegal for a nonsymmetric problem (algebraic /
+    * both-ends); a start vector of the wrong length or zero norm; or a `target` (shift-invert / `Around`), which is
     * '''deferred''' — `Left(UnsupportedOperation)`.
     */
   def eigNonsymmetric(
@@ -499,13 +442,12 @@ object Eigen:
       options: SpectralOptions
   ): Either[LinAlgError, NonsymmetricEigenDecomposition] =
     if n <= 0 then Left(LinAlgError.InvalidArgument(s"dimension must be positive, got $n"))
-    else if op.rows != op.cols then
-      Left(LinAlgError.NonSquareMatrix(Shape(Rows(op.rows), Cols(op.cols))))
+    else if op.rows != op.cols then Left(LinAlgError.NonSquareMatrix(Shape(Rows(op.rows), Cols(op.cols))))
     else if op.rows != n then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(n), Cols(n)), Shape(Rows(op.rows), Cols(op.cols))))
     else
       validateArnoldiVectors(options.returnVectors) match
-        case Left(error) => Left(error)
+        case Left(error)        => Left(error)
         case Right(wantVectors) =>
           if !nonsymmetricOrderLegal(order) then
             Left(LinAlgError.InvalidArgument(s"$order is symmetric-only; use a magnitude or real-part order"))
@@ -524,9 +466,8 @@ object Eigen:
   // Generalized symmetric-definite eigendecomposition (A x = λ B x, B SPD)
   // ===========================================================================
 
-  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` computing
-    * `B`-orthonormal eigenvectors ([[EigenVectors.Right]]). See the four-argument
-    * overload for the vector-flag and failure details.
+  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` computing `B`-orthonormal eigenvectors
+    * ([[EigenVectors.Right]]). See the four-argument overload for the vector-flag and failure details.
     */
   def eigSymmetricGeneralized(
       a: DMat,
@@ -535,50 +476,38 @@ object Eigen:
   ): Either[LinAlgError, EigenDecomposition] =
     eigSymmetricGeneralized(a, b, selection, EigenVectors.Right)
 
-  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` with `A`
-    * symmetric and `B` '''symmetric positive-definite''' (phase b, § 4 of
-    * `docs/spectral-parity.md`; SciPy `eigh(A, B)` type 1 — types 2/3 are out).
+  /** Generalized symmetric-definite eigendecomposition `A x = λ B x` with `A` symmetric and `B` '''symmetric
+    * positive-definite''' (phase b, § 4 of `docs/spectral-parity.md`; SciPy `eigh(A, B)` type 1 — types 2/3 are out).
     *
-    * Reduces to a standard symmetric problem by Cholesky of `B` (`B = L Lᵀ`):
-    * `C = L⁻¹ A L⁻ᵀ` is symmetric with the same real eigenvalues `λ`, solved by the
-    * shared tridiagonal QL/QR kernel, and the eigenvectors back-transform as
-    * `x = L⁻ᵀ y`. `C` is formed without inverses — solve `L Y = A`, then (since `C`
-    * is symmetric) `L C = Yᵀ` — and symmetrized before the kernel. The result reuses
-    * [[EigenDecomposition]]: real eigenvalues '''ascending-algebraic always''' (the
-    * selection chooses membership, not layout), real eigenvectors.
+    * Reduces to a standard symmetric problem by Cholesky of `B` (`B = L Lᵀ`): `C = L⁻¹ A L⁻ᵀ` is symmetric with the
+    * same real eigenvalues `λ`, solved by the shared tridiagonal QL/QR kernel, and the eigenvectors back-transform as
+    * `x = L⁻ᵀ y`. `C` is formed without inverses — solve `L Y = A`, then (since `C` is symmetric) `L C = Yᵀ` — and
+    * symmetrized before the kernel. The result reuses [[EigenDecomposition]]: real eigenvalues '''ascending-algebraic
+    * always''' (the selection chooses membership, not layout), real eigenvectors.
     *
-    * '''`B`-orthonormality.''' The returned eigenvectors are '''`B`-orthonormal'''
-    * (`Xᵀ B X = I`), not Euclidean-orthonormal — the natural normalization for the
-    * `B`-inner-product this problem lives in. Accordingly `diagnostics.residuals`
-    * are the '''true generalized residuals''' `‖A x − λ B x‖` and
-    * `diagnostics.orthogonalityError` is `‖Xᵀ B X − I‖_F` (both zero /
-    * not-computed when values-only).
+    * '''`B`-orthonormality.''' The returned eigenvectors are '''`B`-orthonormal''' (`Xᵀ B X = I`), not
+    * Euclidean-orthonormal — the natural normalization for the `B`-inner-product this problem lives in. Accordingly
+    * `diagnostics.residuals` are the '''true generalized residuals''' `‖A x − λ B x‖` and
+    * `diagnostics.orthogonalityError` is `‖Xᵀ B X − I‖_F` (both zero / not-computed when values-only).
     *
-    * '''Conditioning of `B`.''' The Cholesky reduction amplifies error roughly
-    * with `κ(B)` (the standard `sygv`-family sensitivity): for an ill-conditioned
-    * `B` the call still succeeds and `allConverged` is structurally `true` on
-    * this dense one-shot path, so '''`diagnostics.residuals` is the honest
-    * accuracy signal''' — check it when `B` is near-singular.
+    * '''Conditioning of `B`.''' The Cholesky reduction amplifies error roughly with `κ(B)` (the standard `sygv`-family
+    * sensitivity): for an ill-conditioned `B` the call still succeeds and `allConverged` is structurally `true` on this
+    * dense one-shot path, so '''`diagnostics.residuals` is the honest accuracy signal''' — check it when `B` is
+    * near-singular.
     *
-    * Like [[eigSymmetric(a:gale\.linalg\.DMat*]], only the '''lower triangle''' of
-    * `A` and of `B` is read (the `Cholesky` precedent); the strict upper triangles
-    * are treated as their mirrors. `selection` is realized as a slice of the full
-    * ascending spectrum, with the same legality as the symmetric dense path
-    * ([[EigenSelection.Count]] with an algebraic/magnitude order,
-    * [[EigenSelection.IndexRange]], [[EigenSelection.ValueInterval]] all legal;
-    * real-part orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs
-    * [[EigenVectors.Right]].
+    * Like [[eigSymmetric(a:gale\.linalg\.DMat*]], only the '''lower triangle''' of `A` and of `B` is read (the
+    * `Cholesky` precedent); the strict upper triangles are treated as their mirrors. `selection` is realized as a slice
+    * of the full ascending spectrum, with the same legality as the symmetric dense path ([[EigenSelection.Count]] with
+    * an algebraic/magnitude order, [[EigenSelection.IndexRange]], [[EigenSelection.ValueInterval]] all legal; real-part
+    * orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs [[EigenVectors.Right]].
     *
-    * '''Scope.''' This overload is the dense path. The separate typed operator
-    * overload runs matrix-free LOBPCG; the generalized '''nonsymmetric''' pencil
-    * / QZ (§ 5) remains backend-scoped.
+    * '''Scope.''' This overload is the dense path. The separate typed operator overload runs matrix-free LOBPCG; the
+    * generalized '''nonsymmetric''' pencil / QZ (§ 5) remains backend-scoped.
     *
-    * `Left` on: non-square `a` or `b` (`NonSquareMatrix`); disagreeing shapes
-    * (`DimensionMismatch`); `B` not positive-definite (`NotPositiveDefinite`, the
-    * same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal for a
-    * symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an
-    * inverted `ValueInterval`; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]];
-    * or (in practice unreachable) kernel non-convergence.
+    * `Left` on: non-square `a` or `b` (`NonSquareMatrix`); disagreeing shapes (`DimensionMismatch`); `B` not
+    * positive-definite (`NotPositiveDefinite`, the same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal
+    * for a symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`;
+    * [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]]; or (in practice unreachable) kernel non-convergence.
     */
   def eigSymmetricGeneralized(
       a: DMat,
@@ -592,11 +521,11 @@ object Eigen:
     else
       val n = a.rows
       validateVectors(vectors) match
-        case Left(error) => Left(error)
+        case Left(error)        => Left(error)
         case Right(wantVectors) =>
           validateDenseSelection(selection, n) match
             case Left(error) => Left(error)
-            case Right(()) =>
+            case Right(())   =>
               DenseDecompositions.cholesky(b) match
                 // B not SPD: reuse the Cholesky path's own Left (NotPositiveDefinite).
                 case Left(error) => Left(error)
@@ -606,7 +535,7 @@ object Eigen:
                   val bSym = mirrorLower(b)
                   reduceToStandard(l, aSym, n) match
                     case Left(error) => Left(error)
-                    case Right(c) =>
+                    case Right(c)    =>
                       DenseSpectralKernels.symmetricEigen(c, wantVectors) match
                         case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iters)) =>
                           Left(LinAlgError.DidNotConverge(iters, 0.0))
@@ -615,43 +544,34 @@ object Eigen:
                           if wantVectors then
                             backTransformVectors(l, kernel.vectors.get, indices) match
                               case Left(error) => Left(error)
-                              case Right(x) =>
+                              case Right(x)    =>
                                 Right(assembleGeneralized(aSym, bSym, kernel.values, indices, Some(x)))
                           else Right(assembleGeneralized(aSym, bSym, kernel.values, indices, None))
 
-  /** Partial matrix-free generalized symmetric-definite eigendecomposition
-    * `A x = λ B x` via portable LOBPCG or an explicitly imported iterative
-    * generalized spectral backend.
+  /** Partial matrix-free generalized symmetric-definite eigendecomposition `A x = λ B x` via portable LOBPCG or an
+    * explicitly imported iterative generalized spectral backend.
     *
-    * The property wrappers make the operator contract explicit: `a` requires
-    * caller-supplied [[gale.linalg.Symmetric]] evidence and `b` requires
-    * [[gale.linalg.PositiveDefinite]] evidence. Matrix-free properties cannot
-    * be exhaustively verified, so obtain those zero-cost wrappers with
-    * `assumeSymmetricOperator` / `assumePositiveDefiniteOperator` only when the
-    * corresponding mathematical promises hold. Encountered non-positive
-    * `B`-geometry still returns [[gale.linalg.LinAlgError.NotPositiveDefinite]].
+    * The property wrappers make the operator contract explicit: `a` requires caller-supplied [[gale.linalg.Symmetric]]
+    * evidence and `b` requires [[gale.linalg.PositiveDefinite]] evidence. Matrix-free properties cannot be exhaustively
+    * verified, so obtain those zero-cost wrappers with `assumeSymmetricOperator` / `assumePositiveDefiniteOperator`
+    * only when the corresponding mathematical promises hold. Encountered non-positive `B`-geometry still returns
+    * [[gale.linalg.LinAlgError.NotPositiveDefinite]].
     *
-    * Only [[EigenSelection.Count]] with
-    * [[EigenOrder.SmallestAlgebraic]] or [[EigenOrder.LargestAlgebraic]] is
-    * accepted, with `1 <= k < n`. The implementation applies `A`, `B`, and the
-    * explicit `preconditioner` columnwise; it never materializes either
-    * operator and never constructs an implicit `B^-1`. Dense work is limited to
-    * the LOBPCG Rayleigh-Ritz trial space.
+    * Only [[EigenSelection.Count]] with [[EigenOrder.SmallestAlgebraic]] or [[EigenOrder.LargestAlgebraic]] is
+    * accepted, with `1 <= k < n`. The implementation applies `A`, `B`, and the explicit `preconditioner` columnwise; it
+    * never materializes either operator and never constructs an implicit `B^-1`. Dense work is limited to the LOBPCG
+    * Rayleigh-Ritz trial space.
     *
-    * Returned values are ascending-algebraic. Returned vectors are
-    * `B`-orthonormal, `diagnostics.residuals` are the true norms
-    * `‖A x - λ B x‖`, and `orthogonalityError` is `‖Xᵀ B X - I‖_F`.
-    * Iteration exhaustion returns only converged pairs in `Right`; use
-    * [[EigenDecomposition.requireConverged]] for residual fail-fast or
-    * [[EigenDecomposition.requireExtremeCertified]] when a separately certified
-    * global extreme is required. The facade snapshots mutable operator and
-    * preconditioner destinations before they can escape.
+    * Returned values are ascending-algebraic. Returned vectors are `B`-orthonormal, `diagnostics.residuals` are the
+    * true norms `‖A x - λ B x‖`, and `orthogonalityError` is `‖Xᵀ B X - I‖_F`. Iteration exhaustion returns only
+    * converged pairs in `Right`; use [[EigenDecomposition.requireConverged]] for residual fail-fast or
+    * [[EigenDecomposition.requireExtremeCertified]] when a separately certified global extreme is required. The facade
+    * snapshots mutable operator and preconditioner destinations before they can escape.
     *
-    * A backend advertising [[SpectralCapability.IterativeGeneralized]] may
-    * provide raw converged Ritz pairs. The facade still imposes ascending
-    * ordering, B-normalization, ownership, residuals, and orthogonality. A
-    * provider `Left` is a decline and falls back to portable LOBPCG; a malformed
-    * provider `Right` is a conformance violation and fails loudly.
+    * A backend advertising [[SpectralCapability.IterativeGeneralized]] may provide raw converged Ritz pairs. The facade
+    * still imposes ascending ordering, B-normalization, ownership, residuals, and orthogonality. A provider `Left` is a
+    * decline and falls back to portable LOBPCG; a malformed provider `Right` is a conformance violation and fails
+    * loudly.
     */
   def eigSymmetricGeneralized[
       A <: DoubleLinearOperator,
@@ -686,20 +606,17 @@ object Eigen:
           )
         )
 
-  /** Partial matrix-free generalized symmetric-definite eigendecomposition via
-    * generalized block Lanczos and an explicit solve for the SPD metric.
+  /** Partial matrix-free generalized symmetric-definite eigendecomposition via generalized block Lanczos and an
+    * explicit solve for the SPD metric.
     *
-    * This is a separately named engine, not a mode flag on
-    * [[eigSymmetricGeneralized]]. It applies `B^-1 A` only by calling
-    * `metricSolve`; no inverse or dense ambient operator is formed. Bases are
-    * B-orthogonalized with two-pass reorthogonalization, wanted Ritz vectors are
-    * retained across thick restarts, and converged vectors are soft-locked.
+    * This is a separately named engine, not a mode flag on [[eigSymmetricGeneralized]]. It applies `B^-1 A` only by
+    * calling `metricSolve`; no inverse or dense ambient operator is formed. Bases are B-orthogonalized with two-pass
+    * reorthogonalization, wanted Ritz vectors are retained across thick restarts, and converged vectors are
+    * soft-locked.
     *
-    * Inner-solve work is reported in
-    * `result.diagnostics.innerSolve`. A non-converged inner solve is the distinct
-    * [[gale.linalg.LinAlgError.InnerSolveDidNotConverge]], not outer spectral
-    * exhaustion. Outer exhaustion follows the normal iterative spectral
-    * contract and returns only residual-converged pairs in `Right`.
+    * Inner-solve work is reported in `result.diagnostics.innerSolve`. A non-converged inner solve is the distinct
+    * [[gale.linalg.LinAlgError.InnerSolveDidNotConverge]], not outer spectral exhaustion. Outer exhaustion follows the
+    * normal iterative spectral contract and returns only residual-converged pairs in `Right`.
     */
   def eigSymmetricGeneralizedLanczos[
       A <: DoubleLinearOperator,
@@ -862,8 +779,7 @@ object Eigen:
           requested = k,
           converged = converged,
           residuals = residuals,
-          orthogonalityError =
-            if options.returnVectors == EigenVectors.Right then orthogonalityError else 0.0,
+          orthogonalityError = if options.returnVectors == EigenVectors.Right then orthogonalityError else 0.0,
           iterations = convergence.iterations,
           rank = None,
           extremalityCertified = false
@@ -874,33 +790,29 @@ object Eigen:
   // Generalized nonsymmetric eigendecomposition (QZ) — backend-scoped
   // ===========================================================================
 
-  /** Generalized '''nonsymmetric''' eigendecomposition `A x = λ B x` of a general
-    * pencil (parity § 5 / § 1.3 of `docs/spectral-backend-boundary.md`). This is a
-    * '''backend-scoped''' seam: the pure core ships no QZ engine, so with the
-    * default `given SpectralBackend` ([[SpectralBackend.none]]) — the only one in
-    * scope unless an acceleration module is imported — it returns
-    * `Left(UnsupportedOperation)`. A [[SpectralCapability.GeneralizedNonsymmetricEigen]]-capable
-    * backend supplies the raw `(α, β)` spectrum and vectors; this facade validates
-    * shape first, then '''canonicalizes''' the backend's output — the projective
-    * ordering ([[generalizedIndices]]: infinities first, pairs adjacent), the
-    * packing, and the re-derived homogeneous residuals `‖β A x − α B x‖` — and
-    * assembles the sealed [[GeneralizedEigenDecomposition]]. The order is gale's,
+  /** Generalized '''nonsymmetric''' eigendecomposition `A x = λ B x` of a general pencil (parity § 5 / § 1.3 of
+    * `docs/spectral-backend-boundary.md`). This is a '''backend-scoped''' seam: the pure core ships no QZ engine, so
+    * with the default `given SpectralBackend` ([[SpectralBackend.none]]) — the only one in scope unless an acceleration
+    * module is imported — it returns `Left(UnsupportedOperation)`. A
+    * [[SpectralCapability.GeneralizedNonsymmetricEigen]]-capable backend supplies the raw `(α, β)` spectrum and
+    * vectors; this facade validates shape first, then '''canonicalizes''' the backend's output — the projective
+    * ordering ([[generalizedIndices]]: infinities first, pairs adjacent), the packing, and the re-derived homogeneous
+    * residuals `‖β A x − α B x‖` — and assembles the sealed [[GeneralizedEigenDecomposition]]. The order is gale's,
     * never the engine's.
     *
-    * Eigenvalues are '''projective''' `(α, β)`: `β = 0` marks an infinite eigenvalue
-    * from a singular / rank-deficient `B`. Output order is the canonical
-    * nonsymmetric order applied to `α/β` (descending magnitude, infinities first),
+    * Eigenvalues are '''projective''' `(α, β)`: `β = 0` marks an infinite eigenvalue from a singular / rank-deficient
+    * `B`. Output order is the canonical nonsymmetric order applied to `α/β` (descending magnitude, infinities first),
     * conjugate pairs adjacent (positive-imaginary first, equal `β`).
     *
-    * `Left` on: non-square `a`/`b` (`NonSquareMatrix`); shape disagreement
-    * (`DimensionMismatch`); or no capable backend (`UnsupportedOperation`).
+    * `Left` on: non-square `a`/`b` (`NonSquareMatrix`); shape disagreement (`DimensionMismatch`); or no capable backend
+    * (`UnsupportedOperation`).
     */
   def eigGeneralizedNonsymmetric(a: DMat, b: DMat, vectors: EigenVectors = EigenVectors.Right)(using
       backend: SpectralBackend
   ): Either[LinAlgError, GeneralizedEigenDecomposition] =
     validateSquarePencil(a, b) match
       case Left(error) => Left(error)
-      case Right(_) =>
+      case Right(_)    =>
         if !backend.capabilities.contains(SpectralCapability.GeneralizedNonsymmetricEigen) then
           Left(
             LinAlgError.UnsupportedOperation(
@@ -916,13 +828,12 @@ object Eigen:
   // Validation helpers
   // ===========================================================================
 
-  /** Map the symmetric vector flag to "compute vectors?". `Left`/`LeftAndRight`
-    * are nonsymmetric-only and rejected.
+  /** Map the symmetric vector flag to "compute vectors?". `Left`/`LeftAndRight` are nonsymmetric-only and rejected.
     */
   private def validateVectors(vectors: EigenVectors): Either[LinAlgError, Boolean] =
     vectors match
-      case EigenVectors.ValuesOnly => Right(false)
-      case EigenVectors.Right      => Right(true)
+      case EigenVectors.ValuesOnly                       => Right(false)
+      case EigenVectors.Right                            => Right(true)
       case EigenVectors.Left | EigenVectors.LeftAndRight =>
         Left(
           LinAlgError.InvalidArgument(
@@ -937,12 +848,13 @@ object Eigen:
 
   private def validateDenseSelection(selection: EigenSelection, n: Int): Either[LinAlgError, Unit] =
     selection match
-      case EigenSelection.All => Right(())
+      case EigenSelection.All             => Right(())
       case EigenSelection.Count(k, order) =>
         if !symmetricOrderLegal(order) then
-          Left(LinAlgError.InvalidArgument(s"$order is nonsymmetric-only; use an algebraic, magnitude, or both-ends order"))
-        else if k <= 0 || k > n then
-          Left(LinAlgError.InvalidArgument(s"k=$k must be in [1, $n]"))
+          Left(
+            LinAlgError.InvalidArgument(s"$order is nonsymmetric-only; use an algebraic, magnitude, or both-ends order")
+          )
+        else if k <= 0 || k > n then Left(LinAlgError.InvalidArgument(s"k=$k must be in [1, $n]"))
         else Right(())
       case EigenSelection.IndexRange(from, to) =>
         if from < 0 || to >= n || from > to then
@@ -960,14 +872,14 @@ object Eigen:
   /** The ascending-order indices of `values` selected by `selection`. */
   private def denseSelectionIndices(selection: EigenSelection, values: DVec, n: Int): Array[Int] =
     selection match
-      case EigenSelection.All             => (0 until n).toArray
-      case EigenSelection.Count(k, order) => selectExtremeIndices(values, math.min(k, n), order)
-      case EigenSelection.IndexRange(from, to) => (from to to).toArray
+      case EigenSelection.All                         => (0 until n).toArray
+      case EigenSelection.Count(k, order)             => selectExtremeIndices(values, math.min(k, n), order)
+      case EigenSelection.IndexRange(from, to)        => (from to to).toArray
       case EigenSelection.ValueInterval(lower, upper) =>
         (0 until n).filter(i => values(i) > lower && values(i) <= upper).toArray
 
-  /** The ascending indices of the `k` eigenvalues at the extreme named by `order`
-    * (`values` is ascending). Ties break by index for determinism.
+  /** The ascending indices of the `k` eigenvalues at the extreme named by `order` (`values` is ascending). Ties break
+    * by index for determinism.
     */
   private def selectExtremeIndices(values: DVec, k: Int, order: EigenOrder): Array[Int] =
     val n = values.length
@@ -981,16 +893,15 @@ object Eigen:
           (0 until n).sortBy(i => (-math.abs(values(i)), i)).take(k).toArray
         case EigenOrder.BothEnds =>
           val hi = (k + 1) / 2 // ceil(k/2) from the high end
-          val lo = k / 2       // floor(k/2) from the low end
+          val lo = k / 2 // floor(k/2) from the low end
           ((0 until lo) ++ ((n - hi) until n)).toArray
         case EigenOrder.LargestRealPart | EigenOrder.SmallestRealPart =>
           Array.empty // unreachable: rejected in validation
     java.util.Arrays.sort(chosen)
     chosen
 
-  /** Build the dense result: selected values (ascending), selected eigenvector
-    * columns (or an empty matrix when values-only), and diagnostics with per-pair
-    * residuals and orthogonality error computed from the actual matrix.
+  /** Build the dense result: selected values (ascending), selected eigenvector columns (or an empty matrix when
+    * values-only), and diagnostics with per-pair residuals and orthogonality error computed from the actual matrix.
     */
   private def assembleDense(
       a: DMat,
@@ -1051,12 +962,10 @@ object Eigen:
       i += 1
     math.sqrt(sum)
 
-  /** A deterministic (LCG) start vector, or the caller's, normalized to unit
-    * length. The seed sequence is bit-for-bit portable (32-bit `Int` arithmetic
-    * wraps identically on JVM and Scala.js); the Krylov iteration built on it is
-    * deterministic '''per platform''' but may differ between JVM and Scala.js in
-    * the last bits, because the dense kernels use the platform's fused
-    * multiply-add (`Math.fma` on the JVM, `a*b + c` on JS).
+  /** A deterministic (LCG) start vector, or the caller's, normalized to unit length. The seed sequence is bit-for-bit
+    * portable (32-bit `Int` arithmetic wraps identically on JVM and Scala.js); the Krylov iteration built on it is
+    * deterministic '''per platform''' but may differ between JVM and Scala.js in the last bits, because the dense
+    * kernels use the platform's fused multiply-add (`Math.fma` on the JVM, `a*b + c` on JS).
     */
   private def startVectorFor(provided: Option[DVec], n: Int): Either[LinAlgError, DVec] =
     provided match
@@ -1082,10 +991,9 @@ object Eigen:
   // Nonsymmetric validation
   // ===========================================================================
 
-  /** Map the nonsymmetric vector flag to `(computeRight, computeLeft)` for the
-    * '''dense''' path. All four cases are supported: left eigenvectors are derived
-    * from the full right-eigenvector matrix, so the kernel still computes right
-    * vectors internally whenever left vectors are requested.
+  /** Map the nonsymmetric vector flag to `(computeRight, computeLeft)` for the '''dense''' path. All four cases are
+    * supported: left eigenvectors are derived from the full right-eigenvector matrix, so the kernel still computes
+    * right vectors internally whenever left vectors are requested.
     */
   private def nonsymmetricVectorFlags(vectors: EigenVectors): Either[LinAlgError, (Boolean, Boolean)] =
     vectors match
@@ -1094,15 +1002,14 @@ object Eigen:
       case EigenVectors.Left         => Right((false, true))
       case EigenVectors.LeftAndRight => Right((true, true))
 
-  /** Map the vector flag to "compute right vectors?" for the '''iterative
-    * (Arnoldi)''' path. Left / left-and-right are '''unsupported''' there — a Krylov
-    * basis for `A` carries no left-eigenvector information, and two-sided Arnoldi is
+  /** Map the vector flag to "compute right vectors?" for the '''iterative (Arnoldi)''' path. Left / left-and-right are
+    * '''unsupported''' there — a Krylov basis for `A` carries no left-eigenvector information, and two-sided Arnoldi is
     * out of scope — so they route to the dense API via `Left(UnsupportedOperation)`.
     */
   private def validateArnoldiVectors(vectors: EigenVectors): Either[LinAlgError, Boolean] =
     vectors match
-      case EigenVectors.ValuesOnly => Right(false)
-      case EigenVectors.Right      => Right(true)
+      case EigenVectors.ValuesOnly                       => Right(false)
+      case EigenVectors.Right                            => Right(true)
       case EigenVectors.Left | EigenVectors.LeftAndRight =>
         Left(
           LinAlgError.UnsupportedOperation(
@@ -1110,18 +1017,18 @@ object Eigen:
           )
         )
 
-  /** Nonsymmetric order legality: magnitude and real-part orders only; the
-    * algebraic orders and [[EigenOrder.BothEnds]] are symmetric-only (§ Selection).
+  /** Nonsymmetric order legality: magnitude and real-part orders only; the algebraic orders and [[EigenOrder.BothEnds]]
+    * are symmetric-only (§ Selection).
     */
   private def nonsymmetricOrderLegal(order: EigenOrder): Boolean =
     order match
-      case EigenOrder.LargestMagnitude | EigenOrder.SmallestMagnitude                     => true
-      case EigenOrder.LargestRealPart | EigenOrder.SmallestRealPart                       => true
+      case EigenOrder.LargestMagnitude | EigenOrder.SmallestMagnitude                       => true
+      case EigenOrder.LargestRealPart | EigenOrder.SmallestRealPart                         => true
       case EigenOrder.LargestAlgebraic | EigenOrder.SmallestAlgebraic | EigenOrder.BothEnds => false
 
   private def validateNonsymmetricDenseSelection(selection: EigenSelection, n: Int): Either[LinAlgError, Unit] =
     selection match
-      case EigenSelection.All => Right(())
+      case EigenSelection.All             => Right(())
       case EigenSelection.Count(k, order) =>
         if !nonsymmetricOrderLegal(order) then
           Left(LinAlgError.InvalidArgument(s"$order is symmetric-only; use a magnitude or real-part order"))
@@ -1140,11 +1047,9 @@ object Eigen:
   // Nonsymmetric spectrum units, ordering, and selection
   // ===========================================================================
 
-  /** The base indices of the spectrum's eigenvalue '''units''' in packed order: a
-    * real eigenvalue is a size-1 unit (one column); a conjugate pair a size-2 unit
-    * (two adjacent columns, positive-imaginary member first). Walks `im` once,
-    * relying on the kernel's packing (a unit always starts on a nonnegative-
-    * imaginary index).
+  /** The base indices of the spectrum's eigenvalue '''units''' in packed order: a real eigenvalue is a size-1 unit (one
+    * column); a conjugate pair a size-2 unit (two adjacent columns, positive-imaginary member first). Walks `im` once,
+    * relying on the kernel's packing (a unit always starts on a nonnegative- imaginary index).
     */
   private def spectrumUnitBases(im: DVec): Array[Int] =
     val bases = scala.collection.mutable.ArrayBuffer.empty[Int]
@@ -1154,12 +1059,10 @@ object Eigen:
       if im(i) > 0.0 then i += 2 else i += 1
     bases.toArray
 
-  /** Order unit base indices by the selection criterion (§ 2 ordering guarantee):
-    * the primary key follows the order's direction (largest ⇒ descending, smallest
-    * ⇒ ascending, on magnitude or real part), ties broken by descending real part
-    * then descending imaginary part, then base index for a total, deterministic
-    * order. The representative eigenvalue of a pair is its positive-imaginary
-    * member (`re(base)`, `im(base) > 0`).
+  /** Order unit base indices by the selection criterion (§ 2 ordering guarantee): the primary key follows the order's
+    * direction (largest ⇒ descending, smallest ⇒ ascending, on magnitude or real part), ties broken by descending real
+    * part then descending imaginary part, then base index for a total, deterministic order. The representative
+    * eigenvalue of a pair is its positive-imaginary member (`re(base)`, `im(base) > 0`).
     */
   private def orderUnits(re: DVec, im: DVec, bases: Array[Int], order: EigenOrder): Array[Int] =
     bases.sortBy: base =>
@@ -1175,8 +1078,8 @@ object Eigen:
           case _                            => -mag // unreachable: legality validated
       (primary, -r, -iimag, base)
 
-  /** Expand ordered unit base indices into the full column/eigenvalue index list,
-    * appending both members of a pair (positive first) in order.
+  /** Expand ordered unit base indices into the full column/eigenvalue index list, appending both members of a pair
+    * (positive first) in order.
     */
   private def expandUnits(orderedBases: Array[Int], im: DVec): Array[Int] =
     val out = scala.collection.mutable.ArrayBuffer.empty[Int]
@@ -1188,11 +1091,10 @@ object Eigen:
       u += 1
     out.toArray
 
-  /** The kernel-order indices selected by `selection`, in canonical output order,
-    * with conjugate pairs kept whole (never split). [[EigenSelection.Count]]
-    * accumulates whole units until at least `k` eigenvalues are covered — so a
-    * boundary pair yields `k+1`. [[EigenSelection.All]] returns every unit in the
-    * [[EigenOrder.LargestMagnitude]] canonical order.
+  /** The kernel-order indices selected by `selection`, in canonical output order, with conjugate pairs kept whole
+    * (never split). [[EigenSelection.Count]] accumulates whole units until at least `k` eigenvalues are covered — so a
+    * boundary pair yields `k+1`. [[EigenSelection.All]] returns every unit in the [[EigenOrder.LargestMagnitude]]
+    * canonical order.
     */
   private def nonsymDenseIndices(re: DVec, im: DVec, selection: EigenSelection): Array[Int] =
     val bases = spectrumUnitBases(im)
@@ -1219,10 +1121,9 @@ object Eigen:
   // Nonsymmetric assembly + residuals
   // ===========================================================================
 
-  /** Per-eigenvalue residual `‖A v − λ v‖` in real arithmetic for a packed
-    * nonsymmetric result. A real eigenvalue uses its single column; a conjugate
-    * pair uses its two adjacent columns `(v_re, v_im)` and both members share the
-    * one residual. Returns zeros when no vectors are present.
+  /** Per-eigenvalue residual `‖A v − λ v‖` in real arithmetic for a packed nonsymmetric result. A real eigenvalue uses
+    * its single column; a conjugate pair uses its two adjacent columns `(v_re, v_im)` and both members share the one
+    * residual. Returns zeros when no vectors are present.
     */
   private def nonsymResiduals(applyOp: DVec => DVec, re: DVec, im: DVec, packed: DMat): DVec =
     val cnt = re.length
@@ -1249,10 +1150,9 @@ object Eigen:
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
 
-  /** Per-eigenvalue '''left''' residual `‖wᴴ A − λ wᴴ‖` in real arithmetic, using
-    * `at = Aᵀ`. For `λ = a + b·i` and `w = w_re + i·w_im` the (transposed) residual
-    * is `[Aᵀ w_re − a·w_re − b·w_im] + i·[a·w_im − Aᵀ w_im − b·w_re]`. A real
-    * eigenvalue uses its single column; a conjugate pair shares one residual.
+  /** Per-eigenvalue '''left''' residual `‖wᴴ A − λ wᴴ‖` in real arithmetic, using `at = Aᵀ`. For `λ = a + b·i` and
+    * `w = w_re + i·w_im` the (transposed) residual is `[Aᵀ w_re − a·w_re − b·w_im] + i·[a·w_im − Aᵀ w_im − b·w_re]`. A
+    * real eigenvalue uses its single column; a conjugate pair shares one residual.
     */
   private def nonsymLeftResiduals(at: DMat, re: DVec, im: DVec, packed: DMat): DVec =
     val cnt = re.length
@@ -1278,13 +1178,11 @@ object Eigen:
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
 
-  /** Build the dense nonsymmetric result: permute the kernel's re/im, the right
-    * packed columns, and (when requested) the left packed columns by `outIdx` — the
-    * left columns move in the '''same lockstep''' as the right ones — compute
-    * per-eigenvalue residuals, and report all-converged diagnostics (a dense
-    * one-shot solve). For [[EigenVectors.LeftAndRight]] the reported residual is the
-    * worse of the right (`‖A v − λ v‖`) and left (`‖wᴴ A − λ wᴴ‖`) sides.
-    * Orthogonality error is `0.0` — nonsymmetric eigenvectors are not orthonormal.
+  /** Build the dense nonsymmetric result: permute the kernel's re/im, the right packed columns, and (when requested)
+    * the left packed columns by `outIdx` — the left columns move in the '''same lockstep''' as the right ones — compute
+    * per-eigenvalue residuals, and report all-converged diagnostics (a dense one-shot solve). For
+    * [[EigenVectors.LeftAndRight]] the reported residual is the worse of the right (`‖A v − λ v‖`) and left (`‖wᴴ A − λ
+    * wᴴ‖`) sides. Orthogonality error is `0.0` — nonsymmetric eigenvectors are not orthonormal.
     */
   private def assembleNonsymDense(
       a: DMat,
@@ -1310,8 +1208,8 @@ object Eigen:
           val rr = nonsymResiduals(v => a * v, re, im, rightSel)
           val lr = nonsymLeftResiduals(a.t, re, im, leftSel.get)
           DVec.tabulate(cnt)(i => math.max(rr(i), lr(i)))
-        case (true, false) => nonsymResiduals(v => a * v, re, im, rightSel)
-        case (false, true) => nonsymLeftResiduals(a.t, re, im, leftSel.get)
+        case (true, false)  => nonsymResiduals(v => a * v, re, im, rightSel)
+        case (false, true)  => nonsymLeftResiduals(a.t, re, im, leftSel.get)
         case (false, false) => DVec.zeros(cnt)
     val diagnostics =
       SpectralDiagnostics(
@@ -1325,40 +1223,32 @@ object Eigen:
       )
     new NonsymmetricEigenDecomposition(re, im, rightSel, leftSel, diagnostics)
 
-  /** Relative pivot floor for the left-vector conditioning guard: reject when the
-    * embedded LU's smallest pivot is `≤ LeftVectorPivotFactor · 2n · largest pivot`.
-    * At `128·ε` it sits far above the `~ε` ratio a degenerate (defective) eigenbasis
-    * leaves and far below any diagonalizable basis' ratio.
+  /** Relative pivot floor for the left-vector conditioning guard: reject when the embedded LU's smallest pivot is
+    * `≤ LeftVectorPivotFactor · 2n · largest pivot`. At `128·ε` it sits far above the `~ε` ratio a degenerate
+    * (defective) eigenbasis leaves and far below any diagonalizable basis' ratio.
     */
   private inline val LeftVectorPivotFactor = 128.0 * 2.220446049250313e-16
 
-  /** Relative left-residual ceiling for the backstop guard: reject when the worst
-    * `‖wᴴ A − λ wᴴ‖` exceeds `LeftVectorResidualTolerance · max(1, ‖A‖)`. Loose
-    * enough to admit honestly ill-conditioned bases, tight enough to catch a garbage
-    * (e.g. higher-order Jordan) basis whose residual is `O(1)`.
+  /** Relative left-residual ceiling for the backstop guard: reject when the worst `‖wᴴ A − λ wᴴ‖` exceeds
+    * `LeftVectorResidualTolerance · max(1, ‖A‖)`. Loose enough to admit honestly ill-conditioned bases, tight enough to
+    * catch a garbage (e.g. higher-order Jordan) basis whose residual is `O(1)`.
     */
   private inline val LeftVectorResidualTolerance = 1e-2
 
-  /** Recover the '''full''' left eigenvectors of `a` from its full right-eigenvector
-    * matrix `V` (the kernel's packed columns) via the biorthogonality identity: the
-    * left eigenvectors (`wᴴ A = λ wᴴ`) are the '''conjugated rows of `V⁻¹`'''. The
-    * complex `V⁻¹` is formed with the real `2n×2n` embedding
-    * `[[Vr, −Vi], [Vi, Vr]]` and gale's LU (no complex kernel tier), so `V⁻¹`'s row
-    * `i` — hence left vector `i` — pairs with right column `i` and eigenvalue `i`
-    * '''exactly by construction''' (no eigenvalue matching). Result is `n × n` in the
-    * real-Schur packing.
+  /** Recover the '''full''' left eigenvectors of `a` from its full right-eigenvector matrix `V` (the kernel's packed
+    * columns) via the biorthogonality identity: the left eigenvectors (`wᴴ A = λ wᴴ`) are the '''conjugated rows of
+    * `V⁻¹`'''. The complex `V⁻¹` is formed with the real `2n×2n` embedding `[[Vr, −Vi], [Vi, Vr]]` and gale's LU (no
+    * complex kernel tier), so `V⁻¹`'s row `i` — hence left vector `i` — pairs with right column `i` and eigenvalue `i`
+    * '''exactly by construction''' (no eigenvalue matching). Result is `n × n` in the real-Schur packing.
     *
-    * '''Defective-input guards.''' A defective (or near-defective) `a` does '''not'''
-    * make the embedding exactly singular — the Francis kernel perturbs the
-    * repeated/parallel eigenvectors just enough that the LU sees only near-zero pivots
-    * and would silently return a degenerate (duplicated or garbage) left basis. Two
-    * guards reject those as `Left(SingularMatrix)` (a full set of left eigenvectors
-    * does not exist for a defective `a`): (1) a '''conditioning''' check on the
-    * embedded LU pivots ([[LeftVectorPivotFactor]]) — this catches
-    * duplicated/nilpotent bases whose per-vector residual is a deceptive `0`; and
-    * (2) a '''residual''' backstop ([[LeftVectorResidualTolerance]]) catching a
-    * garbage basis that slips past the pivot check. Inputs that pass both may still be
-    * ill-conditioned; their honest, larger residuals surface through `diagnostics`.
+    * '''Defective-input guards.''' A defective (or near-defective) `a` does '''not''' make the embedding exactly
+    * singular — the Francis kernel perturbs the repeated/parallel eigenvectors just enough that the LU sees only
+    * near-zero pivots and would silently return a degenerate (duplicated or garbage) left basis. Two guards reject
+    * those as `Left(SingularMatrix)` (a full set of left eigenvectors does not exist for a defective `a`): (1) a
+    * '''conditioning''' check on the embedded LU pivots ([[LeftVectorPivotFactor]]) — this catches duplicated/nilpotent
+    * bases whose per-vector residual is a deceptive `0`; and (2) a '''residual''' backstop
+    * ([[LeftVectorResidualTolerance]]) catching a garbage basis that slips past the pivot check. Inputs that pass both
+    * may still be ill-conditioned; their honest, larger residuals surface through `diagnostics`.
     */
   private def computeLeftVectors(
       a: DMat,
@@ -1400,7 +1290,7 @@ object Eigen:
       else vr(i - n)(j - n)
     DenseDecompositions.lu(embedded) match
       case Left(error) => Left(error)
-      case Right(lu) =>
+      case Right(lu)   =>
         // Guard 1 (conditioning): the LU pivots are the U diagonal. A degenerate
         // (defective) eigenbasis leaves a ~ε pivot ratio; reject well above it.
         var minPivot = Double.MaxValue
@@ -1425,7 +1315,7 @@ object Eigen:
           while j < n && failure.isEmpty do
             lu.solve(DVec.tabulate(twoN)(idx => if idx == j then 1.0 else 0.0)) match
               case Left(error) => failure = Some(error)
-              case Right(sol) =>
+              case Right(sol)  =>
                 var i = 0
                 while i < n do
                   xr(i)(j) = sol(i)
@@ -1434,7 +1324,7 @@ object Eigen:
             j += 1
           failure match
             case Some(error) => Left(error)
-            case None =>
+            case None        =>
               val packed = packLeftVectors(n, wi, xr, xi)
               // Guard 2 (residual backstop): a garbage basis that slipped past the
               // pivot check has a large left residual on the full spectrum.
@@ -1461,11 +1351,10 @@ object Eigen:
       i += 1
     math.sqrt(sum)
 
-  /** Pack the left eigenvectors (conjugated rows of `V⁻¹ = Xr + i·Xi`) into the
-    * real-Schur convention, unit 2-norm. Left vector `i` is `conj(row i of V⁻¹)`, so
-    * its real part is row `i` of `Xr` and its imaginary part is `−(row i of Xi)`. A
-    * real eigenvalue keeps only the (real) real part; a conjugate pair stores the
-    * positive member's real part in column `i` and imaginary part in column `i+1`.
+  /** Pack the left eigenvectors (conjugated rows of `V⁻¹ = Xr + i·Xi`) into the real-Schur convention, unit 2-norm.
+    * Left vector `i` is `conj(row i of V⁻¹)`, so its real part is row `i` of `Xr` and its imaginary part is
+    * `−(row i of Xi)`. A real eigenvalue keeps only the (real) real part; a conjugate pair stores the positive member's
+    * real part in column `i` and imaginary part in column `i+1`.
     */
   private def packLeftVectors(n: Int, wi: DVec, xr: Array[Array[Double]], xi: Array[Array[Double]]): DMat =
     val out = Array.ofDim[Double](n, n)
@@ -1623,14 +1512,12 @@ object Eigen:
       case Some(error) => Left(error)
       case None        => Right(result)
 
-  /** Build an `ncv`-step Arnoldi factorization from the unit start vector with full
-    * reorthogonalization (classical Gram–Schmidt twice, accumulating the projection
-    * coefficients into the Hessenberg column). Returns `(basis, h, mEff)` where
-    * `mEff <= ncv` is the number of vectors built (`mEff < ncv` marks a happy
-    * breakdown — an invariant subspace) and `h(i)(j)` is the `mEff x mEff` upper-
-    * Hessenberg Rayleigh quotient `VᵀAV`; the coupling entry `h(mEff, mEff-1)`
-    * beyond the square block is intentionally not stored (the true residual is
-    * measured directly, so the cheap estimate is not needed).
+  /** Build an `ncv`-step Arnoldi factorization from the unit start vector with full reorthogonalization (classical
+    * Gram–Schmidt twice, accumulating the projection coefficients into the Hessenberg column). Returns
+    * `(basis, h, mEff)` where `mEff <= ncv` is the number of vectors built (`mEff < ncv` marks a happy breakdown — an
+    * invariant subspace) and `h(i)(j)` is the `mEff x mEff` upper- Hessenberg Rayleigh quotient `VᵀAV`; the coupling
+    * entry `h(mEff, mEff-1)` beyond the square block is intentionally not stored (the true residual is measured
+    * directly, so the cheap estimate is not needed).
     */
   private def buildArnoldi(
       op: DoubleLinearOperator,
@@ -1673,9 +1560,8 @@ object Eigen:
       j += 1
     (basis, h, mEff)
 
-  /** The big-space Ritz vectors of a projected conjugate pair at packed column
-    * `base`: `(V·s(:,base), V·s(:,base+1))` — the real and imaginary parts —
-    * renormalized together to unit complex norm (`‖v_re‖² + ‖v_im‖² = 1`).
+  /** The big-space Ritz vectors of a projected conjugate pair at packed column `base`: `(V·s(:,base), V·s(:,base+1))` —
+    * the real and imaginary parts — renormalized together to unit complex norm (`‖v_re‖² + ‖v_im‖² = 1`).
     */
   private def ritzPair(basis: Array[DVec], s: DMat, base: Int, n: Int, mEff: Int): (DVec, DVec) =
     val vr = combine(basis, s, base, n, mEff)
@@ -1683,8 +1569,7 @@ object Eigen:
     val nrm = math.sqrt(vr.dot(vr) + vi.dot(vi))
     if nrm > 0.0 then (vr * (1.0 / nrm), vi * (1.0 / nrm)) else (vr, vi)
 
-  /** The big-space Ritz vector `V·s(:,base)` of a projected real eigenvalue,
-    * normalized to unit 2-norm.
+  /** The big-space Ritz vector `V·s(:,base)` of a projected real eigenvalue, normalized to unit 2-norm.
     */
   private def ritzReal(basis: Array[DVec], s: DMat, base: Int, n: Int, mEff: Int): DVec =
     val v = combine(basis, s, base, n, mEff)
@@ -1710,9 +1595,8 @@ object Eigen:
       i += 1
     m
 
-  /** Assemble the iterative nonsymmetric result from the converged target units,
-    * already in canonical order (pairs adjacent, positive-imaginary first).
-    * `requested` is the never-split target count. Orthogonality error is `0.0`
+  /** Assemble the iterative nonsymmetric result from the converged target units, already in canonical order (pairs
+    * adjacent, positive-imaginary first). `requested` is the never-split target count. Orthogonality error is `0.0`
     * (nonsymmetric Ritz vectors are not orthonormal).
     */
   private def assembleArnoldi(
@@ -1742,8 +1626,7 @@ object Eigen:
       )
     new NonsymmetricEigenDecomposition(re, im, vectors, None, diagnostics)
 
-  /** An empty iterative result (no pairs converged yet), used before the first
-    * build; `requested` is the caller's `k`.
+  /** An empty iterative result (no pairs converged yet), used before the first build; `requested` is the caller's `k`.
     */
   private def emptyNonsym(n: Int, requested: Int): NonsymmetricEigenDecomposition =
     new NonsymmetricEigenDecomposition(
@@ -1758,17 +1641,15 @@ object Eigen:
   // Generalized symmetric-definite reduction + assembly
   // ===========================================================================
 
-  /** Mirror the lower triangle of `m` into a full symmetric matrix (the
-    * lower-triangle-only read convention shared with `Cholesky` / the symmetric
-    * kernel): `out(i,j) = m(i,j)` for `i >= j`, else `m(j,i)`.
+  /** Mirror the lower triangle of `m` into a full symmetric matrix (the lower-triangle-only read convention shared with
+    * `Cholesky` / the symmetric kernel): `out(i,j) = m(i,j)` for `i >= j`, else `m(j,i)`.
     */
   private def mirrorLower(m: DMat): DMat =
     val n = m.rows
     DMat.tabulate(n, n)((i, j) => if i >= j then m(i, j) else m(j, i))
 
-  /** Solve the triangular system `tri · X = M` column by column, `M` given by
-    * `colOf`, returning `X` as an `n × cols` matrix. `lower` picks forward vs back
-    * substitution. A `Left` (singular triangle) propagates — unreachable for a
+  /** Solve the triangular system `tri · X = M` column by column, `M` given by `colOf`, returning `X` as an `n × cols`
+    * matrix. `lower` picks forward vs back substitution. A `Left` (singular triangle) propagates — unreachable for a
     * factor `L` from a successful SPD Cholesky (strictly positive diagonal).
     */
   private def solveTriColumns(
@@ -1788,23 +1669,21 @@ object Eigen:
       j += 1
     Right(DMat.tabulate(n, cols)((i, jj) => xs(jj)(i)))
 
-  /** Reduce `A x = λ B x` to the standard symmetric `C y = λ y` with
-    * `C = L⁻¹ A L⁻ᵀ`, without forming inverses: solve `L Y = A` (`Y = L⁻¹A`), then
-    * — since `C = L⁻¹ A L⁻ᵀ` is symmetric, `C = Cᵀ = L⁻¹ Yᵀ` — solve `L C = Yᵀ`.
-    * The result is symmetrized `(C + Cᵀ)/2` so any rounding asymmetry does not
-    * reach the kernel (which reads one triangle).
+  /** Reduce `A x = λ B x` to the standard symmetric `C y = λ y` with `C = L⁻¹ A L⁻ᵀ`, without forming inverses: solve
+    * `L Y = A` (`Y = L⁻¹A`), then — since `C = L⁻¹ A L⁻ᵀ` is symmetric, `C = Cᵀ = L⁻¹ Yᵀ` — solve `L C = Yᵀ`. The
+    * result is symmetrized `(C + Cᵀ)/2` so any rounding asymmetry does not reach the kernel (which reads one triangle).
     */
   private def reduceToStandard(l: DMat, aSym: DMat, n: Int): Either[LinAlgError, DMat] =
     solveTriColumns(l, lower = true, n, j => aSym.col(j)) match
       case Left(error) => Left(error)
-      case Right(y) =>
+      case Right(y)    =>
         // Column j of Yᵀ is row j of Y.
         solveTriColumns(l, lower = true, n, j => DVec.tabulate(n)(i => y(j, i))) match
           case Left(error) => Left(error)
-          case Right(c) => Right(DMat.tabulate(n, n)((i, j) => 0.5 * (c(i, j) + c(j, i))))
+          case Right(c)    => Right(DMat.tabulate(n, n)((i, j) => 0.5 * (c(i, j) + c(j, i))))
 
-  /** Back-transform the selected standard eigenvectors `y` to generalized
-    * eigenvectors `x = L⁻ᵀ y` (solve `Lᵀ X = Y`), one selected column each.
+  /** Back-transform the selected standard eigenvectors `y` to generalized eigenvectors `x = L⁻ᵀ y` (solve `Lᵀ X = Y`),
+    * one selected column each.
     */
   private def backTransformVectors(
       l: DMat,
@@ -1813,10 +1692,9 @@ object Eigen:
   ): Either[LinAlgError, DMat] =
     solveTriColumns(l.t, lower = false, indices.length, c => kernelVectors.col(indices(c)))
 
-  /** Build the generalized result: selected eigenvalues (ascending), the
-    * back-transformed `B`-orthonormal eigenvectors (or an empty matrix when
-    * values-only), true generalized residuals `‖A x − λ B x‖`, and the
-    * `B`-inner-product orthogonality error `‖Xᵀ B X − I‖_F`.
+  /** Build the generalized result: selected eigenvalues (ascending), the back-transformed `B`-orthonormal eigenvectors
+    * (or an empty matrix when values-only), true generalized residuals `‖A x − λ B x‖`, and the `B`-inner-product
+    * orthogonality error `‖Xᵀ B X − I‖_F`.
     */
   private def assembleGeneralized(
       aSym: DMat,
@@ -1849,8 +1727,8 @@ object Eigen:
       )
     EigenDecomposition(selValues, x, diagnostics)
 
-  /** `‖Xᵀ B X − I‖_F` — the `B`-inner-product orthogonality error of the
-    * generalized eigenvectors (`B`-orthonormal ⇒ this is ~0).
+  /** `‖Xᵀ B X − I‖_F` — the `B`-inner-product orthogonality error of the generalized eigenvectors (`B`-orthonormal ⇒
+    * this is ~0).
     */
   private def bOrthogonalityError(x: DMat, bSym: DMat): Double =
     val g = x.t * (bSym * x)
@@ -1875,9 +1753,8 @@ object Eigen:
     else if a.rows != b.rows then Left(LinAlgError.DimensionMismatch(a.shape, b.shape))
     else Right(a.rows)
 
-  /** The base indices of the projective spectrum's units in packed order (a real /
-    * infinite singleton, or a finite conjugate pair, positive-imaginary first),
-    * walking `alphaIm` once.
+  /** The base indices of the projective spectrum's units in packed order (a real / infinite singleton, or a finite
+    * conjugate pair, positive-imaginary first), walking `alphaIm` once.
     */
   private def generalizedUnitBases(alphaIm: DVec): Array[Int] =
     val bases = scala.collection.mutable.ArrayBuffer.empty[Int]
@@ -1887,13 +1764,11 @@ object Eigen:
       if alphaIm(i) > 0.0 then i += 2 else i += 1
     bases.toArray
 
-  /** Canonical index order for a projective `(α, β)` spectrum (§ 1.3, D-b): sort
-    * units by the criterion on `α/β` via '''cross-multiplication''' (never dividing
-    * by `β`, so `β = 0` yields no `∞`/`NaN`); infinite eigenvalues (`β = 0`) are
-    * partitioned to the criterion's extreme (largest magnitude ⇒ first) and
-    * tie-broken among themselves by descending `|α|` then producer index; conjugate
-    * pairs stay adjacent. Used by the facade with [[EigenOrder.LargestMagnitude]]
-    * (the canonical layout); the other legal orders are supported for completeness.
+  /** Canonical index order for a projective `(α, β)` spectrum (§ 1.3, D-b): sort units by the criterion on `α/β` via
+    * '''cross-multiplication''' (never dividing by `β`, so `β = 0` yields no `∞`/`NaN`); infinite eigenvalues (`β = 0`)
+    * are partitioned to the criterion's extreme (largest magnitude ⇒ first) and tie-broken among themselves by
+    * descending `|α|` then producer index; conjugate pairs stay adjacent. Used by the facade with
+    * [[EigenOrder.LargestMagnitude]] (the canonical layout); the other legal orders are supported for completeness.
     */
   private[spectral] def generalizedIndices(alphaRe: DVec, alphaIm: DVec, beta: DVec, order: EigenOrder): Array[Int] =
     val bases = generalizedUnitBases(alphaIm)
@@ -1907,9 +1782,8 @@ object Eigen:
       u += 1
     out.toArray
 
-  /** Total order on unit base indices `i`, `j` (negative ⇒ `i` before `j`):
-    * partition by infinite class, then compare finite units by the criterion via
-    * cross-multiplication, then deterministic tie-breaks.
+  /** Total order on unit base indices `i`, `j` (negative ⇒ `i` before `j`): partition by infinite class, then compare
+    * finite units by the criterion via cross-multiplication, then deterministic tie-breaks.
     */
   private def generalizedUnitCompare(
       alphaRe: DVec,
@@ -1937,8 +1811,8 @@ object Eigen:
           val im = java.lang.Double.compare(alphaIm(j) * beta(i), alphaIm(i) * beta(j))
           if im != 0 then im else Integer.compare(i, j)
 
-  /** Ordering bucket for a unit: `0` finite, `-1` infinite-at-front, `+1`
-    * infinite-at-back — placing `β = 0` at the criterion's extreme without division.
+  /** Ordering bucket for a unit: `0` finite, `-1` infinite-at-front, `+1` infinite-at-back — placing `β = 0` at the
+    * criterion's extreme without division.
     */
   private def infiniteClass(alphaReVal: Double, betaVal: Double, order: EigenOrder): Int =
     if betaVal != 0.0 then 0
@@ -1950,9 +1824,8 @@ object Eigen:
         case EigenOrder.SmallestRealPart  => if alphaReVal >= 0.0 then 1 else -1
         case _                            => -1
 
-  /** Compare two '''finite''' units by the criterion on `α/β` via cross-
-    * multiplication (`β > 0` here, so products keep the ratio order). Negative ⇒
-    * `i` before `j`.
+  /** Compare two '''finite''' units by the criterion on `α/β` via cross- multiplication (`β > 0` here, so products keep
+    * the ratio order). Negative ⇒ `i` before `j`.
     */
   private def finiteCriterionCompare(
       alphaRe: DVec,
@@ -1984,14 +1857,16 @@ object Eigen:
     if m.cols == 0 then DMat.zeros(m.rows, 0)
     else DMat.tabulate(m.rows, outIdx.length)((r, c) => m(r, outIdx(c)))
 
-  /** Assemble the sealed [[GeneralizedEigenDecomposition]] from a backend's raw QZ
-    * output: guard the `β ≥ 0` backend contract, impose the canonical projective
-    * order (moving each conjugate pair's two columns in lockstep), re-derive the
-    * homogeneous residuals against `a`, `b` — including the '''left''' residual when
-    * left vectors were returned (§ 1.5 honesty split) — and report a dense one-shot
-    * diagnostics (rank = number of finite eigenvalues).
+  /** Assemble the sealed [[GeneralizedEigenDecomposition]] from a backend's raw QZ output: guard the `β ≥ 0` backend
+    * contract, impose the canonical projective order (moving each conjugate pair's two columns in lockstep), re-derive
+    * the homogeneous residuals against `a`, `b` — including the '''left''' residual when left vectors were returned (§
+    * 1.5 honesty split) — and report a dense one-shot diagnostics (rank = number of finite eigenvalues).
     */
-  private def assembleQz(a: DMat, b: DMat, raw: RawGeneralizedEigen): Either[LinAlgError, GeneralizedEigenDecomposition] =
+  private def assembleQz(
+      a: DMat,
+      b: DMat,
+      raw: RawGeneralizedEigen
+  ): Either[LinAlgError, GeneralizedEigenDecomposition] =
     // Guard the β ≥ 0 backend contract before sorting: a negative β would invert the
     // cross-multiplied criterion comparisons, making the sorter non-transitive (a
     // TimSort "violates its general contract" crash). Reject loudly instead.
@@ -2040,9 +1915,8 @@ object Eigen:
         )
       Right(new GeneralizedEigenDecomposition(aRe, aIm, bt, rightSel, leftSel, diagnostics))
 
-  /** Per-eigenvalue '''homogeneous''' residual `‖β A x − α B x‖` in real arithmetic
-    * (finite ⇒ the pencil residual `A x = (α/β) B x`; infinite ⇒ `|α|·‖B x‖`,
-    * testing `x ∈ null(B)`). Zeros when no vectors are present.
+  /** Per-eigenvalue '''homogeneous''' residual `‖β A x − α B x‖` in real arithmetic (finite ⇒ the pencil residual
+    * `A x = (α/β) B x`; infinite ⇒ `|α|·‖B x‖`, testing `x ∈ null(B)`). Zeros when no vectors are present.
     */
   private def generalizedQzResiduals(a: DMat, b: DMat, aRe: DVec, aIm: DVec, bt: DVec, packed: DMat): DVec =
     val cnt = aRe.length
@@ -2069,11 +1943,10 @@ object Eigen:
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
 
-  /** Per-eigenvalue homogeneous '''left''' residual `‖β wᴴ A − α wᴴ B‖` in real
-    * arithmetic, using `at = Aᵀ`, `bt = Bᵀ` (finite ⇒ `wᴴ A = (α/β) wᴴ B`; infinite
-    * ⇒ `|α|·‖wᴴ B‖`, testing `w` in the left null space of `B`). The transposed
-    * residual is `[β Aᵀw_re − αRe Bᵀw_re − αIm Bᵀw_im] +
-    * i[−β Aᵀw_im − αIm Bᵀw_re + αRe Bᵀw_im]`. Zeros when no left vectors.
+  /** Per-eigenvalue homogeneous '''left''' residual `‖β wᴴ A − α wᴴ B‖` in real arithmetic, using `at = Aᵀ`, `bt = Bᵀ`
+    * (finite ⇒ `wᴴ A = (α/β) wᴴ B`; infinite ⇒ `|α|·‖wᴴ B‖`, testing `w` in the left null space of `B`). The transposed
+    * residual is `[β Aᵀw_re − αRe Bᵀw_re − αIm Bᵀw_im] + i[−β Aᵀw_im − αIm Bᵀw_re + αRe Bᵀw_im]`. Zeros when no left
+    * vectors.
     */
   private def generalizedQzLeftResiduals(at: DMat, bt: DMat, aRe: DVec, aIm: DVec, beta: DVec, packed: DMat): DVec =
     val cnt = aRe.length

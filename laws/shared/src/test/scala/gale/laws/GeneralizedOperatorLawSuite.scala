@@ -20,8 +20,10 @@ class GeneralizedOperatorLawSuite extends ScalaCheckSuite:
       metric: IndexedSeq[Double]
   ):
     val operatorDiagonal: IndexedSeq[Double] =
-      values.zip(metric).map:
-        case (value, weight) => value * weight
+      values
+        .zip(metric)
+        .map:
+          case (value, weight) => value * weight
 
   private val pencilGen: Gen[DiagonalPencil] =
     for
@@ -107,12 +109,8 @@ class GeneralizedOperatorLawSuite extends ScalaCheckSuite:
       )
       val congruence = IndexedSeq.tabulate(pencil.values.length)(i => 0.5 + i.toDouble)
       val congruent = solve(
-        pencil.operatorDiagonal.indices.map(i =>
-          pencil.operatorDiagonal(i) * congruence(i) * congruence(i)
-        ),
-        pencil.metric.indices.map(i =>
-          pencil.metric(i) * congruence(i) * congruence(i)
-        )
+        pencil.operatorDiagonal.indices.map(i => pencil.operatorDiagonal(i) * congruence(i) * congruence(i)),
+        pencil.metric.indices.map(i => pencil.metric(i) * congruence(i) * congruence(i))
       )
 
       GeneralizedOperatorLaws.scaledSpectrum(permuted, base, 1.0, 1e-7, 1e-7)

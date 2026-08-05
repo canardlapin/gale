@@ -8,8 +8,7 @@ opaque type CanonicalSparse[A] <: A = A
 object CanonicalSparse:
   private[gale] inline def unsafe[A](value: A): CanonicalSparse[A] = value
 
-  extension [A](wrapped: CanonicalSparse[A])
-    inline def value: A = wrapped
+  extension [A](wrapped: CanonicalSparse[A]) inline def value: A = wrapped
 
 extension (matrix: COO)
   /** Assert canonical COO structure without inspecting the matrix. */
@@ -38,7 +37,10 @@ extension (matrix: CSC)
   def verifyCanonicalSparse: Either[LinAlgError, CanonicalSparse[CSC]] =
     verifyCanonical(matrix, matrix.hasCanonicalFormat, "CSC")
 
-private def verifyCanonical[A](matrix: A, canonical: Boolean, representation: String)
-    : Either[LinAlgError, CanonicalSparse[A]] =
+private def verifyCanonical[A](
+    matrix: A,
+    canonical: Boolean,
+    representation: String
+): Either[LinAlgError, CanonicalSparse[A]] =
   if canonical then Right(CanonicalSparse.unsafe(matrix))
   else Left(LinAlgError.InvalidArgument(s"$representation matrix is not in canonical sparse format"))

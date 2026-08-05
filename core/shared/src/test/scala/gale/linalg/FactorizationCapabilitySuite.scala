@@ -5,25 +5,17 @@ import scala.compiletime.testing.typeCheckErrors
 
 class FactorizationCapabilitySuite extends munit.FunSuite:
   private val square = Matrix.dense(3, 3)(
-    6.0, 2.0, 1.0,
-    2.0, 5.0, 2.0,
-    1.0, 2.0, 4.0
+    6.0, 2.0, 1.0, 2.0, 5.0, 2.0, 1.0, 2.0, 4.0
   )
 
   private val tall = Matrix.dense(5, 3)(
-    1.0, 0.0, 2.0,
-    1.0, 1.0, -1.0,
-    1.0, 2.0, 0.5,
-    1.0, 3.0, 1.5,
-    1.0, 4.0, -0.5
+    1.0, 0.0, 2.0, 1.0, 1.0, -1.0, 1.0, 2.0, 0.5, 1.0, 3.0, 1.5, 1.0, 4.0, -0.5
   )
 
   test("LU and Cholesky satisfy the exact-solve vector and matrix laws") {
     val expectedVector = Vec(1.0, -2.0, 3.0)
     val expectedMatrix = Matrix.dense(3, 2)(
-      1.0, -2.0,
-      3.0, 0.5,
-      -1.0, 4.0
+      1.0, -2.0, 3.0, 0.5, -1.0, 4.0
     )
     val vectorRhs = square * expectedVector
     // Form the same product transposed, then take its O(1) transpose view. The
@@ -40,14 +32,10 @@ class FactorizationCapabilitySuite extends munit.FunSuite:
 
   test("LU matrix right-hand sides preserve pivoting and typed dimension errors") {
     val pivoted = Matrix.dense(3, 3)(
-      0.0, 2.0, 1.0,
-      1.0, -2.0, 0.0,
-      3.0, 1.0, 4.0
+      0.0, 2.0, 1.0, 1.0, -2.0, 0.0, 3.0, 1.0, 4.0
     )
     val expected = Matrix.dense(3, 2)(
-      1.0, -1.0,
-      2.0, 0.5,
-      -3.0, 4.0
+      1.0, -1.0, 2.0, 0.5, -3.0, 4.0
     )
     val factor: ExactSolveFactor = pivoted.lu.orThrow
 
@@ -58,9 +46,7 @@ class FactorizationCapabilitySuite extends munit.FunSuite:
 
   test("DMat solve accepts matrix right-hand sides without exposing the factor") {
     val expected = Matrix.dense(3, 2)(
-      1.0, -2.0,
-      3.0, 0.5,
-      -1.0, 4.0
+      1.0, -2.0, 3.0, 0.5, -1.0, 4.0
     )
     // Exercise a non-contiguous logical RHS as well as the facade overload.
     val rhs = (expected.t * square.t).t
@@ -77,9 +63,7 @@ class FactorizationCapabilitySuite extends munit.FunSuite:
   test("QR satisfies least-squares vector and matrix laws") {
     val expectedVector = Vec(1.0, -2.0, 3.0)
     val expectedMatrix = Matrix.dense(3, 2)(
-      1.0, -2.0,
-      3.0, 0.5,
-      -1.0, 4.0
+      1.0, -2.0, 3.0, 0.5, -1.0, 4.0
     )
     val factor: LeastSquaresFactor = tall.qr
 
@@ -98,9 +82,7 @@ class FactorizationCapabilitySuite extends munit.FunSuite:
 
   test("rank deficiency remains a typed least-squares failure") {
     val deficient = Matrix.dense(3, 2)(
-      1.0, 2.0,
-      2.0, 4.0,
-      3.0, 6.0
+      1.0, 2.0, 2.0, 4.0, 3.0, 6.0
     )
     val factor: LeastSquaresFactor = deficient.qr
     assertEquals(
