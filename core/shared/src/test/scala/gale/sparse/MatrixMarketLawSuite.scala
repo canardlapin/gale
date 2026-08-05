@@ -1,7 +1,5 @@
 package gale.sparse
 
-import gale.linalg.*
-
 /** Plain regression suite for Matrix Market I/O that stays in core.
   *
   * The property-based sparse matvec law moved to the gale-laws module

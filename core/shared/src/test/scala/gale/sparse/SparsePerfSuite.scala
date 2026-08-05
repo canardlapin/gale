@@ -105,13 +105,13 @@ class SparsePerfSuite extends munit.FunSuite:
   test("CSC.mulInto and tMulInto reject aliased and mismatched arguments") {
     val csc = sample.toCSC
     val y = MutableVec.zeros(4)
-    intercept[LinAlgError.UnsupportedOperation] {
+    val _ = intercept[LinAlgError.UnsupportedOperation] {
       csc.mulInto(y.asVec, y)
     }
-    intercept[LinAlgError.DimensionMismatch] {
+    val _ = intercept[LinAlgError.DimensionMismatch] {
       csc.mulInto(Vec(1.0, 2.0), MutableVec.zeros(4))
     }
-    intercept[LinAlgError.DimensionMismatch] {
+    val _ = intercept[LinAlgError.DimensionMismatch] {
       csc.tMulInto(Vec(1.0, 2.0), MutableVec.zeros(4))
     }
   }

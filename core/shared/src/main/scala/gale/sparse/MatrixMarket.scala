@@ -7,10 +7,10 @@ object MatrixMarket:
 
   def writeCoordinate(A: CSR): String =
     val builder = new StringBuilder
-    builder.append(Header).append('\n')
-    builder.append(A.rows).append(' ').append(A.cols).append(' ').append(A.nnz).append('\n')
+    val _ = builder.append(Header).append('\n')
+    val _ = builder.append(A.rows).append(' ').append(A.cols).append(' ').append(A.nnz).append('\n')
     A.foreachStoredEntry { (row, col, value) =>
-      builder
+      val _ = builder
         .append(row + 1)
         .append(' ')
         .append(col + 1)
@@ -39,7 +39,7 @@ object MatrixMarket:
     data.tail.foreach { line =>
       val entry = fields(line)
       require(entry.length == 3, s"invalid Matrix Market entry: $line")
-      builder.add(entry(0).toInt - 1, entry(1).toInt - 1, entry(2).toDouble)
+      val _ = builder.add(entry(0).toInt - 1, entry(1).toInt - 1, entry(2).toDouble)
     }
     require(builder.nnz == expectedNnz, s"expected $expectedNnz entries, got ${builder.nnz}")
     builder.toCSR()

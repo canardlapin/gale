@@ -101,6 +101,62 @@ class MetricSolveSuite extends munit.FunSuite:
     assert(retained.nonEmpty)
   }
 
+  test("backend solve validation rejects malformed diagnostics and non-finite solutions") {
+    val valid = LinearSolveDiagnostics(converged = true, iterations = 0, residualNorm = None, operatorApplications = 0L)
+
+    def solveWith(solution: DVec, diagnostics: LinearSolveDiagnostics): Either[LinAlgError, LinearSolveResult] =
+      LinearSolveOperator
+        .backendProvided(2)(_ => Right(LinearSolveResult(solution, diagnostics)))
+        .orThrow
+        .solve(Vec(1.0, 2.0))
+
+    val malformed = Seq(
+      solveWith(Vec(1.0, 2.0), valid.copy(iterations = -1)),
+      solveWith(Vec(1.0, 2.0), valid.copy(operatorApplications = -1L)),
+      solveWith(Vec(1.0, 2.0), valid.copy(residualNorm = Some(Double.NaN))),
+      solveWith(Vec(1.0, 2.0), valid.copy(residualNorm = Some(-1.0))),
+      solveWith(Vec(1.0, 2.0), valid.copy(converged = false, residualNorm = None)),
+      solveWith(Vec(Double.PositiveInfinity, 2.0), valid)
+    )
+
+    malformed.foreach:
+      case Left(_: LinAlgError.InvalidArgument) => ()
+      case other                                => fail(s"expected malformed backend solve rejection, got $other")
+
+    assert(LinearSolveOperator.backendProvided(-1)(_ => fail("negative-size backend must not run")).isLeft)
+
+    val throwing =
+      LinearSolveOperator
+        .backendProvided(2)(_ => throw LinAlgError.InvalidArgument("provider failure"))
+        .orThrow
+    throwing.solve(Vec(1.0, 2.0)) match
+      case Left(LinAlgError.InvalidArgument("provider failure")) => ()
+      case other                                                 => fail(s"expected retained typed provider failure, got $other")
+  }
+
+  test("CG construction rejects invalid operator and iteration policy before solving") {
+    assert(
+      LinearSolveOperator
+        .conjugateGradient(Matrix.zeros(2, 3).assumePositiveDefinite)
+        .isLeft
+    )
+    assert(
+      LinearSolveOperator
+        .conjugateGradient(diagonal.assumePositiveDefinite, SolverConfig(tolerance = Double.NaN))
+        .isLeft
+    )
+    assert(
+      LinearSolveOperator
+        .conjugateGradient(diagonal.assumePositiveDefinite, SolverConfig(tolerance = -1.0))
+        .isLeft
+    )
+    assert(
+      LinearSolveOperator
+        .conjugateGradient(diagonal.assumePositiveDefinite, SolverConfig(maxIterations = -1))
+        .isLeft
+    )
+  }
+
   test("metric binding rejects mismatched solves and represents B-inverse action") {
     val metric = diagonal.assumePositiveDefinite
     val solve = LinearSolveOperator.direct(diagonal.cholesky.orThrow)
@@ -168,4 +224,42 @@ class MetricSolveSuite extends munit.FunSuite:
 
     val resolved = LinearSolvePlan.resolve(LinearSolvePlan.Backend, diagonal, None, 0.5).orThrow
     assertEquals(resolved.kind, LinearSolveKind.BackendProvided)
+  }
+
+  test("LinearSolvePlan rejects invalid shapes, shifts, capabilities, and returned sizes") {
+    val solve3 =
+      LinearSolveOperator
+        .backendProvided(3): rhs =>
+          Right(LinearSolveResult(rhs, LinearSolveDiagnostics(true, 0, None, 0L)))
+        .orThrow
+
+    assert(LinearSolvePlan.resolve(LinearSolvePlan.Use(solve3), diagonal, None, 0.0)(using SpectralBackend.none).isLeft)
+    assert(
+      LinearSolvePlan
+        .resolve(LinearSolvePlan.Use(solve3), Matrix.zeros(2, 3), None, 0.0)(using SpectralBackend.none)
+        .isLeft
+    )
+    assert(
+      LinearSolvePlan
+        .resolve(LinearSolvePlan.Use(solve3), diagonal, Some(Matrix.eye(3)), 0.0)(using SpectralBackend.none)
+        .isLeft
+    )
+    assert(
+      LinearSolvePlan
+        .resolve(LinearSolvePlan.Use(solve3), diagonal, None, Double.NaN)(using SpectralBackend.none)
+        .isLeft
+    )
+    assert(LinearSolvePlan.resolve(LinearSolvePlan.Backend, diagonal, None, 0.0)(using SpectralBackend.none).isLeft)
+
+    val wrongSizeBackend = new SpectralBackend:
+      def name: String = "wrong-size-solve"
+      def capabilities: Set[SpectralCapability] = Set(SpectralCapability.ShiftInvertSolve)
+      override def shiftInvertSolve(
+          a: DMat,
+          b: Option[DMat],
+          sigma: Double
+      ): Either[LinAlgError, LinearSolveOperator] =
+        Right(solve3)
+
+    assert(LinearSolvePlan.resolve(LinearSolvePlan.Backend, diagonal, None, 0.0)(using wrongSizeBackend).isLeft)
   }

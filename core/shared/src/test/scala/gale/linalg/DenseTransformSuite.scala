@@ -48,11 +48,11 @@ class DenseTransformSuite extends munit.FunSuite:
     assertEquals(view.rowStride, source.rowStride)
     assertEquals(view.colStride, source.colStride)
 
-    intercept[LinAlgError.InvalidArgument](source.slice(-1, 2, 0, 2))
-    intercept[LinAlgError.InvalidArgument](source.slice(2, 1, 0, 2))
-    intercept[LinAlgError.InvalidArgument](source.slice(0, 5, 0, 2))
-    intercept[LinAlgError.InvalidArgument](source.slice(0, 2, 4, 3))
-    intercept[LinAlgError.InvalidArgument](source.slice(0, 2, 0, 6))
+    val _ = intercept[LinAlgError.InvalidArgument](source.slice(-1, 2, 0, 2))
+    val _ = intercept[LinAlgError.InvalidArgument](source.slice(2, 1, 0, 2))
+    val _ = intercept[LinAlgError.InvalidArgument](source.slice(0, 5, 0, 2))
+    val _ = intercept[LinAlgError.InvalidArgument](source.slice(0, 2, 4, 3))
+    val _ = intercept[LinAlgError.InvalidArgument](source.slice(0, 2, 0, 6))
 
     val noRows = source.slice(2, 2, 1, 4)
     assertEquals((noRows.rows, noRows.cols), (0, 3))
@@ -74,9 +74,9 @@ class DenseTransformSuite extends munit.FunSuite:
     assert(columns.isContiguousRowMajor)
     assert(!TestAccess.sameStorage(TestAccess.dmatStorage(view), TestAccess.dmatStorage(columns)))
 
-    intercept[LinAlgError.IndexOutOfBounds](view.gatherRows(IndexedSeq(0, 4)))
-    intercept[LinAlgError.IndexOutOfBounds](view.gatherRows(IndexedSeq(-1)))
-    intercept[LinAlgError.IndexOutOfBounds](view.gatherColumns(IndexedSeq(3)))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](view.gatherRows(IndexedSeq(0, 4)))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](view.gatherRows(IndexedSeq(-1)))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](view.gatherColumns(IndexedSeq(3)))
 
     assertEquals(view.gatherRows(IndexedSeq.empty).shape, Shape(Rows(0), Cols(view.cols)))
     assertEquals(view.gatherColumns(IndexedSeq.empty).shape, Shape(Rows(view.rows), Cols(0)))
@@ -98,8 +98,8 @@ class DenseTransformSuite extends munit.FunSuite:
     assert(TestAccess.sameStorage(builderStorage, TestAccess.dvecStorage(copied)))
     assert(!TestAccess.sameStorage(TestAccess.dvecStorage(source), TestAccess.dvecStorage(copied)))
 
-    intercept[LinAlgError.IndexOutOfBounds](source.gather(IndexedSeq(4)))
-    intercept[LinAlgError.IndexOutOfBounds](source.gather(IndexedSeq(-1)))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](source.gather(IndexedSeq(4)))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](source.gather(IndexedSeq(-1)))
     assertEquals(source.gather(IndexedSeq.empty).length, 0)
     assertEquals(DVec.zeros(0).gather(IndexedSeq.empty).length, 0)
   }
@@ -116,7 +116,7 @@ class DenseTransformSuite extends munit.FunSuite:
     assertEquals(symmetric.valuesRowMajor, Seq(1.0, 3.0, 7.0, 3.0, 5.0, 11.0, 7.0, 11.0, 9.0))
     assertEquals(symmetric.valuesRowMajor, symmetric.t.valuesRowMajor)
     assert(!TestAccess.sameStorage(TestAccess.dmatStorage(asymmetric), TestAccess.dmatStorage(symmetric)))
-    intercept[LinAlgError.NonSquareMatrix](rectangular.symmetrizedAverage)
+    val _ = intercept[LinAlgError.NonSquareMatrix](rectangular.symmetrizedAverage)
     assertEquals(DMat.zeros(0, 0).symmetrizedAverage.shape, Shape(Rows(0), Cols(0)))
   }
 
@@ -138,8 +138,8 @@ class DenseTransformSuite extends munit.FunSuite:
     assertEquals(destination.head, -1.0)
     assertEquals(destination.last, -1.0)
     assertEquals(destination.slice(1, destination.length - 1).toSeq, expected.toSeq)
-    intercept[LinAlgError.InvalidArgument](view.copyRowMajorTo(new Array[Double](expected.length - 1)))
-    intercept[LinAlgError.InvalidArgument](view.copyRowMajorTo(new Array[Double](expected.length), -1))
+    val _ = intercept[LinAlgError.InvalidArgument](view.copyRowMajorTo(new Array[Double](expected.length - 1)))
+    val _ = intercept[LinAlgError.InvalidArgument](view.copyRowMajorTo(new Array[Double](expected.length), -1))
     DMat.zeros(0, 3).copyRowMajorTo(Array.emptyDoubleArray)
   }
 
@@ -155,7 +155,7 @@ class DenseTransformSuite extends munit.FunSuite:
     val destination = Array.fill(6)(-1.0)
     vector.copyTo(destination, 1)
     assertEquals(destination.toSeq, Seq(-1.0, 2.0, 4.0, 6.0, 8.0, -1.0))
-    intercept[LinAlgError.InvalidArgument](vector.copyTo(new Array[Double](3)))
-    intercept[LinAlgError.InvalidArgument](vector.copyTo(new Array[Double](4), -1))
+    val _ = intercept[LinAlgError.InvalidArgument](vector.copyTo(new Array[Double](3)))
+    val _ = intercept[LinAlgError.InvalidArgument](vector.copyTo(new Array[Double](4), -1))
     DVec.zeros(0).copyTo(Array.emptyDoubleArray)
   }

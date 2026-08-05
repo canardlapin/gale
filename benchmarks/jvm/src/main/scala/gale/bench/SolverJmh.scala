@@ -32,11 +32,15 @@ class SolverJmh:
     while idx < n do
       val r = idx / grid
       val c = idx % grid
-      builder.add(idx, idx, 4.0)
-      if r > 0 then builder.add(idx, idx - grid, -1.0)
-      if r < grid - 1 then builder.add(idx, idx + grid, -1.0)
-      if c > 0 then builder.add(idx, idx - 1, -1.0)
-      if c < grid - 1 then builder.add(idx, idx + 1, -1.0)
+      val _ = builder.add(idx, idx, 4.0)
+      if r > 0 then
+        val _ = builder.add(idx, idx - grid, -1.0)
+      if r < grid - 1 then
+        val _ = builder.add(idx, idx + grid, -1.0)
+      if c > 0 then
+        val _ = builder.add(idx, idx - 1, -1.0)
+      if c < grid - 1 then
+        val _ = builder.add(idx, idx + 1, -1.0)
       idx += 1
     a = builder.toCSR()
     b = Vec.fill(n)(1.0)

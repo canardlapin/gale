@@ -174,7 +174,8 @@ class SparsePlanSuite extends munit.FunSuite:
         while i < r do
           var j = 0
           while j < c do
-            if rng.nextDouble() < 0.35 then builder.add(i, j, rng.nextDouble() * 4.0 - 2.0)
+            if rng.nextDouble() < 0.35 then
+              val _ = builder.add(i, j, rng.nextDouble() * 4.0 - 2.0)
             j += 1
           i += 1
         builder.toCSR()

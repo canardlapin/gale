@@ -71,7 +71,7 @@ new ownership lifetime.
 When a matrix is built only to be factorized, `consumeQR` transfers the
 builder's owned row-major storage directly into portable QR construction:
 
-```scala mdoc:silent
+```scala mdoc
 import gale.linalg.*
 
 val design = DMatBuilder.zeros(rows = 4, cols = 2)
@@ -86,6 +86,7 @@ design(3, 1) = 3.0
 
 val workspace = DenseWorkspace.forQR(4, 2)
 val factor = design.consumeQR(QROptions.Default, workspace)
+(factor.r.rows, factor.r.cols, factor.diagnostics.rank)
 ```
 
 The call closes `design` exactly as `result()` would. The returned `QR` owns

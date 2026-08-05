@@ -44,12 +44,12 @@ class NativeDMatSuite extends munit.FunSuite:
     assert(native.isAlive)
     arena.close()
     assert(!native.isAlive)
-    intercept[IllegalStateException](native.toHeap)
+    val _ = intercept[IllegalStateException](native.toHeap)
 
   test("shape, leading dimension, and indices are checked"):
-    intercept[IllegalArgumentException](NativeDMat.allocate(-1, 2))
+    val _ = intercept[IllegalArgumentException](NativeDMat.allocate(-1, 2))
     val native = NativeDMat.allocate(2, 2)
     try
-      intercept[IndexOutOfBoundsException](native(2, 0))
-      intercept[IndexOutOfBoundsException](native(0, -1))
+      val _ = intercept[IndexOutOfBoundsException](native(2, 0))
+      val _ = intercept[IndexOutOfBoundsException](native(0, -1))
     finally native.close()

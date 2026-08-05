@@ -188,17 +188,17 @@ class EigSymmetricBackendSeamSuite extends munit.FunSuite:
   test("malformed provider factors fail loudly (conformance violation, never silent)") {
     // Wrong eigenvalue count.
     val wrongCount = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows - 1), DMat.zeros(m.rows, m.rows)))
-    intercept[LinAlgError.InvalidArgument] {
+    val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All)(using wrongCount)
     }
     // Vectors requested but too few columns returned.
     val tooFewColumns = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows, m.rows - 1)))
-    intercept[LinAlgError.InvalidArgument] {
+    val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.Right)(using tooFewColumns)
     }
     // Wrong vector row count.
     val wrongRows = MalformedEigenProvider((m, _) => RawSymmetricEigen(DVec.zeros(m.rows), DMat.zeros(m.rows - 1, m.rows)))
-    intercept[LinAlgError.InvalidArgument] {
+    val _ = intercept[LinAlgError.InvalidArgument] {
       Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.Right)(using wrongRows)
     }
   }

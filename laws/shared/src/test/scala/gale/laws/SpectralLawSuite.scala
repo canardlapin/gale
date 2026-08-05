@@ -13,6 +13,8 @@ import org.scalacheck.Prop.forAll
   * membership, rank-deficiency, and generalized-problem law families.
   */
 class SpectralLawSuite extends ScalaCheckSuite:
+  override def scalaCheckInitialSeed =
+    "3IpKYLWqvse9f3GvOj9DgO4pqDgfpJ3mSfRFzU9i4yL="
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(10).withWorkers(1)

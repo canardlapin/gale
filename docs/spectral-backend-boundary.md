@@ -235,7 +235,7 @@ The two remain orthogonal and are both discovered through `given` imports (§ 2)
 
 **Threading config (G2).** Threading configuration — the PRD's `BackendConfig`
 from `gale-v0-5-threading-policy` — does **not** flow through the spectral
-boundary in v1. Spectral facade methods take no per-call threading argument and
+boundary in the stable core. Spectral facade methods take no per-call threading argument and
 `SpectralOptions` gains no threading field (§ 4, non-goal 3). A backend reads its
 thread policy from the shared `BackendConfig` owned by `gale-v0-5-backend-contract`
 at construction time; per-operation threading control is deliberately deferred so
@@ -630,7 +630,7 @@ backend needed), or it is **out**. Loci are given by method, not line number
 | S6 | `Svds.gsvd(a, b, vectors)` rank-deficient pencil (`m+p < n`, or measured `rank < n`) | `Left(RankDeficient(rank, n))` | `rankDeficientGsvd(a, b, wantVectors)` → `GeneralizedSVD` with `Infinite`/`Zero` | **FFM LAPACK** (`ggsvd3`: `ggsvp3` + `tgsja`) |
 | S7 | Full **dense** SVD (parity § 3) — CLOSED for coverage in v0.5: the pure Golub–Kahan–Reinsch kernel ships behind `Svds.svd(a, All)` / `DMat.svd` | pure dense kernel computes (economy factors) | `denseSvd(a, wantVectors)` → `SVD` | **FFM LAPACK** (`gesdd`/`gesvd`) — acceleration only |
 | S8 | Accelerated dense symmetric/nonsymmetric eig for production scale (PRD Backend Performance Strategy) — **symmetric half WIRED (v0.5)**: `Eigen.eigSymmetric(a, sel, vectors)` takes `(using SpectralBackend)` and routes through `SpectralBackend.routesDenseSymmetricEigen(n)` (capability ∧ `n ≥ denseSymmetricEigenMinSize`, the measured spectral threshold — Accelerate 128 per `benchmarks/results/2026-07-17-ffm-lapack-crossover.md`, unswept families `Int.MaxValue`); the facade validates before the gate, re-imposes ascending order, re-derives residuals, falls back to the pure kernel on a provider `Left`, and throws `InvalidArgument` on malformed factors. Nonsymmetric half remains pure-only | pure kernels run below threshold / with no import (byte-identical) | `denseSymmetricEigen` / `denseNonsymmetricEigen` | **FFM LAPACK** (`dsyev` shipped; `geev` pending) |
-| S9 | Iterative **generalized** symmetric-definite eigen (large/sparse; parity § 6) — **WIRED (v1.1)**: typed operator facade validates before routing, pure shared LOBPCG is the no-import/fallback path, `IterativeGeneralized` raw factors are sorted and independently checked, provider `Left` declines, malformed `Right` fails loudly; explicit metric-solve contract landed | pure shared LOBPCG | `iterativeGeneralizedEigen`; generalized block Lanczos consumes `MetricSolveOperator` without forming `B^-1` | **Pure-deferrable** through LOBPCG / **ARPACK-class** for large providers |
+| S9 | Iterative **generalized** symmetric-definite eigen (large/sparse; parity § 6) — **WIRED**: typed operator facade validates before routing, pure shared LOBPCG is the no-import/fallback path, `IterativeGeneralized` raw factors are sorted and independently checked, provider `Left` declines, malformed `Right` fails loudly; explicit metric-solve contract landed | pure shared LOBPCG | `iterativeGeneralizedEigen`; generalized block Lanczos consumes `MetricSolveOperator` without forming `B^-1` | **Pure-deferrable** through LOBPCG / **ARPACK-class** for large providers |
 | S10 | Complex shift σ (off the real axis; parity § Explicitly OUT) | n/a — `SpectralTarget.sigma` is `Double` | would need complex solves / complex tier | **Out** (§ 4) |
 
 **Which the v0.5 FFM LAPACK backend fills directly:** S5 (QZ), S6 (rank-deficient
@@ -690,8 +690,8 @@ The cost of this boundary must be visible now. Here is the entire change-set for
 the first real backend (`gale-backend-jvm-lapack`, filling S5/S6/S7/S8 and
 accelerating S3), split into "byte-identical" and "additive."
 
-**Pre-1.0 note.** gale's binary-compatibility policy begins at v1.0 (roadmap).
-Until then, tightening a constructor (step 0) or adding a
+**Compatibility note.** Gale's compatibility baseline begins at
+`v0.1.0-M1`. Before that tag, tightening a constructor (step 0) or adding a
 `(using SpectralBackend = ...)` clause to a shipped method is acceptable *source*
 evolution; the invariant the boundary guarantees is **behavioral** identity of
 the no-import path, which holds because `none` reproduces today's exact returns.
@@ -780,7 +780,7 @@ backend.
 | D10 | New `GeneralizedEigenDecomposition` + its packing invariants (`β=0 ⟹ alphaIm=0`; pair predicate adds `β` equality) defined now | § 0.2, § 1.3 (D-b) |
 | D11 | Shift-invert and *iterative* left vectors (S4) are the real seams; dense left vectors (S3) already ship; QZ and rank-deficient GSVD are backend-required | § 3 (C2) — separates shipped, pure-deferrable, and backend-required |
 | D12 | Backend `given`s are shared singletons; the trait REQUIRES concurrency-safety | § 1.1 (G1) |
-| D13 | Threading config does not flow through the boundary in v1; backends read the shared `BackendConfig` at construction | § 1.1, § 4 (G2) |
+| D13 | Threading config does not flow through the stable boundary; backends read the shared `BackendConfig` at construction | § 1.1, § 4 (G2) |
 | D14 | QZ homogeneous residual `‖βAx − αBx‖`: finite ⇒ pencil residual; infinite (β=0) ⇒ `|α|·‖Bx‖` (x ∈ null(B)), **not** `‖Ax‖` | § 2.6 (C3) — the flagship new conformance law, corrected |
 
 ### Open questions (for the implementation bead, not blocking this design)

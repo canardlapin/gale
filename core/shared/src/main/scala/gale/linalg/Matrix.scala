@@ -676,6 +676,7 @@ final class DMat private[gale] (
     * contracts do not currently expose a matching tolerance parameter.
     */
   def cholesky(options: CholeskyOptions)(using Backend): Either[LinAlgError, Cholesky] =
+    val _ = summon[Backend]
     DenseDecompositions.cholesky(this, options)
 
   /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder
@@ -692,6 +693,7 @@ final class DMat private[gale] (
     * permutation and rank decision.
     */
   def qr(options: QROptions)(using Backend): QR =
+    val _ = summon[Backend]
     DenseDecompositions.qr(this, options)
 
   /** QR into a caller-supplied workspace. This is the '''allocation-controlled''' facade:

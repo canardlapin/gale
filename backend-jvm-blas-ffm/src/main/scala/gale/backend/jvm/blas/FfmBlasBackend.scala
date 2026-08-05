@@ -272,12 +272,14 @@ private final class FfmDenseDoubleKernel(bindings: CblasBindings) extends DenseD
   private def copyIn(array: Array[Double], arena: Arena): MemorySegment =
     val bytes = array.length.toLong * java.lang.Double.BYTES
     val segment = arena.allocate(math.max(1L, bytes), java.lang.Double.BYTES)
-    if bytes > 0 then segment.asSlice(0L, bytes).copyFrom(MemorySegment.ofArray(array))
+    if bytes > 0 then
+      val _ = segment.asSlice(0L, bytes).copyFrom(MemorySegment.ofArray(array))
     segment
 
   private def copyOut(segment: MemorySegment, array: Array[Double]): Unit =
     val bytes = array.length.toLong * java.lang.Double.BYTES
-    if bytes > 0 then MemorySegment.ofArray(array).copyFrom(segment.asSlice(0L, bytes))
+    if bytes > 0 then
+      val _ = MemorySegment.ofArray(array).copyFrom(segment.asSlice(0L, bytes))
 
   private inline def atOffset(segment: MemorySegment, offset: Int): MemorySegment =
     segment.asSlice(offset.toLong * java.lang.Double.BYTES)
@@ -291,12 +293,13 @@ private object FfmLapackMemory:
 
   def copyIn(values: Array[Double], arena: Arena): MemorySegment =
     val target = nativeDoubles(arena, values.length)
-    if values.nonEmpty then target.asSlice(0L, values.length.toLong * java.lang.Double.BYTES).copyFrom(MemorySegment.ofArray(values))
+    if values.nonEmpty then
+      val _ = target.asSlice(0L, values.length.toLong * java.lang.Double.BYTES).copyFrom(MemorySegment.ofArray(values))
     target
 
   def copyOut(source: MemorySegment, values: Array[Double]): Unit =
     if values.nonEmpty then
-      MemorySegment.ofArray(values).copyFrom(source.asSlice(0L, values.length.toLong * java.lang.Double.BYTES))
+      val _ = MemorySegment.ofArray(values).copyFrom(source.asSlice(0L, values.length.toLong * java.lang.Double.BYTES))
 
   def toColumnMajor(a: DMat): Array[Double] =
     val out = new Array[Double](a.rows * a.cols)

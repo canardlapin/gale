@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 
-/** Allocation baseline for the post-v1 architecture epic.
+/** Allocation baseline for the allocation-control architecture epic.
   *
   * Run with JMH's `-prof gc`. The paired allocating/reuse methods deliberately
   * consume the same logical work so normalized bytes/op identify storage that a
@@ -84,10 +84,10 @@ class AllocationArchitectureJmh:
     val bBuilder = Sparse.coo(n, n)
     var row = 0
     while row < n do
-      aBuilder.add(row, row, 3.0)
-      aBuilder.add(row, (row + 1) % n, -0.5)
-      bBuilder.add(row, row, -1.0)
-      bBuilder.add(row, (row + n - 1) % n, 0.25)
+      val _ = aBuilder.add(row, row, 3.0)
+      val _ = aBuilder.add(row, (row + 1) % n, -0.5)
+      val _ = bBuilder.add(row, row, -1.0)
+      val _ = bBuilder.add(row, (row + n - 1) % n, 0.25)
       row += 1
     sparseA = aBuilder.toCSR()
     sparseB = bBuilder.toCSR()

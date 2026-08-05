@@ -1,7 +1,6 @@
 package gale.parity
 
 import breeze.linalg.CSCMatrix
-import gale.linalg.*
 import gale.parity.ParitySupport.*
 import gale.sparse.*
 
@@ -45,7 +44,8 @@ class BandedSparseParitySuite extends munit.FunSuite:
     while i < data.length do
       var j = 0
       while j < data(0).length do
-        if data(i)(j) != 0.0 then builder.add(i, j, data(i)(j))
+        if data(i)(j) != 0.0 then
+          val _ = builder.add(i, j, data(i)(j))
         j += 1
       i += 1
     builder.toCSR()

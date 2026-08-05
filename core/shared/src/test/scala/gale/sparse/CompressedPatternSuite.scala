@@ -51,8 +51,8 @@ class CompressedPatternSuite extends munit.FunSuite:
     val rowTwo = ArrayBuffer.empty[(Int, Int)]
     pattern.foreachRow(2)((col, storedIndex) => rowTwo += ((col, storedIndex)))
     assertEquals(rowTwo.toSeq, Seq((0, 3), (3, 4)))
-    intercept[LinAlgError.IndexOutOfBounds](pattern.rowNnz(3))
-    intercept[LinAlgError.IndexOutOfBounds](pattern.columnIndexAt(5))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](pattern.rowNnz(3))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](pattern.columnIndexAt(5))
   }
 
   test("transpose shares immutable structure and preserves structural equality") {
@@ -121,8 +121,8 @@ class CompressedPatternSuite extends munit.FunSuite:
       i += 1
     val matrix = builder.result()
     assertEquals(matrix.toDense().valuesRowMajor, Seq(1.0, 0.0, 2.0, 0.0, 0.0, 3.0, 0.0, 0.0, 4.0, 0.0, 0.0, 5.0))
-    intercept[LinAlgError.UnsupportedOperation](builder(0))
-    intercept[LinAlgError.UnsupportedOperation](builder.result())
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder(0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
 
     val cscBuilder = pattern.t.valuesBuilder(4.0)
     val csc = cscBuilder.result()

@@ -181,10 +181,11 @@ class WorkedExamplesSuite extends munit.FunSuite:
     val degree = degrees(laplacianEdges, laplacianSize)
     val builder = Sparse.coo(laplacianSize, laplacianSize)
     laplacianEdges.foreach { case (i, j) =>
-      builder.add(i, j, -1.0)
-      builder.add(j, i, -1.0)
+      val _ = builder.add(i, j, -1.0)
+      val _ = builder.add(j, i, -1.0)
     }
-    (0 until laplacianSize).foreach(i => builder.add(i, i, degree(i).toDouble))
+    (0 until laplacianSize).foreach: i =>
+      val _ = builder.add(i, i, degree(i).toDouble)
     val sparseL = builder.toCSR()
 
     val ones = Vec.fill(laplacianSize)(1.0)

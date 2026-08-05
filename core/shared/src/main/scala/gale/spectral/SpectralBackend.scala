@@ -156,18 +156,30 @@ trait SpectralBackend:
   // Every operation defaults to Left(UnsupportedOperation); a backend overrides
   // only the ones it supports and lists exactly those in `capabilities`.
   def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
+    val _ = a
+    val _ = wantVectors
     unsupported("dense symmetric eigen")
 
   def denseNonsymmetricEigen(a: DMat, vectors: EigenVectors): Either[LinAlgError, RawNonsymmetricEigen] =
+    val _ = a
+    val _ = vectors
     unsupported("dense nonsymmetric eigen")
 
   def denseSvd(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSvd] =
+    val _ = a
+    val _ = wantVectors
     unsupported("dense SVD")
 
   def generalizedNonsymmetricEigen(a: DMat, b: DMat, vectors: EigenVectors): Either[LinAlgError, RawGeneralizedEigen] =
+    val _ = a
+    val _ = b
+    val _ = vectors
     unsupported("generalized nonsymmetric eigen (QZ)")
 
   def rankDeficientGsvd(a: DMat, b: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
+    val _ = a
+    val _ = b
+    val _ = wantVectors
     unsupported("rank-deficient GSVD")
 
   /** Iterative generalized symmetric-definite Ritz pairs for already validated
@@ -183,6 +195,13 @@ trait SpectralBackend:
       options: GeneralizedSpectralOptions,
       preconditioner: Preconditioner
   ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
+    val _ = a
+    val _ = b
+    val _ = n
+    val _ = k
+    val _ = order
+    val _ = options
+    val _ = preconditioner
     unsupported("iterative generalized symmetric eigen")
 
   /** Return an executable solve for `A - sigma I` or `A - sigma B`.
@@ -193,6 +212,9 @@ trait SpectralBackend:
     * [[LinearSolvePlan.Backend]] explicitly; gale never routes here implicitly.
     */
   def shiftInvertSolve(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, LinearSolveOperator] =
+    val _ = a
+    val _ = b
+    val _ = sigma
     unsupported("shift-invert solve")
 
   protected final def unsupported(op: String): Either[LinAlgError, Nothing] =

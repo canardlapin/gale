@@ -1,7 +1,6 @@
 package gale.spectral
 
 import gale.linalg.DMat
-import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
 

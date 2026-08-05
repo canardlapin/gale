@@ -238,8 +238,8 @@ class GeneralizedEigenSuite extends munit.FunSuite:
     assertEqualsDouble(d.diagnostics.residuals(1), 2.0, 1e-9)
     assertEqualsDouble(d.diagnostics.worstResidual, 2.0, 1e-9)
     // Left vectors present, right vectors absent.
-    d.leftEigenvector(1)
-    intercept[LinAlgError.UnsupportedOperation](d.eigenvector(0))
+    val _ = d.leftEigenvector(1)
+    val _ = intercept[LinAlgError.UnsupportedOperation](d.eigenvector(0))
   }
 
   // --- S6: rank-deficient GSVD routing ---------------------------------------

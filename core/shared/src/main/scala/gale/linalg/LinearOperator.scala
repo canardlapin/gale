@@ -46,6 +46,9 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
     out.toVec
 
   def *(x: DVec)(using Backend): DVec =
+    // Retain one polymorphic signature so DMat can override this alias with
+    // backend dispatch; generic operators use their explicit applyTo contract.
+    val _ = summon[Backend]
     apply(x)
 
   /** Apply this operator to every column of `input` in one owned output

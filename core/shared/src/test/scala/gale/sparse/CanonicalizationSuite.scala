@@ -1,7 +1,6 @@
 package gale.sparse
 
 import gale.TestAccess
-import gale.linalg.*
 
 class CanonicalizationSuite extends munit.FunSuite:
   // Item 6: a canonical COO stores entries in row-major sorted order. Transposing

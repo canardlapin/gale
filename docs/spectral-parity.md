@@ -197,19 +197,19 @@ SciPy wraps ARPACK (IRLM); MATLAB `eigs` replaced ARPACK with Krylov–Schur in
 R2017b. Constraint: `k < n`. The initial `ncv` satisfies `k < ncv ≤ n`, defaults
 to `min(n, max(2k+1, 20))`, and grows toward `n` across non-converged restarts.
 
-| Capability | MATLAB `eigs` | SciPy `eigsh` | gale v0.3.5 plan | Notes |
+| Capability | MATLAB `eigs` | SciPy `eigsh` | Gale implementation | Notes |
 |---|---|---|---|---|
 | `k` largest magnitude (default) | `eigs(A,k)` = `'largestabs'` (default) | `which='LM'` (default) | **in-a** `Count(k, LargestMagnitude)` | Defaults agree: LM. |
 | `k` smallest magnitude | `'smallestabs'` | `which='SM'` | **in-a** `Count(k, SmallestMagnitude)` | `SM` without shift-invert is slow/fragile in both — gale documents preferring shift-invert around 0. |
 | `k` largest/smallest algebraic | `'largestreal'`/`'smallestreal'` (≡ algebraic for symmetric) | `which='LA'`/`'SA'` | **in-a** `Count(k, LargestAlgebraic\|SmallestAlgebraic)` | For real symmetric, real-part = algebraic. |
 | Both ends | `'bothendsreal'` | `which='BE'` (⌈k/2⌉ high, ⌊k/2⌋ low) | **in-a** `Count(k, BothEnds)` | **New enum case** — not in the PRD's `EigenOrder`. |
 | Shift-invert near σ | `sigma` scalar (auto-factorizes `A-σB`) | `sigma=σ, mode='normal'` (+`'buckling'`/`'cayley'`) | **in-a** `SpectralTarget.ShiftInvert(σ, plan)` (σ **real**) | gale requires an **explicit** `LinearSolvePlan`; it never auto-factorizes. `'buckling'`/`'cayley'` modes **deferred**. |
-| Generalized `A x = λ B x` | `eigs(A,B,k)` | `eigsh(A, k, M=B)` (`B` SPD) | **in-v1.1** typed operator LOBPCG and explicit generalized block Lanczos | Portable LOBPCG remains the default. `eigSymmetricGeneralizedLanczos` requires a typed `MetricSolveOperator`, reports inner work separately, and never forms `B^-1`. |
+| Generalized `A x = λ B x` | `eigs(A,B,k)` | `eigsh(A, k, M=B)` (`B` SPD) | **implemented** through typed operator LOBPCG and explicit generalized block Lanczos | Portable LOBPCG remains the default. `eigSymmetricGeneralizedLanczos` requires a typed `MetricSolveOperator`, reports inner work separately, and never forms `B^-1`. |
 | Matrix-free operator | `eigs(Afun,n,...)` | `LinearOperator` | **in-a** | gale already has `DoubleLinearOperator` with `applyTo`. |
 | Start vector / subspace / tol / maxiter | `StartVector`, `SubspaceDimension`, `Tolerance`, `MaxIterations` | `v0`, `ncv`, `tol`, `maxiter` | **in-a** `SpectralOptions` | The caller vector is the first block column; deterministic orthogonal probes fill a block at least `k` wide. Default initial `ncv = min(n, max(2k+1, 20))`. |
 | Convergence reporting | `[V,D,flag]` (`flag` 0/1) | raises `ArpackNoConvergence` (carries partial results) | **in-a** `Right(result + SpectralDiagnostics)` | See § Convergence. Never a `Left` for non-convergence. |
 
-The v1.1 generalized operator contract is intentionally narrower than the
+The generalized operator contract is intentionally narrower than the
 ordinary `eigsh` surface. It accepts only
 `Count(k, SmallestAlgebraic | LargestAlgebraic)` with `1 <= k < n`, an optional
 `n × k` initial block, and an explicit preconditioner. Results remain

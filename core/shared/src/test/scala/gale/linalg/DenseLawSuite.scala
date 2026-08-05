@@ -11,10 +11,10 @@ package gale.linalg
   */
 class DenseLawSuite extends munit.FunSuite:
   test("shape checks reject invalid matvec and vector dot inputs") {
-    intercept[LinAlgError.VectorLengthMismatch] {
+    val _ = intercept[LinAlgError.VectorLengthMismatch] {
       Matrix.eye(2) * Vec(1.0, 2.0, 3.0)
     }
-    intercept[LinAlgError.VectorLengthMismatch] {
+    val _ = intercept[LinAlgError.VectorLengthMismatch] {
       Vec(1.0, 2.0).dot(Vec(1.0))
     }
   }

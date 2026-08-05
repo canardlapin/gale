@@ -88,11 +88,11 @@ class DenseCoreSuite extends munit.FunSuite:
     val A = Matrix.eye(3)
     val x = Vec(1.0, 2.0)
 
-    intercept[LinAlgError.VectorLengthMismatch] {
+    val _ = intercept[LinAlgError.VectorLengthMismatch] {
       A * x
     }
 
-    intercept[LinAlgError.VectorLengthMismatch] {
+    val _ = intercept[LinAlgError.VectorLengthMismatch] {
       Vec(1.0, 2.0, 3.0).dot(x)
     }
   }

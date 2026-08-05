@@ -120,6 +120,13 @@ carry provider/family identity, fill/rank/pivot/condition information when the
 implementation can support it, and solve residual/refinement information. No
 mutable “last solve” diagnostics live on a shared factor.
 
+The facade validates every returned `SparseSolveDiagnostics` before exposing a
+solution. The provider name and operation must match the selected factor and
+requested solve, the reported right-hand-side count must match the input, the
+residual norm must be finite and nonnegative, and the refinement-step count
+must be nonnegative. A provider that violates this contract returns
+`InvalidArgument`; malformed diagnostics never accompany a successful solve.
+
 ## Implementation go/no-go gate
 
 The current decision is **no-go** for enabling any provider: no candidate has yet

@@ -33,7 +33,7 @@ class SparseInteropJmh:
     val builder = Sparse.coo(entries, 1)
     var row = 0
     while row < entries do
-      builder.add(row, 0, row.toDouble + 1.0)
+      val _ = builder.add(row, 0, row.toDouble + 1.0)
       row += 1
     coo = builder.toCOO()
     csr = coo.toCSR

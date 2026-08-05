@@ -34,7 +34,7 @@ class SpmvJmh:
     while row < n do
       var k = 0
       while k < perRow do
-        builder.add(row, rng.nextInt(n), rng.nextDouble() * 2.0 - 1.0)
+        val _ = builder.add(row, rng.nextInt(n), rng.nextDouble() * 2.0 - 1.0)
         k += 1
       row += 1
     a = builder.toCSR()

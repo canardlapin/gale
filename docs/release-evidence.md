@@ -1,5 +1,10 @@
 # Gale 1.0.0-RC1 release-foundation evidence
 
+> **Historical record:** This rehearsal predates the decision to establish the
+> first public compatibility line at `0.1`. It preserves engineering evidence
+> for the old eight-artifact RC design, but it does not define the active
+> release target or artifact manifest. See `docs/release-policy.md`.
+
 Evidence date: 2026-08-03. Candidate commit:
 `6b48b78` (`6b48b782d557ab120de4c14e32f8dc6eaeb96442`), on
 `perf/pivoted-qr-norm-downdate`. The exact pushed SHA is recorded in Mote and

@@ -38,10 +38,10 @@ object DenseKernelJsBench:
     val sparseBuilderB = Sparse.coo(256, 256)
     var sparseRow = 0
     while sparseRow < 256 do
-      sparseBuilderA.add(sparseRow, sparseRow, 3.0)
-      sparseBuilderA.add(sparseRow, (sparseRow + 1) % 256, -0.5)
-      sparseBuilderB.add(sparseRow, sparseRow, -1.0)
-      sparseBuilderB.add(sparseRow, (sparseRow + 255) % 256, 0.25)
+      val _ = sparseBuilderA.add(sparseRow, sparseRow, 3.0)
+      val _ = sparseBuilderA.add(sparseRow, (sparseRow + 1) % 256, -0.5)
+      val _ = sparseBuilderB.add(sparseRow, sparseRow, -1.0)
+      val _ = sparseBuilderB.add(sparseRow, (sparseRow + 255) % 256, 0.25)
       sparseRow += 1
     val sparseA: CSR = sparseBuilderA.toCSR()
     val sparseB: CSR = sparseBuilderB.toCSR()

@@ -265,10 +265,11 @@ object SparseDirect:
   ): Either[LinAlgError, SparseVectorSolve] =
     validateVectorSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val destination = MutableDVec.zeros(factor.solutionRows(operation))
-      factor.solveVectorInto(rhs, destination, operation, workspace).map: diagnostics =>
-        // Provider hooks receive the mutable destination and may retain it.
-        // Snapshot before returning an immutable public result.
-        SparseVectorSolve(destination.toVec, diagnostics)
+      factor.solveVectorInto(rhs, destination, operation, workspace).flatMap: diagnostics =>
+        validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = 1).map: validDiagnostics =>
+          // Provider hooks receive the mutable destination and may retain it.
+          // Snapshot before returning an immutable public result.
+          SparseVectorSolve(destination.toVec, validDiagnostics)
 
   def solveInto(
       factor: SparseDirectNumericFactor,
@@ -280,7 +281,10 @@ object SparseDirect:
     validateVectorSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val expected = factor.solutionRows(operation)
       if destination.length != expected then Left(LinAlgError.VectorLengthMismatch(expected, destination.length))
-      else factor.solveVectorInto(rhs, destination, operation, workspace)
+      else
+        factor
+          .solveVectorInto(rhs, destination, operation, workspace)
+          .flatMap(validateSolveDiagnostics(_, factor, operation, rightHandSides = 1))
 
   def solveInto(
       factor: SparseDirectNumericFactor,
@@ -298,8 +302,9 @@ object SparseDirect:
   ): Either[LinAlgError, SparseMatrixSolve] =
     validateMatrixSolve(factor, rhs, workspace, operation).flatMap: _ =>
       val destination = DMatBuilder.zeros(factor.solutionRows(operation), rhs.cols)
-      factor.solveMatrixInto(rhs, destination, operation, workspace).map: diagnostics =>
-        SparseMatrixSolve(destination.result(), diagnostics)
+      factor.solveMatrixInto(rhs, destination, operation, workspace).flatMap: diagnostics =>
+        validateSolveDiagnostics(diagnostics, factor, operation, rightHandSides = rhs.cols).map: validDiagnostics =>
+          SparseMatrixSolve(destination.result(), validDiagnostics)
 
   def solve(
       factor: SparseDirectNumericFactor,
@@ -323,7 +328,10 @@ object SparseDirect:
             s"sparse solve destination must be ${expectedRows}x${rhs.cols}, got ${destination.rows}x${destination.cols}"
           )
         )
-      else factor.solveMatrixInto(rhs, destination, operation, workspace)
+      else
+        factor
+          .solveMatrixInto(rhs, destination, operation, workspace)
+          .flatMap(validateSolveDiagnostics(_, factor, operation, rightHandSides = rhs.cols))
 
   def solveInto(
       factor: SparseDirectNumericFactor,
@@ -459,6 +467,34 @@ object SparseDirect:
         )
       )
     else validateWorkspace(workspace, factor.provider)
+
+  private def validateSolveDiagnostics(
+      diagnostics: SparseSolveDiagnostics,
+      factor: SparseDirectNumericFactor,
+      operation: SparseSolveOperation,
+      rightHandSides: Int
+  ): Either[LinAlgError, SparseSolveDiagnostics] =
+    if diagnostics.providerName != factor.provider.name || diagnostics.operation != operation then
+      Left(LinAlgError.InvalidArgument("sparse solve returned inconsistent provider or operation diagnostics"))
+    else if diagnostics.rightHandSides != rightHandSides then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"sparse solve reported ${diagnostics.rightHandSides} right-hand sides, expected $rightHandSides"
+        )
+      )
+    else if diagnostics.residualNorm.exists(value => !value.isFinite || value < 0.0) then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"sparse solve residual must be finite and non-negative when measured, got ${diagnostics.residualNorm}"
+        )
+      )
+    else if diagnostics.refinementSteps < 0 then
+      Left(
+        LinAlgError.InvalidArgument(
+          s"sparse solve reported negative refinement steps: ${diagnostics.refinementSteps}"
+        )
+      )
+    else Right(diagnostics)
 
   private def validateWorkspace(
       workspace: SparseDirectWorkspace,

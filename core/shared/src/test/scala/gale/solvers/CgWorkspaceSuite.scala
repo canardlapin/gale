@@ -46,13 +46,13 @@ class CgWorkspaceSuite extends munit.FunSuite:
     val secondTruth = Vec(-2.0, 0.5, 1.5, -1.0)
     val config = SolverConfig(tolerance = 1e-12, maxIterations = 50)
 
-    cgWith(matrix, matrix * firstTruth, workspace, config)
+    val _ = cgWith(matrix, matrix * firstTruth, workspace, config)
     val stable = workspace.solution
     val explicitCopy = workspace.solutionCopy
     val borrowed = workspace.unsafeSolutionView
     assert(vectorDifference(stable, firstTruth) <= 1e-11)
 
-    cgWith(matrix, matrix * secondTruth, workspace, config)
+    val _ = cgWith(matrix, matrix * secondTruth, workspace, config)
     assert(vectorDifference(stable, firstTruth) <= 1e-11)
     assert(vectorDifference(explicitCopy, firstTruth) <= 1e-11)
     assert(vectorDifference(borrowed, secondTruth) <= 1e-11)
@@ -78,7 +78,7 @@ class CgWorkspaceSuite extends munit.FunSuite:
     val rhs = matrix * truth
     val workspace = CgWorkspace(4)
 
-    cgWith(
+    val _ = cgWith(
       matrix,
       rhs,
       workspace,
@@ -92,10 +92,10 @@ class CgWorkspaceSuite extends munit.FunSuite:
     assert(vectorDifference(workspace.solution, truth) == 0.0)
 
   test("workspace and initial dimensions are checked"):
-    intercept[LinAlgError.VectorLengthMismatch]:
+    val _ = intercept[LinAlgError.VectorLengthMismatch]:
       cgWith(matrix, Vec(1.0, 2.0, 3.0, 4.0), CgWorkspace(3))
 
-    intercept[LinAlgError.VectorLengthMismatch]:
+    val _ = intercept[LinAlgError.VectorLengthMismatch]:
       cgWith(
         matrix,
         Vec(1.0, 2.0, 3.0, 4.0),
@@ -106,9 +106,9 @@ class CgWorkspaceSuite extends munit.FunSuite:
   test("zero iteration budget reports the initial residual without stale state"):
     val workspace = CgWorkspace(4)
     val rhs = Vec(1.0, -2.0, 0.5, 3.0)
-    cgWith(matrix, matrix * Vec(1.0, 1.0, 1.0, 1.0), workspace)
+    val _ = cgWith(matrix, matrix * Vec(1.0, 1.0, 1.0, 1.0), workspace)
 
-    cgWith(matrix, rhs, workspace, SolverConfig(tolerance = 1e-30, maxIterations = 0))
+    val _ = cgWith(matrix, rhs, workspace, SolverConfig(tolerance = 1e-30, maxIterations = 0))
 
     assert(!workspace.converged)
     assertEquals(workspace.iterations, 0)
@@ -126,7 +126,7 @@ class CgWorkspaceSuite extends munit.FunSuite:
     val rhs = Vec.tabulate(4)(i => diagonal(i) * truth(i))
     val workspace = CgWorkspace(4)
 
-    cgWith(operator, rhs, workspace, SolverConfig(tolerance = 1e-13, maxIterations = 10))
+    val _ = cgWith(operator, rhs, workspace, SolverConfig(tolerance = 1e-13, maxIterations = 10))
 
     assert(workspace.converged)
     assert(vectorDifference(workspace.solution, truth) <= 1e-12)

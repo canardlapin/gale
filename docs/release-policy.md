@@ -1,138 +1,189 @@
-# Gale v1 compatibility and artifact policy
+# Gale 0.1 compatibility and release policy
 
-This policy begins with the first `1.0.0` release. Untagged builds derive a
-unique `1.0.0+...-SNAPSHOT` version; a snapshot is not a published release or a
-compatibility promise. Only a clean `vX.Y.Z` or pre-release `vX.Y.Z-RCn` tag may
-produce a publishable version.
+Gale is preparing its first immutable ecosystem checkpoint on the `0.1` line.
+Untagged source derives a unique `0.1.0+...-SNAPSHOT` version. A snapshot names
+a development state; it is not a published release or a compatibility promise.
+Cross-repository validation must identify snapshots by their full Git commit.
 
-## Coordinates and published modules
+The intended progression is:
 
-The organization is `io.github.canardlapin` and the Scala binary suffix is `_3`.
-The intended v1 artifact set is:
+1. `0.1.0+...-SNAPSHOT` for exact-commit development and consumer convergence;
+2. `v0.1.0-M1` for the first immutable ecosystem checkpoint;
+3. later `v0.1.0-Mn` or `v0.1.0-RCn` tags when another candidate is needed; and
+4. `v0.1.0` only after the milestone passes its downstream soak gate.
 
-| Artifact | Platforms | Purpose |
+Only an exact `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag may produce a
+publishable version. Any source, build, dependency, or executable-documentation
+change creates a new candidate and invalidates evidence tied to the old commit.
+
+## Artifact admission
+
+The organization is `io.github.canardlapin`; Scala 3 artifacts use the `_3`
+binary suffix. The first milestone admits four coordinates:
+
+| Artifact | Platform | Compatibility status |
 | --- | --- | --- |
-| `gale-core` | JVM, Scala.js | dense, sparse, solver, spectral, kernel, and typed public APIs |
-| `gale-laws` | JVM, Scala.js | reusable MUnit/ScalaCheck law and backend-conformance bundles |
-| `gale-interop-breeze` | JVM | explicit Breeze 2.1 conversion and migration helpers |
-| `gale-backend-jvm-vector` | JVM | opt-in JDK Vector API acceleration |
-| `gale-backend-jvm-native` | JVM | explicit JDK FFM native matrix storage |
-| `gale-backend-jvm-blas-ffm` | JVM | opt-in runtime-discovered BLAS/LAPACK provider |
+| `gale-core_3` | JVM | stable from `v0.1.0-M1` |
+| `gale-core_sjs1_3` | Scala.js | stable from `v0.1.0-M1` |
+| `gale-laws_3` | JVM | stable from `v0.1.0-M1` |
+| `gale-laws_sjs1_3` | Scala.js | stable from `v0.1.0-M1` |
 
-The cross-platform `gale-interop-ravel` project is explicitly excluded from
-1.0. Its current `ravel-core:1.0.0-SNAPSHOT` dependency cannot enter a stable
-Gale POM, and the project is `publish / skip := true`. It remains available
-through the dedicated `interopRavelTest` route until Ravel has a stable
-published coordinate and a later Gale release admits the integration.
+`gale-core` contains the public dense, sparse, solver, optimization, spectral,
+sized, kernel, error, diagnostic, and backend-contract packages. Gale does not
+publish empty package-shaped modules. `gale-laws` is a normal module because
+downstream libraries extend its MUnit and ScalaCheck conformance suites.
 
-The complete coordinate, platform, JDK, and exclusion table is the
-[1.0 release manifest](release-manifest.md). A build project alone is not a
-publication promise.
+The following modules are tested but provisional and are excluded from the M1
+bundle: Breeze interop, the JDK Vector backend, native matrix storage, and the
+FFM BLAS/LAPACK backend. Exclusion means that their tests remain part of the
+candidate court while their coordinates carry no 0.1 publication or
+compatibility promise. Admission requires a later explicit manifest change.
 
-`gale-parity`, all benchmark projects, and the root aggregator are
-`publish / skip := true`. The packages `gale.kernel`, `gale.linalg`,
-`gale.sparse`, `gale.solvers`, and `gale.spectral` are intentionally shipped in
-`gale-core`; v1 does not create empty fine-grained artifacts for those packages.
-`gale-laws` is a normal published module because downstream libraries are meant
-to extend its suites, not a classifier-only test jar.
-
-The JVM/Scala.js modules are staged from a JDK 21 build. Native storage and
-BLAS/LAPACK artifacts are staged from a separate JDK 22 build. The release
-workflow merges those disjoint Maven-layout staging trees into one signed
-Central Portal bundle; a release is incomplete unless both passes contribute to
-that same tag-derived version. `sbt releaseDependencyCheck` is required before
-either pass and rejects compile or runtime `SNAPSHOT` dependencies.
+`gale-interop-ravel` is excluded because it currently depends on
+`ravel-core:1.0.0-SNAPSHOT`. Parity projects, benchmarks, documentation, demos,
+consumer probes, and the root aggregator are also not published. The complete
+coordinate and exclusion table is the [release manifest](release-manifest.md).
 
 ## Compatibility promise
 
-For the `1.x` line, Gale follows semantic versioning:
+`v0.1.0-M1` establishes the compatibility baseline for the four admitted
+artifacts. After that tag:
 
-- patch releases preserve public source and binary compatibility and only make
-  compatible additions or fixes;
-- minor releases preserve public binary compatibility and may add APIs;
-- removals, incompatible signature changes, or semantic contract breaks require
-  a new major version;
-- types or members documented `private[gale]`, `private`, experimental, or
-  internal are outside the compatibility promise;
-- experimental Wasm configuration and incubating JDK Vector implementation
-  details are not stable APIs, but the public `Backend` contract and explicit
-  backend import points are.
+- `0.1.x` patch releases preserve the public binary and source contract and may
+  contain compatible additions or fixes;
+- a removal, incompatible signature change, or documented semantic-contract
+  break requires `0.2.0`;
+- private, `private[gale]`, internal, and explicitly experimental definitions
+  remain outside the promise; and
+- provisional modules acquire no promise until an admission record names their
+  first baseline.
 
-Scala 3 TASTy and compiler compatibility still constrain consumers. Gale
-publishes for the Scala 3 binary line (`_3`) from Scala 3.7.4, so consumers
-compiling against Gale artifacts must use Scala 3.7.4 or newer; earlier compiler
-lines cannot read 3.7 TASTy. CI runs full source tests on Scala Next and compiles
-a dedicated Scala 3.8.4 consumer against the 3.7.4 artifacts as advisory
-evidence. These checks do not replace binary- or TASTy-compatibility gates
-between Gale releases.
+Public compatibility includes typed failure cases, result ownership,
+convergence diagnostics, deterministic ordering, work-accounting fields, and
+backend capability behavior where the documentation makes those observable.
+It does not promise bit-identical floating-point results across legal backends.
+The package-by-package inventory and semantic review boundary are recorded in
+[API stability boundary](api-stability.md).
 
-### Remote CI classification
+There is no compatibility baseline before M1 because no immutable artifact
+exists. The build already wires MiMa/version-policy and TASTy-MiMa across the
+four admitted artifacts. Before M1, `compatibilityCheck` exercises that wiring
+with an empty previous-version set; it does not prove binary or TASTy
+compatibility. The M1 work must therefore retain a manually reviewed API export
+receipt and must not describe the candidate as binary-verified.
 
-The branch-protection configuration must require these exact job names on a
-release candidate commit:
+Immediately after publication, 0.1-line development must run
+`compatibilityCheck` with
+`-Dgale.compatibility.baseline=0.1.0-M1`. CI must make the compatibility job
+blocking before accepting another change. A later immutable baseline may
+replace M1 only through an explicit release-policy change; a moving snapshot is
+never a valid baseline.
 
-- `Formatting and fatal-warning policy`
-- `Tests (Scala 3.7.4, JVM)` and `Tests (Scala 3.7.4, JS)`
-- `Scaladoc and executable guides`
-- `Scala.js optimized links`
-- `Breeze parity and published interop`
-- `Release dependency manifest`
-- `Benchmarks compile`
-- `Vector backend (JDK 21)` and `Vector backend (JDK 22)`
-- `FFM BLAS/LAPACK backend (JDK 22 / OpenBLAS)`
+Scala 3 TASTy compatibility also constrains consumers. Gale publishes from
+Scala 3.7.4 for the Scala 3 binary line. CI compiles a Scala 3.8.4 consumer
+against locally published 3.7.4 artifacts as advisory evidence; that probe does
+not replace compatibility checks between Gale releases.
 
-`Scala 3.8.4 consumer probe`, `Scala Next source experiment (advisory)`, and
-`WebAssembly tests and profile (experimental)` are intentionally advisory.
-They remain visible for compatibility and research evidence but cannot turn a
-release candidate green or red. The required names are defined in
-`.github/workflows/ci.yml`; a release record must capture the exact run URL and
-classify every other check as advisory, manual, or unverified.
+## Required candidate evidence
 
-The Breeze job's consumer probe publishes the admitted `gale-core` and
-`gale-interop-breeze` coordinates to the isolated local repository and then
-compiles a separate project from those coordinates. It is a package/POM and
-transitive-dependency check, not a sibling-source compilation or a claim that
-Central publication has already occurred.
+One clean, pushed commit must pass:
 
-There is no MiMa gate for `1.0.0`: it has no earlier stable baseline. Before the
-first `1.1.0` release, the build must add an automated binary-compatibility check
-against the latest `1.0.x` artifact. Until that gate exists, maintainers must
-review exported API diffs manually and must not describe a candidate as
-binary-verified.
+```text
+scalafmtCheckAll
+releaseDependencyCheck
+testAllFull
+compileAll
+parityTest
+interopBreezeTest
+benchCompile
+docsCheck
+```
+
+The same commit must also run `compatibilityCheck`. Before M1 this verifies the
+task wiring only; after M1 it compares against the exact immutable baseline.
+`coverageJVM` is advisory evidence: it runs the complete core JVM suite under
+instrumentation and retains HTML, XML, and Cobertura reports. Gale does not use
+a repository-wide percentage threshold as a release gate. Maintainers inspect
+the report, close meaningful contract gaps, record the resulting rate, and run
+`coreJVM/clean` before subsequent uninstrumented compilation or tests.
+
+CI must also pass the maintained Vector JDK 21 and 22 lanes, the JDK 22
+FFM/OpenBLAS lane, optimized Scala.js linking, and published-consumer probes.
+The exact run URL and every job result belong in the release receipt. Passing a
+subset of the court is not release proof.
+
+Branch protection must require these job names:
+
+- `Formatting and fatal-warning policy`;
+- `Tests (Scala 3.7.4, JVM)` and `Tests (Scala 3.7.4, JS)`;
+- `Scaladoc and executable guides`;
+- `Scala.js optimized links`;
+- `Breeze parity and published interop`;
+- `Release dependency manifest`;
+- `Benchmarks compile`;
+- `Vector backend (JDK 21)` and `Vector backend (JDK 22)`; and
+- `FFM BLAS/LAPACK backend (JDK 22 / OpenBLAS)`.
+
+`JVM coverage report (advisory)`, `MiMa and TASTy-MiMa baseline (pre-M1
+advisory)`, `Scala 3.8.4 consumer probe`, `Scala Next source experiment
+(advisory)`, and `WebAssembly tests and profile (experimental)` remain advisory
+before M1. The compatibility job loses its advisory qualifier and becomes
+required immediately after the baseline is published. A red advisory lane must
+be recorded and qualified; it must not be silently presented as supported or
+omitted from the receipt.
+
+The Breeze consumer probe publishes provisional Gale modules only to an
+isolated local repository and compiles a separate coordinate-based consumer.
+It verifies POM and transitive-dependency behavior without admitting Breeze
+interop to the Central bundle.
+
+## Ecosystem convergence
+
+Before M1, every direct consumer must run its relevant gates against one exact
+Gale commit. The receipt must record the Gale commit, consumer commit, commands,
+results, source migrations, and generated dependency metadata. A consumer may
+use an explicit source or local-artifact override during convergence; its
+permanent dependency moves only after its gate passes.
+
+The required direct consumers are Alder, grakern, graph4s, image4s, multivar,
+reframe4s, regress4s, ScalaFIM, and signal4s. Provider publication precedes any
+consumer release that needs the new coordinate.
 
 ## Supported runtimes
 
-| Module/route | Minimum supported runtime | Notes |
+| Module or route | Required runtime | Status |
 | --- | --- | --- |
-| `gale-core` JVM, laws, interop | JDK 21 | primary required CI line |
-| Vector backend | JDK 21 | tested on JDK 21 and 22; requires `jdk.incubator.vector` at compile/run time |
-| Native and BLAS/LAPACK FFM | JDK 22 | finalized FFM API; applications enable native access |
-| Scala.js JavaScript | Node 22 and current evergreen browsers | optimized JS is the supported browser performance route |
-| Scala.js Wasm | Node 22+ experimental profile | explicit, allow-failure, and not covered by v1 compatibility/performance promises |
+| `gale-core` JVM and `gale-laws` JVM | JDK 21 | admitted and required |
+| `gale-core` and laws for Scala.js | Node 22 in CI | admitted and required |
+| Vector backend | JDK 21 or 22 plus `jdk.incubator.vector` | provisional, required test lane |
+| Native and FFM BLAS/LAPACK backends | JDK 22 plus explicit native access | provisional, required test lane |
+| Scala.js JavaScript in browsers | current evergreen browsers intended | not browser-certified until browser CI exists |
+| Scala.js Wasm | Node 22+ experimental profile | advisory and excluded |
 
-“Current evergreen browsers” means the latest two stable major releases of
-Chrome, Firefox, Safari, and Edge at the time a Gale release is cut. Browser CI
-is not yet a release gate, so v1 release notes must state that Node is the tested
-Scala.js runtime and must not overstate browser certification.
+Release notes must distinguish the Node-tested Scala.js runtime from intended
+browser support. They must not claim browser certification without a browser
+gate.
 
-## Release blockers and provenance
+## Publication and closure
 
-A public release requires all of the following in addition to green tests:
+The release workflow performs two different operations:
 
-- a repository license chosen by the owner and represented in both a root
-  `LICENSE` file and published POM metadata;
-- project homepage, SCM, and developer metadata in the POM;
-- a configured publishing destination and credentials outside the repository;
-- clean source, binary, and documentation artifacts for every intended module;
-- the acceptance and release-evidence records for the exact release commit.
+- A manual dry run validates a synthetic `0.1.x-Mn` or `0.1.x-RCn` version,
+  builds the four admitted artifacts without credentials, and verifies an
+  unsigned bundle without uploading it.
+- A tag run derives its version from the exact Git tag, imports release secrets
+  only inside publication jobs, validates the complete signed bundle, and
+  uploads one `USER_MANAGED` Central Portal deployment. Publication remains a
+  deliberate Portal action after validation.
 
-The owner selected Apache-2.0 and `https://github.com/canardlapin/gale` as the
-canonical SCM repository on 2026-07-19. The root `LICENSE` and generated POMs
-carry that provenance. Binary publication still requires a configured
-destination, credentials, signing policy, and remote CI on the exact release
-commit. `.github/workflows/release.yml` is tag-only (or an explicitly selected
-tag dry-run), imports the ephemeral PGP key only in release jobs, validates the
-complete signed bundle, and uploads it to Central Portal as `USER_MANAGED`.
-The final Central publish action remains a manual Portal operation after
-validation; `publishLocal` is useful packaging evidence but is not a public
-release.
+Before closing the milestone, the owner must verify the Central namespace,
+project signing key, Portal credentials, and one non-publishing validation
+deployment. A clean external consumer must then resolve and exercise every
+admitted coordinate without local repository or sibling-checkout assistance.
+
+The release receipt must record the exact commit and tag, toolchains, local
+commands and counts, remote CI URL, direct-consumer commits and results,
+generated-POM inspection, bundle manifest and signatures, external-consumer
+proof, benchmark receipts, advisory failures, and owner-controlled external
+state. `v0.1.0` remains a later decision after the M1 soak; this policy does not
+authorize publishing it as part of the M1 epic.

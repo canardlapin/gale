@@ -41,11 +41,11 @@ class WorkspaceSuite extends munit.FunSuite:
     assertEquals(workspace.workCapacity, 0)
     assertEquals(workspace.indexCapacity, 0)
 
-    workspace.work(5)
+    val _ = workspace.work(5)
     assertEquals(workspace.workCapacity, 5)
 
     // A smaller request keeps the larger buffer.
-    workspace.work(3)
+    val _ = workspace.work(3)
     assertEquals(workspace.workCapacity, 5)
   }
 

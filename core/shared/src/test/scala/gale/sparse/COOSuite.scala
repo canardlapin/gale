@@ -15,7 +15,7 @@ class COOSuite extends munit.FunSuite:
     assert(!builder.sortedIndices)
     assert(!builder.hasCanonicalFormat)
 
-    builder.canonicalize(DuplicatePolicy.Sum).pruneZeros
+    val _ = builder.canonicalize(DuplicatePolicy.Sum).pruneZeros
     val coo = builder.toCOO()
 
     assert(builder.sortedIndices)

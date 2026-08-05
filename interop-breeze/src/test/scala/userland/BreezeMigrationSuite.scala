@@ -117,16 +117,16 @@ class BreezeMigrationSuite extends munit.FunSuite:
 
   test("migration shims throw typed Gale failures for singular, non-SPD, and rank-deficient inputs") {
     val singular = DenseMatrix((1.0, 2.0), (2.0, 4.0))
-    intercept[LinAlgError.SingularMatrix]:
+    val _ = intercept[LinAlgError.SingularMatrix]:
       BreezeMigration.solve(singular, DenseVector(1.0, 2.0))
 
     val indefinite = DenseMatrix((1.0, 0.0), (0.0, -1.0))
-    intercept[LinAlgError.NotPositiveDefinite]:
+    val _ = intercept[LinAlgError.NotPositiveDefinite]:
       BreezeMigration.cholesky(indefinite)
 
     val rankDeficient = DenseMatrix.tabulate(8, 3): (i, j) =>
       if j == 2 then 2.0 * i else if j == 1 then i.toDouble else 1.0
-    intercept[LinAlgError.RankDeficient]:
+    val _ = intercept[LinAlgError.RankDeficient]:
       BreezeMigration.leastSquares(rankDeficient, DenseVector.tabulate(8)(_.toDouble))
   }
 
@@ -134,14 +134,14 @@ class BreezeMigrationSuite extends munit.FunSuite:
     val asymmetric = spd(5, 7)
     asymmetric(0, 3) = asymmetric(3, 0) + 1.0e-4
 
-    intercept[MatrixNotSymmetricException]:
+    val _ = intercept[MatrixNotSymmetricException]:
       breezeCholesky(asymmetric)
-    intercept[LinAlgError.InvalidArgument]:
+    val _ = intercept[LinAlgError.InvalidArgument]:
       BreezeMigration.cholesky(asymmetric)
 
-    intercept[MatrixNotSymmetricException]:
+    val _ = intercept[MatrixNotSymmetricException]:
       breezeEigSym(asymmetric)
-    intercept[LinAlgError.InvalidArgument]:
+    val _ = intercept[LinAlgError.InvalidArgument]:
       BreezeMigration.eigSym(asymmetric)
   }
 
@@ -164,8 +164,8 @@ class BreezeMigrationSuite extends munit.FunSuite:
   test("matrix RHS validates row shape even when it has zero columns") {
     val a = diagDominant(4)
     val wrong = DenseMatrix.zeros[Double](3, 0)
-    intercept[LinAlgError.DimensionMismatch]:
+    val _ = intercept[LinAlgError.DimensionMismatch]:
       BreezeMigration.solve(a, wrong)
-    intercept[LinAlgError.DimensionMismatch]:
+    val _ = intercept[LinAlgError.DimensionMismatch]:
       BreezeMigration.leastSquares(DenseMatrix.ones[Double](6, 4), wrong)
   }

@@ -1,5 +1,10 @@
 # Gale documentation editorial review
 
+> **Historical record:** This review describes the repository before the 0.1
+> release-line decision. Current version, artifact, and compatibility claims
+> live in `README.md`, `docs/release-policy.md`, and
+> `docs/release-manifest.md`.
+
 Evidence date: 2026-08-03. Audited revision: `e7c8579` on `main` before the
 documentation changes described here. This is an internal editorial and API
 review; `docs/user/` is the separate public site input.

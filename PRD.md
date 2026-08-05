@@ -2,8 +2,15 @@
 
 ## Status
 
-Draft product requirements for `gale`, a new Scala 3-first linear algebra
-library. Gale is not Atlas, not a Breeze fork, and not a rename of the existing
+Implemented design record and current product requirements for `gale`, a
+Scala 3-first linear algebra library. The original implementation roadmap used
+`v0.x` and `v1.x` labels before Gale had any immutable release tags. Those
+labels describe delivered development phases, not published versions or active
+compatibility promises. The current release target is `v0.1.0-M1`; the
+[release policy](docs/release-policy.md) is authoritative for versioning,
+artifact admission, compatibility, and release gates.
+
+Gale is not Atlas, not a Breeze fork, and not a rename of the existing
 `neuroim-linalg` fitting helper. It is a standalone, general-purpose algebraic
 linear algebra core.
 
@@ -271,7 +278,7 @@ The project boxing policy is:
 ## Non-Goals
 
 - Do not modernize Breeze directly.
-- Do not build a scientific-computing umbrella in v1.
+- Do not build a scientific-computing umbrella around Gale.
 - Do not include plotting, probability distributions, signal processing, or
   tensors in the core.
 - Do not require native BLAS, LAPACK, SuiteSparse, Spire, Cats, ZIO, or Breeze.
@@ -338,7 +345,7 @@ gale-backend-jvm-vector   JVM only
 gale-backend-jvm-blas-ffm JVM only
   Optional BLAS/LAPACK backend through Java FFM
 
-gale-backend-jvm-sparse   JVM only, post-v1
+gale-backend-jvm-sparse   JVM only, possible future module
   Optional SuiteSparse backend boundary
 
 gale-interop-breeze       JVM only
@@ -699,7 +706,7 @@ final case class QR[A](
   def solveLeastSquares(b: Vec[A]): Either[LinAlgError, Vec[A]]
 ```
 
-Dense v1 must include:
+The stable dense core must include:
 
 - LU with partial pivoting.
 - Cholesky for positive-definite matrices.
@@ -845,7 +852,7 @@ Later:
 
 Sparse support is first-class but not overpromised.
 
-Required v1 formats:
+Required stable sparse formats:
 
 - COO for construction.
 - CSR for row-oriented SpMV.
@@ -856,7 +863,7 @@ Required v1 formats:
 - Zero.
 - Permutation.
 
-Required v1 sparse operations:
+Required stable sparse operations:
 
 - `A * x`.
 - `A.t * x`.
@@ -872,10 +879,10 @@ Required v1 sparse operations:
 - `A.nnz`, `A.density`.
 - `A.mulInto(x, y)` and `A.tMulInto(x, y)`.
 
-Sparse direct solvers are not a v1 portability promise. The portable sparse
+Sparse direct solvers are not a portable-core promise. The portable sparse
 module should prioritize iterative methods and diagnostics.
 
-Required v1 iterative solvers:
+Required stable iterative solvers:
 
 - CG for symmetric positive-definite operators.
 - MINRES for symmetric indefinite operators, if implementation quality is high.
@@ -921,7 +928,7 @@ Initial preconditioners:
 - Block Jacobi.
 - Symmetric Gauss-Seidel.
 
-Post-v1:
+Possible future additions:
 
 - ILU0.
 - Incomplete Cholesky 0.
@@ -1096,9 +1103,9 @@ JvmVectorGemm
 NativeBlasGemm
 ```
 
-The v1 goal is a correct and respectable pure blocked kernel plus a clean
+The portable goal is a correct and respectable pure blocked kernel plus a clean
 native backend path. Beating OpenBLAS, BLIS, MKL, or Accelerate on large GEMM is
-not a v1 goal.
+not a release requirement.
 
 Decompositions need workspace-aware APIs:
 
@@ -1139,7 +1146,7 @@ z := x.pointwise * y + w
 ```
 
 These should lower to `axpy`, `gemv`, `gemm`, or one fused pointwise pass.
-Gale should not build a general lazy expression graph in v1.
+Gale should not build a general lazy expression graph in the stable core.
 
 Benchmarking must cover native crossover sizes, not only isolated throughput:
 
@@ -1311,161 +1318,93 @@ Required regression suites:
 - Transpose views.
 - JS typed-array indexing boundaries.
 
-## Release Roadmap
+## Implementation history
 
-### v0.1: Dense Core
+The original dense-core, decomposition, sparse/operator, spectral, API-polish,
+acceleration, and generalized-operator phases have landed in source. No
+immutable artifact was published at the old phase labels. The implementation
+therefore enters its first public release line as 0.1 rather than treating
+source completeness as proof of 1.0 stability.
 
-- `DVec`, `DMat`, views, slices, transpose.
-- Platform `DoubleArray`, `FloatArray`, `IndexArray`.
-- Dot, norm, axpy, matrix-vector multiply, matrix-matrix multiply.
-- Layout-specialized `gemv` paths.
-- Initial tiny fixed-size kernel surface for `Mat2`, `Mat3`, `Mat4` or sized
-  equivalents.
-- Pure Scala kernels.
-- MUnit and ScalaCheck laws.
-- JVM and Scala.js tests.
-- Initial JMH benchmark suite.
+## Release roadmap
 
-### v0.2: Dense Decompositions
+### `v0.1.0-M1`: immutable ecosystem checkpoint
 
-- LU with partial pivoting.
-- Cholesky.
-- QR.
-- Triangular solve.
-- `solve`, `trySolve`, `leastSquares`.
-- Determinant.
-- Rank and condition estimates.
-- Factorization diagnostics.
+- Derive development versions from the 0.1 line and align build, docs, tracker,
+  and ecosystem catalog.
+- Admit `gale-core` and `gale-laws` for JVM and Scala.js; keep JVM integrations
+  and acceleration modules tested but provisional.
+- Freeze the public package, ownership, error, convergence, work-accounting,
+  and backend-capability contracts.
+- Run the complete repository court and capture the first API baseline.
+- Validate Alder, grakern, graph4s, image4s, multivar, reframe4s, regress4s,
+  ScalaFIM, and signal4s against one exact Gale commit.
+- Rehearse the release bundle, validate Central without publishing, and verify
+  the milestone coordinates from a clean external consumer.
 
-### v0.3: Sparse and Linear Operators
+### `v0.1.0`: first stable release
 
-- `LinearOperator`.
-- COO builder.
-- CSR and CSC.
-- Sparse transpose and SpMV.
-- Sparse addition and scaling.
-- Diagonal, identity, permutation.
-- CG, BiCGSTAB, restarted GMRES.
-- Jacobi preconditioner.
-- Matrix Market read/write.
+- Complete the declared milestone soak across direct consumers.
+- Fix any discovered defects without breaking the M1 compatibility boundary.
+- Repeat the exact-candidate court and clean external-consumer verification.
+- Publish only after a separate owner decision; the M1 epic does not authorize
+  the final tag.
 
-### v0.3.5: Spectral and Generalized Decompositions
+### `0.2.0` and later
 
-- Spectral result types: `EigenDecomposition`, `SVD`, generalized spectral
-  results, and `SpectralDiagnostics`.
-- MATLAB/SciPy spectral parity matrix translated into Gale typed options rather
-  than string flags.
-- Explicit order enums for top/bottom and magnitude/algebraic/real-part
-  selection.
-- Partial symmetric eigendecomposition with largest and smallest algebraic
-  eigenvalues.
-- Partial nonsymmetric eigendecomposition with largest and smallest magnitude
-  eigenvalues.
-- Partial SVD with largest and smallest singular values.
-- Generalized symmetric-definite eigenproblem support, `A x = lambda B x`.
-- Generalized SVD API for matrix pairs, with largest and smallest generalized
-  singular values.
-- Residual, orthogonality, rank-deficiency, and convergence tests.
-- Optional backend boundary for production spectral engines.
+- Route incompatible changes to a new minor line.
+- Admit provisional modules only with an explicit artifact manifest, runtime
+  support statement, compatibility baseline, and consumer evidence.
+- Keep new algorithms and providers additive unless their contracts require a
+  deliberate version boundary.
 
-### v0.4: Type and API Polish
+## `v0.1.0-M1` acceptance criteria
 
-- Optional sized layer.
-- Matrix property wrappers.
-- Breeze interop.
-- Syntax modules.
-- Documentation and migration guide.
-- Examples: regression, PCA, graph Laplacian, least squares.
+The milestone is acceptable only when:
 
-### v0.5: Acceleration
+- build metadata, README, policy, PRD, tracker, and ecosystem catalog agree on
+  the 0.1 lifecycle and exact candidate commit;
+- `gale-core` and `gale-laws` cross-build for JVM and Scala.js and their POMs
+  contain no forbidden snapshot or implicit sibling dependencies;
+- stable and provisional artifacts and APIs are documented explicitly;
+- the complete maintained-platform test, law, optimized-link, documentation,
+  parity, interop, backend, dependency, and benchmark-compile court passes;
+- the public examples compile and the documented numerical, ownership,
+  convergence, and work-accounting contracts remain tested;
+- all nine direct consumers pass their relevant gates against the same commit,
+  with no remaining caller of a removed API;
+- an exported-API receipt and qualified benchmark artifacts are retained;
+- branch protection and the manual release dry run are verified;
+- a signed four-artifact bundle passes exact-set validation; and
+- a clean external consumer resolves and exercises `v0.1.0-M1` without local
+  repository or sibling-checkout assistance.
 
-- JVM Vector API backend.
-- JVM BLAS/LAPACK FFM backend.
-- Native memory-backed `NativeDMat` design.
-- Backend threshold policy and measured native crossover defaults.
-- Backend threading policy.
-- Pure blocked `gemm` roadmap and benchmark comparison.
-- Wasm kernel profile.
-- Backend conformance suite.
-- Benchmark dashboard.
+## Resolved product decisions
 
-### v1.0: Stability
+- The organization is `io.github.canardlapin`. The first admitted artifacts are
+  `gale-core` and `gale-laws` for JVM and Scala.js.
+- Dense literals and owned heap matrices use row-major value order. Views retain
+  explicit strides, and native LAPACK storage remains an explicit column-major
+  boundary.
+- Total solve and factorization entry points return `Either[LinAlgError, A]`;
+  `.orThrow` is the named convenience for exception-oriented callers.
+- `gale-laws` is a normal published module.
+- Node 22 is the tested Scala.js runtime. Browser support is intended but not
+  certified until browser CI exists; Wasm remains experimental and excluded.
+- Matrix Market support lives with the sparse API in `gale-core`.
+- Native thresholds are measured per operation, platform, and library family.
+  Unknown configurations stay default-off rather than borrowing another
+  machine's threshold.
+- `NativeDMat` lives in the separate JVM native-storage module; the FFM BLAS
+  module builds on that ownership boundary.
 
-- Binary compatibility policy.
-- Complete dense real v1 API.
-- Clear sparse v1 API.
-- Documented numerical guarantees.
-- Published migration guide.
-- No exposed platform storage leakage.
-- No residual `atlas` package, docs, or examples.
-
-### v1.1: Matrix-Free Generalized Symmetric Eigensolvers
-
-- A typed operator-level partial solver for `A x = lambda B x`, with `A`
-  symmetric and `B` symmetric positive-definite.
-- Portable shared LOBPCG as the first engine, using `A*X`, `B*X`, and an
-  optional explicit preconditioner without forming `B^-1`.
-- `Count(k, SmallestAlgebraic | LargestAlgebraic)` selection initially, with
-  ascending output, `B`-orthonormal eigenvectors, true generalized residuals,
-  and honest partial-convergence diagnostics.
-- A block initial-subspace contract rather than overloading a scalar start
-  vector.
-- A real `SpectralCapability.IterativeGeneralized` provider operation with the
-  pure LOBPCG implementation as the portable fallback.
-- A later generalized block-Lanczos engine gated on a typed metric-solve
-  capability; no hidden `B` factorization or inverse.
-- Analytic, differential, metamorphic, adversarial, cross-platform, and
-  work-accounting tests plus reproducible benchmark receipts.
-- Alignment and other application-domain concepts remain outside Gale.
-
-## Acceptance Criteria
-
-Gale v1 is acceptable when:
-
-- `gale-core`, `gale-kernel`, `gale-factorization`, `gale-sparse`,
-  `gale-solvers`, and `gale-laws` cross-build for JVM and Scala.js.
-- The public examples in this PRD compile with `import gale.linalg.*`.
-- `gale-core` has no Breeze, Spire, Cats Effect, ZIO, native, plotting, or JVM-only
-  dependency.
-- Dense solve residual examples satisfy documented tolerance thresholds.
-- Sparse iterative solver examples return convergence diagnostics.
-- Partial spectral examples return ordered eigenvalue/singular-value results
-  with residual diagnostics.
-- Backend conformance tests pass for pure JVM and Scala.js.
-- JVM acceleration backends are optional and selected only by explicit imports.
-- JS storage uses typed arrays behind private platform abstractions.
-- There is no public `Array[Double]` storage contract.
-- `Vec(1.0, 2.0, 3.0)` returns the primitive `DVec` representation.
-- Primitive dense and sparse kernels have no per-element boxing or collection
-  allocation in benchmark allocation profiles.
-- Generic `Vec[A]` fallback behavior is documented as correctness-oriented, not
-  the primitive throughput path.
-- Native BLAS/LAPACK routing is thresholded with benchmark-derived defaults.
-- Native-backed dense storage is explicit and documented.
-- Backend threading policy prevents JVM and native oversubscription by default.
-- Tiny fixed-size kernels bypass the general strided matrix path.
-- There are no `atlas.linalg`, `zephyr.linalg`, or placeholder package names in
-  code or docs.
-
-## Open Decisions
-
-- Organization and artifact coordinates.
-- Default owned dense layout: row-major, column-major, or explicit layout
-  default with constructor value order separated from storage order.
-- Whether `solve` should return `Either` by default or whether `trySolve` should
-  be the total form with `solve` as throwing convenience.
-- Whether `gale-laws` should be published as a normal module or testkit-only
-  artifact.
-- Minimum supported Node/browser versions for Scala.js Wasm examples.
-- Whether Matrix Market IO belongs in `gale-sparse` or a small `gale-io` module.
-- Initial native backend threshold defaults by operation and platform.
-- Whether `NativeDMat` lives in the BLAS backend module or a small JVM-native
-  storage module shared by BLAS and future sparse direct solvers.
+No release-blocking product decisions remain open in this document. New scope
+must enter the tracker with its contract and verification gate.
 
 ## Product Warning
 
 The central failure mode is overgeneralizing too early. Gale should not try to
 be a tensor library, plotting system, probabilistic programming library, and
-native numerical wrapper at once. The winning v1 is a small, typed, functional
-linear algebra core with honest runtime backends and enough sparse support to be
-useful without pretending to replace SuiteSparse.
+native numerical wrapper at once. Gale remains a small, typed, functional
+linear algebra core with explicit runtime backends and enough sparse support to
+be useful without pretending to replace SuiteSparse.

@@ -26,7 +26,7 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - name: Check the release formatting scope
+      - name: Check all maintained Scala and build sources
         run: sbt scalafmtCheckAll
       - name: Compile with fatal compiler warnings
         run: sbt coreJVM/compile coreJS/compile
@@ -52,6 +52,49 @@ jobs:
       - name: Run ${{ matrix.platform }} tests
         run: sbt -v "core${{ matrix.platform }}/test" "laws${{ matrix.platform }}/test"
 
+  coverage-jvm:
+    name: JVM coverage report (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Run the core JVM suite with coverage instrumentation
+        run: sbt coverageJVM
+      - name: Retain HTML, XML, and Cobertura reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gale-jvm-coverage
+          path: |
+            core/jvm/target/scala-3.7.4/scoverage-report
+            core/jvm/target/scala-3.7.4/coverage-report
+          if-no-files-found: warn
+          retention-days: 14
+
+  compatibility:
+    name: MiMa and TASTy-MiMa baseline (pre-M1 advisory)
+    runs-on: ubuntu-latest
+    # M1 creates the first immutable baseline. The build already wires both
+    # tools; this job becomes blocking and receives
+    # -Dgale.compatibility.baseline=0.1.0-M1 immediately after publication.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Exercise admitted-artifact compatibility tasks
+        run: sbt compatibilityCheck
+
   docs:
     name: Scaladoc and executable guides
     runs-on: ubuntu-latest
@@ -69,9 +112,9 @@ jobs:
   scala-next-consumer:
     name: Scala 3.8.4 consumer probe
     runs-on: ubuntu-latest
-    # TASTy/API compatibility evidence is advisory until the project defines a
-    # binary-compatibility baseline; it remains visible and never masks required
-    # release jobs.
+    # TASTy/API compatibility evidence is advisory until M1 publishes the first
+    # immutable baseline; it remains visible and never masks required release
+    # jobs.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4

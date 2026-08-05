@@ -8,6 +8,9 @@ import org.scalacheck.Prop.forAll
   * laws module: public API only.
   */
 class MatrixMarketLawSuite extends munit.ScalaCheckSuite:
+  override def scalaCheckInitialSeed =
+    "_Xa8Y-7Jwvj_jHt0GpX-fggSVAD0CKUbGaCwwWQsCzN="
+
   property("CSR matvec equals dense matvec for small generated matrices") {
     forAll { (
         a00: Int,
@@ -32,7 +35,8 @@ class MatrixMarketLawSuite extends munit.ScalaCheckSuite:
         var col = 0
         while col < 3 do
           val value = raw(row * 3 + col)
-          if value != 0.0 then builder.add(row, col, value)
+          if value != 0.0 then
+            val _ = builder.add(row, col, value)
           col += 1
         row += 1
       val sparse = builder.toCSR()

@@ -160,7 +160,6 @@ class SpectralParitySuite extends munit.FunSuite:
 
   test("dense eigSym: repeated eigenvalue, subspace parity") {
     val spectrum = Array(1.0, 1.0, 1.0, 5.0, 9.0) // triple at 1.0
-    val n        = spectrum.length
     for seed <- List(1L, 2L, 3L) do
       val data = withSpectrum(spectrum, seed)
       val gd   = galeEig(data)

@@ -12,8 +12,8 @@ class MutableVectorSuite extends munit.FunSuite:
     val vector = builder.result()
 
     assertEquals(vector.toSeq, Seq(1.0, 2.0, 9.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.update(0, -1.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.result())
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.update(0, -1.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
     assertEquals(vector(0), 1.0)
   }
 
@@ -24,6 +24,6 @@ class MutableVectorSuite extends munit.FunSuite:
     val builder = DVecBuilder.zeros(2)
     builder.fill(4.0)
     assertEquals(builder(1), 4.0)
-    intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 1.0))
-    intercept[LinAlgError.IndexOutOfBounds](builder.update(2, 1.0))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 1.0))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](builder.update(2, 1.0))
   }

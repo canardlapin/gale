@@ -232,7 +232,7 @@ class BackendSeamSuite extends munit.FunSuite:
     DoublingKernel.reset()
     // The blocked path is selected by min(rows, cols) >= 96.
     val large = Matrix.tabulate(128, 96)((i, j) => if i == j then 3.0 else ((i * 7 + j * 5) % 11).toDouble / 11.0)
-    large.qr(using DoublingBackend(LowThreshold))
+    val _ = large.qr(using DoublingBackend(LowThreshold))
     assert(DoublingKernel.gemmCalls > 0, "blocked QR never reached the backend gemm seam")
   }
 
@@ -242,7 +242,7 @@ class BackendSeamSuite extends munit.FunSuite:
     val rhs = Vec(1.0, 2.0)
     assert(spd.lu(using FactorBackend).isRight)
     assert(spd.cholesky(using FactorBackend).isRight)
-    spd.qr(using FactorBackend)
+    val _ = spd.qr(using FactorBackend)
     assert(spd.solve(rhs)(using FactorBackend).isRight)
     assert(spd.leastSquares(rhs)(using FactorBackend).isRight)
     assertEquals(RecordingFactorizations.luCalls, 2)
@@ -261,7 +261,7 @@ class BackendSeamSuite extends munit.FunSuite:
   test("qrWith never routes to a provider — the workspace facade is allocation-controlled") {
     RecordingFactorizations.reset()
     val m = Matrix.dense(3, 2)(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-    m.qrWith(DenseWorkspace.forQR(3, 2))(using FactorBackend)
+    val _ = m.qrWith(DenseWorkspace.forQR(3, 2))(using FactorBackend)
     assertEquals(RecordingFactorizations.qrCalls, 0)
   }
 

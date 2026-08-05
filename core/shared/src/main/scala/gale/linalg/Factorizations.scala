@@ -849,7 +849,7 @@ object DenseDecompositions:
       tOffset: Int,
       tempOffset: Int,
       tStride: Int
-  )(using backend: Backend): Unit =
+  ): Unit =
     var i = 0
     var j = 0
     while i < panelWidth do
@@ -1209,7 +1209,9 @@ object DenseDecompositions:
         x(i) = bData(bOff + pivots(i) * bStep)
         i += 1
       // L y = Pb: unit lower diagonal, so the guard never trips here.
-      DoubleKernels.dtrsv(n, lower = true, unit = true, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
+      val lowerInfo =
+        DoubleKernels.dtrsv(n, lower = true, unit = true, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
+      if lowerInfo >= 0 then return Left(LinAlgError.SingularMatrix(lowerInfo))
       // U x = y: a successful LU has nonzero pivots, but guard exact zeros anyway.
       val info = DoubleKernels.dtrsv(n, lower = false, unit = false, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
       if info >= 0 then Left(LinAlgError.SingularMatrix(info))
@@ -1244,7 +1246,7 @@ object DenseDecompositions:
 
       var rhs = 0
       while rhs < rhsCols do
-        DoubleKernels.dtrsv(
+        val lowerInfo = DoubleKernels.dtrsv(
           n,
           lower = true,
           unit = true,
@@ -1257,6 +1259,7 @@ object DenseDecompositions:
           rhs,
           rhsCols
         )
+        if lowerInfo >= 0 then return Left(LinAlgError.SingularMatrix(lowerInfo))
         val info = DoubleKernels.dtrsv(
           n,
           lower = false,

@@ -1,6 +1,6 @@
 # Numerical, sparse, and backend contract
 
-This document states what Gale v1 guarantees and where callers must make an
+This document states the Gale 0.1 core contract and where callers must make an
 explicit numerical or performance choice. It complements the runnable
 [worked examples](../guides/examples.md) and the focused
 [Breeze migration guide](../guides/breeze-equivalence.md).
@@ -67,7 +67,7 @@ selection, metric-solve, backend, and work-accounting contract.
 
 `DVec` and `DMat` are immutable-facing values and views. Their owned platform
 storage (`Array[Double]` on JVM, `Float64Array` on Scala.js) is private API.
-Callers can export copies and can explicitly create documented views, but no v1
+Callers can export copies and can explicitly create documented views, but no 0.1
 public signature promises `Array[Double]` as the representation.
 
 `Vec[Double]` construction selects primitive `DVec`. Generic `Vec[A]` behavior
@@ -87,9 +87,9 @@ are sequential mutable resources and are not safe for concurrent use. Checked
 constructors defensively copy caller arrays; only a Gale-owned builder may
 transfer its storage to an immutable result.
 
-## Sparse v1 support
+## Sparse 0.1 support
 
-Gale v1 supports:
+The admitted Gale 0.1 core supports:
 
 - COO construction with `Sum`, `Last`, or `Error` duplicate policy;
 - canonical CSR and CSC storage, transpose views, sparse addition/subtraction,
@@ -114,7 +114,7 @@ combines duplicates, and prunes exact zeros; it does not apply a numerical
 near-zero threshold unless the caller does so explicitly.
 
 The product plan is a fixed-pattern analyze-once/replay-many facility, not a
-general allocating sparse matrix-matrix multiplication facade. Gale v1 does not
+general allocating sparse matrix-matrix multiplication facade. Gale 0.1 does not
 claim general sparse matrix-matrix multiplication, an implemented sparse direct
 LU/Cholesky/QR provider, complex sparse storage, every Matrix Market
 field/symmetry, or a full Breeze sparse-collection replacement. The JVM-only

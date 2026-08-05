@@ -118,7 +118,7 @@ class SparseInteropSuite extends munit.FunSuite:
     assert(strict.tryAdd(0, 2, Double.NegativeInfinity).isLeft)
     assertEquals(strict.nnz, 0)
     assert(strict.tryAdd(0, 0, 2.0).isRight)
-    intercept[LinAlgError.InvalidArgument](strict.add(0, 1, Double.NaN))
+    val _ = intercept[LinAlgError.InvalidArgument](strict.add(0, 1, Double.NaN))
     assertEquals(strict.nnz, 1)
 
     val legacy = Sparse.coo(1, 1).add(0, 0, Double.NaN).toCOO()

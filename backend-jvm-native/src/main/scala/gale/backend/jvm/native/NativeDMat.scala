@@ -1,6 +1,6 @@
 package gale.backend.jvm.`native`
 
-import gale.linalg.{DMat, Matrix}
+import gale.linalg.DMat
 
 import java.lang.foreign.{Arena, MemorySegment, ValueLayout}
 

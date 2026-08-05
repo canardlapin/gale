@@ -32,26 +32,27 @@ ThisBuild / developers := List(
   )
 )
 
-// sbt-ci-release/sbt-dynver owns the release version. Until a release or
-// release-candidate tag exists, keep the development line visibly on the 1.0
-// track instead of exposing dynver's generic 0.0.0 fallback. A clean
-// `v1.0.0` or `v1.0.0-RC1` tag yields its stable/pre-release version; every
-// other state remains a unique `1.0.0+...-SNAPSHOT` candidate.
+// sbt-ci-release/sbt-dynver owns the release version. Gale is deliberately on
+// the 0.1 line: only an exact `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag yields
+// a publishable version. Every other state remains a unique
+// `0.1.0+...-SNAPSHOT` development build, regardless of the nearest tag.
 def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
-  val rawBase = out.ref.value.stripPrefix("v")
-  val base = if (rawBase == "0.0.0") "1.0.0" else rawBase
+  val taggedVersion = out.ref.value.stripPrefix("v")
+  val allowedTag = taggedVersion.matches("0\\.1\\.[0-9]+(?:-(?:M|RC)[1-9][0-9]*)?")
+  val exactTag = allowedTag && out.ref.value.startsWith("v") && out.commitSuffix.distance == 0
+  val base = if (exactTag) taggedVersion else "0.1.0"
   val commit =
     if (out.commitSuffix.distance == 0) ""
     else s"+${out.commitSuffix.distance}-${out.commitSuffix.sha}"
   val dirty =
     if (out.dirtySuffix.value.isEmpty) ""
     else s"+${out.dirtySuffix.value.stripPrefix("+")}"
-  val stable = out.ref.value.startsWith("v") && out.commitSuffix.distance == 0 && dirty.isEmpty
-  if (stable) base else s"$base$commit$dirty-SNAPSHOT"
+  val publishable = exactTag && dirty.isEmpty
+  if (publishable) base else s"$base$commit$dirty-SNAPSHOT"
 }
 
 def galeReleaseFallbackVersion(date: java.util.Date): String = {
-  s"1.0.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
+  s"0.1.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
 }
 
 inThisBuild(List(
@@ -73,8 +74,44 @@ lazy val commonScalacOptions = Seq(
   "-feature",
   "-unchecked",
   "-Xmax-inlines:64",
+  "-Wunused:all",
+  "-Wvalue-discard",
+  "-Wnonunit-statement",
   "-Werror"
 )
+
+// mdoc's generated binder deliberately emits every rendered value as a
+// statement and then discards it. Keep all other fatal warnings on executable
+// guides, but do not classify those instrumentation details as source-level
+// non-Unit statements or value discards.
+lazy val docsScalacOptions =
+  commonScalacOptions.filterNot(Set("-Wvalue-discard", "-Wnonunit-statement"))
+
+// Before the first immutable milestone there is no released compatibility
+// baseline to compare against. A post-M1 build supplies
+// -Dgale.compatibility.baseline=0.1.0-M1; the admitted artifacts then run both
+// MiMa/version-policy and TASTy-MiMa against that exact release.
+lazy val galeCompatibilityBaseline = settingKey[Option[String]](
+  "Immutable Gale milestone used as the binary, source, and TASTy compatibility baseline"
+)
+
+ThisBuild / galeCompatibilityBaseline :=
+  sys.props.get("gale.compatibility.baseline").map(_.trim).filter(_.nonEmpty)
+
+ThisBuild / versionPolicyIgnoredInternalDependencyVersions :=
+  Some("^0\\.1\\.0\\+.*-SNAPSHOT$".r)
+
+lazy val admittedCompatibilitySettings = Seq(
+  versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
+  versionPolicyPreviousVersions := galeCompatibilityBaseline.value.toSeq,
+  tastyMiMaPreviousArtifacts ++= galeCompatibilityBaseline.value
+    .map(baseline => projectID.value.withRevision(baseline))
+    .toSet
+)
+
+// Coverage is evidence, not a noisy release threshold. The dedicated JVM job
+// retains HTML/XML reports so risk gaps can be reviewed and closed explicitly.
+ThisBuild / coverageFailOnMinimum := false
 
 // Release candidates must not silently pull an unpublished snapshot at
 // compile or runtime. Keep this check attached to each admitted artifact so
@@ -123,9 +160,11 @@ lazy val releaseVersionCheck = taskKey[Unit](
 lazy val releaseVersionSettings = Seq(
   releaseVersionCheck := {
     val candidate = version.value
-    val releasePattern = "[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?"
+    val releasePattern = "0\\.1\\.[0-9]+(?:-(?:M|RC)[1-9][0-9]*)?"
     if (candidate.endsWith("-SNAPSHOT") || !candidate.matches(releasePattern))
-      sys.error(s"release publication requires a clean vX.Y.Z or vX.Y.Z-RCn tag; derived version was $candidate")
+      sys.error(
+        s"0.1 publication requires a clean v0.1.x, v0.1.x-Mn, or v0.1.x-RCn tag; derived version was $candidate"
+      )
   }
 )
 
@@ -167,6 +206,7 @@ lazy val core: CrossProject =
     .crossType(CrossType.Full)
     .in(file("core"))
     .settings(commonSettings)
+    .settings(admittedCompatibilitySettings)
     .settings(releaseSnapshotSettings)
     .settings(releaseVersionSettings)
     .settings(
@@ -183,6 +223,7 @@ lazy val laws: CrossProject =
     .crossType(CrossType.Full)
     .in(file("laws"))
     .dependsOn(core)
+    .settings(admittedCompatibilitySettings)
     .settings(releaseSnapshotSettings)
     .settings(releaseVersionSettings)
     .settings(
@@ -216,7 +257,7 @@ lazy val docs =
     .settings(
       name           := "gale-docs",
       publish / skip := true,
-      scalacOptions ++= commonScalacOptions,
+      scalacOptions ++= docsScalacOptions,
       mdocIn := file("docs/user"),
       tlSiteHelium := tlSiteHelium.value.site.topNavigationBar(
         homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
@@ -311,7 +352,7 @@ lazy val interopRavel: CrossProject =
       name := "gale-interop-ravel",
       description := "Explicit copy conversions between Ravel arrays and Gale vectors and matrices.",
       // Ravel is still a development snapshot and is deliberately outside
-      // the immutable Gale 1.0 artifact set.
+      // the immutable Gale 0.1 artifact set.
       publish / skip := true,
       libraryDependencies +=
         "io.github.canardlapin" %%% "ravel-core" % ravelVersion
@@ -356,12 +397,7 @@ lazy val blasFfmBackend =
     )
 
 lazy val benchmarkSettings = Seq(
-  scalacOptions ++= Seq(
-    "-deprecation",
-    "-feature",
-    "-unchecked",
-    "-Xmax-inlines:64"
-  ),
+  scalacOptions ++= commonScalacOptions,
   publish / skip := true
 )
 
@@ -482,19 +518,17 @@ addCommandAlias("parityTest", ";parity/test")
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
 // Ravel interop module (copy-only dense vector/matrix conversions).
 addCommandAlias("interopRavelTest", ";interopRavelJVM/test;interopRavelJS/test")
-// Admitted 1.0 modules are checked independently so an optional development
-// integration cannot mask a release dependency failure.
+// Stable and provisional 0.1 modules are checked independently so an optional
+// development integration cannot mask a release dependency failure.
 addCommandAlias(
   "releaseDependencyCheck",
   ";coreJVM/releaseSnapshotCheck;coreJS/releaseSnapshotCheck;lawsJVM/releaseSnapshotCheck;lawsJS/releaseSnapshotCheck;interopBreeze/releaseSnapshotCheck;vectorBackend/releaseSnapshotCheck;nativeBackend/releaseSnapshotCheck;blasFfmBackend/releaseSnapshotCheck"
 )
-// The first two aliases intentionally split the signed bundle by JDK. The
-// release workflow merges the two Maven-layout staging trees and uploads one
-// Central Portal deployment, so no JDK can publish a partial version alone.
-addCommandAlias("releaseJdk21Unsigned", ";coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish;interopBreeze/publish;vectorBackend/publish")
-addCommandAlias("releaseJdk21Signed", ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned;interopBreeze/publishSigned;vectorBackend/publishSigned")
-addCommandAlias("releaseJdk22Unsigned", ";nativeBackend/publish;blasFfmBackend/publish")
-addCommandAlias("releaseJdk22Signed", ";nativeBackend/publishSigned;blasFfmBackend/publishSigned")
+// The first 0.1 milestone admits only the cross-platform core and reusable law
+// modules. Optional JVM integrations and acceleration backends remain tested
+// by CI but cannot enter the Central bundle through these aliases.
+addCommandAlias("releaseM1Unsigned", ";coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish")
+addCommandAlias("releaseM1Signed", ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned")
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("nativeBackendTest", ";nativeBackend/test")
@@ -506,6 +540,11 @@ addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
 addCommandAlias("scalaNextConsumerProbe", ";coreJVM/publishLocal;scalaNextConsumer/compile")
 addCommandAlias("publishedInteropProbe", ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile")
+addCommandAlias("coverageJVM", ";project coreJVM;clean;coverage;test;coverageReport;coverageOff;project root")
+addCommandAlias(
+  "compatibilityCheck",
+  ";coreJVM/versionPolicyCheck;coreJVM/tastyMiMaReportIssues;coreJS/versionPolicyCheck;coreJS/tastyMiMaReportIssues;lawsJVM/versionPolicyCheck;lawsJVM/tastyMiMaReportIssues;lawsJS/versionPolicyCheck;lawsJS/tastyMiMaReportIssues"
+)
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
 // Compile API docs for both public platforms and execute/render the guide site.
 addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")

@@ -16,6 +16,8 @@ class SizedOpacitySuite extends munit.FunSuite:
   private val m: SMat[2, 2] = SMat.mat2(1.0, 2.0, 3.0, 4.0)
 
   test("SVec/SMat do not leak into the unsized DVec/DMat API") {
+    val _ = s
+    val _ = m
     // Opaque: a sized value is NOT a subtype of the unsized runtime type, so it
     // cannot silently flow into unsized code without the sanctioned lowering.
     assert(compileErrors("val d: DVec = s").nonEmpty, "SVec must not be usable as a DVec")

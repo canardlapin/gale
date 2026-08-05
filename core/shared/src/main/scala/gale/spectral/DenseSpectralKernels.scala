@@ -379,7 +379,7 @@ private[gale] object DenseSpectralKernels:
           var innerZero = false
           var iBt = m - 1
           while iBt >= l && !innerZero do
-            var f = s * e(eOffset + iBt)
+            val f = s * e(eOffset + iBt)
             val b = c * e(eOffset + iBt)
             r = pythag(f, g)
             e(eOffset + iBt + 1) = r
@@ -494,7 +494,7 @@ private[gale] object DenseSpectralKernels:
       case None =>
         val vectors =
           if wantVectors then
-            normalizeSchurVectors(n, wr, wi, z)
+            normalizeSchurVectors(n, wi, z)
             Some(DMat.fromDoubleArrayOwned(n, n, z))
           else None
         Right(NonsymmetricEigen(DVec.fromDoubleArrayOwned(wr), DVec.fromDoubleArrayOwned(wi), vectors))
@@ -681,7 +681,7 @@ private[gale] object DenseSpectralKernels:
           var w = hv(en, na) * hv(na, en)
           if l == na then
             // Two roots found (a real pair or a complex conjugate pair).
-            var p = (y - x) / 2.0
+            val p = (y - x) / 2.0
             val q = p * p + w
             var zz = math.sqrt(math.abs(q))
             sh(en, en, x + t)
@@ -1020,7 +1020,7 @@ private[gale] object DenseSpectralKernels:
     * `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair,
     * so the packing invariant and the `A v = λ v` relation are preserved.
     */
-  private def normalizeSchurVectors(n: Int, wr: DoubleArray, wi: DoubleArray, z: DoubleArray): Unit =
+  private def normalizeSchurVectors(n: Int, wi: DoubleArray, z: DoubleArray): Unit =
     var col = 0
     while col < n do
       if wi(col) > 0.0 then

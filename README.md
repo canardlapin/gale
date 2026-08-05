@@ -11,7 +11,8 @@ library needs real-`Double` matrices, typed failure and convergence evidence,
 or matrix-free algorithms without taking a JVM-only dependency.
 
 > **Status:** Pre-release and source-only. Untagged builds derive a unique
-> `1.0.0+...-SNAPSHOT` version; Gale is not available from Maven Central yet.
+> `0.1.0+...-SNAPSHOT` version; Gale is not available from Maven Central yet.
+> The first intended immutable ecosystem checkpoint is `v0.1.0-M1`.
 
 ## Quick start
 
@@ -147,7 +148,7 @@ sbt nativeBackendTest blasFfmBackendTest benchFfmCompile
 
 The CI workflow also exercises Vector API on JDK 21 and 22, FFM/OpenBLAS on JDK
 22, and an allow-failure experimental WebAssembly lane. See the
-[compatibility and artifact policy](docs/release-policy.md) for the intended v1
+[compatibility and artifact policy](docs/release-policy.md) for the intended 0.1
 boundary and the [benchmark dashboard](benchmarks/dashboard.md) for qualified
 backend evidence.
 

@@ -14,8 +14,8 @@ class MutableMatrixSuite extends munit.FunSuite:
     val matrix = builder.result()
 
     assertEquals(matrix.valuesRowMajor, Seq(1.0, 2.0, 3.0, 4.0, 5.0, 9.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.result())
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
     assertEquals(matrix(0, 0), 1.0)
   }
 
@@ -24,9 +24,9 @@ class MutableMatrixSuite extends munit.FunSuite:
     assertEquals((empty.rows, empty.cols), (0, 3))
 
     val builder = DMatBuilder.zeros(2, 2)
-    intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 0, 1.0))
-    intercept[LinAlgError.IndexOutOfBounds](builder.update(0, 2, 1.0))
-    intercept[LinAlgError.IndexOutOfBounds](builder.writeLinear(4, 1.0))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](builder.update(-1, 0, 1.0))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](builder.update(0, 2, 1.0))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](builder.writeLinear(4, 1.0))
   }
 
   test("consumeQR transfers builder storage, matches result then QR, and closes every operation") {
@@ -60,12 +60,12 @@ class MutableMatrixSuite extends munit.FunSuite:
     assertEquals(actual.solveLeastSquares(rhs).orThrow.toSeq, expected.solveLeastSquares(rhs).orThrow.toSeq)
     assertEquals(actual.normalizedCovariance.orThrow.valuesRowMajor, expected.normalizedCovariance.orThrow.valuesRowMajor)
 
-    intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
-    intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.writeLinear(0, -1.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.fill(0.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.result())
-    intercept[LinAlgError.UnsupportedOperation](builder.consumeQR)
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, -1.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.writeLinear(0, -1.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.fill(0.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.consumeQR)
     assertEquals(actual.r.valuesRowMajor, expected.r.valuesRowMajor)
   }
 
@@ -104,8 +104,8 @@ class MutableMatrixSuite extends munit.FunSuite:
       assertEquals(actual.columnPermutation.toIndexSeq, expected.columnPermutation.toIndexSeq)
       assertEquals(actual.diagnostics, expected.diagnostics)
       assertEquals(actual.q.valuesRowMajor, expected.q.valuesRowMajor)
-      intercept[LinAlgError.UnsupportedOperation](source.result())
-      intercept[LinAlgError.UnsupportedOperation](source.consumeQR)
+      val _ = intercept[LinAlgError.UnsupportedOperation](source.result())
+      val _ = intercept[LinAlgError.UnsupportedOperation](source.consumeQR)
       assertEquals(actual.r.valuesRowMajor, expected.r.valuesRowMajor)
   }
 
@@ -119,6 +119,6 @@ class MutableMatrixSuite extends munit.FunSuite:
       assertEquals(actual.diagnostics.rank, Some(0))
       assertEquals(actual.columnPermutation.toIndexSeq, (0 until cols).toIndexedSeq)
       assert(TestAccess.sameStorage(transferred, TestAccess.dmatStorage(actual.r)))
-      intercept[LinAlgError.UnsupportedOperation](builder.result())
-      intercept[LinAlgError.UnsupportedOperation](builder.consumeQR)
+      val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
+      val _ = intercept[LinAlgError.UnsupportedOperation](builder.consumeQR)
   }

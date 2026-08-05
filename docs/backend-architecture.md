@@ -578,8 +578,8 @@ control for the optional Vector backend.
 Recommendation: **D-1 then D-2 are the worthwhile pure stages**; D-3 folds into
 D-2; D-4 is opt-in and policy-gated. Anything beyond D-2 competes with native and
 should defer to the crossover rule (D.4) rather than chase OpenBLAS in pure Scala
-(explicit PRD non-goal: "Beating OpenBLAS/BLIS/MKL/Accelerate on large GEMM is not
-a v1 goal").
+(explicit PRD non-goal: beating OpenBLAS, BLIS, MKL, or Accelerate on large GEMM
+is not a release requirement).
 
 **Implementation update (2026-07-17):** D-2 landed as an optional backend. Its
 packed-column 3x3 dot-product GEMM is 1.43–1.67x faster than pure Gale from the

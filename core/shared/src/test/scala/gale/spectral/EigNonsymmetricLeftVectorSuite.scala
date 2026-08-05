@@ -152,15 +152,15 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
       i += 1
 
     // Right-only: right present, left absent.
-    right.eigenvector(0)
-    intercept[LinAlgError.UnsupportedOperation](right.leftEigenvector(0))
+    val _ = right.eigenvector(0)
+    val _ = intercept[LinAlgError.UnsupportedOperation](right.leftEigenvector(0))
     // Left-only: left present, right absent.
-    left.leftEigenvector(0)
-    intercept[LinAlgError.UnsupportedOperation](left.eigenvector(0))
+    val _ = left.leftEigenvector(0)
+    val _ = intercept[LinAlgError.UnsupportedOperation](left.eigenvector(0))
     // LeftAndRight: both present, and the left/right vectors match the one-sided
     // solves elementwise (same kernel solve + same V⁻¹ recovery underneath).
-    both.eigenvector(0)
-    both.leftEigenvector(0)
+    val _ = both.eigenvector(0)
+    val _ = both.leftEigenvector(0)
     assertVecEquals(both.leftEigenvector(0)._1, left.leftEigenvector(0)._1)
     assertVecEquals(both.eigenvector(0)._1, right.eigenvector(0)._1)
   }
@@ -233,8 +233,8 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
   test("values-only and right-only are unchanged; Arnoldi still rejects left") {
     val a = randomReal(5, 3L)
     val vo = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get
-    intercept[LinAlgError.UnsupportedOperation](vo.leftEigenvector(0))
-    intercept[LinAlgError.UnsupportedOperation](vo.eigenvector(0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](vo.leftEigenvector(0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](vo.eigenvector(0))
 
     // The iterative path has no left-vector notion.
     val opts = SpectralOptions(returnVectors = EigenVectors.Left)

@@ -1,5 +1,10 @@
 # Gale v1 acceptance audit
 
+> **Historical record:** This source-level audit predates the 0.1 release-line
+> decision. Its test evidence remains useful, but its version and artifact
+> assumptions are superseded by `docs/release-policy.md` and
+> `docs/release-manifest.md`.
+
 Audit date: 2026-07-17. Audited build: `1.0.0-SNAPSHOT` on the current local
 tree. This is an engineering acceptance record, not evidence of a public
 release or remote CI run.

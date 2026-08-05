@@ -1,7 +1,6 @@
 package gale.parity
 
 import breeze.linalg.*
-import gale.linalg.*
 import gale.parity.ParitySupport.*
 
 /** Dense BLAS-level parity: gale's `DMat`/`DVec` products and combinations versus

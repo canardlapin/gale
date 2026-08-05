@@ -88,8 +88,8 @@ class BackendContractSuite extends munit.FunSuite:
     assertEquals(BackendConfig.singleThreaded, BackendConfig(1, 1))
     assertEquals(BackendConfig.dedicated(8), BackendConfig(8, 8))
     assertEquals(BackendConfig.singleThreaded.allowNestedParallelism, false)
-    intercept[IllegalArgumentException](BackendConfig(0, 1))
-    intercept[IllegalArgumentException](BackendConfig(1, 0))
+    val _ = intercept[IllegalArgumentException](BackendConfig(0, 1))
+    val _ = intercept[IllegalArgumentException](BackendConfig(1, 0))
   }
 
   test("Backend.current reports the resolved backend without global state") {
@@ -111,7 +111,7 @@ class BackendContractSuite extends munit.FunSuite:
     val errors = Backend.validationErrors(missingBoth)
     assert(errors.exists(_.contains("denseFactorizations")))
     assert(errors.exists(_.contains("spectral")))
-    intercept[IllegalArgumentException](Backend.requireValid(missingBoth))
+    val _ = intercept[IllegalArgumentException](Backend.requireValid(missingBoth))
     val emptySpectral = new Backend:
       val name = "empty-spectral-lapack"
       val capabilities = Set(Capability.NativeLapack)
