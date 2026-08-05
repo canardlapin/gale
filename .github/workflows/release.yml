@@ -59,7 +59,7 @@ jobs:
       - name: Run the release dependency gate
         run: sbt releaseDependencyCheck
       - name: Re-run the complete correctness, optimized-link, and docs gates
-        run: sbt scalafmtCheckAll testAllFull compileAll parityTest interopBreezeTest benchCompile docsCheck
+        run: sbt formatCheck testAllFull compileAll parityTest interopBreezeTest benchCompile docsCheck
 
   package:
     name: Stage Gale 0.1 artifacts

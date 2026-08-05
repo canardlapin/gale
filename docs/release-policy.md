@@ -89,7 +89,7 @@ not replace compatibility checks between Gale releases.
 One clean, pushed commit must pass:
 
 ```text
-scalafmtCheckAll
+formatCheck
 releaseDependencyCheck
 testAllFull
 compileAll

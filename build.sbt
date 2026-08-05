@@ -14,8 +14,8 @@ lazy val scalaNextVersion = "3.8.4"
 ThisBuild / organization := "io.github.canardlapin"
 ThisBuild / scalaVersion := scalaBaselineVersion
 ThisBuild / versionScheme := Some("early-semver")
-ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
-ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / homepage := Some(url("https://github.com/canardlapin/gale"))
+ThisBuild / licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/canardlapin/gale"),
@@ -55,19 +55,21 @@ def galeReleaseFallbackVersion(date: java.util.Date): String = {
   s"0.1.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
 }
 
-inThisBuild(List(
-  version := dynverGitDescribeOutput.value.mkVersion(
-    galeReleaseVersion,
-    galeReleaseFallbackVersion(dynverCurrentDate.value)
-  ),
-  dynver := {
-    val date = new java.util.Date
-    sbtdynver.DynVer
-      .getGitDescribeOutput(date)
-      .map(galeReleaseVersion)
-      .getOrElse(galeReleaseFallbackVersion(date))
-  }
-))
+inThisBuild(
+  List(
+    version := dynverGitDescribeOutput.value.mkVersion(
+      galeReleaseVersion,
+      galeReleaseFallbackVersion(dynverCurrentDate.value)
+    ),
+    dynver := {
+      val date = new java.util.Date
+      sbtdynver.DynVer
+        .getGitDescribeOutput(date)
+        .map(galeReleaseVersion)
+        .getOrElse(galeReleaseFallbackVersion(date))
+    }
+  )
+)
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",
@@ -139,9 +141,7 @@ lazy val releaseSnapshotSettings = Seq(
       .flatMap(_.modules)
       .map(_.module)
       .filter(_.revision.toUpperCase.contains("SNAPSHOT"))
-      .filterNot(m =>
-        m.organization == organization.value && releaseInternalModules.contains(m.name)
-      )
+      .filterNot(m => m.organization == organization.value && releaseInternalModules.contains(m.name))
       .distinct
 
     if (snapshots.nonEmpty) {
@@ -196,7 +196,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   Test / fork := false,
   libraryDependencies ++= Seq(
-    "org.scalameta" %%% "munit"            % munitVersion % Test,
+    "org.scalameta" %%% "munit" % munitVersion % Test,
     "org.scalameta" %%% "munit-scalacheck" % munitVersion % Test
   )
 )
@@ -232,16 +232,16 @@ lazy val laws: CrossProject =
       scalacOptions ++= commonScalacOptions,
       Test / fork := false,
       libraryDependencies ++= Seq(
-        "org.scalameta" %%% "munit"            % munitVersion,
+        "org.scalameta" %%% "munit" % munitVersion,
         "org.scalameta" %%% "munit-scalacheck" % munitVersion
       )
     )
     .jsSettings(jsWasmSettings: _*)
 
-lazy val lawsJS  = laws.js
+lazy val lawsJS = laws.js
 lazy val lawsJVM = laws.jvm
 
-lazy val coreJS  = core.js
+lazy val coreJS = core.js
 lazy val coreJVM = core.jvm
 
 // Executable public guide site. User-facing Markdown lives under docs/user;
@@ -255,7 +255,7 @@ lazy val docs =
     .dependsOn(coreJVM)
     .enablePlugins(TypelevelSitePlugin)
     .settings(
-      name           := "gale-docs",
+      name := "gale-docs",
       publish / skip := true,
       scalacOptions ++= docsScalacOptions,
       mdocIn := file("docs/user"),
@@ -282,14 +282,14 @@ lazy val parity =
     .in(file("parity"))
     .dependsOn(coreJVM)
     .settings(
-      name           := "gale-parity",
+      name := "gale-parity",
       publish / skip := true,
-      Test / fork    := false,
+      Test / fork := false,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit"            % munitVersion  % Test,
-        "org.scalameta" %% "munit-scalacheck" % munitVersion  % Test,
-        "org.scalanlp"  %% "breeze"           % breezeVersion % Test
+        "org.scalameta" %% "munit" % munitVersion % Test,
+        "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+        "org.scalanlp" %% "breeze" % breezeVersion % Test
       )
     )
 
@@ -310,8 +310,8 @@ lazy val interopBreeze =
       scalacOptions ++= commonScalacOptions,
       Test / fork := false,
       libraryDependencies ++= Seq(
-        "org.scalanlp"  %% "breeze" % breezeVersion,
-        "org.scalameta" %% "munit"  % munitVersion % Test
+        "org.scalanlp" %% "breeze" % breezeVersion,
+        "org.scalameta" %% "munit" % munitVersion % Test
       )
     )
 
@@ -360,7 +360,7 @@ lazy val interopRavel: CrossProject =
     .jsSettings(jsWasmSettings: _*)
 
 lazy val interopRavelJVM = interopRavel.jvm
-lazy val interopRavelJS  = interopRavel.js
+lazy val interopRavelJS = interopRavel.js
 
 // JVM 22+ native storage. Kept separate so core and every Scala.js artifact stay
 // free of java.lang.foreign references.
@@ -455,7 +455,7 @@ lazy val demo =
     .enablePlugins(ScalaJSPlugin)
     .dependsOn(coreJS)
     .settings(
-      name           := "gale-demo",
+      name := "gale-demo",
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       scalaJSUseMainModuleInitializer := true,
@@ -472,8 +472,8 @@ lazy val scalaNextConsumer =
   project
     .in(file("compat/scala-next-consumer"))
     .settings(
-      name           := "gale-scala-next-consumer-probe",
-      scalaVersion   := scalaNextVersion,
+      name := "gale-scala-next-consumer-probe",
+      scalaVersion := scalaNextVersion,
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies += "io.github.canardlapin" %% "gale-core" % version.value
@@ -488,7 +488,7 @@ lazy val publishedInteropConsumer =
   project
     .in(file("compat/published-interop-consumer"))
     .settings(
-      name           := "gale-published-interop-consumer-probe",
+      name := "gale-published-interop-consumer-probe",
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies += "io.github.canardlapin" %% "gale-interop-breeze" % version.value
@@ -498,16 +498,30 @@ lazy val root =
   project
     .in(file("."))
     .aggregate(
-      coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS,
-      parity, interopBreeze, interopRavelJVM, interopRavelJS, vectorBackend,
-      nativeBackend, blasFfmBackend
+      coreJS,
+      coreJVM,
+      lawsJS,
+      lawsJVM,
+      benchmarksJVM,
+      benchmarksJS,
+      parity,
+      interopBreeze,
+      interopRavelJVM,
+      interopRavelJS,
+      vectorBackend,
+      nativeBackend,
+      blasFfmBackend
     )
     .settings(
       name := "gale",
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;coreJVM/publishLocal;scalaNextConsumer/compile")
+addCommandAlias(
+  "compileAll",
+  ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;coreJVM/publishLocal;scalaNextConsumer/compile"
+)
+addCommandAlias("formatCheck", ";scalafmtCheckAll;scalafmtSbtCheck")
 addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
@@ -528,7 +542,10 @@ addCommandAlias(
 // modules. Optional JVM integrations and acceleration backends remain tested
 // by CI but cannot enter the Central bundle through these aliases.
 addCommandAlias("releaseM1Unsigned", ";coreJVM/publish;coreJS/publish;lawsJVM/publish;lawsJS/publish")
-addCommandAlias("releaseM1Signed", ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned")
+addCommandAlias(
+  "releaseM1Signed",
+  ";coreJVM/publishSigned;coreJS/publishSigned;lawsJVM/publishSigned;lawsJS/publishSigned"
+)
 // JVM-only Vector-API (SIMD) acceleration backend.
 addCommandAlias("vectorBackendTest", ";vectorBackend/test")
 addCommandAlias("nativeBackendTest", ";nativeBackend/test")
@@ -539,7 +556,10 @@ addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
 addCommandAlias("scalaNextConsumerProbe", ";coreJVM/publishLocal;scalaNextConsumer/compile")
-addCommandAlias("publishedInteropProbe", ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile")
+addCommandAlias(
+  "publishedInteropProbe",
+  ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile"
+)
 addCommandAlias("coverageJVM", ";project coreJVM;clean;coverage;test;coverageReport;coverageOff;project root")
 addCommandAlias(
   "compatibilityCheck",

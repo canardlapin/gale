@@ -27,7 +27,7 @@ jobs:
           cache: sbt
       - uses: sbt/setup-sbt@v1
       - name: Check all maintained Scala and build sources
-        run: sbt scalafmtCheckAll
+        run: sbt formatCheck
       - name: Compile with fatal compiler warnings
         run: sbt coreJVM/compile coreJS/compile
 
