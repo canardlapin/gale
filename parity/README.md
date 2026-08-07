@@ -33,8 +33,8 @@ reference or deliberate non-goal).
 | Nonsymmetric eigen | `eig` | `Eigen.eigNonsymmetric` | `NonsymmetricEigenParitySuite` | covered |
 | Partial / full SVD, `pinv`, `kron` | `svd`, `pinv`, `kron` | `Svds.svd`, `pinv`, `kron` | `SvdQrParitySuite`, `FullSvdParitySuite` | covered |
 | Blocked QR / lstsq | `qr`, `\` | `qr`, `leastSquares` | `SvdQrParitySuite` | covered |
+| Iterative solve (solution equivalence) | dense `\` | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | `IterativeSolveParitySuite` | covered (workload replaceability, not algorithm parity) |
 | Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | — | out (no Breeze public `eigh(A,B)`) |
-| Iterative solvers (`cg`, …) | — | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | — | out (no Breeze linalg counterpart; core suites cover solvers) |
 | Sparse direct factorization | SuiteSparse / native | — | — | out (Gale non-goal) |
 | Near-cutoff rank / `pinv` / `cond` | policy-dependent | policy-dependent | — | out (deliberate; pinned in core) |
 
