@@ -377,6 +377,11 @@ factor entries.
 
 ## Coverage at a glance
 
+Differential checks against Breeze 2.1 for these common operations live in the
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). The table
+below is the migration surface; the parity README tracks which rows are
+cross-checked.
+
 | Task | Gale API | Important difference |
 | --- | --- | --- |
 | Dense vectors and matrices | `DVec`, `DMat`, `Vec`, `Matrix` | Real `Double` values; ordinary results are immutable. |

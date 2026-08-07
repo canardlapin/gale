@@ -16,6 +16,31 @@ The factorization and spectral suites use fixed adversarial and
 well-conditioned fixtures. A parity test should state the shared mathematical
 contract and use a tolerance that accounts for the algorithms being compared.
 
+## Coverage checklist
+
+Status values: **covered** (differential test present), **out** (no honest Breeze
+reference or deliberate non-goal).
+
+| Operation | Breeze API | Gale API | Suite | Status |
+| --- | --- | --- | --- | --- |
+| Dense ± / * / axpy / dot / scale | `+`, `-`, `*`, `dot` | same | `DenseOpsParitySuite` | covered |
+| Construct / slice / gather / update / pointwise | indexing, `:*`, etc. | `slice`, `gather*`, `updated`, `pointwise` | `EverydayOpsParitySuite` | covered |
+| det / solve / LU / Chol / QR / lstsq | `det`, `\`, `lu`, `cholesky`, `qr` | `det`, `solve`, `lu`, `cholesky`, `qr`, `leastSquares` | `FactorizationParitySuite` | covered |
+| rank / cond (clear cases) | `rank`, `cond` | `rankEstimate`, `conditionEstimate` | `FactorizationParitySuite` | covered (overlap only) |
+| Sparse matvec / transpose-matvec | `CSCMatrix *` | Banded/CSR/CSC/Diagonal `*` | `BandedSparseParitySuite` | covered |
+| Sparse + / − / scale | `CSCMatrix` arithmetic | CSR/CSC `+`, `-`, `*` | `BandedSparseParitySuite` | covered |
+| Symmetric eigen (dense + Lanczos) | `eigSym` | `Eigen.eigSymmetric` | `SpectralParitySuite` | covered |
+| Nonsymmetric eigen | `eig` | `Eigen.eigNonsymmetric` | `NonsymmetricEigenParitySuite` | covered |
+| Partial / full SVD, `pinv`, `kron` | `svd`, `pinv`, `kron` | `Svds.svd`, `pinv`, `kron` | `SvdQrParitySuite`, `FullSvdParitySuite` | covered |
+| Blocked QR / lstsq | `qr`, `\` | `qr`, `leastSquares` | `SvdQrParitySuite` | covered |
+| Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | — | out (no Breeze public `eigh(A,B)`) |
+| Iterative solvers (`cg`, …) | — | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | — | out (no Breeze linalg counterpart; core suites cover solvers) |
+| Sparse direct factorization | SuiteSparse / native | — | — | out (Gale non-goal) |
+| Near-cutoff rank / `pinv` / `cond` | policy-dependent | policy-dependent | — | out (deliberate; pinned in core) |
+
+Published conversion and migration shims live in `interop-breeze` (`sbt
+interopBreezeTest`), not in this differential harness.
+
 ## Migration pain points
 
 This table records cases found while writing parity tests where the Breeze
