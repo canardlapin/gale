@@ -14,9 +14,8 @@ import gale.spectral.EigenVectors
   * This is deliberately '''minimal''' — a hop to ease a mechanical port, not a
   * Breeze compatibility layer. Each call copies across the boundary, so once a call
   * site is ported, prefer gale's native API (which returns `Either[LinAlgError, _]`
-  * rather than throwing) and gale-native storage. Anything Breeze offers that gale
-  * has no public equivalent for (e.g. a dense pseudo-inverse / `pinv`) is
-  * intentionally absent; use [[leastSquares]] for overdetermined systems.
+  * rather than throwing) and gale-native storage. Surfaces without a gale public
+  * equivalent stay absent; prefer gale's typed API for new code.
   *
   * Every method '''throws''' `gale.linalg.LinAlgError` on a structural failure
   * (singular matrix, non-SPD, …), mirroring Breeze's exception-throwing style.
@@ -63,6 +62,33 @@ object BreezeMigration:
     requireBreezeSymmetric(a)
     val d = Eigen.eigSymmetric(fromBreezeCopy(a), EigenSelection.All, EigenVectors.Right).orThrow
     (toBreezeCopy(d.eigenvalues), toBreezeCopy(d.eigenvectors))
+
+  /** Breeze `eig(A)`: `(wr, wi, vr)` for a real nonsymmetric `A`, with gale's
+    * canonical magnitude order and real-Schur eigenvector packing. Eigenvalue
+    * order differs from Breeze (which is undocumented); the mathematical
+    * eigenpairs agree.
+    */
+  def eig(a: DenseMatrix[Double]): (DenseVector[Double], DenseVector[Double], DenseMatrix[Double]) =
+    val d = Eigen.eigNonsymmetric(fromBreezeCopy(a), EigenSelection.All, EigenVectors.Right).orThrow
+    (
+      toBreezeCopy(d.re),
+      toBreezeCopy(d.im),
+      toBreezeCopy(d.rightVectorsPacked)
+    )
+
+  /** Breeze `svd(A)` via gale's economy dense SVD: `(U, σ, Vᵀ)` with
+    * `U` `m×k`, `Vᵀ` `k×n`, `k = min(m, n)`. Breeze's default returns full square
+    * factors; this shim returns gale's economy shapes.
+    */
+  def svd(a: DenseMatrix[Double]): (DenseMatrix[Double], DenseVector[Double], DenseMatrix[Double]) =
+    val s = fromBreezeCopy(a).svd.orThrow
+    (toBreezeCopy(s.u), toBreezeCopy(s.singularValues), toBreezeCopy(s.vt))
+
+  /** Breeze `pinv(A)`: Moore–Penrose pseudo-inverse via gale's SVD. Rank cutoffs
+    * may differ near the numerical-rank boundary.
+    */
+  def pinv(a: DenseMatrix[Double]): DenseMatrix[Double] =
+    toBreezeCopy(fromBreezeCopy(a).pinv.orThrow)
 
   /** Breeze `A \ b` for an overdetermined (tall) system: least-squares via gale's
     * QR. Throws on rank deficiency.

@@ -219,7 +219,10 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          # Scala.js 1.22's Wasm backend requires a Wasm 3.0 engine (Node.js 25+).
+          # Node 22 fails at instantiate with: Import #N module="": module is not
+          # an object or function.
+          node-version: "25"
       - name: Execute core tests and optimized kernel profile as WebAssembly
         # build.sbt supplies --experimental-wasm-exnref to the Node jsEnv.
         run: sbt coreJS/test benchSmokeJSFull

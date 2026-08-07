@@ -5,10 +5,10 @@ import gale.linalg.*
 import gale.parity.ParitySupport.*
 import gale.sparse.*
 
-/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, and `Diagonal` matvec and
-  * transpose-matvec versus the equivalent `breeze.linalg.CSCMatrix` operations, on
-  * the same sparsity pattern. These are exact same-arithmetic sums of products, so
-  * they must agree to `1e-12`.
+/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, and `Diagonal` matvec,
+  * transpose-matvec, and CSR/CSC `+`/`−`/scalar-`*` versus the equivalent
+  * `breeze.linalg.CSCMatrix` operations, on the same sparsity pattern. These are
+  * exact same-arithmetic sums of products, so they must agree to `1e-12`.
   *
   * gale exposes no public sparse '''solve''' (its solvers take dense `DMat` or a
   * matrix-free `DoubleLinearOperator`, not a stored sparse factorization), so there
@@ -18,6 +18,19 @@ import gale.sparse.*
 class BandedSparseParitySuite extends munit.FunSuite:
 
   private val tol = 1e-12
+
+  /** Compare a gale sparse matrix to a Breeze CSC by probing every stored and a
+    * sample of structural zero locations (elementwise, not just nnz pattern).
+    */
+  private def assertSparseClose(g: SparseMatrix[Double], b: CSCMatrix[Double], tol: Double, clue: String): Unit =
+    assertEquals((g.rows, g.cols), (b.rows, b.cols), clue)
+    var i = 0
+    while i < g.rows do
+      var j = 0
+      while j < g.cols do
+        assertScalarClose(g(i, j), b(i, j), tol, s"$clue ($i,$j)")
+        j += 1
+      i += 1
 
   /** A `rows × cols` array whose nonzeros lie within bandwidth `[-kl, ku]`. */
   private def bandedData(rows: Int, cols: Int, kl: Int, ku: Int, seed: Long): Array[Array[Double]] =
@@ -109,13 +122,51 @@ class BandedSparseParitySuite extends munit.FunSuite:
   // Diagonal
   // ---------------------------------------------------------------------------
 
-  test("Diagonal matvec vs breeze CSCMatrix") {
+  test("Diagonal matvec / transpose-matvec vs breeze CSCMatrix") {
     for n <- List(4, 10, 25); seed <- List(1L, 2L) do
       val diag = vectorData(n, seed * 67 + 1)
       val data = Array.tabulate(n, n)((i, j) => if i == j then diag(i) else 0.0)
       val gA   = Sparse.diagonal(diag.toIndexedSeq*)
       val bA   = breezeCsc(data)
+      val bAt  = breezeCscTransposed(data)
 
       val xData = vectorData(n, seed * 71 + 3)
-      assertVecClose(gA * galeVector(xData), bA * breezeVector(xData), tol, s"Diagonal A·x n=$n seed=$seed")
+      val gx = galeVector(xData)
+      val bx = breezeVector(xData)
+      assertVecClose(gA * gx, bA * bx, tol, s"Diagonal A·x n=$n seed=$seed")
+      assertVecClose(gA.t * gx, bAt * bx, tol, s"Diagonal Aᵀ·x n=$n seed=$seed")
+  }
+
+  // ---------------------------------------------------------------------------
+  // CSR / CSC arithmetic (+, −, scalar *)
+  // ---------------------------------------------------------------------------
+
+  test("CSR add/subtract/scale vs breeze CSCMatrix") {
+    for (m, n) <- List((8, 8), (10, 6), (5, 12)); seed <- List(1L, 2L) do
+      val aData = sparseData(m, n, 0.35, seed)
+      val bData = sparseData(m, n, 0.35, seed * 17 + 3)
+      val gA = galeCsr(aData)
+      val gB = galeCsr(bData)
+      val bA = breezeCsc(aData)
+      val bB = breezeCsc(bData)
+      val alpha = 1.7 - seed.toDouble * 0.1
+
+      assertSparseClose(gA + gB, bA + bB, tol, s"CSR A+B ${m}x$n seed=$seed")
+      assertSparseClose(gA - gB, bA - bB, tol, s"CSR A−B ${m}x$n seed=$seed")
+      assertSparseClose(gA * alpha, bA * alpha, tol, s"CSR αA ${m}x$n seed=$seed")
+  }
+
+  test("CSC add/subtract/scale vs breeze CSCMatrix") {
+    for (m, n) <- List((8, 8), (9, 5)); seed <- List(3L, 4L) do
+      val aData = sparseData(m, n, 0.35, seed)
+      val bData = sparseData(m, n, 0.35, seed * 19 + 5)
+      val gA = galeCsr(aData).toCSC
+      val gB = galeCsr(bData).toCSC
+      val bA = breezeCsc(aData)
+      val bB = breezeCsc(bData)
+      val alpha = -0.5 * seed.toDouble
+
+      assertSparseClose(gA + gB, bA + bB, tol, s"CSC A+B ${m}x$n seed=$seed")
+      assertSparseClose(gA - gB, bA - bB, tol, s"CSC A−B ${m}x$n seed=$seed")
+      assertSparseClose(gA * alpha, bA * alpha, tol, s"CSC αA ${m}x$n seed=$seed")
   }
