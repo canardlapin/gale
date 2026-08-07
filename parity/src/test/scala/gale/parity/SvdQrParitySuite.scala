@@ -62,7 +62,7 @@ class SvdQrParitySuite extends munit.FunSuite:
         i += 1
   }
 
-  test("partial SVD (Smallest): bottom-k values match breeze svd tail") {
+  test("partial SVD (Smallest): bottom-k values and vectors match breeze svd tail") {
     for (m, n, seed) <- Seq((20, 8, 31L), (8, 20, 32L)) do
       val data = matrixData(m, n, seed)
       val p = math.min(m, n)
@@ -73,7 +73,14 @@ class SvdQrParitySuite extends munit.FunSuite:
       // gale returns the k smallest, descending; breeze's tail is those values.
       var i = 0
       while i < k do
-        assertScalarClose(g.singularValues(i), b.singularValues(p - k + i), svdTol, s"sigma tail($i) ${m}x$n seed=$seed")
+        val bIdx = p - k + i
+        assertScalarClose(g.singularValues(i), b.singularValues(bIdx), svdTol, s"sigma tail($i) ${m}x$n seed=$seed")
+        val uDot = absDot(galeColumn(g.u, i), breezeColumn(b.leftVectors, bIdx))
+        assert(math.abs(uDot - 1.0) < vecTol, s"u tail($i) misaligned ($uDot) ${m}x$n seed=$seed")
+        val gv = (0 until g.vt.cols).map(g.vt(i, _))
+        val bv = (0 until b.rightVectors.cols).map(b.rightVectors(bIdx, _))
+        val vDot = absDot(gv, bv)
+        assert(math.abs(vDot - 1.0) < vecTol, s"v tail($i) misaligned ($vDot) ${m}x$n seed=$seed")
         i += 1
   }
 

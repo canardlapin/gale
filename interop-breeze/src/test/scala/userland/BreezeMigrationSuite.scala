@@ -5,7 +5,10 @@ import breeze.linalg.DenseVector
 import breeze.linalg.MatrixNotSymmetricException
 import breeze.linalg.cholesky as breezeCholesky
 import breeze.linalg.det as breezeDet
+import breeze.linalg.eig as breezeEig
 import breeze.linalg.eigSym as breezeEigSym
+import breeze.linalg.pinv as breezePinv
+import breeze.linalg.svd as breezeSvd
 import gale.interop.breeze.BreezeMigration
 import gale.linalg.LinAlgError
 
@@ -90,6 +93,50 @@ class BreezeMigrationSuite extends munit.FunSuite:
     assertEquals(w.length, n)
     assertEquals((v.rows, v.cols), (n, n))
     for i <- 0 until n do assert(close(w(i), ref(i), 1e-9), s"eigenvalue [$i]: ${w(i)} vs ${ref(i)}")
+  }
+
+  test("eig: eigenvalue multiset matches Breeze eig") {
+    val n = 5
+    val a = DenseMatrix.tabulate(n, n)((i, j) => math.sin(i * 0.6 + j * 1.1) + (if i == j then 2.0 else 0.0))
+    val (wr, wi, vr) = BreezeMigration.eig(a)
+    val ref = breezeEig(a)
+    assertEquals(wr.length, n)
+    assertEquals(wi.length, n)
+    assertEquals((vr.rows, vr.cols), (n, n))
+    val used = Array.fill(n)(false)
+    for i <- 0 until n do
+      var found = -1
+      var j = 0
+      while j < n && found < 0 do
+        if !used(j) &&
+          close(wr(i), ref.eigenvalues(j), 1e-8) &&
+          close(wi(i), ref.eigenvaluesComplex(j), 1e-8)
+        then found = j
+        j += 1
+      assert(found >= 0, s"no Breeze match for gale λ=$i (${wr(i)}+${wi(i)}i)")
+      used(found) = true
+  }
+
+  test("svd: economy singular values match Breeze") {
+    val m = 8
+    val n = 5
+    val a = DenseMatrix.tabulate(m, n)((i, j) => math.cos(i * 0.3 + j * 0.7) + (if i == j then 1.0 else 0.0))
+    val (u, s, vt) = BreezeMigration.svd(a)
+    val ref = breezeSvd(a)
+    val k = math.min(m, n)
+    assertEquals(s.length, k)
+    assertEquals((u.rows, u.cols), (m, k))
+    assertEquals((vt.rows, vt.cols), (k, n))
+    for i <- 0 until k do assert(close(s(i), ref.singularValues(i), 1e-9), s"σ[$i]")
+  }
+
+  test("pinv: full-rank tall matrix matches Breeze elementwise") {
+    val m = 9
+    val n = 4
+    val a = DenseMatrix.tabulate(m, n)((i, j) => math.sin(i * 0.4 + j * 0.9) + (if i == j then 1.5 else 0.0))
+    val actual = BreezeMigration.pinv(a)
+    val expected = breezePinv(a)
+    assertMatrixClose(actual, expected, 1e-8)
   }
 
   test("leastSquares: satisfies the normal equations for a tall system") {

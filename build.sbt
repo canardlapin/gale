@@ -133,9 +133,11 @@ lazy val munitVersion = "1.3.0"
 
 // Experimental WebAssembly output for Scala.js, toggled OFF by default so a plain
 // `sbt testAll` produces exactly today's JavaScript build. Set GALE_WASM=1 (or
-// true) to enable. The opt-in settings select ES2022 modules and pass Node's
-// --experimental-wasm-exnref runtime flag. The env var is read once at load, so
-// the default build never touches the linker or jsEnv config.
+// true) to enable. The opt-in settings select ES2022 modules. Scala.js 1.22's
+// Wasm backend needs a Wasm 3.0 engine — Node.js 25+ (CI uses Node 25). The
+// --experimental-wasm-exnref flag remains for engines that still gate exnref.
+// The env var is read once at load, so the default build never touches the
+// linker or jsEnv config.
 lazy val wasmEnabled: Boolean =
   sys.env.get("GALE_WASM").exists(v => v == "1" || v.equalsIgnoreCase("true"))
 

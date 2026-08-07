@@ -186,7 +186,8 @@ class SpectralParitySuite extends munit.FunSuite:
     for seed <- List(1L, 2L) do
       val data = withSpectrum(spectrum, seed)
       val op   = galeMatrix(data).asLinearOperator
-      val full = breezeValues(eigSym(breezeMatrix(data))) // ascending
+      val es   = eigSym(breezeMatrix(data))
+      val full = breezeValues(es) // ascending
 
       val top = Eigen.eigSymmetric(op, n, EigenSelection.Count(k, EigenOrder.LargestAlgebraic)).orThrow
       val bot = Eigen.eigSymmetric(op, n, EigenSelection.Count(k, EigenOrder.SmallestAlgebraic)).orThrow
@@ -200,4 +201,24 @@ class SpectralParitySuite extends munit.FunSuite:
       galeValues(bot).zip(full.take(k)).zipWithIndex.foreach { case ((x, y), i) =>
         assertScalarClose(x, y, lanczTol, s"Lanczos bottom-k seed=$seed [$i]")
       }
+
+      // Well-separated spectrum: each Lanczos vector matches Breeze's dense extreme
+      // up to sign. Gale Count returns ascending algebraic order within the set.
+      val topBreezeCols = (n - k) until n
+      val botBreezeCols = 0 until k
+      var i = 0
+      while i < k do
+        val gTop = signNormalized((0 until n).map(top.eigenvectors(_, i)))
+        val bTop = signNormalized((0 until n).map(es.eigenvectors(_, topBreezeCols(i))))
+        var row = 0
+        while row < n do
+          assertScalarClose(gTop(row), bTop(row), vecTol * 10, s"Lanczos top vec seed=$seed [$i] row=$row")
+          row += 1
+        val gBot = signNormalized((0 until n).map(bot.eigenvectors(_, i)))
+        val bBot = signNormalized((0 until n).map(es.eigenvectors(_, botBreezeCols(i))))
+        row = 0
+        while row < n do
+          assertScalarClose(gBot(row), bBot(row), vecTol * 10, s"Lanczos bot vec seed=$seed [$i] row=$row")
+          row += 1
+        i += 1
   }
