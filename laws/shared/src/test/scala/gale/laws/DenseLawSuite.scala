@@ -10,6 +10,12 @@ import org.scalacheck.Prop.forAll
   * because it depends only on the public API and on the bundles it exercises.
   */
 class DenseLawSuite extends ScalaCheckSuite:
+  override def scalaCheckInitialSeed =
+    "3IpKYLWqvse9f3GvOj9DgO4pqDgfpJ3mSfRFzU9i4yL="
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters.withMinSuccessfulTests(100).withWorkers(1)
+
   private val scalarGen: Gen[Double] =
     Gen.chooseNum(-10.0, 10.0)
 
