@@ -29,6 +29,9 @@ reference or deliberate non-goal).
 | rank / cond (clear cases) | `rank`, `cond` | `rankEstimate`, `conditionEstimate` | `FactorizationParitySuite` | covered (overlap only) |
 | Sparse matvec / transpose-matvec | `CSCMatrix *` | Banded/CSR/CSC/Diagonal `*` | `BandedSparseParitySuite` | covered |
 | Sparse + / − / scale | `CSCMatrix` arithmetic | CSR/CSC `+`, `-`, `*` | `BandedSparseParitySuite` | covered |
+| Sparse identity / zero / permutation | eye / zeros / perm CSC | `Sparse.identity` / `zero` / `permutation` | `BandedSparseParitySuite` | covered |
+| Sparse × dense product | `CSCMatrix * DenseMatrix` | `CSR * DMat` | `BandedSparseParitySuite` | covered |
+| Sparse inspect (`apply` / row / col / `t` / trace / `toDense`) | CSC accessors | CSR/CSC accessors | `BandedSparseParitySuite` | covered |
 | Symmetric eigen (dense + Lanczos) | `eigSym` | `Eigen.eigSymmetric` | `SpectralParitySuite` | covered |
 | Nonsymmetric eigen | `eig` | `Eigen.eigNonsymmetric` | `NonsymmetricEigenParitySuite` | covered |
 | Partial / full SVD, `pinv`, `kron` | `svd`, `pinv`, `kron` | `Svds.svd`, `pinv`, `kron` | `SvdQrParitySuite`, `FullSvdParitySuite` | covered |

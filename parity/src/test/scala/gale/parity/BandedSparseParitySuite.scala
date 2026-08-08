@@ -1,14 +1,18 @@
 package gale.parity
 
 import breeze.linalg.CSCMatrix
+import breeze.linalg.DenseMatrix as BDM
+import breeze.linalg.DenseVector as BDV
 import gale.linalg.*
 import gale.parity.ParitySupport.*
 import gale.sparse.*
 
-/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, and `Diagonal` matvec,
-  * transpose-matvec, and CSR/CSC `+`/`−`/scalar-`*` versus the equivalent
-  * `breeze.linalg.CSCMatrix` operations, on the same sparsity pattern. These are
-  * exact same-arithmetic sums of products, so they must agree to `1e-12`.
+/** Sparse / banded parity: gale's `Banded`, `CSR`, `CSC`, `Diagonal`, and structured
+  * constructors (`identity` / `zero` / `permutation`) versus the equivalent
+  * `breeze.linalg.CSCMatrix` operations — matvec, transpose-matvec, `+`/`−`/scale,
+  * sparse×dense products, and inspect helpers (`apply` / `row` / `col` / `t` /
+  * `trace` / `toDense`). These are exact same-arithmetic sums of products, so they
+  * must agree to `1e-12`.
   *
   * gale exposes no public sparse '''solve''' (its solvers take dense `DMat` or a
   * matrix-free `DoubleLinearOperator`, not a stored sparse factorization), so there
@@ -62,6 +66,22 @@ class BandedSparseParitySuite extends munit.FunSuite:
         j += 1
       i += 1
     builder.toCSR()
+
+  /** Row `i` of a dense array as a Breeze vector (CSC has no `::` row slice). */
+  private def breezeRow(data: Array[Array[Double]], i: Int): BDV[Double] =
+    BDV(data(i).clone())
+
+  /** Column `j` of a dense array as a Breeze vector. */
+  private def breezeCol(data: Array[Array[Double]], j: Int): BDV[Double] =
+    BDV.tabulate(data.length)(i => data(i)(j))
+
+  private def breezeTrace(data: Array[Array[Double]]): Double =
+    var s = 0.0
+    var i = 0
+    while i < data.length do
+      s += data(i)(i)
+      i += 1
+    s
 
   // ---------------------------------------------------------------------------
   // Banded
@@ -169,4 +189,95 @@ class BandedSparseParitySuite extends munit.FunSuite:
       assertSparseClose(gA + gB, bA + bB, tol, s"CSC A+B ${m}x$n seed=$seed")
       assertSparseClose(gA - gB, bA - bB, tol, s"CSC A−B ${m}x$n seed=$seed")
       assertSparseClose(gA * alpha, bA * alpha, tol, s"CSC αA ${m}x$n seed=$seed")
+  }
+
+  // ---------------------------------------------------------------------------
+  // Structured constructors
+  // ---------------------------------------------------------------------------
+
+  test("Sparse.identity / zero / permutation match Breeze CSC images") {
+    for n <- List(3, 8) do
+      val gId = Sparse.identity(n)
+      val bId = breezeCsc(Array.tabulate(n, n)((i, j) => if i == j then 1.0 else 0.0))
+      assertSparseClose(gId, bId, tol, s"identity n=$n")
+      val xData = vectorData(n, n * 101L + 1)
+      assertVecClose(gId * galeVector(xData), bId * breezeVector(xData), tol, s"identity A·x n=$n")
+
+      val gZ = Sparse.zero(n, n + 2)
+      val bZ = breezeCsc(Array.fill(n, n + 2)(0.0))
+      assertSparseClose(gZ, bZ, tol, s"zero ${n}x${n + 2}")
+      assertVecClose(
+        gZ * galeVector(vectorData(n + 2, n * 103L + 2)),
+        bZ * breezeVector(vectorData(n + 2, n * 103L + 2)),
+        tol,
+        s"zero A·x ${n}x${n + 2}"
+      )
+
+    // columnsByRow = [2,0,1] ⇒ into(row) = x(columnsByRow(row))
+    val colsByRow = IndexedSeq(2, 0, 1)
+    val gP = Sparse.permutation(colsByRow*)
+    val pData = Array.tabulate(3, 3)((i, j) => if colsByRow(i) == j then 1.0 else 0.0)
+    val bP = breezeCsc(pData)
+    assertSparseClose(gP, bP, tol, "permutation structure")
+    val px = vectorData(3, 77L)
+    assertVecClose(gP * galeVector(px), bP * breezeVector(px), tol, "permutation A·x")
+    assertVecClose(gP.t * galeVector(px), breezeCscTransposed(pData) * breezeVector(px), tol, "permutation Aᵀ·x")
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sparse × dense products
+  // ---------------------------------------------------------------------------
+
+  test("CSR * dense matrix matches Breeze CSC * DenseMatrix") {
+    for (m, k, n, seed) <- Seq((8, 5, 3, 41L), (6, 6, 4, 42L), (10, 4, 2, 43L)) do
+      val aData = sparseData(m, k, 0.4, seed)
+      val bData = matrixData(k, n, seed * 9 + 1)
+      val gA = galeCsr(aData)
+      val gB = galeMatrix(bData)
+      val bA = breezeCsc(aData)
+      val bB = breezeMatrix(bData)
+      assertMatClose(gA * gB, bA * bB, tol, s"CSR*DMat ${m}x$k · ${k}x$n seed=$seed")
+  }
+
+  // ---------------------------------------------------------------------------
+  // Inspect surface
+  // ---------------------------------------------------------------------------
+
+  test("CSR/CSC apply, row, col, transpose, trace, toDense vs Breeze CSC") {
+    for (m, n, seed) <- Seq((7, 7, 51L), (6, 9, 52L)) do
+      val data = sparseData(m, n, 0.35, seed)
+      // Ensure a few diagonals exist so trace is exercised on square cases.
+      if m == n then
+        var d = 0
+        while d < m do
+          data(d)(d) = 1.5 + d * 0.1
+          d += 1
+      val gCsr = galeCsr(data)
+      val gCsc = gCsr.toCSC
+      val bA = breezeCsc(data)
+      val bAt = breezeCscTransposed(data)
+      val denseRef = BDM.tabulate(m, n)((r, c) => data(r)(c))
+
+      assertSparseClose(gCsr, bA, tol, s"CSR apply ${m}x$n seed=$seed")
+      assertSparseClose(gCsc, bA, tol, s"CSC apply ${m}x$n seed=$seed")
+      assertSparseClose(gCsr.t, bAt, tol, s"CSR.t ${m}x$n seed=$seed")
+      assertSparseClose(gCsc.t, bAt, tol, s"CSC.t ${m}x$n seed=$seed")
+
+      var i = 0
+      while i < m do
+        assertVecClose(gCsr.row(i), breezeRow(data, i), tol, s"CSR.row($i) ${m}x$n seed=$seed")
+        assertVecClose(gCsc.row(i), breezeRow(data, i), tol, s"CSC.row($i) ${m}x$n seed=$seed")
+        i += 1
+      var j = 0
+      while j < n do
+        assertVecClose(gCsr.col(j), breezeCol(data, j), tol, s"CSR.col($j) ${m}x$n seed=$seed")
+        assertVecClose(gCsc.col(j), breezeCol(data, j), tol, s"CSC.col($j) ${m}x$n seed=$seed")
+        j += 1
+
+      if m == n then
+        assertScalarClose(gCsr.trace, breezeTrace(data), tol, s"CSR.trace n=$n seed=$seed")
+        assertScalarClose(gCsc.trace, breezeTrace(data), tol, s"CSC.trace n=$n seed=$seed")
+
+      assertMatClose(gCsr.toDense(), denseRef, tol, s"CSR.toDense ${m}x$n seed=$seed")
+      assertMatClose(gCsc.toDense(), denseRef, tol, s"CSC.toDense ${m}x$n seed=$seed")
   }
