@@ -8,6 +8,12 @@ import org.scalacheck.Prop.forAll
   * laws module: public API only.
   */
 class MatrixMarketLawSuite extends munit.ScalaCheckSuite:
+  override def scalaCheckInitialSeed =
+    "_Xa8Y-7Jwvj_jHt0GpX-fggSVAD0CKUbGaCwwWQsCzN="
+
+  override def scalaCheckTestParameters =
+    super.scalaCheckTestParameters.withMinSuccessfulTests(100).withWorkers(1)
+
   property("CSR matvec equals dense matvec for small generated matrices") {
     forAll { (
         a00: Int,

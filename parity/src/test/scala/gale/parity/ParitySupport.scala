@@ -136,8 +136,13 @@ object ParitySupport:
   // ---------------------------------------------------------------------------
 
   private def isClose(x: Double, y: Double, tol: Double): Boolean =
-    val scale = math.max(1.0, math.max(math.abs(x), math.abs(y)))
-    math.abs(x - y) <= tol * scale
+    if x.isNaN && y.isNaN then true
+    else if x.isPosInfinity && y.isPosInfinity then true
+    else if x.isNegInfinity && y.isNegInfinity then true
+    else if !x.isFinite || !y.isFinite then false
+    else
+      val scale = math.max(1.0, math.max(math.abs(x), math.abs(y)))
+      math.abs(x - y) <= tol * scale
 
   def assertScalarClose(g: Double, b: Double, tol: Double, clue: => String): Unit =
     if !isClose(g, b, tol) then

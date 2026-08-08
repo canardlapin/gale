@@ -4,6 +4,7 @@ import gale.linalg.*
 import gale.spectral.*
 import munit.ScalaCheckSuite
 import org.scalacheck.Gen
+import org.scalacheck.Prop
 import org.scalacheck.Prop.forAll
 
 /** Conformance suite driving the [[SpectralLaws]] bundle over seeded generators of
@@ -13,6 +14,8 @@ import org.scalacheck.Prop.forAll
   * membership, rank-deficiency, and generalized-problem law families.
   */
 class SpectralLawSuite extends ScalaCheckSuite:
+  override def scalaCheckInitialSeed =
+    "3IpKYLWqvse9f3GvOj9DgO4pqDgfpJ3mSfRFzU9i4yL="
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(10).withWorkers(1)
@@ -89,25 +92,41 @@ class SpectralLawSuite extends ScalaCheckSuite:
 
   // --- helpers (test-side) ---------------------------------------------------
 
+  private def expectRight[A](result: Either[LinAlgError, A], clue: => String): A =
+    result match
+      case Right(value) => value
+      case Left(err)    => fail(s"$clue: $err")
+
   private def valuesOf(d: EigenDecomposition): Seq[Double] =
     (0 until d.size).map(d.eigenvalues(_))
 
   private def referenceSingularValues(a: DMat): DVec =
     val gram = if a.rows >= a.cols then a.t * a else a * a.t
-    val eigs = Eigen.eigSymmetric(gram, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get.eigenvalues
+    val eigs = expectRight(
+      Eigen.eigSymmetric(gram, EigenSelection.All, EigenVectors.ValuesOnly),
+      "referenceSingularValues eigSymmetric"
+    ).eigenvalues
     val p = eigs.length
     DVec.tabulate(p)(i => math.sqrt(math.max(0.0, eigs(p - 1 - i))))
 
   /** Eigenvalues of the naively-reduced `L⁻¹ A L⁻ᵀ` (explicit L-inverse). */
   private def naiveReduction(a: DMat, b: DMat): Seq[Double] =
     val n = a.rows
-    val l = b.cholesky.toOption.get.lower
+    val l = expectRight(b.cholesky, "naiveReduction cholesky").lower
     val aSym = Matrix.tabulate(n, n)((i, j) => if i >= j then a(i, j) else a(j, i))
     val linvCols = (0 until n).map: j =>
-      TriangularSolve.lower(l, DVec.tabulate(n)(i => if i == j then 1.0 else 0.0)).toOption.get
+      expectRight(
+        TriangularSolve.lower(l, DVec.tabulate(n)(i => if i == j then 1.0 else 0.0)),
+        s"naiveReduction triangularSolve col=$j"
+      )
     val linv = Matrix.tabulate(n, n)((i, j) => linvCols(j)(i))
     val c = linv * aSym * linv.t
-    valuesOf(Eigen.eigSymmetric(c, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get)
+    valuesOf(
+      expectRight(
+        Eigen.eigSymmetric(c, EigenSelection.All, EigenVectors.ValuesOnly),
+        "naiveReduction eigSymmetric"
+      )
+    )
 
   // ===========================================================================
   // Symmetric eigen
@@ -115,7 +134,7 @@ class SpectralLawSuite extends ScalaCheckSuite:
 
   property("eigSymmetric dense: residual, orthonormal V, ascending values") {
     forAll(symGen) { (a: DMat) =>
-      val d = Eigen.eigSymmetric(a, EigenSelection.All).toOption.get
+      val d = expectRight(Eigen.eigSymmetric(a, EigenSelection.All), "eigSymmetric dense All")
       SpectralLaws.symmetricResidual(a, d, 1e-8)
       SpectralLaws.orthonormalColumns(d.eigenvectors, 1e-8)
       SpectralLaws.ascending(d.eigenvalues, 1e-9)
@@ -125,10 +144,16 @@ class SpectralLawSuite extends ScalaCheckSuite:
   property("eigSymmetric dense: Count(k) selects the k algebraic extremes") {
     forAll(symGen) { (a: DMat) =>
       val n = a.rows
-      val full = Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get.eigenvalues
+      val full = expectRight(
+        Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly),
+        "eigSymmetric dense Count reference"
+      ).eigenvalues
       val k = math.max(1, n / 2)
       for order <- Seq(EigenOrder.SmallestAlgebraic, EigenOrder.LargestAlgebraic) do
-        val sub = Eigen.eigSymmetric(a, EigenSelection.Count(k, order), EigenVectors.ValuesOnly).toOption.get
+        val sub = expectRight(
+          Eigen.eigSymmetric(a, EigenSelection.Count(k, order), EigenVectors.ValuesOnly),
+          s"eigSymmetric dense Count($k, $order)"
+        )
         SpectralLaws.symmetricMembership(full, valuesOf(sub), k, order, 1e-8)
         SpectralLaws.ascending(sub.eigenvalues, 1e-9)
     }
@@ -137,8 +162,14 @@ class SpectralLawSuite extends ScalaCheckSuite:
   property("eigSymmetric Lanczos: converged residual, ascending, subset of spectrum") {
     forAll(symGen) { (a: DMat) =>
       val n = a.rows
-      val full = Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get.eigenvalues
-      val d = Eigen.eigSymmetric(a, n, EigenSelection.Count(2, EigenOrder.LargestAlgebraic)).toOption.get
+      val full = expectRight(
+        Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly),
+        "eigSymmetric Lanczos reference"
+      ).eigenvalues
+      val d = expectRight(
+        Eigen.eigSymmetric(a, n, EigenSelection.Count(2, EigenOrder.LargestAlgebraic)),
+        "eigSymmetric Lanczos"
+      )
       SpectralLaws.symmetricResidual(a, d, 1e-6)
       SpectralLaws.ascending(d.eigenvalues, 1e-9)
       SpectralLaws.subsetOfSpectrum(valuesOf(d), full, 1e-6)
@@ -151,7 +182,7 @@ class SpectralLawSuite extends ScalaCheckSuite:
 
   property("eigNonsymmetric dense All: residual, pairs adjacent, descending magnitude") {
     forAll(generalGen) { (a: DMat) =>
-      val d = Eigen.eigNonsymmetric(a, EigenSelection.All).toOption.get
+      val d = expectRight(Eigen.eigNonsymmetric(a, EigenSelection.All), "eigNonsymmetric dense All")
       SpectralLaws.nonsymmetricResidual(a, d, 1e-7)
       SpectralLaws.nonsymmetricOrdering(d, EigenOrder.LargestMagnitude, 1e-9)
     }
@@ -159,7 +190,7 @@ class SpectralLawSuite extends ScalaCheckSuite:
 
   property("eigNonsymmetric dense Count: never-split membership and criterion order") {
     forAll(generalGen) { (a: DMat) =>
-      val full = Eigen.eigNonsymmetric(a, EigenSelection.All).toOption.get
+      val full = expectRight(Eigen.eigNonsymmetric(a, EigenSelection.All), "eigNonsymmetric dense Count reference")
       val k = math.max(1, a.rows / 2)
       val orders = Seq(
         EigenOrder.LargestMagnitude,
@@ -168,7 +199,10 @@ class SpectralLawSuite extends ScalaCheckSuite:
         EigenOrder.SmallestRealPart
       )
       for order <- orders do
-        val sub = Eigen.eigNonsymmetric(a, EigenSelection.Count(k, order)).toOption.get
+        val sub = expectRight(
+          Eigen.eigNonsymmetric(a, EigenSelection.Count(k, order)),
+          s"eigNonsymmetric dense Count($k, $order)"
+        )
         SpectralLaws.nonsymmetricMembership(full, sub, k, order, 1e-7)
         SpectralLaws.nonsymmetricOrdering(sub, order, 1e-9)
     }
@@ -177,8 +211,11 @@ class SpectralLawSuite extends ScalaCheckSuite:
   property("eigNonsymmetric Arnoldi: converged residual, pairs, subset of spectrum") {
     forAll(generalGen) { (a: DMat) =>
       val n = a.rows
-      val full = Eigen.eigNonsymmetric(a, EigenSelection.All).toOption.get
-      val d = Eigen.eigNonsymmetric(a, n, EigenSelection.Count(1, EigenOrder.LargestMagnitude)).toOption.get
+      val full = expectRight(Eigen.eigNonsymmetric(a, EigenSelection.All), "eigNonsymmetric Arnoldi reference")
+      val d = expectRight(
+        Eigen.eigNonsymmetric(a, n, EigenSelection.Count(1, EigenOrder.LargestMagnitude)),
+        "eigNonsymmetric Arnoldi"
+      )
       SpectralLaws.nonsymmetricResidual(a, d, 1e-6)
       SpectralLaws.nonsymmetricOrdering(d, EigenOrder.LargestMagnitude, 1e-9)
       val fullMags = DVec.tabulate(full.size)(i => full.eigenvalue(i).magnitude)
@@ -196,15 +233,27 @@ class SpectralLawSuite extends ScalaCheckSuite:
       val refSvals = referenceSingularValues(a)
       val scale = math.max(1.0, SpectralLaws.frobenius(a))
       val k = p - 1
-      val svd = Svds.svd(a, SingularSelection.Count(k, SingularOrder.Largest)).toOption.get
+      val svd = expectRight(
+        Svds.svd(a, SingularSelection.Count(k, SingularOrder.Largest)),
+        "svd Count(Largest)"
+      )
       SpectralLaws.svdResidual(a, svd, 1e-6)
       SpectralLaws.orthonormalColumns(svd.u, 1e-7)
       SpectralLaws.orthonormalColumns(svd.vt.t, 1e-7)
       SpectralLaws.descending(svd.singularValues, 1e-9)
-      SpectralLaws.singularMembership(refSvals, (0 until svd.size).map(svd.singularValues(_)), k, SingularOrder.Largest, 1e-6 * scale)
+      SpectralLaws.singularMembership(
+        refSvals,
+        (0 until svd.size).map(svd.singularValues(_)),
+        k,
+        SingularOrder.Largest,
+        1e-6 * scale
+      )
 
       // Smallest end: residual + descending, and the single smallest σ is small.
-      val small = Svds.svd(a, SingularSelection.Count(1, SingularOrder.Smallest)).toOption.get
+      val small = expectRight(
+        Svds.svd(a, SingularSelection.Count(1, SingularOrder.Smallest)),
+        "svd Count(Smallest)"
+      )
       SpectralLaws.svdResidual(a, small, 1e-6)
       SpectralLaws.descending(small.singularValues, 1e-9)
       assert(
@@ -217,7 +266,10 @@ class SpectralLawSuite extends ScalaCheckSuite:
   test("svd: exact-rank-deficient matrix converges and reports rank") {
     val a = lowRank(6, 4, 2, 123457L)
     // k = rank: exactly the two nonzero singular values, all converged.
-    val svd2 = Svds.svd(a, SingularSelection.Count(2, SingularOrder.Largest)).toOption.get
+    val svd2 = expectRight(
+      Svds.svd(a, SingularSelection.Count(2, SingularOrder.Largest)),
+      "svd rank-2"
+    )
     assert(svd2.diagnostics.allConverged, s"rank-2 solve not converged: ${svd2.diagnostics}")
     assertEquals(svd2.rank, 2)
     SpectralLaws.singularRankConsistent(svd2, 1e-8)
@@ -236,7 +288,10 @@ class SpectralLawSuite extends ScalaCheckSuite:
   property("eigSymmetricGeneralized: residual, B-orthonormal, ascending, matches reduction") {
     forAll(pencilGen) { (pencil: (DMat, DMat)) =>
       val (a, b) = pencil
-      val d = Eigen.eigSymmetricGeneralized(a, b, EigenSelection.All).toOption.get
+      val d = expectRight(
+        Eigen.eigSymmetricGeneralized(a, b, EigenSelection.All),
+        "eigSymmetricGeneralized"
+      )
       SpectralLaws.generalizedResidual(a, b, d, 1e-7)
       SpectralLaws.bOrthonormal(d.eigenvectors, b, 1e-8)
       SpectralLaws.ascending(d.eigenvalues, 1e-9)
@@ -261,13 +316,16 @@ class SpectralLawSuite extends ScalaCheckSuite:
     forAll(gsvdGen) { (pencil: (DMat, DMat)) =>
       val (a, b) = pencil
       Svds.gsvd(a, b) match
-        case Left(_: LinAlgError.RankDeficient) => () // rare rank-deficient draw: not in scope
-        case Left(other)                        => fail(s"unexpected Left: $other")
+        // Rank-deficient pencils are covered by a dedicated fixture below; discard
+        // them here so they do not silently inflate the successful-test count.
+        case Left(_: LinAlgError.RankDeficient) => Prop.undecided
+        case Left(other)                        => Prop.falsified :| s"unexpected Left: $other"
         case Right(g) =>
           SpectralLaws.gsvdReconstruction(a, b, g, 1e-6)
           SpectralLaws.csIdentity(g, 1e-10)
           SpectralLaws.gsvdDescendingRatio(g)
           SpectralLaws.gsvdWellDeterminedOrthonormal(g, 1e-7)
+          Prop.passed
     }
   }
 
