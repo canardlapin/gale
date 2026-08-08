@@ -7,7 +7,9 @@ import breeze.linalg.cholesky as breezeCholesky
 import breeze.linalg.det as breezeDet
 import breeze.linalg.eig as breezeEig
 import breeze.linalg.eigSym as breezeEigSym
+import breeze.linalg.kron as breezeKron
 import breeze.linalg.pinv as breezePinv
+import breeze.linalg.qr as breezeQr
 import breeze.linalg.svd as breezeSvd
 import gale.interop.breeze.BreezeMigration
 import gale.linalg.LinAlgError
@@ -137,6 +139,26 @@ class BreezeMigrationSuite extends munit.FunSuite:
     val actual = BreezeMigration.pinv(a)
     val expected = breezePinv(a)
     assertMatrixClose(actual, expected, 1e-8)
+  }
+
+  test("qr: reconstruction matches and RᵀR agrees with Breeze") {
+    val m = 7
+    val n = 4
+    val a = DenseMatrix.tabulate(m, n)((i, j) => math.cos(i * 0.35 + j * 0.8) + (if i == j then 1.0 else 0.0))
+    val (q, r) = BreezeMigration.qr(a)
+    assertEquals((q.rows, q.cols), (m, m))
+    assertEquals((r.rows, r.cols), (m, n))
+    assertMatrixClose(q * r, a, 1e-10)
+    val ref = breezeQr(a)
+    val galeAta = r.t * r
+    val breezeAta = ref.r.t * ref.r
+    assertMatrixClose(galeAta, breezeAta, 1e-9)
+  }
+
+  test("kron: matches Breeze kron elementwise") {
+    val a = DenseMatrix((1.0, 2.0), (3.0, 4.0))
+    val b = DenseMatrix.tabulate(2, 3)((i, j) => (i + 1) * 0.5 + j)
+    assertMatrixClose(BreezeMigration.kron(a, b), breezeKron(a, b), 1e-12)
   }
 
   test("leastSquares: satisfies the normal equations for a tall system") {
