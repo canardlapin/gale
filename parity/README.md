@@ -11,6 +11,11 @@ Run the suite from the repository root:
 sbt parityTest
 ```
 
+CI runs `parityTest` and `interopBreezeTest` as separate timed steps on the
+`breeze-interop` job (`timeout-minutes: 20`). Both modules fork the test JVM
+and force Breeze onto the Java netlib implementation so native BLAS discovery
+cannot stall a runner.
+
 `EverydayOpsParitySuite` uses ScalaCheck to vary matrix shapes and data seeds.
 The factorization and spectral suites use fixed adversarial and
 well-conditioned fixtures. A parity test should state the shared mathematical
@@ -39,7 +44,7 @@ reference or deliberate non-goal).
 | Iterative solve (solution equivalence) | dense `\` | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | `IterativeSolveParitySuite` | covered (workload replaceability, not algorithm parity) |
 | Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | — | out (no Breeze public `eigh(A,B)`) |
 | Sparse direct factorization | SuiteSparse / native | — | — | out (Gale non-goal) |
-| Near-cutoff rank / `pinv` / `cond` | policy-dependent | policy-dependent | — | out (deliberate; pinned in core) |
+| Near-cutoff rank / `pinv` / `cond` | policy-dependent | policy-dependent | — | out (deliberate; pinned in core by `GaleNumericalContractSuite`) |
 
 Published conversion and migration shims live in `interop-breeze` (`sbt
 interopBreezeTest`), not in this differential harness.

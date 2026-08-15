@@ -238,6 +238,18 @@ lazy val breezeVersion = "2.1.0"
 // the more fragile path here). Its netlib backend (dev.ludovic.netlib) is a
 // pure-Java reference implementation with a JVM fallback — it may log a one-time
 // "native BLAS not found, using Java" notice, which is harmless.
+//
+// Tests run in a forked JVM with the Java BLAS/LAPACK implementation forced.
+// Native discovery has stalled GitHub-hosted runners for the full job budget;
+// the parity claim is the Java fallback, not a vendor BLAS.
+lazy val breezeJavaBlasOptions = Seq(
+  "-Ddev.ludovic.netlib.blas.implementation=Java",
+  "-Ddev.ludovic.netlib.lapack.implementation=Java",
+  "-Dcom.github.fommil.netlib.BLAS=com.github.fommil.netlib.F2jBLAS",
+  "-Dcom.github.fommil.netlib.LAPACK=com.github.fommil.netlib.F2jLAPACK",
+  "-Dcom.github.fommil.netlib.ARPACK=com.github.fommil.netlib.F2jARPACK"
+)
+
 lazy val parity =
   project
     .in(file("parity"))
@@ -245,7 +257,8 @@ lazy val parity =
     .settings(
       name           := "gale-parity",
       publish / skip := true,
-      Test / fork    := false,
+      Test / fork    := true,
+      Test / javaOptions ++= breezeJavaBlasOptions,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit"            % munitVersion  % Test,
@@ -269,7 +282,8 @@ lazy val interopBreeze =
       name := "gale-interop-breeze",
       description := "Breeze interoperability for gale (JVM).",
       scalacOptions ++= commonScalacOptions,
-      Test / fork := false,
+      Test / fork := true,
+      Test / javaOptions ++= breezeJavaBlasOptions,
       libraryDependencies ++= Seq(
         "org.scalanlp"  %% "breeze" % breezeVersion,
         "org.scalameta" %% "munit"  % munitVersion % Test

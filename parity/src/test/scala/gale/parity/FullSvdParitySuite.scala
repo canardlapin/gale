@@ -66,6 +66,59 @@ class FullSvdParitySuite extends munit.FunSuite:
         i += 1
   }
 
+  /** `‖V_c V_cᵀ − W_c W_cᵀ‖_∞` over cluster columns. */
+  private def projectorDiff(gv: DMat, bv: BDM[Double], cols: Range): Double =
+    val n = gv.rows
+    var worst = 0.0
+    var i = 0
+    while i < n do
+      var j = 0
+      while j < n do
+        var pg = 0.0
+        var pb = 0.0
+        for c <- cols do
+          pg += gv(i, c) * gv(j, c)
+          pb += bv(i, c) * bv(j, c)
+        worst = math.max(worst, math.abs(pg - pb))
+        j += 1
+      i += 1
+    worst
+
+  test("full SVD: clustered singular vectors match breeze as subspace projectors") {
+    // Plant A = U Σ Vᵀ with a repeated σ = 3 so individual vectors are not
+    // comparable across libraries; the 2-D projectors must still agree.
+    val rngU = new scala.util.Random(301L)
+    val rngV = new scala.util.Random(302L)
+    val m = 10
+    val n = 6
+    val uRaw = Array.tabulate(m, m)((_, _) => rngU.nextDouble() * 2.0 - 1.0)
+    val vRaw = Array.tabulate(n, n)((_, _) => rngV.nextDouble() * 2.0 - 1.0)
+    val uQ = galeMatrix(uRaw).qr.orThrow.q
+    val vQ = galeMatrix(vRaw).qr.orThrow.q
+    val sigmas = IndexedSeq(7.0, 3.0, 3.0, 1.5, 0.4)
+    val planted = Array.tabulate(m, n): (i, j) =>
+      var sum = 0.0
+      var k = 0
+      while k < sigmas.length do
+        sum += uQ(i, k) * sigmas(k) * vQ(j, k)
+        k += 1
+      sum
+    val g = galeMatrix(planted).svd.orThrow
+    val b = breezeSvd(breezeMatrix(planted))
+    val cluster = 1 until 3
+    val uDiff = projectorDiff(g.u, b.leftVectors, cluster)
+    assert(uDiff < 1e-8, s"U cluster projector mismatch $uDiff")
+    // gale stores Vᵀ; breeze rightVectors is also Vᵀ — compare V = (Vᵀ)ᵀ.
+    val gV = Matrix.tabulate(g.vt.cols, g.vt.rows)((i, j) => g.vt(j, i))
+    val bV = BDM.tabulate(b.rightVectors.cols, b.rightVectors.rows)((i, j) => b.rightVectors(j, i))
+    val vDiff = projectorDiff(gV, bV, cluster)
+    assert(vDiff < 1e-8, s"V cluster projector mismatch $vDiff")
+    var i = 0
+    while i < sigmas.length do
+      assertScalarClose(g.singularValues(i), b.singularValues(i), svdTol, s"clustered sigma($i)")
+      i += 1
+  }
+
   test("full SVD: singular vectors match breeze up to sign on resolvable values") {
     for (m, n, seed) <- Seq((30, 12, 121L), (12, 30, 122L), (25, 25, 123L)) do
       val data = matrixData(m, n, seed)

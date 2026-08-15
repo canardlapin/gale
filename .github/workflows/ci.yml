@@ -122,6 +122,21 @@ jobs:
   breeze-interop:
     name: Breeze parity and published interop
     runs-on: ubuntu-latest
+    # The combined `sbt parityTest interopBreezeTest` step previously sat in
+    # GitHub's 6h default budget after Breeze/netlib native discovery stalled
+    # in-process. Bound the job and keep each suite in its own timed step so a
+    # hang fails fast instead of occupying a runner.
+    timeout-minutes: 20
+    env:
+      # Force Breeze's ludovic-netlib / netlib-java stack onto the pure-Java
+      # F2J path. Native BLAS/LAPACK probing is the suspected hang; the parity
+      # claim is already the Java fallback, not a vendor BLAS.
+      JAVA_TOOL_OPTIONS: >-
+        -Ddev.ludovic.netlib.blas.implementation=Java
+        -Ddev.ludovic.netlib.lapack.implementation=Java
+        -Dcom.github.fommil.netlib.BLAS=com.github.fommil.netlib.F2jBLAS
+        -Dcom.github.fommil.netlib.LAPACK=com.github.fommil.netlib.F2jLAPACK
+        -Dcom.github.fommil.netlib.ARPACK=com.github.fommil.netlib.F2jARPACK
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -130,9 +145,14 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - name: Run Breeze differential parity and conversion suites
-        run: sbt parityTest interopBreezeTest
+      - name: Run Breeze differential parity
+        timeout-minutes: 10
+        run: sbt parityTest
+      - name: Run Breeze conversion and migration suites
+        timeout-minutes: 8
+        run: sbt interopBreezeTest
       - name: Compile a clean consumer against the published local POM
+        timeout-minutes: 8
         run: sbt publishedInteropProbe
 
   release-dependencies:
