@@ -24,11 +24,16 @@ reference or deliberate non-goal).
 | Operation | Breeze API | Gale API | Suite | Status |
 | --- | --- | --- | --- | --- |
 | Dense ± / * / axpy / dot / scale | `+`, `-`, `*`, `dot` | same | `DenseOpsParitySuite` | covered |
-| Construct / slice / gather / update / pointwise | indexing, `:*`, etc. | `slice`, `gather*`, `updated`, `pointwise` | `EverydayOpsParitySuite` | covered |
-| det / solve / LU / Chol / QR / lstsq | `det`, `\`, `lu`, `cholesky`, `qr` | `det`, `solve`, `lu`, `cholesky`, `qr`, `leastSquares` | `FactorizationParitySuite` | covered |
+| Slice / strided-view products | `A(i until j, …) * x` | `slice` then `*` / `col` as `x` | `DenseOpsParitySuite` | covered |
+| Construct / slice / gather / update / pointwise | indexing, `:*`, etc. | `slice`, `gather*`, `updated`, `pointwise`, `zipMapExact` | `EverydayOpsParitySuite` | covered |
+| Vector zeros / fill / tabulate | `DenseVector.zeros/fill/tabulate` | `Vec.zeros/fill/tabulate` | `EverydayOpsParitySuite` | covered |
+| det / solve / LU / Chol / QR / lstsq / inv | `det`, `\`, `lu`, `cholesky`, `qr`, `inv` | `det`, `solve`, `lu`, `cholesky`, `qr`, `leastSquares`, `solve(I)` | `FactorizationParitySuite` | covered |
+| Cholesky / reused-QR solve paths | `\` on SPD / tall | `cholesky.solve`, `qr.solveLeastSquares` | `FactorizationParitySuite` | covered |
 | rank / cond (clear cases) | `rank`, `cond` | `rankEstimate`, `conditionEstimate` | `FactorizationParitySuite` | covered (overlap only) |
-| Sparse matvec / transpose-matvec | `CSCMatrix *` | Banded/CSR/CSC/Diagonal `*` | `BandedSparseParitySuite` | covered |
-| Sparse + / − / scale | `CSCMatrix` arithmetic | CSR/CSC `+`, `-`, `*` | `BandedSparseParitySuite` | covered |
+| Sparse matvec / transpose-matvec | `CSCMatrix *` | Banded/CSR/CSC/COO/Diagonal `*` | `BandedSparseParitySuite` | covered |
+| Identity / zero / permutation matvec | `CSCMatrix` structural | `Sparse.identity/zero/permutation` | `BandedSparseParitySuite` | covered |
+| Sparse + / − / scale / sparse-dense `*` | `CSCMatrix` arithmetic | CSR/CSC `+`, `-`, `*`, CSR `* DMat` | `BandedSparseParitySuite` | covered |
+| `pinv(A)*b` vs `A \\ b` (full-rank) | `pinv`, `\` | `pinv` then `*` | `FullSvdParitySuite` | covered |
 | Symmetric eigen (dense + Lanczos) | `eigSym` | `Eigen.eigSymmetric` | `SpectralParitySuite` | covered |
 | Nonsymmetric eigen | `eig` | `Eigen.eigNonsymmetric` | `NonsymmetricEigenParitySuite` | covered |
 | Partial / full SVD, `pinv`, `kron` | `svd`, `pinv`, `kron` | `Svds.svd`, `pinv`, `kron` | `SvdQrParitySuite`, `FullSvdParitySuite` | covered |

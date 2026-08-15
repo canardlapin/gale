@@ -5,6 +5,7 @@ import breeze.linalg.LU as BreezeLU
 import breeze.linalg.cholesky
 import breeze.linalg.cond
 import breeze.linalg.det
+import breeze.linalg.inv
 import breeze.linalg.qr
 import breeze.linalg.rank
 import gale.linalg.*
@@ -143,6 +144,32 @@ class FactorizationParitySuite extends munit.FunSuite:
       assertBreezeMatClose(bL * bL.t, breezeMatrix(data), reconTol, s"breeze chol recon n=$n seed=$seed")
   }
 
+  test("cholesky: gale factor.solve(b) matches breeze A \\ b on SPD systems") {
+    for n <- List(5, 12, 20); seed <- List(1L, 2L, 3L) do
+      val aData = spd(n, seed)
+      val bData = vectorData(n, seed * 79 + 1)
+      val gx = galeMatrix(aData).cholesky.orThrow.solve(galeVector(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeVector(bData)
+      assertVecClose(gx, bx, solveTol, s"chol solve n=$n seed=$seed")
+  }
+
+  test("cholesky: reused factor handles a matrix right-hand side") {
+    for n <- List(8, 16); rhsCols <- List(1, 4); seed <- List(1L, 2L) do
+      val aData = spd(n, seed)
+      val bData = matrixData(n, rhsCols, seed * 83 + rhsCols)
+      val gx = galeMatrix(aData).cholesky.orThrow.solve(galeMatrix(bData)).orThrow
+      val bx = breezeMatrix(aData) \ breezeMatrix(bData)
+      assertMatClose(gx, bx, solveTol, s"chol matrix solve n=$n rhsCols=$rhsCols seed=$seed")
+  }
+
+  test("inv: gale A.solve(I) matches breeze inv(A) on well-conditioned matrices") {
+    for n <- List(5, 12, 20); seed <- List(1L, 2L) do
+      val aData = diagonallyDominant(n, seed)
+      val gx = galeMatrix(aData).solve(Matrix.eye(n)).orThrow
+      val bx = inv(breezeMatrix(aData))
+      assertMatClose(gx, bx, solveTol, s"inv n=$n seed=$seed")
+  }
+
   // ---------------------------------------------------------------------------
   // QR (Q R = A; compare sign-free invariants)
   // ---------------------------------------------------------------------------
@@ -190,6 +217,28 @@ class FactorizationParitySuite extends munit.FunSuite:
       val gx = galeMatrix(aData).leastSquares(galeMatrix(bData)).orThrow
       val bx = breezeMatrix(aData) \ breezeMatrix(bData)
       assertMatClose(gx, bx, solveTol, s"matrix least squares ${m}x$n rhsCols=$rhsCols seed=$seed")
+  }
+
+  test("least squares: reused QR matches breeze A \\ b for several RHS") {
+    for (m, n) <- List((12, 5), (25, 8)); seed <- List(1L, 2L) do
+      val aData = matrixData(m, n, seed)
+      val qr = galeMatrix(aData).qr
+      val ba = breezeMatrix(aData)
+      for r <- 0 until 3 do
+        val bData = vectorData(m, seed * 89 + r)
+        val gx = qr.solveLeastSquares(galeVector(bData)).orThrow
+        val bx = ba \ breezeVector(bData)
+        assertVecClose(gx, bx, solveTol, s"reused QR lstsq ${m}x$n seed=$seed rhs=$r")
+  }
+
+  test("least squares: reused QR handles a matrix right-hand side") {
+    val m = 20
+    val n = 6
+    val aData = matrixData(m, n, 111L)
+    val bData = matrixData(m, 4, 112L)
+    val gx = galeMatrix(aData).qr.solveLeastSquares(galeMatrix(bData)).orThrow
+    val bx = breezeMatrix(aData) \ breezeMatrix(bData)
+    assertMatClose(gx, bx, solveTol, "reused QR matrix RHS")
   }
 
   // ---------------------------------------------------------------------------

@@ -170,3 +170,66 @@ class BandedSparseParitySuite extends munit.FunSuite:
       assertSparseClose(gA - gB, bA - bB, tol, s"CSC A−B ${m}x$n seed=$seed")
       assertSparseClose(gA * alpha, bA * alpha, tol, s"CSC αA ${m}x$n seed=$seed")
   }
+
+  // ---------------------------------------------------------------------------
+  // COO and structured sparse types
+  // ---------------------------------------------------------------------------
+
+  private def galeCoo(data: Array[Array[Double]]): COO =
+    val builder = Sparse.coo(data.length, data(0).length)
+    var i = 0
+    while i < data.length do
+      var j = 0
+      while j < data(0).length do
+        if data(i)(j) != 0.0 then builder.add(i, j, data(i)(j))
+        j += 1
+      i += 1
+    builder.toCOO()
+
+  test("COO matvec / transpose-matvec vs breeze CSCMatrix (rectangular)") {
+    for (m, n) <- List((8, 8), (12, 7), (7, 15)); seed <- List(1L, 2L) do
+      val data = sparseData(m, n, 0.3, seed)
+      val gA = galeCoo(data)
+      val bA = breezeCsc(data)
+      val bAt = breezeCscTransposed(data)
+
+      val xF = galeVector(vectorData(n, seed * 73 + 1))
+      val xT = galeVector(vectorData(m, seed * 79 + 2))
+      val bxF = breezeVector(vectorData(n, seed * 73 + 1))
+      val bxT = breezeVector(vectorData(m, seed * 79 + 2))
+
+      assertVecClose(gA * xF, bA * bxF, tol, s"COO A·x ${m}x$n seed=$seed")
+      assertVecClose(gA.t * xT, bAt * bxT, tol, s"COO Aᵀ·x ${m}x$n seed=$seed")
+  }
+
+  test("CSR times a dense matrix matches breeze CSCMatrix * DenseMatrix") {
+    for (m, n, k) <- List((8, 6, 3), (10, 10, 4)); seed <- List(1L, 2L) do
+      val aData = sparseData(m, n, 0.35, seed)
+      val bData = matrixData(n, k, seed * 97 + 1)
+      val gx = galeCsr(aData) * galeMatrix(bData)
+      val bx = breezeCsc(aData) * breezeMatrix(bData)
+      assertMatClose(gx, bx, tol, s"CSR*Dense ${m}x${n} * ${n}x$k seed=$seed")
+  }
+
+  test("Identity, Zero, and Permutation matvec match breeze CSCMatrix") {
+    for n <- List(4, 9, 16); seed <- List(1L, 2L) do
+      val xData = vectorData(n, seed * 101 + 1)
+      val gx = galeVector(xData)
+      val bx = breezeVector(xData)
+
+      val identity = Array.tabulate(n, n)((i, j) => if i == j then 1.0 else 0.0)
+      assertVecClose(Sparse.identity(n) * gx, breezeCsc(identity) * bx, tol, s"Identity A·x n=$n seed=$seed")
+      assertVecClose(Sparse.identity(n).t * gx, breezeCsc(identity) * bx, tol, s"Identity Aᵀ·x n=$n seed=$seed")
+
+      val zero = Array.fill(n, n)(0.0)
+      assertVecClose(Sparse.zero(n, n) * gx, breezeCsc(zero) * bx, tol, s"Zero A·x n=$n seed=$seed")
+
+      val rng = new scala.util.Random(seed)
+      val columnsByRow = rng.shuffle((0 until n).toList).toArray
+      val permData = Array.tabulate(n, n)((i, j) => if columnsByRow(i) == j then 1.0 else 0.0)
+      val gP = Sparse.permutation(columnsByRow.toIndexedSeq*)
+      val bP = breezeCsc(permData)
+      val bPt = breezeCscTransposed(permData)
+      assertVecClose(gP * gx, bP * bx, tol, s"Permutation A·x n=$n seed=$seed")
+      assertVecClose(gP.t * gx, bPt * bx, tol, s"Permutation Aᵀ·x n=$n seed=$seed")
+  }

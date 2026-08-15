@@ -117,3 +117,28 @@ class DenseOpsParitySuite extends munit.FunSuite:
       assertVecClose(gx + gy, bx + by, tol, s"x+y size=$size seed=$seed")
       assertVecClose(gx - gy, bx - by, tol, s"x-y size=$size seed=$seed")
   }
+
+  test("contiguous slice then A·x and A·B match Breeze views") {
+    for size <- sizes; seed <- seeds do
+      val rows = size + 3
+      val cols = size + 1
+      val aData = matrixData(rows, cols, seed)
+      val xData = vectorData(cols - 2, seed * 41 + 1)
+      val bData = matrixData(cols - 2, 3, seed * 43 + 2)
+      val ga = galeMatrix(aData).slice(1, rows - 1, 1, cols - 1)
+      val ba = breezeMatrix(aData)(1 until rows - 1, 1 until cols - 1)
+      assertVecClose(ga * galeVector(xData), ba * breezeVector(xData), tol, s"slice A·x size=$size seed=$seed")
+      assertMatClose(ga * galeMatrix(bData), ba * breezeMatrix(bData), tol, s"slice A·B size=$size seed=$seed")
+  }
+
+  test("strided column view as a source vector matches Breeze") {
+    for size <- sizes; seed <- seeds do
+      val aData = matrixData(size, size, seed)
+      val bData = matrixData(size, size + 2, seed * 47 + 3)
+      val ga = galeMatrix(aData)
+      val gb = galeMatrix(bData)
+      val ba = breezeMatrix(aData)
+      val bb = breezeMatrix(bData)
+      val col = size
+      assertVecClose(ga * gb.col(col), ba * bb(::, col), tol, s"A·B(:,$col) size=$size seed=$seed")
+  }

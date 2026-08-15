@@ -100,6 +100,15 @@ class FullSvdParitySuite extends munit.FunSuite:
       assertMatClose(g, b, pinvTol, s"pinv ${m}x$n seed=$seed")
   }
 
+  test("pinv: gale pinv(A)*b matches breeze A \\ b on full-rank square and tall systems") {
+    for (m, n, seed) <- Seq((8, 8, 134L), (12, 5, 135L), (20, 7, 136L)) do
+      val aData = matrixData(m, n, seed)
+      val bData = vectorData(m, seed * 11 + 3)
+      val gx = (galeMatrix(aData).pinv.orThrow * galeVector(bData))
+      val bx = breezeMatrix(aData) \ breezeVector(bData)
+      assertVecClose(gx, bx, pinvTol, s"pinv*b ${m}x$n seed=$seed")
+  }
+
   // ---------------------------------------------------------------------------
   // kron vs breeze kron
   // ---------------------------------------------------------------------------
