@@ -1,4 +1,10 @@
-# Gale 1.0.0-RC1 release-foundation evidence
+# Historical 1.0.0-RC1 release-foundation evidence
+
+**Status:** Historical rehearsal only. Current development versions as
+`0.1.0+...-SNAPSHOT` and targets `v0.1.0-M1` with a four-artifact bundle. See
+the [versioning plan](release-policy.md) and [0.1 manifest](release-manifest.md).
+This receipt records an earlier eight-artifact `v1.0.0-RC1` dry-run; it is not
+permission to retarget snapshots or tags to 1.0.
 
 Evidence date: 2026-08-03. Candidate commit:
 `6b48b78` (`6b48b782d557ab120de4c14e32f8dc6eaeb96442`), on
@@ -6,10 +12,10 @@ Evidence date: 2026-08-03. Candidate commit:
 in the remote CI receipt below. No release tag was created in the real
 checkout, and no Central deployment was uploaded.
 
-This record covers the four pre-RC foundation workstreams: documentation,
-artifact/dependency boundary, required CI, and signed Central Portal bundle
-mechanics. It does not claim that the owner's Central namespace, project PGP
-key, or Portal token has been configured.
+This record covers the four pre-RC foundation workstreams as they existed on
+that date: documentation, artifact/dependency boundary, required CI, and signed
+Central Portal bundle mechanics. It does not claim that the owner's Central
+namespace, project PGP key, or Portal token has been configured.
 
 ## Exact candidate and environment
 
@@ -57,8 +63,9 @@ executes the same public gates on Ubuntu and the JDK matrix.
 
 ## Frozen artifact and dependency boundary
 
-The authoritative [release manifest](release-manifest.md) admits exactly these
-eight coordinates:
+The rehearsal used an eight-coordinate 1.0-shaped bundle. That admission list
+is superseded by the current [0.1 manifest](release-manifest.md). The
+coordinates exercised that day were:
 
 - `gale-core_3`
 - `gale-core_sjs1_3`
@@ -121,16 +128,16 @@ also advisory and failed; `continue-on-error: true` keeps it from masking the
 required release gates. This receipt is the source-level record to carry into
 the later RC tag and Central validation operation.
 
-## Remaining RC-only gates
+## Remaining publication gates
 
-The engineering foundation is locally and remotely exercised, but the final
-publication child remains open until the owner supplies and validates:
+Those owner gates remain open and now apply to `v0.1.0-M1`, not a 1.0 RC:
 
 1. the `io.github.canardlapin` Central namespace;
 2. the real project PGP key and passphrase in GitHub Actions secrets;
 3. Central Portal username/token secrets and one non-publishing validation
    upload; and
-4. the owner's Central validation receipt for the exact candidate.
+4. the owner's Central validation receipt for the exact 0.1 candidate.
 
-No immutable `v1.0.0` tag, RC tag, Central upload, or public binary release was
-created by this foundation work.
+No immutable `v0.1.0-M1` tag, `v1.0.0` tag, RC tag, Central upload, or public
+binary release was created by this foundation work. Do not treat the local
+`v1.0.0-RC1` rehearsal tag as a current publication target.

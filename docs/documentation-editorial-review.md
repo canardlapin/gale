@@ -64,9 +64,11 @@ a structural `Left`; documentation must not flatten those cases together.
 
 ### Maturity, compatibility, and non-goals
 
-The live build is `1.0.0-SNAPSHOT`, targets Scala 3.7.4, and has no configured
-public binary publication. The intended `io.github.canardlapin` artifacts are
-therefore names, not currently installable Maven Central coordinates. JDK 21 is
+The live build is `0.1.0+...-SNAPSHOT`, targets Scala 3.7.4, and has no
+configured public binary publication. The intended `io.github.canardlapin`
+artifacts are therefore names, not currently installable Maven Central
+coordinates. The first intended immutable checkpoint is `v0.1.0-M1`; `1.0` is a
+later compatibility freeze. JDK 21 is
 the core JVM line; finalized FFM modules require JDK 22. Node is the executed
 Scala.js runtime in CI. Browser support is an intended public route, but the
 current release policy correctly says browser CI is not yet a release gate.
@@ -94,12 +96,12 @@ implementation.
 | Claim | Status | Evidence | Scope or caveat | Documentation consequence |
 | --- | --- | --- | --- | --- |
 | Core dense, sparse, solver, and spectral APIs are shared by JVM and Scala.js | confirmed | `core` cross-project; `testAllFull` at `e7c8579` | Node executes JS tests; browser matrix is not a release gate | Say JVM and Scala.js; do not say browser-certified |
-| Gale is not publicly released | confirmed | `1.0.0-SNAPSHOT`; no publish destination; no matching Central result in this audit | External state can change later | Teach source dependency and `publishLocal`; label future coordinates |
+| Gale is not publicly released | confirmed | `0.1.0+...-SNAPSHOT`; no publish destination; no matching Central result in this audit | External state can change later | Teach source dependency and `publishLocal`; label future coordinates |
 | Total solve/factorization entry points preserve typed failures | confirmed | public signatures and factorization/solver tests | primitive arithmetic validates by throwing | Explain the boundary, not “everything returns Either” |
 | Ordinary returned dense values remain stable across workspace reuse | confirmed | ownership Scaladoc; workspace, QR, and mutable-builder suites | explicitly `unsafe` borrowed views are exceptions | Put preservation next to allocation-control examples |
 | Matrix-free partial generalized symmetric solving is implemented | confirmed | LOBPCG/Lanczos source, focused suites, executable guide | only documented algebraic-end selections; convergence and extremality differ | Teach engine choice and diagnostics separately |
 | Optional backends are universally faster | unverified and false as a general claim | dashboard contains enabled and rejected routes | results are machine, JDK, library, shape, and layout specific | Route readers to measured thresholds; avoid “fast” as an adjective |
-| Current source is binary-compatible across future 1.x releases | unverified | no stable baseline or MiMa gate before 1.0.0 | policy is prospective | Call the current build pre-release; do not imply a live compatibility promise |
+| Current source is binary-compatible across future 1.x releases | unverified | no stable baseline; compatibility begins at `v0.1.0-M1`, not 1.0 | policy is prospective | Call the current build pre-release; do not imply a live compatibility promise |
 
 ## Editorial findings
 
@@ -188,7 +190,7 @@ the qualified benchmark dashboard when needed.
 
 | Priority | Workflow | Evidence | Reader expectation and current cost | Recommendation | Compatibility | Documentation now |
 | --- | --- | --- | --- | --- | --- | --- |
-| P1 | Install Gale | no public artifacts; source `ProjectRef` differs for JVM/JS | a normal dependency line; instead the reader must understand sbt source dependencies | configure and publish the intended artifacts before announcing 1.0 | release/process change, no source API change | show a complete source dependency and label future coordinates |
+| P1 | Install Gale | no public artifacts; source `ProjectRef` differs for JVM/JS | a normal dependency line; instead the reader must understand sbt source dependencies | configure and publish `v0.1.0-M1` before announcing a public release | release/process change, no source API change | show a complete source dependency and label future coordinates |
 | P1 | Weighted/reweighted least squares | `qrScaledRows` and `solveLeastSquaresScaledRowsWith` require the same algebraic scales | a method named for weights; current API correctly accepts row multipliers, which may be signed | consider a separately named `weightedLeastSquares` façade using validated non-negative weights and documented square roots | additive API; semantic design required | call current values row scales, never statistical weights |
 | P2 | Allocation-controlled QR solve | factor workspace and solve workspace share `DenseWorkspace` but have separate requirements | one obvious “workspace for this pipeline” constructor | consider a composed `qrPipelineRequirement(rows, cols, rhsCols, options)` convenience | additive API | show `alternative` composition and explain result ownership |
 | P2 | Factor a filled transient matrix | `DMatBuilder.consumeQR` closes the builder, unlike `result()` followed by `qr` | a discoverable consuming operation near construction examples | retain the API; consider consistent `consume*` naming if more consuming factorizations appear | additive only if extended | state closure and storage transfer beside the call |
@@ -213,13 +215,15 @@ public site follows the reader-question ladder; ordinary dense, sparse/operator,
 and spectral workflows are executable; and allocation-control features state
 their ownership and dispatch consequences where readers encounter them.
 
-It is not yet honest to present Gale as broadly 1.0-announcement-ready. The
-remaining blockers are product and publication evidence rather than missing
-prose:
+It is not honest to present Gale as 1.0-announcement-ready, and the live
+version must not imply that. The remaining blockers are product and
+publication evidence rather than missing prose:
 
-- publish signed, versioned artifacts to a configured public repository;
-- decide whether `gale-interop-ravel` belongs in the v1 artifact promise;
-- publish stable versioned Scaladoc and wire the guide to it;
+- publish signed `v0.1.0-M1` artifacts to a configured public repository;
+- keep Breeze/Vector/FFM and `gale-interop-ravel` provisional until an
+  admission record names them;
+- publish stable versioned Scaladoc and wire the guide to it after the first
+  immutable tag;
 - promote browser execution from an intended route to a release gate if the
   announcement claims browser certification; and
 - visually inspect the final site in an isolated browser before deployment.

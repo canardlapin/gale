@@ -24,12 +24,74 @@ artifacts=(
   gale-core_sjs1_3
   gale-laws_3
   gale-laws_sjs1_3
-  gale-interop-breeze_3
-  gale-backend-jvm-vector_3
-  gale-backend-jvm-native_3
-  gale-backend-jvm-blas-ffm_3
 )
 
+group_root="$tmp/io/github/canardlapin"
+[[ -d "$group_root" ]] || {
+  echo "missing io.github.canardlapin Maven group in Central bundle" >&2
+  exit 1
+}
+
+unexpected_poms=$(find "$tmp" -type f -name '*.pom' ! -path "$group_root/*" -print)
+[[ -z "$unexpected_poms" ]] || {
+  echo "Central bundle contains coordinates outside io.github.canardlapin" >&2
+  printf '%s\n' "$unexpected_poms" >&2
+  exit 1
+}
+
+expected_artifacts=$(printf '%s\n' "${artifacts[@]}" | sort)
+actual_artifacts=$(
+  find "$group_root" -type f -name '*.pom' -exec sh -c '
+    for pom do
+      basename "$(dirname "$(dirname "$pom")")"
+    done
+  ' sh {} + | sort -u
+)
+[[ "$actual_artifacts" == "$expected_artifacts" ]] || {
+  echo "Central bundle artifact set differs from the admitted 0.1 manifest" >&2
+  diff -u <(printf '%s\n' "$expected_artifacts") <(printf '%s\n' "$actual_artifacts") >&2 || true
+  exit 1
+}
+
+verify_checksum() {
+  local file=$1
+  local algorithm=$2
+  local checksum="$file.$algorithm"
+  local expected
+  local actual
+
+  [[ -f "$checksum" ]] || {
+    echo "missing $algorithm checksum for $file" >&2
+    exit 1
+  }
+  expected=$(tr -d '[:space:]' < "$checksum")
+  case "$algorithm" in
+    md5)
+      if command -v md5sum >/dev/null 2>&1; then
+        actual=$(md5sum "$file" | awk '{print $1}')
+      else
+        actual=$(md5 -q "$file")
+      fi
+      ;;
+    sha1)
+      if command -v sha1sum >/dev/null 2>&1; then
+        actual=$(sha1sum "$file" | awk '{print $1}')
+      else
+        actual=$(shasum -a 1 "$file" | awk '{print $1}')
+      fi
+      ;;
+    *)
+      echo "unsupported checksum algorithm: $algorithm" >&2
+      exit 1
+      ;;
+  esac
+  [[ "$expected" == "$actual" ]] || {
+    echo "$algorithm checksum mismatch for $file" >&2
+    exit 1
+  }
+}
+
+bundle_version=""
 for artifact in "${artifacts[@]}"; do
   poms=$(find "$tmp" -type f -path "*/$artifact/*/$artifact-*.pom" | sort)
   pom_count=$(printf '%s\n' "$poms" | sed '/^$/d' | wc -l | tr -d ' ')
@@ -44,6 +106,12 @@ for artifact in "${artifacts[@]}"; do
     echo "snapshot version in Central bundle: $artifact:$version" >&2
     exit 1
   }
+  if [[ -z "$bundle_version" ]]; then
+    bundle_version=$version
+  elif [[ "$version" != "$bundle_version" ]]; then
+    echo "mixed versions in Central bundle: expected $bundle_version, found $artifact:$version" >&2
+    exit 1
+  fi
 
   directory=$(dirname "$pom")
   for suffix in pom jar sources.jar javadoc.jar; do
@@ -55,10 +123,12 @@ for artifact in "${artifacts[@]}"; do
       javadoc.jar) file+="-javadoc.jar" ;;
     esac
     [[ -f "$file" ]] || { echo "missing $suffix for $artifact:$version" >&2; exit 1; }
+    verify_checksum "$file" md5
+    verify_checksum "$file" sha1
     if (( require_signatures )); then
       [[ -f "$file.asc" ]] || { echo "missing signature for $file" >&2; exit 1; }
     fi
   done
 done
 
-echo "Central bundle verified: ${#artifacts[@]} admitted artifacts, version $version"
+echo "Central bundle verified: ${#artifacts[@]} admitted artifacts, version $bundle_version"

@@ -339,9 +339,11 @@ this is the same kit the spectral `SpectralBackendConformanceSuite` extends.
 | **All L1/L2 sites** | untouched | static `DoubleKernels.*`, zero change |
 | `gale-backend-jvm-blas-ffm`: `given Backend`, runtime CBLAS discovery, thresholds, FFM GEMM/GEMV/SYRK | new module | absent unless imported (and absent on JS) |
 
-Pre-1.0, adding `(using Backend = pure)` to a shipped coarse method is acceptable
+Pre-M1, adding `(using Backend = pure)` to a shipped coarse method is acceptable
 source evolution (same stance as the spectral migration); the invariant is
-behavioural identity of the no-import path (A-R1).
+behavioural identity of the no-import path (A-R1). After `v0.1.0-M1`, treat
+signature additions as compatibility review items. The later `1.0` freeze is
+not the current development label.
 
 ### A.8 Non-goals (§A)
 
