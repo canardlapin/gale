@@ -93,8 +93,8 @@ class FullSvdParitySuite extends munit.FunSuite:
     val n = 6
     val uRaw = Array.tabulate(m, m)((_, _) => rngU.nextDouble() * 2.0 - 1.0)
     val vRaw = Array.tabulate(n, n)((_, _) => rngV.nextDouble() * 2.0 - 1.0)
-    val uQ = galeMatrix(uRaw).qr.orThrow.q
-    val vQ = galeMatrix(vRaw).qr.orThrow.q
+    val uQ = galeMatrix(uRaw).qr.q
+    val vQ = galeMatrix(vRaw).qr.q
     val sigmas = IndexedSeq(7.0, 3.0, 3.0, 1.5, 0.4)
     val planted = Array.tabulate(m, n): (i, j) =>
       var sum = 0.0

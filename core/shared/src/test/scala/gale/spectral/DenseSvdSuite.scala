@@ -313,8 +313,8 @@ class DenseSvdSuite extends munit.FunSuite:
     // block must match the planted projectors.
     val m = 8
     val n = 5
-    val uPlant = randomMat(m, m, 201L).qr.orThrow.q
-    val vPlant = randomMat(n, n, 202L).qr.orThrow.q
+    val uPlant = randomMat(m, m, 201L).qr.q
+    val vPlant = randomMat(n, n, 202L).qr.q
     val sigmas = IndexedSeq(5.0, 3.0, 3.0, 1.0)
     val a = Matrix.tabulate(m, n): (i, j) =>
       var sum = 0.0
@@ -333,8 +333,12 @@ class DenseSvdSuite extends munit.FunSuite:
     val vDiff = projectorDiff(vComputed, vPlant, cluster)
     assert(vDiff < 1e-8, s"V cluster projector mismatch $vDiff")
     // Isolated values remain individually aligned up to sign.
-    val u0 = math.abs((0 until m).map(i => s.u(i, 0) * uPlant(i, 0)).sum)
-    assert(math.abs(u0 - 1.0) < 1e-8, s"leading U not aligned: $u0")
+    var u0 = 0.0
+    var r = 0
+    while r < m do
+      u0 += s.u(r, 0) * uPlant(r, 0)
+      r += 1
+    assert(math.abs(math.abs(u0) - 1.0) < 1e-8, s"leading U not aligned: $u0")
   }
 
   test("values-only providers must still return the complete spectrum") {

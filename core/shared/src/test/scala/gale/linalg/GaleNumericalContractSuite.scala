@@ -23,7 +23,7 @@ class GaleNumericalContractSuite extends munit.FunSuite:
     Matrix.tabulate(m, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
 
   private def orthonormal(n: Int, seed: Long): DMat =
-    randomMat(n, n, seed).qr.orThrow.q
+    randomMat(n, n, seed).qr.q
 
   private def fromSvd(u: DMat, sigmas: IndexedSeq[Double], v: DMat): DMat =
     val p = sigmas.length
