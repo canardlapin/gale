@@ -3,7 +3,9 @@
 This document states what Gale v1 guarantees and where callers must make an
 explicit numerical or performance choice. It complements the runnable
 [worked examples](../guides/examples.md) and the focused
-[Breeze migration guide](../guides/breeze-equivalence.md).
+[Breeze migration guide](../guides/breeze-equivalence.md). The current
+portable / backend-only / deferred split is tabulated in
+[Shipped vs deferred](../../shipped-vs-deferred.md).
 
 ## Floating-point guarantees
 

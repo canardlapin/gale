@@ -5,7 +5,9 @@ and understand [Core concepts](../core-concepts.md). They are for users who
 need to make a numerical, performance, storage, or ownership decision:
 
 - [Numerical, sparse, and backend contract](numerical-contract.md) states the
-  guarantees shared by portable and accelerated routes.
+  guarantees shared by portable and accelerated routes. The current portable /
+  backend-only / deferred split is tabulated in
+  [Shipped vs deferred](../../shipped-vs-deferred.md).
 - [Matrix-free generalized symmetric eigensolving](generalized-operator-eigen.md)
   covers LOBPCG, generalized block Lanczos, metric solves, and convergence
   evidence.
