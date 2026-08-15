@@ -98,11 +98,13 @@ import gale.syntax.all.*
 val x = Vec(1.0, 0.5, -1.0)
 val ax = a * x
 val gram = a.t * a
+val scaled = a * 2.0
 val squared = a.pointwise * a
 val regularized = gram.addToDiagonal(1e-6)
 
 ax.toSeq
 gram.valuesRowMajor
+scaled.valuesRowMajor
 squared.valuesRowMajor
 regularized(0, 0)
 ```
@@ -113,7 +115,7 @@ The main dense operations are:
 | --- | --- |
 | Vector addition, subtraction, scaling | `x + y`, `x - y`, `x * scalar` |
 | Dot product and Euclidean norm | `x.dot(y)`, `x.norm2` |
-| Matrix addition and subtraction | `a + b`, `a - b` |
+| Matrix addition, subtraction, and scaling | `a + b`, `a - b`, `a * scalar`, `scalar * a` |
 | Matrix-vector and matrix-matrix products | `a * x`, `a * b` |
 | Transpose | `a.t` |
 | Elementwise multiply, divide, or map | `a.pointwise * b`, `a.pointwise / b`, `a.pointwise.map(f)` |

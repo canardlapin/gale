@@ -608,6 +608,16 @@ final class DMat private[gale] (
     requireSameShape(that)
     addSub(that, subtract = true)
 
+  /** Scale every entry by `alpha`. The result is an owned contiguous row-major
+    * matrix, including when `this` is a transpose or slice view. Same arithmetic
+    * as [[DVec.*]]: `0 * Inf` is `NaN`, and `1.0` still copies.
+    */
+  def *(alpha: Double): DMat =
+    val n = rows * cols
+    val out = toDoubleArrayCopyRowMajor
+    if n > 0 then DoubleKernels.dscal(n, alpha, out, 0, 1)
+    DMat.fromDoubleArrayOwned(rows, cols, out)
+
   /** Elementwise add/subtract through the `dadd`/`dsub` kernels. When both
     * operands are contiguous row-major the whole block is a single kernel call;
     * otherwise each row is one strided call, honouring arbitrary layouts.

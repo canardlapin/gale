@@ -23,7 +23,7 @@ reference or deliberate non-goal).
 
 | Operation | Breeze API | Gale API | Suite | Status |
 | --- | --- | --- | --- | --- |
-| Dense ± / * / axpy / dot / scale | `+`, `-`, `*`, `dot` | same | `DenseOpsParitySuite` | covered |
+| Dense ± / * / axpy / dot / scale | `+`, `-`, `*`, `dot` | same, including `A * α` | `DenseOpsParitySuite` | covered |
 | Slice / strided-view products | `A(i until j, …) * x` | `slice` then `*` / `col` as `x` | `DenseOpsParitySuite` | covered |
 | Construct / slice / gather / update / pointwise | indexing, `:*`, etc. | `slice`, `gather*`, `updated`, `pointwise`, `zipMapExact` | `EverydayOpsParitySuite` | covered |
 | Vector zeros / fill / tabulate | `DenseVector.zeros/fill/tabulate` | `Vec.zeros/fill/tabulate` | `EverydayOpsParitySuite` | covered |

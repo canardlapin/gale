@@ -67,6 +67,19 @@ class DenseCoreSuite extends munit.FunSuite:
     assertEquals(C.valuesRowMajor, Seq(4.0, 4.0, 10.0, 13.0))
   }
 
+  test("matrix scalar multiplication scales every entry and copies views") {
+    val A = Matrix.dense(2, 3)(
+      1.0, 2.0, 3.0,
+      4.0, 5.0, 6.0
+    )
+    assertEquals((A * 2.0).valuesRowMajor, Seq(2.0, 4.0, 6.0, 8.0, 10.0, 12.0))
+    assertEquals((0.5 * A).valuesRowMajor, Seq(0.5, 1.0, 1.5, 2.0, 2.5, 3.0))
+    assertEquals((A.t * -1.0).valuesRowMajor, Seq(-1.0, -4.0, -2.0, -5.0, -3.0, -6.0))
+    assertEquals((A.slice(0, 1, 1, 3) * 3.0).valuesRowMajor, Seq(6.0, 9.0))
+    assertEquals((Matrix.zeros(0, 3) * 4.0).valuesRowMajor, Seq.empty)
+    assertEquals(A.valuesRowMajor, Seq(1.0, 2.0, 3.0, 4.0, 5.0, 6.0))
+  }
+
   test("mulInto handles row-major and transpose-view layouts") {
     val A = Matrix.dense(2, 3)(
       1.0, 2.0, 3.0,

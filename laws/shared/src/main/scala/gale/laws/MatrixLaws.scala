@@ -59,6 +59,12 @@ object MatrixLaws extends Assertions:
   def matVecIsLinear(a: DMat, x: DVec, y: DVec): Unit =
     VecLaws.assertCloseRel(a * (x + y), (a * x) + (a * y))
 
+  /** Scalar multiplication distributes over matrix addition:
+    * `alpha * (A + B) == alpha * A + alpha * B`.
+    */
+  def scalarDistributesOverAddition(alpha: Double, a: DMat, b: DMat): Unit =
+    assertCloseRel(alpha * (a + b), (alpha * a) + (alpha * b))
+
   /** Matrix multiplication is associative: `A (B C) == (A B) C`.
     *
     * The tolerance scales with the '''intermediate''' magnitude

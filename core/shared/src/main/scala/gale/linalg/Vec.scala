@@ -319,3 +319,6 @@ object Vec:
 extension (alpha: Double)
   def *(x: DVec): DVec =
     x * alpha
+
+  def *(a: DMat): DMat =
+    a * alpha

@@ -105,6 +105,17 @@ class DenseOpsParitySuite extends munit.FunSuite:
       assertMatClose(ga - gb, ba - bb, tol, s"A-B size=$size seed=$seed")
   }
 
+  test("matrix scale A * α and α * A") {
+    for size <- sizes; seed <- seeds do
+      val aData = matrixData(size, size + 1, seed)
+      val ga = galeMatrix(aData)
+      val ba = breezeMatrix(aData)
+      val alpha = 2.5 - seed.toDouble
+      assertMatClose(ga * alpha, ba * alpha, tol, s"A*α size=$size seed=$seed")
+      assertMatClose(alpha * ga, alpha * ba, tol, s"α*A size=$size seed=$seed")
+      assertMatClose(ga.t * alpha, ba.t * alpha, tol, s"Aᵀ*α size=$size seed=$seed")
+  }
+
   test("vector scale, add, subtract") {
     for size <- sizes; seed <- seeds do
       val xData = vectorData(size, seed)
