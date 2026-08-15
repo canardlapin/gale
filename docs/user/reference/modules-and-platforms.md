@@ -15,12 +15,14 @@ not claim that the listed artifact names are available from Maven Central.
 | `blasFfmBackend` | `gale-backend-jvm-blas-ffm` | JVM | a JDK 22+ application opts into runtime-discovered BLAS/LAPACK |
 | `interopRavelJVM`, `interopRavelJS` | `gale-interop-ravel` | JVM, Scala.js | an explicitly opt-in development boundary needs copy conversion between Ravel and Gale |
 
-`gale-interop-ravel` is explicitly excluded from the Gale 1.0 artifact set
-because its current `ravel-core` dependency is a development snapshot. The
-dedicated `interopRavelTest` route remains available when a matching Ravel
-checkout or published snapshot is present; do not infer publication from the
-project definition alone. See the [release manifest on GitHub](https://github.com/canardlapin/gale/blob/main/docs/release-manifest.md)
-for the complete admitted and excluded set.
+`gale-interop-ravel` is excluded from the 0.1 milestone artifact set because
+its current `ravel-core` dependency is a development snapshot. Breeze interop
+and the JVM acceleration backends are tested but provisional: they are not in
+the first Central bundle. The dedicated `interopRavelTest` route remains
+available when a matching Ravel checkout or published snapshot is present; do
+not infer publication from the project definition alone. See the
+[release manifest on GitHub](https://github.com/canardlapin/gale/blob/main/docs/release-manifest.md)
+for the complete admitted, provisional, and excluded set.
 
 `parity`, benchmark projects, the documentation site, browser demo, Scala-next
 consumer probe, and the root aggregator are build or evidence projects and set
@@ -37,7 +39,7 @@ consumer probe, and the root aggregator are build or evidence projects and set
 | Scala compiler | published artifacts are intended to be produced with Scala 3.7.4; consumers need a compatible 3.7.4-or-newer compiler |
 
 The advisory Scala-next lane currently tests 3.8.4 without making it a release
-gate. Consult the [v1 compatibility policy](https://github.com/canardlapin/gale/blob/main/docs/release-policy.md) before
+gate. Consult the [0.1 versioning plan](https://github.com/canardlapin/gale/blob/main/docs/release-policy.md) before
 turning a current build observation into a future compatibility claim.
 
 ## Local API reference

@@ -70,7 +70,7 @@ same.
 | Operation | Values and shape | Storage or ownership | Failure or qualification |
 | --- | --- | --- | --- |
 | `a.t`, `a.row`, `a.col`, `a.slice` | logical view with derived shape | may share immutable storage | invalid index or slice throws `LinAlgError` |
-| `a * b`, `a + b` | new dense result | owned result | shape precondition throws `LinAlgError` |
+| `a * b`, `a + b`, `a * scalar` | new dense result | owned result | shape precondition throws `LinAlgError` |
 | `a.solve(rhs)` | solution with RHS column count | owned result | structural failure is `Left` |
 | `a.qr(options)` | factor of `A(:, permutation)` when pivoted | factor owns storage | rank is diagnostic; least-squares can reject rank deficiency |
 | iterative solve | last iterate | result owns iterate | inspect convergence and residual |

@@ -100,6 +100,12 @@ class DenseLawSuite extends ScalaCheckSuite:
     }
   }
 
+  property("DMat scalar multiplication distributes over matrix addition") {
+    forAll(mat2x3Gen, mat2x3Gen, scalarGen) { (A: DMat, B: DMat, alpha: Double) =>
+      MatrixLaws.scalarDistributesOverAddition(alpha, A, B)
+    }
+  }
+
   property("DMat transpose is an involution and views match element access") {
     forAll(mat2x3Gen) { (A: DMat) =>
       MatrixLaws.transposeIsInvolution(A)

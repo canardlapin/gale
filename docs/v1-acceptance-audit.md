@@ -1,8 +1,11 @@
 # Gale v1 acceptance audit
 
-Audit date: 2026-07-17. Audited build: `1.0.0-SNAPSHOT` on the current local
-tree. This is an engineering acceptance record, not evidence of a public
-release or remote CI run.
+Audit date: 2026-07-17. Audited build: then labeled `1.0.0-SNAPSHOT` on the
+local tree. That snapshot label was premature; current development versions as
+`0.1.0+...-SNAPSHOT` and treats `1.0` as a later freeze. See
+[the versioning plan](release-policy.md). This remains an engineering
+acceptance record for the PRD v1 *code* criteria, not evidence of a public
+release or a 1.0 compatibility promise.
 
 ## Acceptance result
 
@@ -72,7 +75,9 @@ Local JDK 21 was unavailable. The checked-in workflow has required Vector legs
 for JDK 21 and 22, but this audit does not present unexecuted remote CI as green.
 The local JDK 22 Vector gate passed.
 
-The code acceptance criteria pass. Public publication remains blocked by the
+The code acceptance criteria pass. That is not permission to label the tree
+`1.0.0-SNAPSHOT` or to cut `v1.0.0`. Public publication remains blocked by the
 owner decisions listed in [the release policy](release-policy.md): project
 license, SCM/homepage/developer POM metadata, publishing destination, and an
-actual remote CI run on the release commit.
+actual remote CI run on the release commit. The first intended public tag is
+`v0.1.0-M1`.

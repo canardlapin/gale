@@ -198,7 +198,7 @@ class FirstOrderOptimizationSuite extends munit.FunSuite:
     add(left, scale(right, -1.0))
 
   private def scale(value: DMat, factor: Double): DMat =
-    map(value)(_ * factor)
+    value * factor
 
   private def squaredNorm(value: DMat): Double =
     var result = 0.0

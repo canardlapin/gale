@@ -151,9 +151,12 @@ object SMat:
     def -(that: SMat[R, C]): SMat[R, C] = unsafe(m.toDMat - that.toDMat)
 
     /** Scale by a scalar. */
+    def *(alpha: Double): SMat[R, C] =
+      unsafe(m.toDMat * alpha)
+
+    /** Scale by a scalar. Alias of [[*]]. */
     def scale(alpha: Double): SMat[R, C] =
-      val d = m.toDMat
-      unsafe(Matrix.tabulate(d.rows, d.cols)((i, j) => d(i, j) * alpha))
+      m * alpha
 
     /** Transpose (`R×C ⇒ C×R`). */
     def t: SMat[C, R] = unsafe(m.toDMat.t)

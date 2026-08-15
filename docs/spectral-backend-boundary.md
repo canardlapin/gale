@@ -690,11 +690,13 @@ The cost of this boundary must be visible now. Here is the entire change-set for
 the first real backend (`gale-backend-jvm-lapack`, filling S5/S6/S7/S8 and
 accelerating S3), split into "byte-identical" and "additive."
 
-**Pre-1.0 note.** gale's binary-compatibility policy begins at v1.0 (roadmap).
-Until then, tightening a constructor (step 0) or adding a
-`(using SpectralBackend = ...)` clause to a shipped method is acceptable *source*
-evolution; the invariant the boundary guarantees is **behavioral** identity of
-the no-import path, which holds because `none` reproduces today's exact returns.
+**Pre-M1 note.** Gale's binary-compatibility policy begins at `v0.1.0-M1`, not
+at a 1.0 snapshot. Until M1, tightening a constructor (step 0) or adding a
+`(using SpectralBackend = ...)` clause to a shipped method is acceptable
+*source* evolution; the invariant the boundary guarantees is **behavioral**
+identity of the no-import path, which holds because `none` reproduces today's
+exact returns. After M1, constructor tightening that is not already
+`private[spectral]` must be treated as a compatibility review item.
 
 ### 5.0 Step 0 — tighten the result-type constructors (prerequisite)
 
