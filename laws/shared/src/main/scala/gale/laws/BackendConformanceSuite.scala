@@ -12,7 +12,10 @@ import gale.platform.DoubleArray.*
   * the suite self-confirming. Fixtures cover offsets, padded leading dimensions,
   * transposed storage, non-unit vector strides, `alpha`/`beta`, and both triangles
   * of `syrk`. A backend advertising `NativeLapack` additionally has to reconstruct
-  * LU/Cholesky/QR factors and solve a system with a small residual.
+  * LU/Cholesky/QR factors and solve a system with a small residual. Every backend
+  * must also agree with `PureBackend` on facade residuals and on the `LinAlgError`
+  * class for IEEE-exact singular / non-SPD plants; a `NativeLapack` provider is
+  * checked on that same residual and error-class contract directly.
   */
 abstract class BackendConformanceSuite extends munit.FunSuite:
   def backend: Backend
@@ -203,3 +206,151 @@ abstract class BackendConformanceSuite extends munit.FunSuite:
       )
       val qr = backend.denseFactorizations.get.qr(rectangular).orThrow
       MatrixLaws.assertCloseRel(qr.q.*(qr.r)(using PureBackend), rectangular, 5.0 * relativeTolerance)
+
+  test("facade products and solves agree with PureBackend within residual tolerance"):
+    val a = Matrix.dense(4, 4)(
+      4.0, 1.0, 0.0, 2.0,
+      1.0, 5.0, 1.0, 0.0,
+      0.0, 1.0, 6.0, 1.0,
+      2.0, 0.0, 1.0, 7.0
+    )
+    val c = Matrix.dense(4, 3)(
+      1.0, -1.0, 0.5,
+      0.0, 2.0, 1.0,
+      -0.5, 0.0, 3.0,
+      1.5, 0.25, -1.0
+    )
+    val b = Vec(3.0, -1.0, 2.0, 4.0)
+    MatrixLaws.assertCloseRel(a.*(c)(using backend), a.*(c)(using PureBackend), relativeTolerance)
+    VecLaws.assertCloseRel(a.*(b)(using backend), a.*(b)(using PureBackend), relativeTolerance)
+
+    val xBackend = a.solve(b)(using backend).orThrow
+    val xPure = a.solve(b)(using PureBackend).orThrow
+    VecLaws.assertCloseRel(xBackend, xPure, relativeTolerance)
+    assert(
+      solveResidual(a, xBackend, b) <= 1e-12,
+      s"backend solve residual ${solveResidual(a, xBackend, b)}"
+    )
+    assert(
+      solveResidual(a, xPure, b) <= 1e-12,
+      s"pure solve residual ${solveResidual(a, xPure, b)}"
+    )
+
+    val spd = Matrix.dense(3, 3)(6.0, 2.0, 1.0, 2.0, 5.0, 2.0, 1.0, 2.0, 4.0)
+    val rhs = Vec(1.0, 0.0, -1.0)
+    val cholBackend = spd.cholesky(using backend).orThrow.solve(rhs).orThrow
+    val cholPure = spd.cholesky(using PureBackend).orThrow.solve(rhs).orThrow
+    VecLaws.assertCloseRel(cholBackend, cholPure, relativeTolerance)
+    assert(solveResidual(spd, cholBackend, rhs) <= 1e-12)
+
+    val tall = Matrix.dense(5, 3)(
+      1.0, 0.0, 2.0,
+      0.5, 3.0, -1.0,
+      2.0, 1.0, 0.0,
+      -1.0, 0.5, 1.5,
+      0.0, 2.0, 1.0
+    )
+    val observations = Vec(1.0, -2.0, 0.5, 3.0, 0.25)
+    val lsBackend = tall.qr(using backend).solveLeastSquares(observations).orThrow
+    val lsPure = tall.qr(using PureBackend).solveLeastSquares(observations).orThrow
+    VecLaws.assertCloseRel(lsBackend, lsPure, 5.0 * relativeTolerance)
+
+  test("facade typed errors agree with PureBackend on IEEE-exact plants"):
+    val singular = Matrix.dense(3, 3)(
+      1.0, 2.0, 3.0,
+      2.0, 4.0, 6.0,
+      3.0, 6.0, 9.0
+    )
+    assertSameErrorClass(
+      singular.lu(using backend),
+      singular.lu(using PureBackend),
+      "LU exact rank-1"
+    )
+    val indefinite = Matrix.dense(2, 2)(1.0, 2.0, 2.0, 1.0)
+    assertSameErrorClass(
+      indefinite.cholesky(using backend),
+      indefinite.cholesky(using PureBackend),
+      "Cholesky indefinite"
+    )
+    val rectangular = Matrix.zeros(2, 3)
+    assertSameErrorClass(
+      rectangular.lu(using backend),
+      rectangular.lu(using PureBackend),
+      "LU non-square"
+    )
+
+  test("native factorizations match PureBackend residuals and error classes"):
+    if backend.capabilities.contains(Capability.NativeLapack) then
+      val provider = backend.denseFactorizations.get
+      val a = Matrix.dense(4, 4)(
+        4.0, 1.0, 0.0, 2.0,
+        1.0, 5.0, 1.0, 0.0,
+        0.0, 1.0, 6.0, 1.0,
+        2.0, 0.0, 1.0, 7.0
+      )
+      val b = Vec(3.0, -1.0, 2.0, 4.0)
+      val xNative = provider.lu(a).orThrow.solve(b).orThrow
+      val xPure = a.solve(b)(using PureBackend).orThrow
+      VecLaws.assertCloseRel(xNative, xPure, relativeTolerance)
+      assert(solveResidual(a, xNative, b) <= 1e-12, s"native LU residual ${solveResidual(a, xNative, b)}")
+      assert(solveResidual(a, xPure, b) <= 1e-12, s"pure LU residual ${solveResidual(a, xPure, b)}")
+
+      val spd = Matrix.dense(3, 3)(6.0, 2.0, 1.0, 2.0, 5.0, 2.0, 1.0, 2.0, 4.0)
+      val rhs = Vec(1.0, 0.0, -1.0)
+      val xCholNative = provider.cholesky(spd).orThrow.solve(rhs).orThrow
+      val xCholPure = spd.cholesky(using PureBackend).orThrow.solve(rhs).orThrow
+      VecLaws.assertCloseRel(xCholNative, xCholPure, relativeTolerance)
+      assert(solveResidual(spd, xCholNative, rhs) <= 1e-12)
+
+      val rectangular = Matrix.dense(5, 3)(
+        1.0, 2.0, -1.0,
+        3.0, 0.5, 4.0,
+        -2.0, 1.0, 3.0,
+        0.25, -1.5, 2.0,
+        1.5, 0.0, -0.5
+      )
+      val qrNative = provider.qr(rectangular).orThrow
+      val qrPure = rectangular.qr(using PureBackend)
+      MatrixLaws.assertCloseRel(qrNative.q.*(qrNative.r)(using PureBackend), rectangular, 5.0 * relativeTolerance)
+      MatrixLaws.assertCloseRel(qrPure.q.*(qrPure.r)(using PureBackend), rectangular, 5.0 * relativeTolerance)
+
+      val singular = Matrix.dense(3, 3)(
+        1.0, 2.0, 3.0,
+        2.0, 4.0, 6.0,
+        3.0, 6.0, 9.0
+      )
+      assertSameErrorClass(provider.lu(singular), singular.lu(using PureBackend), "native LU exact rank-1")
+      val indefinite = Matrix.dense(2, 2)(1.0, 2.0, 2.0, 1.0)
+      assertSameErrorClass(
+        provider.cholesky(indefinite),
+        indefinite.cholesky(using PureBackend),
+        "native Cholesky indefinite"
+      )
+
+  private def frobenius(a: DMat): Double =
+    var sum = 0.0
+    var i = 0
+    while i < a.rows do
+      var j = 0
+      while j < a.cols do
+        sum += a(i, j) * a(i, j)
+        j += 1
+      i += 1
+    math.sqrt(sum)
+
+  private def solveResidual(a: DMat, x: DVec, b: DVec): Double =
+    val residual = a.*(x)(using PureBackend) - b
+    residual.norm2 / (1.0 + frobenius(a) * x.norm2 + b.norm2)
+
+  private def assertSameErrorClass[A](
+      actual: Either[LinAlgError, A],
+      expected: Either[LinAlgError, A],
+      clue: String
+  ): Unit =
+    (actual, expected) match
+      case (Left(got), Left(want)) =>
+        assertEquals(got.getClass, want.getClass, s"$clue: ${got.getClass.getName} vs ${want.getClass.getName}")
+      case (Right(_), Right(_)) =>
+        fail(s"$clue: both sides succeeded; expected a typed error")
+      case (got, want) =>
+        fail(s"$clue: error-class mismatch: $got vs $want")

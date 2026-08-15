@@ -365,7 +365,10 @@ the caller decides whether the reported convergence is sufficient.
 
 `conditionEstimate` is a 1-norm estimate. It is not Breeze's exact SVD-based
 2-norm condition number. Gale uses a different name because the returned
-quantity and its computational cost differ.
+quantity and its computational cost differ. LU reports `SingularMatrix` only
+on an exact-zero (or NaN) pivot; a reconstructed near-singular plant is not a
+portable `+∞` fixture. See the
+[numerical contract](../advanced/numerical-contract.md#cross-platform-singularity-rank-and-backend-residuals).
 
 Gale's full SVD returns economy-size factors rather than full square factors.
 Symmetric eigenvalue and Cholesky routines read the lower triangle of the input
