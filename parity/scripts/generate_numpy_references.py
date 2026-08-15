@@ -236,6 +236,18 @@ def near_cutoff_refs() -> list[str]:
         4,
         2,
     )
+    # Diagonal isolates the cutoff policy: SVD is exact, so 1/σ entries stay
+    # comparable. The prescribed-SVD case above is too ill-conditioned for
+    # elementwise pinv (tiny kept σ ≈ 2·max(m,n)·ε).
+    n_diag = 4
+    diag_cutoff = n_diag * EPS * 1.0
+    add(
+        "diag_near_pinv_cutoff",
+        np.diag([1.0, 1.0e-4, 2.0 * diag_cutoff, 0.5 * diag_cutoff]),
+        "near_cutoff_diag",
+        2,
+        2,
+    )
     add(
         "square_near_singular_diag",
         np.diag([1.0, 1.0, 1.0, 1.0e-12]),
