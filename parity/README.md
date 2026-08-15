@@ -5,6 +5,16 @@ compares results that have the same mathematical meaning. For factorizations,
 where signs or bases may differ, the tests compare reconstructions, residuals,
 or subspace projectors instead of comparing raw factors.
 
+Where Breeze has no honest public reference, the same module compares Gale to
+checked-in NumPy / SciPy fixtures (the R counterparts are `geigen`,
+`kappa` / `rcond`, `pracma::pinv`, `Matrix::lu`, and the Krylov solvers in
+`Matrix`). CI does not need Python or R; regenerate fixtures from the
+repository root with:
+
+```sh
+python3 parity/scripts/generate_numpy_references.py
+```
+
 Run the suite from the repository root:
 
 ```sh
@@ -19,7 +29,8 @@ contract and use a tolerance that accounts for the algorithms being compared.
 ## Coverage checklist
 
 Status values: **covered** (differential test present), **out** (no honest Breeze
-reference or deliberate non-goal).
+reference or deliberate non-goal). **SciPy** means a NumPy/SciPy fixture is
+the reference.
 
 | Operation | Breeze API | Gale API | Suite | Status |
 | --- | --- | --- | --- | --- |
@@ -38,10 +49,13 @@ reference or deliberate non-goal).
 | Nonsymmetric eigen | `eig` | `Eigen.eigNonsymmetric` | `NonsymmetricEigenParitySuite` | covered |
 | Partial / full SVD, `pinv`, `kron` | `svd`, `pinv`, `kron` | `Svds.svd`, `pinv`, `kron` | `SvdQrParitySuite`, `FullSvdParitySuite` | covered |
 | Blocked QR / lstsq | `qr`, `\` | `qr`, `leastSquares` | `SvdQrParitySuite` | covered |
-| Iterative solve (solution equivalence) | dense `\` | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | `IterativeSolveParitySuite` | covered (workload replaceability, not algorithm parity) |
-| Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | — | out (no Breeze public `eigh(A,B)`) |
-| Sparse direct factorization | SuiteSparse / native | — | — | out (Gale non-goal) |
-| Near-cutoff rank / `pinv` / `cond` | policy-dependent | policy-dependent | — | out (deliberate; pinned in core) |
+| Iterative solve (solution equivalence) | dense `\` | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | `IterativeSolveParitySuite` | covered (workload replaceability vs Breeze `\\`) |
+| Iterative algorithm (Krylov diagnostics) | — | `cg` / `bicgstab` / `gmres` / `lsqr` | `IterativeAlgorithmParitySuite` | SciPy (`sparse.linalg`; solution + residual band + iteration band) |
+| Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | `GeneralizedSpectralParitySuite` | SciPy (`eigh(A, B)` type 1) |
+| GSVD (full-column-rank) | — | `Svds.gsvd` | `GeneralizedSpectralParitySuite` | SciPy (Gram-pencil `eigh(AᵀA, BᵀB)`; no high-level `gsvd`) |
+| QZ / generalized nonsymmetric | — | `Eigen.eigGeneralizedNonsymmetric` | `GeneralizedSpectralParitySuite` | covered (unsupported-contract lock; SciPy `qz` / `eig(A,B)` is the future target) |
+| Sparse direct factorization | SuiteSparse / native | `SparseDirect` seam | `SparseDirectParitySuite` | SciPy (`splu` vs dense LU) + empty-provider lock |
+| Near-cutoff rank / `pinv` / `cond` | policy-dependent | `rankEstimate`, `pinv`, `conditionEstimate` | `NearCutoffParitySuite` | SciPy (`pinv` MATLAB `rtol`, SVD rank, `cond(A, 1)` lower bound) |
 
 Published conversion and migration shims live in `interop-breeze` (`sbt
 interopBreezeTest`), not in this differential harness.

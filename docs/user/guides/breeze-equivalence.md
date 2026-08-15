@@ -380,9 +380,12 @@ factor entries.
 ## Coverage at a glance
 
 Differential checks against Breeze 2.1 for these common operations live in the
-[`parity/` module](../../../parity/README.md) (`sbt parityTest`). The table
-below is the migration surface; the parity README tracks which rows are
-cross-checked.
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+with no honest Breeze reference — generalized eigen / GSVD / QZ, sparse-direct
+factorization, near-cutoff rank / `pinv` / `cond`, and Krylov algorithm
+diagnostics — are checked against NumPy / SciPy fixtures in the same module.
+The table below is the migration surface; the parity README tracks which rows
+are cross-checked.
 
 | Task | Gale API | Important difference |
 | --- | --- | --- |
