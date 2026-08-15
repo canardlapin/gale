@@ -137,8 +137,8 @@ class GeneralizedEigenTrustSuite extends munit.FunSuite:
       )
       .orThrow
     assert(d.requireConverged.isRight)
-    assertEqualsDouble(d.eigenvalues(0), 1.0, 1e-10, "λ0")
-    assertEqualsDouble(d.eigenvalues(1), 2.0, 1e-10, "λ1")
+    assertEqualsDouble(d.eigenvalues(0), 1.0, 1e-10, "smallest pair")
+    assertEqualsDouble(d.eigenvalues(1), 2.0, 1e-10, "second pair")
     assertEquals(d.diagnostics.convergenceStatus, SpectralConvergenceStatus.ExtremeCertified)
     assert(d.requireExtremeCertified.isRight)
   }
