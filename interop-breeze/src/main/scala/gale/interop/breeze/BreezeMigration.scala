@@ -90,6 +90,19 @@ object BreezeMigration:
   def pinv(a: DenseMatrix[Double]): DenseMatrix[Double] =
     toBreezeCopy(fromBreezeCopy(a).pinv.orThrow)
 
+  /** Breeze `qr(A)`: `(Q, R)` via gale's Householder QR. Gale returns the complete
+    * orthogonal factor (`Q` is `m×m` for an `m×n` input) and the upper-triangular
+    * `R` with shape `m×n`. Reflector signs may differ from Breeze; compare
+    * reconstructions or `Rᵀ R` rather than raw factor entries.
+    */
+  def qr(a: DenseMatrix[Double]): (DenseMatrix[Double], DenseMatrix[Double]) =
+    val qrf = fromBreezeCopy(a).qr
+    (toBreezeCopy(qrf.q), toBreezeCopy(qrf.r))
+
+  /** Breeze `kron(A, B)`: the Kronecker product via gale's dense `kron`. */
+  def kron(a: DenseMatrix[Double], b: DenseMatrix[Double]): DenseMatrix[Double] =
+    toBreezeCopy(fromBreezeCopy(a).kron(fromBreezeCopy(b)))
+
   /** Breeze `A \ b` for an overdetermined (tall) system: least-squares via gale's
     * QR. Throws on rank deficiency.
     */
