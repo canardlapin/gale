@@ -167,7 +167,14 @@ class GaleNumericalContractSuite extends munit.FunSuite:
 
   test("conditionEstimate is 1 for the identity and +∞ for a singular square") {
     assert(math.abs(Matrix.eye(4).conditionEstimate.orThrow - 1.0) < 1e-14)
-    val singular = fromSvd(orthonormal(3, 51L), IndexedSeq(2.0, 1.0, 0.0), orthonormal(3, 52L))
+    // LU reports SingularMatrix only on an exact-zero pivot. A QR-reconstructed
+    // U Σ Vᵀ with a planted σ=0 is only approximately singular on Scala.js
+    // (fma is a*b+c), so plant an IEEE-exact rank-1 outer product instead.
+    val singular = Matrix.dense(3, 3)(
+      1.0, 2.0, 3.0,
+      2.0, 4.0, 6.0,
+      3.0, 6.0, 9.0
+    )
     assert(singular.conditionEstimate.orThrow.isPosInfinity)
   }
 
