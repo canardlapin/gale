@@ -147,7 +147,9 @@ LU/Cholesky/QR provider, complex sparse storage, every Matrix Market
 field/symmetry, or a full Breeze sparse-collection replacement. The JVM-only
 sparse-direct boundary advertises no capability in the current build. Do not
 infer sparse LU, Cholesky, or QR support merely from the presence of
-provider-facing types.
+provider-facing types. The Scala.js plan (same staged contract, pure
+provider, no embedded C/Wasm in `gale-core`) is
+[Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Choosing a backend
 
