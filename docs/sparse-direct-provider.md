@@ -3,8 +3,10 @@
 Status: **shared seam; default provider is still `none`.** The public
 types and facade live in `core/shared` under `gale.sparse.direct`.
 `import gale.sparse.direct.pure.given` selects the portable Cholesky
-provider (`SparseDirectProvider.pure`). LU, QR, and native/Wasm
-providers are not shipped. See [Scala.js sparse-direct](sparse-direct-js.md).
+provider (`SparseDirectProvider.pure`). Sparse LU, QR, and native/Wasm
+providers are not shipped. Sparse QR, pivoting LU, and C Wasm each need
+their own spec in a [future version](sparse-direct-future.md). See
+[Scala.js sparse-direct](sparse-direct-js.md).
 
 `SparseDirectProvider.none` is the capability-less default. Its capability set
 is empty and workspace creation returns `Left(UnsupportedOperation)`. Merely

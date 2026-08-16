@@ -148,8 +148,9 @@ field/symmetry, or a full Breeze sparse-collection replacement. The shared spars
 JVM and Scala.js. `import gale.sparse.direct.pure.given` enables portable
 sparse Cholesky only (minimum-degree `ProviderDefault`, exact-zero-style
 `NotPositiveDefinite`, fill guard). Do not infer sparse LU or QR from the
-types or from that import. The remaining plan is
-[Scala.js sparse-direct](../../sparse-direct-js.md).
+types or from that import. Sparse QR, pivoting LU, and C Wasm each need
+their own spec in a [future version](../../sparse-direct-future.md). The
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Choosing a backend
 

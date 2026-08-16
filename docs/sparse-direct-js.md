@@ -309,9 +309,11 @@ SuiteSparse table in `sparse-direct-provider.md`.
    `given`. Evidence: `PureSparseCholeskySuite`.
 3. **Phase 2** — static-sparsity LU on the same provider, exact-zero pivot
    policy, dense-LU residual oracle, IEEE-exact `SingularMatrix` plants.
-4. **Not scheduled here** — sparse QR; threshold / delayed pivoting LU;
-   embedded C Wasm. Those are different projects (below), not leftover
-   families on the Phase 1–2 engine. Implicit `Backend` routing stays out.
+4. **Future version (spec first)** — sparse QR, threshold / delayed
+   pivoting LU, and embedded C Wasm. Each needs its own spec in a later
+   version; they are not leftover families on the Phase 1–2 engine. See
+   [the future-version note](sparse-direct-future.md). Implicit `Backend`
+   routing stays out.
 
 The portable iterative solvers remain the default sparse solve on Scala.js
 until a caller imports a capable provider. Direct factorization is an opt-in

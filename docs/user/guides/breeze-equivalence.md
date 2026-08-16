@@ -268,7 +268,9 @@ subtraction, scalar multiplication, and conversion to dense storage.
 Gale's default sparse-direct provider is `none`. Use an iterative solver, or
 `import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
 canonical square CSR. That import is not SuiteSparse and does not provide
-sparse LU or QR; see [Scala.js sparse-direct](../../sparse-direct-js.md).
+sparse LU or QR. Those, plus C Wasm, each need their own spec in a
+[future version](../../sparse-direct-future.md); see
+[Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Solve with an iterative method
 
