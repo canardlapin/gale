@@ -192,6 +192,11 @@ object SparseDirectProvider:
   val none: SparseDirectProvider = NoSparseDirectProvider
   given default: SparseDirectProvider = none
 
+  /** Portable sparse Cholesky. Not the default `given`; import
+    * `gale.sparse.direct.pure.given` or pass this value explicitly.
+    */
+  def pure: SparseDirectProvider = gale.sparse.direct.pure.PureSparseDirectProvider
+
   def current(using provider: SparseDirectProvider): SparseDirectProviderReport =
     SparseDirectProviderReport(provider.name, provider.capabilities, provider.config, provider.capabilities.nonEmpty)
 

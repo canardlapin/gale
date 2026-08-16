@@ -1,8 +1,9 @@
 # Scala.js sparse-direct
 
-Status: **Phase 0 landed** (shared seam, `none` default). No factorization
-is shipped. This document is the JS counterpart of
-[the provider boundary](sparse-direct-provider.md).
+Status: **Phase 0 and Phase 1 landed** (shared seam; portable Cholesky
+behind `import gale.sparse.direct.pure.given`). The default `given` is
+still `none`. LU, QR, and C Wasm are not shipped. This document is the JS
+counterpart of [the provider boundary](sparse-direct-provider.md).
 
 Gale has a staged seam on every core platform:
 
@@ -136,9 +137,10 @@ Symbolic, square canonical `CSRPattern`:
 1. Use the existing zero-copy pattern transpose so column access is CSC.
 2. Compute the elimination tree (Liu).
 3. Count nonzeros per column of `L` and allocate a compressed factor pattern.
-4. `Natural` is identity. `ProviderDefault` is AMD (or a documented
-   minimum-degree stand-in) and must report the permutation actually used.
-   `User` applies the caller permutation and requires `UserOrdering`.
+4. `Natural` is identity. `ProviderDefault` is minimum degree with
+   lowest-index tie-break (a documented AMD stand-in) and reports the
+   permutation actually used. `User` applies the caller permutation and
+   requires `UserOrdering`.
 5. Write `predictedFactorNnz`. If it exceeds the fill guard (below), return
    `Left(InvalidArgument)` before allocating.
 
@@ -300,9 +302,11 @@ SuiteSparse table in `sparse-direct-provider.md`.
 1. **Phase 0 (landed)** — `SparseDirect.scala` in `core/shared`;
    `SparseDirectSeamSuite` empty-provider lock on JVM and JS; platform-neutral
    error copy.
-2. **Phase 1** — `SparseDirectProvider.pure` with Cholesky, `Natural` +
-   `ProviderDefault` AMD, `UserOrdering`, transpose and multi-RHS, fill
-   guard. Explicit import, not the default `given`.
+2. **Phase 1 (landed)** — `SparseDirectProvider.pure` with Cholesky,
+   `Natural` + `ProviderDefault` minimum degree (lowest-index tie-break),
+   `UserOrdering`, transpose and multi-RHS, fill guard
+   `max(inputNnz * 64, 8_000_000)`. Explicit import, not the default
+   `given`. Evidence: `PureSparseCholeskySuite`.
 3. **Phase 2** — static-sparsity LU on the same provider, exact-zero pivot
    policy, dense-LU residual oracle, IEEE-exact `SingularMatrix` plants.
 4. **Not scheduled here** — sparse QR; threshold / delayed pivoting LU;
