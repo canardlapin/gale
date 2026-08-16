@@ -1,12 +1,11 @@
-# JVM sparse-direct provider boundary
+# Sparse-direct provider boundary
 
-Status: **contract only; no sparse-direct implementation is shipped or
-advertised.** The public boundary exists only in the JVM build under
-`gale.sparse.direct`. Scala.js has no corresponding API or provider. The
-planned JS solution — promote this seam to `core/shared`, then a pure Scala
-Cholesky/LU provider behind an explicit `given` — is specified in
-[Scala.js sparse-direct](sparse-direct-js.md). Do not read classpath absence
-on JS as a different facade.
+Status: **shared seam; no sparse-direct implementation is shipped or
+advertised.** The public types and facade live in `core/shared` under
+`gale.sparse.direct` and resolve on JVM and Scala.js. The default
+`given` is `SparseDirectProvider.none`. A capable provider is a later
+explicit import; the planned first implementation is specified in
+[Scala.js sparse-direct](sparse-direct-js.md).
 
 `SparseDirectProvider.none` is the capability-less default. Its capability set
 is empty and workspace creation returns `Left(UnsupportedOperation)`. Merely

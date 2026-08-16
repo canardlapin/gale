@@ -1,17 +1,16 @@
 # Scala.js sparse-direct
 
-Status: **specification only.** No Scala.js sparse-direct implementation is
-shipped. This document is the JS counterpart of
-[the JVM provider boundary](sparse-direct-provider.md).
+Status: **Phase 0 landed** (shared seam, `none` default). No factorization
+is shipped. This document is the JS counterpart of
+[the provider boundary](sparse-direct-provider.md).
 
-Gale already has a staged JVM seam:
+Gale has a staged seam on every core platform:
 
 `provider → workspace → symbolic analysis → numeric factor → solve`
 
 The default provider is `SparseDirectProvider.none` and every entry point
-returns `Left(UnsupportedOperation)`. Scala.js has no corresponding package
-today because the types live under `core/jvm`, not because the algorithm is
-undefined.
+returns `Left(UnsupportedOperation)`. Phase 0 moved the types from
+`core/jvm` into `core/shared` so Scala.js resolves the same package.
 
 The Scala.js solution is **the same contract, with a JS-capable provider**.
 It is not a second facade, not an async `Promise` API, and not an iterative
@@ -40,25 +39,23 @@ Until a provider advertises a capability and passes the gates below, docs
 continue to say: Gale ships no sparse direct factorization. Use CG / BiCGSTAB
 / LSQR, or convert a small system to dense.
 
-## Why the API is JVM-only today
+## Why the API used to be JVM-only
 
-`gale.sparse.direct` is a single file,
-`core/jvm/src/main/scala/gale/sparse/direct/SparseDirect.scala`. Portable
+`gale.sparse.direct` started as a single file under `core/jvm`. Portable
 sparse (CSR/CSC, patterns, symbolic union/product plans, matvec) and the
-iterative solvers already cross-compile. JS therefore has the *inputs* a
-direct provider needs (`CSR`, `CSRPattern`, `Permutation`, `DVec`,
-`MutableDVec`) and none of the *seam*.
+iterative solvers already cross-compiled, so JS had the *inputs* a direct
+provider needs and none of the *seam*.
 
 That split matches the native-module rule in
 [backend architecture](backend-architecture.md): optional native code is
 absent from the JS classpath rather than stubbed. It is the wrong split for a
-**pure** provider. The staged types, facade validation, diagnostics, and
-`none` default contain no native dependency and should be shared.
+**pure** provider. Phase 0 moved the staged types, facade validation,
+diagnostics, and `none` default into `core/shared`.
 
 ## Phase 0 — one seam on every platform
 
-Move `gale.sparse.direct` from `core/jvm` to `core/shared` without enabling
-any factorization.
+`gale.sparse.direct` now lives in `core/shared` without enabling any
+factorization.
 
 | Change | Rule |
 | --- | --- |
@@ -299,9 +296,9 @@ SuiteSparse table in `sparse-direct-provider.md`.
 
 ## Recommended landing sequence
 
-1. **Phase 0** — move `SparseDirect.scala` to `core/shared`; JS empty-provider
-   lock; platform-neutral error copy; pointers from this file and the
-   numerical contract.
+1. **Phase 0 (landed)** — `SparseDirect.scala` in `core/shared`;
+   `SparseDirectSeamSuite` empty-provider lock on JVM and JS; platform-neutral
+   error copy.
 2. **Phase 1** — `SparseDirectProvider.pure` with Cholesky, `Natural` +
    `ProviderDefault` AMD, `UserOrdering`, transpose and multi-RHS, fill
    guard. Explicit import, not the default `given`.

@@ -16,7 +16,7 @@ APIs, not a Rust-shaped ownership, scalar, or storage hierarchy.
 | General reusable workspaces | Checked `ScratchRequirement` composition and grow-only `DenseWorkspace`; QR, symmetric eigen, and CSR canonicalization reuse | `WorkspaceSuite`, `DenseSymmetricWorkspaceSuite`, `SparseWorkspaceSuite`, [workspace contract](user/advanced/workspaces.md) |
 | Exact-solve and least-squares capabilities | Narrow `ExactSolveFactor` and `LeastSquaresFactor` traits without leaking concrete-only operations | `FactorizationCapabilitySuite`, [capability contract](user/reference/factorization-capabilities.md) |
 | Symbolic sparse plans | Checked `CSRUnionPlan` and `CSRProductPlan`, exact-pattern validation, reusable numeric destinations, explicit-zero preservation | `SparsePlanSuite`, [symbolic-plan contract](user/advanced/sparse-plans.md) |
-| Optional JVM sparse-direct seam | Explicit provider, symbolic, numeric, workspace, solve, capability, diagnostic, and lifecycle contracts; capability-less default | `SparseDirectProviderSuite`, [provider boundary and go/no-go gates](sparse-direct-provider.md), [Scala.js plan](sparse-direct-js.md) |
+| Optional sparse-direct seam | Explicit provider, symbolic, numeric, workspace, solve, capability, diagnostic, and lifecycle contracts; capability-less default on JVM and Scala.js | `SparseDirectSeamSuite`, `SparseDirectProviderSuite`, [provider boundary and go/no-go gates](sparse-direct-provider.md), [Scala.js plan](sparse-direct-js.md) |
 
 All ordinary allocating APIs remain available. The reuse tier is explicit and
 does not silently alter backend selection, numerical ordering, diagnostics, or
@@ -34,8 +34,10 @@ failure behavior.
 | Determinism and diagnostics | Pure paths preserve existing deterministic behavior and typed `LinAlgError` failures. Factorization and sparse-direct capability layers retain immutable operation-specific diagnostics. |
 | Backend routing | Dense destination GEMM uses the same pure, Vector, and native routing policy as allocating GEMM. Caller-workspace symmetric eigen deliberately selects the pure route because providers do not promise caller scratch reuse. |
 
-The sparse-direct seam is intentionally JVM-only. Scala.js tests cover every
-portable outcome; they do not emulate or advertise a JVM provider boundary.
+The sparse-direct seam is shared. Scala.js and JVM both resolve
+`SparseDirectProvider.none`; they do not advertise a factorization. The JVM
+test provider suite exercises the facade with a dense-LU oracle; JS does not
+run that concurrent stress.
 
 ## Storage-encapsulation audit
 

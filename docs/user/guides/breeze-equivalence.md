@@ -267,9 +267,10 @@ subtraction, scalar multiplication, and conversion to dense storage.
 
 Gale does not provide sparse direct factorization. Use an iterative solver or
 convert a small sparse matrix to dense storage when the conversion is known to
-fit in memory. The planned Scala.js path is the same staged
-`SparseDirect` contract with a pure provider, not a browser SuiteSparse;
-see [Scala.js sparse-direct](../../sparse-direct-js.md).
+fit in memory. JVM and Scala.js both resolve the staged `SparseDirect` seam
+with `SparseDirectProvider.none`. A capable provider is a later explicit
+import, not a browser SuiteSparse; see
+[Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Solve with an iterative method
 
