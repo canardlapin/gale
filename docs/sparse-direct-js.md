@@ -123,7 +123,7 @@ against `CSR` / `CSRPattern` and platform `DoubleArray` / `IndexArray`
 | --- | --- | --- |
 | 1 | Sparse Cholesky | `Cholesky`, `UserOrdering`, `TransposeSolve`, `MultipleRhs` |
 | 2 | Static-sparsity LU | `LU` plus the same optional features |
-| 3 | Sparse QR | Deferred. SPQR-class rectangular QR is a different project |
+| 3 | Sparse QR | Deferred. Not a third family on the same engine; see [Why later items are different projects](#why-later-items-are-different-projects) |
 
 Cholesky first: SPD systems are the common browser/Node workload (FEM,
 graphs, kernels, covariance), the symbolic phase is exact (no numeric
@@ -183,7 +183,8 @@ direct solver, not a SuiteSparse replacement. SciPy `splu` remains the
 not the JS correctness oracle. JS LU is scored against Gale dense LU on the
 same numbers, plus residual tests, plus IEEE-exact singular plants.
 
-**QR** stays `UnsupportedOperation` until a separate spec. Do not advertise
+**QR** stays `UnsupportedOperation` until a separate spec. It is not a
+third family on the Cholesky/LU engine (see below). Do not advertise
 `SparseDirectCapability.QR` from a thin “convert to dense and Householder”
 fallback.
 
@@ -304,10 +305,117 @@ SuiteSparse table in `sparse-direct-provider.md`.
    guard. Explicit import, not the default `given`.
 3. **Phase 2** — static-sparsity LU on the same provider, exact-zero pivot
    policy, dense-LU residual oracle, IEEE-exact `SingularMatrix` plants.
-4. **Not scheduled** — sparse QR; threshold / delayed pivoting LU; embedded
-   CSparse Wasm; any implicit routing from `Backend`.
+4. **Not scheduled here** — sparse QR; threshold / delayed pivoting LU;
+   embedded C Wasm. Those are different projects (below), not leftover
+   families on the Phase 1–2 engine. Implicit `Backend` routing stays out.
 
 The portable iterative solvers remain the default sparse solve on Scala.js
 until a caller imports a capable provider. Direct factorization is an opt-in
 for repeated same-pattern SPD (then square nonsymmetric) systems, not a
 replacement for CG on matrix-free operators.
+
+## Why later items are different projects
+
+Phase 1–2 share one engine and one contract:
+
+- square `CSR` / `CSRPattern`;
+- symbolic analysis computes a **fixed** factor sparsity from the graph;
+- numeric factorization only writes values into that pattern (and may fail
+  with `NotPositiveDefinite` or `SingularMatrix`);
+- `factor(analysis, rebound)` reuses the symbolic handle because
+  `sharesPatternStorage` means the graph did not change;
+- Gale's exact-zero / non-positive pivot policy;
+- ordinary Scala in `gale-core`, no extra artifact.
+
+Sparse QR, pivoting LU, and C Wasm each drop a different one of those
+assumptions. Putting them on the same checklist as “also implement QR”
+would advertise a capability the Cholesky/LU engine cannot honestly
+provide.
+
+### Sparse QR is a different factorization, not a third enum case
+
+The facade already allows rectangular QR and asks the factor for
+`rhsRows` / `solutionRows`. That is the *seam*. The *algorithm* is not
+“Cholesky of `AᵀA`” and not “dense Householder on `toDense()`.”
+
+- **Different graph.** Sparse Cholesky/LU symbolics are the elimination
+  tree of a square pattern. Sparse QR (SPQR / multifrontal Householder)
+  symbolics are the column intersection graph of `A`, equivalently the
+  pattern of `AᵀA`, plus a frontal assembly order. Fill, ordering (COLAMD
+  vs AMD), and `predictedFactorNnz` are a different analysis.
+- **Different factors.** The portable result is Householder/Givens
+  reflectors plus `R`, or a Q-less least-squares apply. It is not `L`/`U`
+  triangles and a triangular solve. Dense Gale already stores reflectors
+  and applies `Qᵀ` without forming `Q`; a sparse provider has to invent
+  the compressed analogue and new solve diagnostics.
+- **Different failure policy.** Dense `leastSquares` is tall-only; wide
+  systems are `Left(UnsupportedOperation("underdetermined least squares"))`.
+  Rank drop is `RankDeficient` at the QR cutoff
+  `2 · max(m,n) · ε · max|R_ii|`. Shipping sparse QR reopens both
+  decisions (underdetermined, numerical rank) for compressed inputs. That
+  is product work, not a leftover `SparseDirectCapability.QR` bit.
+- **Normal equations are already shipped.** `cgnr` / `lsqr` solve sparse
+  least squares without a QR factor. Forming `AᵀA` and calling Phase 1
+  Cholesky would square the condition number and must not be advertised
+  as `QR`.
+- **Size.** SuiteSparseQR is a library. A honest pure SPQR is a
+  standalone implementation project (frontals, rank-revealing, apply-Q).
+  A `toDense()` Householder behind `SparseDirectCapability.QR` fails the
+  capability-honesty gate.
+
+So QR waits for its own spec: rectangular contract, rank policy, and an
+engine. It does not ride along once LU exists.
+
+### Threshold / delayed pivoting is a different LU contract
+
+Phase 2 LU is **static sparsity**: the `L`/`U` pattern is fixed at
+analyze time; numeric left-looking only fills it; a zero/NaN pivot is
+`SingularMatrix`. That matches dense Gale's exact-zero policy and the
+`analyze` → `rebind` → `factor` reuse rule.
+
+Threshold pivoting (UMFPACK / SuperLU / SciPy `splu`) and delayed
+pivoting change that contract:
+
+- **The pattern is no longer a function of the graph.** A row swap during
+  numeric factorization changes the sparsity of `L`. The symbolic handle
+  cannot be applied to new values without either (a) accepting a worse
+  pivot and possible `SingularMatrix`, or (b) re-analyzing. (b) voids
+  “changing values on one exact pattern reuses symbolic state.”
+- **The pivot policy is no longer exact-zero.** Threshold pivoting treats
+  a small-but-nonzero `u_ii` as a pivot failure or a swap candidate.
+  That is a different `LinAlgError` story from
+  `NumericalPolicySuite` / dense LU. A JS provider that used a threshold
+  would disagree with JVM dense LU on the IEEE-exact plants the trust
+  work just locked.
+- **The data structure is different.** Delayed pivoting and supernodal /
+  multifrontal assembly are the body of SuperLU/UMFPACK, not a flag on
+  left-looking LU. SciPy `splu` is the *eventual JVM-native* differential
+  target, which implies a SuiteSparse/SuperLU wrapper project, not a
+  tweak to `SparseDirectProvider.pure`.
+
+A later pivoting provider is welcome. It should be a named capability or
+a distinct provider (`pure` vs `umfpack`), with its own reuse and error
+rules written down first. It is not “Phase 2 plus a threshold.”
+
+### C Wasm is a packaging project, not a solver family
+
+Embedded CSparse/SuiteSparse Wasm does not add a factorization to the
+pure engine. It is a **load, ABI, memory, and licence** project that
+happens to implement `SparseDirectProvider` after `load()` succeeds.
+
+- It is a different Wasm from `GALE_WASM=1` (C heap vs Scala compiled to
+  Wasm). The pure provider already runs on the Scala.js-to-Wasm lane; a
+  `.wasm` blob does not.
+- The public Gale API is synchronous `Either`. Instantiation is async.
+  The work is `load(): Either[LinAlgError, SparseDirectProvider]` plus
+  copy-in/copy-out of CSR and permutations, not Cholesky math.
+- CI, artefact size, LGPL vs BSD, `Int32` index width, and “no `given`
+  until load succeeds” are the go/no-go rows. Those do not appear in
+  Phase 1–2.
+- Wrapping C could later supply QR or pivoting LU. That still does not
+  make QR or pivoting “part of the pure JS provider.” It makes them
+  features of a second, optional module.
+
+Treat C Wasm as `gale-backend-js-csparse` (or similar) if it ever
+clears the gates. Do not block portable Cholesky on it, and do not
+pretend it is how Scala.js grows `SparseDirectCapability.QR`.
