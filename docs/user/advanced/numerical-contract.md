@@ -144,10 +144,13 @@ The product plan is a fixed-pattern analyze-once/replay-many facility, not a
 general allocating sparse matrix-matrix multiplication facade. Gale v1 does not
 claim general sparse matrix-matrix multiplication, an implemented sparse direct
 LU/Cholesky/QR provider, complex sparse storage, every Matrix Market
-field/symmetry, or a full Breeze sparse-collection replacement. The JVM-only
-sparse-direct boundary advertises no capability in the current build. Do not
-infer sparse LU, Cholesky, or QR support merely from the presence of
-provider-facing types.
+field/symmetry, or a full Breeze sparse-collection replacement. The shared sparse-direct seam defaults to `SparseDirectProvider.none` on
+JVM and Scala.js. `import gale.sparse.direct.pure.given` enables portable
+sparse Cholesky only (minimum-degree `ProviderDefault`, exact-zero-style
+`NotPositiveDefinite`, fill guard). Do not infer sparse LU or QR from the
+types or from that import. Sparse QR, pivoting LU, and C Wasm each need
+their own spec in a [future version](../../sparse-direct-future.md). The
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Choosing a backend
 

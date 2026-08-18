@@ -265,9 +265,12 @@ construct common structures without passing through a coordinate builder.
 CSR and CSC support element access, rows, columns, transpose, addition,
 subtraction, scalar multiplication, and conversion to dense storage.
 
-Gale does not provide sparse direct factorization. Use an iterative solver or
-convert a small sparse matrix to dense storage when the conversion is known to
-fit in memory.
+Gale's default sparse-direct provider is `none`. Use an iterative solver, or
+`import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
+canonical square CSR. That import is not SuiteSparse and does not provide
+sparse LU or QR. Those, plus C Wasm, each need their own spec in a
+[future version](../../sparse-direct-future.md); see
+[Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Solve with an iterative method
 
