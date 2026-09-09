@@ -68,6 +68,29 @@ original design order. A rank-deficient or underdetermined least-squares solve
 returns a typed `Left`; the factorization itself remains available for rank and
 orthogonal-transform operations.
 
+## Construct selected cosine basis columns
+
+`DctBasis.columns` constructs explicit columns of a DCT-II basis. Rows index
+samples; component zero is constant. Select a contiguous range to avoid
+allocating unused components:
+
+```scala mdoc
+val cosineColumns = DctBasis.columns(samples = 8, first = 1, count = 3).orThrow
+(cosineColumns.rows, cosineColumns.cols)
+```
+
+The default `DctNormalization.Orthonormal` makes the columns orthonormal on the
+complete sample grid. `Unscaled` returns the cosine values without scaling.
+The factory uses O(samples × count) time and storage. An empty range returns a
+matrix with the requested row count and zero columns. Invalid component ranges,
+nonpositive sample counts, and shapes exceeding `Int.MaxValue` elements return
+`LinAlgError.InvalidArgument` before allocation.
+
+This is an explicit basis matrix, not a fast transform. The caller supplies the
+component range and owns sampling units, cutoff selection, and any statistical
+interpretation. After selecting a subset of rows, refactor the retained design;
+the original full-grid orthonormality does not generally survive row removal.
+
 ## Reuse a factor and scratch
 
 `solveLeastSquaresWith` transforms the right-hand side in caller-owned scratch
