@@ -8,13 +8,19 @@ class RealIntervalSuite extends FunSuite:
     val n = BigInt(mantissa) * (if bits < 0 then -1 else 1)
     val shift = if exponent == 0 then -1074 else exponent - 1075
     if shift >= 0 then (n << shift, BigInt(1)) else (n, BigInt(1) << -shift)
+  private def normalize(value: (BigInt, BigInt)): (BigInt, BigInt) =
+    if value._2 < 0 then (-value._1, -value._2) else value
+  private def lessOrEqual(left: (BigInt, BigInt), right: (BigInt, BigInt)): Boolean =
+    val (leftNumerator, leftDenominator) = normalize(left)
+    val (rightNumerator, rightDenominator) = normalize(right)
+    leftNumerator * rightDenominator <= rightNumerator * leftDenominator
   private def contains(i: RealInterval, value: (BigInt, BigInt)): Unit =
-    val (ln, ld) = rational(i.lower); val (un, ud) = rational(i.upper); val (n, d) = value
-    assert(ln * d <= n * ld && n * ud <= un * d, s"exact value not in [${i.lower}, ${i.upper}]")
-  private def add(a:(BigInt,BigInt), b:(BigInt,BigInt)) = (a._1*b._2+b._1*a._2,a._2*b._2)
-  private def sub(a:(BigInt,BigInt), b:(BigInt,BigInt)) = (a._1*b._2-b._1*a._2,a._2*b._2)
-  private def mul(a:(BigInt,BigInt), b:(BigInt,BigInt)) = (a._1*b._1,a._2*b._2)
-  private def div(a:(BigInt,BigInt), b:(BigInt,BigInt)) = (a._1*b._2,a._2*b._1)
+    assert(lessOrEqual(rational(i.lower), value) && lessOrEqual(value, rational(i.upper)),
+      s"exact value not in [${i.lower}, ${i.upper}]")
+  private def add(a: (BigInt, BigInt), b: (BigInt, BigInt)) = (a._1 * b._2 + b._1 * a._2, a._2 * b._2)
+  private def sub(a: (BigInt, BigInt), b: (BigInt, BigInt)) = (a._1 * b._2 - b._1 * a._2, a._2 * b._2)
+  private def mul(a: (BigInt, BigInt), b: (BigInt, BigInt)) = (a._1 * b._1, a._2 * b._2)
+  private def div(a: (BigInt, BigInt), b: (BigInt, BigInt)) = normalize((a._1 * b._2, a._2 * b._1))
   test("checked construction and arithmetic enclose exact scalars") {
     val a = RealInterval.exact(2.0).toOption.get; val b = RealInterval.exact(-3.0).toOption.get
     val p = a.multiply(b).toOption.get; assert(p.lower <= -6 && p.upper >= -6)
@@ -40,5 +46,30 @@ class RealIntervalSuite extends FunSuite:
       val rx=rational(x); val ry=rational(y)
       contains(a.add(b).toOption.get, add(rx,ry)); contains(a.subtract(b).toOption.get, sub(rx,ry))
       contains(a.multiply(b).toOption.get, mul(rx,ry)); contains(a.divide(b).toOption.get, div(rx,ry))
+    }
+  }
+  test("accepted square roots have exact-binary directed-square witnesses") {
+    val inputs = Vector(0.0, java.lang.Double.MIN_NORMAL, 0.25, 1.0, 2.0, 16.0, 1e100)
+    inputs.foreach { value =>
+      val root = RealInterval.exact(value).toOption.get.sqrt.toOption.get
+      assert(root.lower >= 0.0)
+      assert(lessOrEqual(mul(rational(root.lower), rational(root.lower)), rational(value)),
+        s"lower square escaped $value")
+      assert(lessOrEqual(rational(value), mul(rational(root.upper), rational(root.upper))),
+        s"upper square escaped $value")
+    }
+  }
+  test("negative-denominator and subnormal division endpoints contain exact quotients") {
+    val courts = Vector(
+      7.0 -> -3.0,
+      -5.0 -> -0.75,
+      java.lang.Double.MIN_NORMAL -> 2.0,
+      java.lang.Double.MIN_VALUE -> 2.0,
+      java.lang.Double.MIN_VALUE -> -2.0
+    )
+    courts.foreach { case (numerator, denominator) =>
+      val quotient = RealInterval.exact(numerator).toOption.get
+        .divide(RealInterval.exact(denominator).toOption.get).toOption.get
+      contains(quotient, div(rational(numerator), rational(denominator)))
     }
   }
