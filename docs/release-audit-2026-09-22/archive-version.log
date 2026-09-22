@@ -1,0 +1,15 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Oracle Corporation Java 22)
+[info] loading settings for project source-archive-build from plugins.sbt...
+[info] loading project definition from /private/tmp/gale-release-audit-20260922/source-archive/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (17933 settings) ...
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+[info] set current project to gale (in build file:/private/tmp/gale-release-audit-20260922/source-archive/)
+[info] 0.1.0-SNAPSHOT-20260922-0856
+[info] false
+[info] Some(FileRepository(local-staging, Patterns(ivyPatterns=Vector(), artifactPatterns=Vector(/private/tmp/gale-release-audit-20260922/source-archive/target/sona-staging/[organisation]/[module](_[scalaVersion])(_[sbtVersion])/[revision]/[artifact]-[revision](-[classifier]).[ext]), isMavenCompatible=true, descriptorOptional=false, skipConsistencyCheck=false), FileConfiguration(true, None)))
+[success] Total time: 0 s, completed Sep 22, 2026, 8:56:26 a.m.

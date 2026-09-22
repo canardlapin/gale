@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-09-22T12:57:15.577146+00:00",
+  "results": [
+    {
+      "url": "https://repo.maven.apache.org/maven2/io/github/canardlapin/gale-core_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/io/github/canardlapin/gale-core_sjs1_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/io/github/canardlapin/gale-laws_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://repo.maven.apache.org/maven2/io/github/canardlapin/gale-laws_sjs1_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://central.sonatype.com/repository/maven-snapshots/io/github/canardlapin/gale-core_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://central.sonatype.com/repository/maven-snapshots/io/github/canardlapin/gale-core_sjs1_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://central.sonatype.com/repository/maven-snapshots/io/github/canardlapin/gale-laws_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://central.sonatype.com/repository/maven-snapshots/io/github/canardlapin/gale-laws_sjs1_3/maven-metadata.xml",
+      "status": 404
+    },
+    {
+      "url": "https://canardlapin.github.io/gale/",
+      "status": 404
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+[info] welcome to sbt 1.11.7 (Oracle Corporation Java 22)
+[info] loading settings for project consumer-build from plugins.sbt...
+[info] loading project definition from /private/tmp/gale-release-audit-20260922/consumer/project
+[info] loading settings for project consumer from build.sbt...
+[info] set current project to consumer (in build file:/private/tmp/gale-release-audit-20260922/consumer/)
+Test run externalconsumer.GmresContractProbe started
+AUDIT GMRES mode=Absolute converged=true iterations=0 reportedResidual=1e-12 x=0 trueResidual=1
+==> X externalconsumer.GmresContractProbe.GMRES must satisfy documented true residual under Jacobi scaling: Absolute 0.010s munit.FailException: js/src/test/scala/GmresContractProbe.scala:12 False convergence: true residual 1 exceeds 1e-10
+11:      println(s"AUDIT GMRES mode=$mode converged=${result.converged} iterations=${result.iterations} reportedResidual=${result.residual} x=${result.x(0)} trueResidual=$trueResidual")
+12:      assert(!result.converged || trueResidual <= 1e-10, s"False convergence: true residual $trueResidual exceeds 1e-10")
+AUDIT GMRES mode=RelativeToRhs converged=true iterations=0 reportedResidual=1e-12 x=0 trueResidual=1
+==> X externalconsumer.GmresContractProbe.GMRES must satisfy documented true residual under Jacobi scaling: RelativeToRhs 0.001s munit.FailException: js/src/test/scala/GmresContractProbe.scala:12 False convergence: true residual 1 exceeds 1e-10
+11:      println(s"AUDIT GMRES mode=$mode converged=${result.converged} iterations=${result.iterations} reportedResidual=${result.residual} x=${result.x(0)} trueResidual=$trueResidual")
+12:      assert(!result.converged || trueResidual <= 1e-10, s"False convergence: true residual $trueResidual exceeds 1e-10")
+externalconsumer.GmresContractProbe: finished 0.015s
+Test run externalconsumer.GmresContractProbe finished: 2 failed, 0 ignored, 2 total 0.015s
+[error] Failed: Total 2, Failed 2, Errors 0, Passed 0
+[error] Failed tests:
+[error] 	externalconsumer.GmresContractProbe
+[error] (js / Test / testOnly) sbt.TestsFailedException: Tests unsuccessful
+[error] Total time: 1 s, completed Sep 22, 2026, 8:55:03 a.m.

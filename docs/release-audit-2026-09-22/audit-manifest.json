@@ -1,0 +1,32 @@
+{
+  "audited_commit": "1b018d4dd082b786123b65e02cd5b81e61968e21",
+  "audited_tree": "66adf402ba9d77f8db3a83936c43520e84c82d5b",
+  "equivalent_local_test_commit": "8ee97fc0b2372e66b035fee537dc367a06c444e8",
+  "user_checkout_commit": "4485cc775ae8233789b019d24a920f86391e9523",
+  "created_at": "2026-09-22T13:06:19.829076+00:00",
+  "files": {
+    "docs/release-readiness-2026-09-22.md": "7e70cfe01cff1e6258bac42083179b13d2da2de143059813a37c895cb0949f56",
+    "docs/release-audit-2026-09-22/archive-version.log": "5904aaacd4c3ef32d8bc239beaf31d59a4aa994c2c47df280d585ca039f7a5b2",
+    "docs/release-audit-2026-09-22/artifact-metadata.json": "552424172af15d5be37489c63a54060b14be1d1512b0834c97ddd74922ca1b72",
+    "docs/release-audit-2026-09-22/bundle-negative-probes.json": "2a6bb0a7946f1115840010a79552949cd0e6c6d673fbe9f85c1943188981f6b2",
+    "docs/release-audit-2026-09-22/consumer/README.md": "8644b0cffd52277878e82530bbaf50807b35fce26717f9145bbb61f9d8d6e607",
+    "docs/release-audit-2026-09-22/consumer/build.sbt": "b596ff49a430e459c6cb5c91110a7830a8205056e4c0339c5c45962e267529a6",
+    "docs/release-audit-2026-09-22/consumer/js/src/test/scala/GmresContractProbe.scala": "fc36923b3194d2eef4a16d82d8e84aa36f2f3c8822e56d3039f1c29cb54d30ed",
+    "docs/release-audit-2026-09-22/consumer/js/src/test/scala/PublishedSuite.scala": "1e42541ca503874b8bae7cc59856362fb5f255f1ded141e9f2c4dd39b3b06792",
+    "docs/release-audit-2026-09-22/consumer/jvm/src/test/scala/GmresContractProbe.scala": "fc36923b3194d2eef4a16d82d8e84aa36f2f3c8822e56d3039f1c29cb54d30ed",
+    "docs/release-audit-2026-09-22/consumer/jvm/src/test/scala/PublishedSuite.scala": "1e42541ca503874b8bae7cc59856362fb5f255f1ded141e9f2c4dd39b3b06792",
+    "docs/release-audit-2026-09-22/consumer/project/build.properties": "bc2e83307ba4a40cb286711cee6f644d9bca62ab2d791053000c7c9ce7a82bb2",
+    "docs/release-audit-2026-09-22/consumer/project/plugins.sbt": "27a7d3cbb29644e4194810eab9ec98afc5ec434e7beab004f32504e7349c3266",
+    "docs/release-audit-2026-09-22/consumer-corrected.log": "4b5fdd5fb4f242256026ce3b53c7c27935b053b4ed8eac20b9dd5ef3a239d575",
+    "docs/release-audit-2026-09-22/downstream-state.json": "f48a410e96ec2032c9f089c441f28e3a81b830b68b76661069fff71d2c2daa47",
+    "docs/release-audit-2026-09-22/full-test-run.meta.json": "ade8009d7baa70ca5d547866704e5ba5522736b8f1862a36934410d5457532d1",
+    "docs/release-audit-2026-09-22/full-test-summary.txt": "c3d57baef5d77d978cf2530564ee6bb57b345b620163de944b0574c2d920e263",
+    "docs/release-audit-2026-09-22/gmres-js.log": "b92d9798d4e964aee2fa4ec49e074366576a1aa3dc4da576b9fea586f06c86c1",
+    "docs/release-audit-2026-09-22/gmres-jvm.log": "52e5ff70221ff3abe0cec74c4f4337b8e464451c26419ddc8ed3d1ace5537513",
+    "docs/release-audit-2026-09-22/main-ci.json": "7710182f84fc7d4d97476eafd2023d925e473a75d4f5404221e3f2b2998f92d7",
+    "docs/release-audit-2026-09-22/public-resolvers.json": "6e61868f7328e5a4d83d29bbf21d86dfd3a82cb852889d608d7d4a5ef4e3dda7",
+    "docs/release-audit-2026-09-22/remote-state.json": "eb6aa7ff4e5b19d69e6f13af8f4e98c321384f9f9196b39d676a3373ad7ad80b",
+    "docs/release-audit-2026-09-22/saved-harness-config.log": "8f983a0fb74eb3449de84fd653d9a992db3a36d0358e5ee74a8dcf16f0eb0dd5",
+    "docs/release-audit-2026-09-22/staging.log": "66a211e79b67d0470e2d52b9b30bdb59e90eeaddfc4bab60da1bc163b0f6c7b5"
+  }
+}

@@ -1,0 +1,9 @@
+Full log: /private/tmp/gale-pr8-fix-tests.log
+SHA256: 9d14f9369de7435086e3d7d5e2c390e4486d4d105f93b194efd3937079aacd91
+[info] Passed: Total 681, Failed 0, Errors 0, Passed 681
+[info] Passed: Total 671, Failed 0, Errors 0, Passed 671
+[info] Passed: Total 54, Failed 0, Errors 0, Passed 54
+[info] Passed: Total 54, Failed 0, Errors 0, Passed 54
+[info] Passed: Total 85, Failed 0, Errors 0, Passed 85
+[info] Passed: Total 29, Failed 0, Errors 0, Passed 29
+[34minfo[39m: Compiled in 5.48s (0 errors, 5 warnings)

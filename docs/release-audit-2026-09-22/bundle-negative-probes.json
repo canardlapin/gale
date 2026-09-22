@@ -1,0 +1,14 @@
+[
+  {
+    "case": "wrong-pom-snapshot",
+    "exit_code": 0,
+    "stdout": "Central bundle verified: 4 admitted artifacts, version 0.1.0-M1\n",
+    "stderr": ""
+  },
+  {
+    "case": "fake-signatures",
+    "exit_code": 0,
+    "stdout": "Central bundle verified: 4 admitted artifacts, version 0.1.0-M1\n",
+    "stderr": ""
+  }
+]

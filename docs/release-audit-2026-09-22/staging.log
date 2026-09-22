@@ -1,0 +1,116 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Oracle Corporation Java 22)
+[info] loading settings for project gale-pr8-review-20260922-build from plugins.sbt...
+[info] loading project definition from /private/tmp/gale-pr8-review-20260922/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (17933 settings) ...
+[info] set current project to gale (in build file:/private/tmp/gale-pr8-review-20260922/)
+[info] parity / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] coreJS / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] interopRavelJVM / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] nativeBackend / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] benchmarksJVM / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] interopRavelJS / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] lawsJS / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] lawsJVM / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] blasFfmBackend / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] vectorBackend / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] benchmarksJS / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] coreJVM / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] interopBreeze / version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] version
+[info] 	0.1.0+106-1b018d4d-SNAPSHOT
+[info] Some(central-snapshots: https://central.sonatype.com/repository/maven-snapshots/)
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:49 a.m.
+[info] Some(central-snapshots: https://central.sonatype.com/repository/maven-snapshots/)
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:49 a.m.
+[info] Some(central-snapshots: https://central.sonatype.com/repository/maven-snapshots/)
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:49 a.m.
+[info] Some(central-snapshots: https://central.sonatype.com/repository/maven-snapshots/)
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:49 a.m.
+[info] Defining ThisBuild / version
+[info] The new value will be used by ThisBuild / dynverAssertVersion, ThisBuild / dynverCheckVersion and 19 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/private/tmp/gale-pr8-review-20260922/)
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:51 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:51 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:51 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[success] Total time: 0 s, completed Sep 22, 2026, 8:45:52 a.m.
+[info] Wrote /private/tmp/gale-pr8-review-20260922/core/jvm/target/scala-3.7.4/gale-core_3-0.1.0-M1.pom
+[info] 	published gale-core_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_3/0.1.0-M1/gale-core_3-0.1.0-M1.pom
+[info] 	published gale-core_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_3/0.1.0-M1/gale-core_3-0.1.0-M1.jar
+[info] 	published gale-core_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_3/0.1.0-M1/gale-core_3-0.1.0-M1-sources.jar
+[info] 	published gale-core_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_3/0.1.0-M1/gale-core_3-0.1.0-M1-javadoc.jar
+[success] Total time: 1 s, completed Sep 22, 2026, 8:45:53 a.m.
+[info] Wrote /private/tmp/gale-pr8-review-20260922/core/js/target/scala-3.7.4/gale-core_sjs1_3-0.1.0-M1.pom
+[info] compiling 53 Scala sources to /private/tmp/gale-pr8-review-20260922/core/js/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] Main Scala API documentation to /private/tmp/gale-pr8-review-20260922/core/js/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines, -scalajs-mapSourceURI
+[warn] Flag -classpath set repeatedly
+[warn] -- Warning: core/shared/src/main/scala/gale/linalg/Matrix.scala:615:6 ----------
+[warn] 615 |  def *(alpha: Double): DMat =
+[warn]     |      ^
+[warn]     |      Couldn't resolve a member for the given link query: DVec.*
+[warn] -- Warning: core/shared/src/main/scala/gale/sized/Sized.scala:158:8 ------------
+[warn] 158 |    def scale(alpha: Double): SMat[R, C] =
+[warn]     |        ^
+[warn]     |        Couldn't resolve a member for the given link query: *
+[warn] three warnings found
+[info] Main Scala API documentation successful.
+[info] 	published gale-core_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_sjs1_3/0.1.0-M1/gale-core_sjs1_3-0.1.0-M1.pom
+[info] 	published gale-core_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_sjs1_3/0.1.0-M1/gale-core_sjs1_3-0.1.0-M1.jar
+[info] 	published gale-core_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_sjs1_3/0.1.0-M1/gale-core_sjs1_3-0.1.0-M1-sources.jar
+[info] 	published gale-core_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-core_sjs1_3/0.1.0-M1/gale-core_sjs1_3-0.1.0-M1-javadoc.jar
+[success] Total time: 14 s, completed Sep 22, 2026, 8:46:07 a.m.
+[info] Wrote /private/tmp/gale-pr8-review-20260922/laws/jvm/target/scala-3.7.4/gale-laws_3-0.1.0-M1.pom
+[info] Main Scala API documentation to /private/tmp/gale-pr8-review-20260922/laws/jvm/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines
+[warn] Flag -classpath set repeatedly
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] 	published gale-laws_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_3/0.1.0-M1/gale-laws_3-0.1.0-M1.pom
+[info] 	published gale-laws_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_3/0.1.0-M1/gale-laws_3-0.1.0-M1.jar
+[info] 	published gale-laws_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_3/0.1.0-M1/gale-laws_3-0.1.0-M1-sources.jar
+[info] 	published gale-laws_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_3/0.1.0-M1/gale-laws_3-0.1.0-M1-javadoc.jar
+[success] Total time: 2 s, completed Sep 22, 2026, 8:46:09 a.m.
+[info] Wrote /private/tmp/gale-pr8-review-20260922/laws/js/target/scala-3.7.4/gale-laws_sjs1_3-0.1.0-M1.pom
+[info] compiling 8 Scala sources to /private/tmp/gale-pr8-review-20260922/laws/js/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] Main Scala API documentation to /private/tmp/gale-pr8-review-20260922/laws/js/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines, -scalajs-mapSourceURI
+[warn] Flag -classpath set repeatedly
+[warn] one warning found
+[info] Main Scala API documentation successful.
+[info] 	published gale-laws_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_sjs1_3/0.1.0-M1/gale-laws_sjs1_3-0.1.0-M1.pom
+[info] 	published gale-laws_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_sjs1_3/0.1.0-M1/gale-laws_sjs1_3-0.1.0-M1.jar
+[info] 	published gale-laws_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_sjs1_3/0.1.0-M1/gale-laws_sjs1_3-0.1.0-M1-sources.jar
+[info] 	published gale-laws_sjs1_3 to /private/tmp/gale-pr8-review-20260922/target/sona-staging/io/github/canardlapin/gale-laws_sjs1_3/0.1.0-M1/gale-laws_sjs1_3-0.1.0-M1-javadoc.jar
+[success] Total time: 2 s, completed Sep 22, 2026, 8:46:12 a.m.

@@ -1,0 +1,53 @@
+{
+  "account": "canardlapin",
+  "permissions": "admin (verified)",
+  "releases": {
+    "exit_code": 0,
+    "result": []
+  },
+  "tags": {
+    "exit_code": 0,
+    "result": []
+  },
+  "secrets": {
+    "exit_code": 0,
+    "result": {
+      "total_count": 0,
+      "names": []
+    }
+  },
+  "environments": {
+    "exit_code": 0,
+    "result": {
+      "total_count": 1,
+      "names": [
+        "github-pages"
+      ]
+    }
+  },
+  "main_protection": {
+    "exit_code": 1,
+    "result": {
+      "message": "Branch not protected",
+      "documentation_url": "https://docs.github.com/rest/branches/branch-protection#get-branch-protection",
+      "status": "404"
+    }
+  },
+  "main_rules": {
+    "exit_code": 0,
+    "result": []
+  },
+  "pages": {
+    "exit_code": 0,
+    "result": {
+      "status": null,
+      "html_url": "https://canardlapin.github.io/gale/",
+      "build_type": "workflow",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      }
+    }
+  },
+  "checked_at": "2026-09-22T12:57:23.282613+00:00"
+}

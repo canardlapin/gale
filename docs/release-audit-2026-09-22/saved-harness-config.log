@@ -1,0 +1,11 @@
+[info] welcome to sbt 1.11.7 (Oracle Corporation Java 22)
+[info] loading settings for project saved-harness-check-build from plugins.sbt...
+[info] loading project definition from /private/tmp/gale-release-audit-20260922/saved-harness-check/project
+[info] loading settings for project saved-harness-check from build.sbt...
+[info] set current project to saved-harness-check (in build file:/private/tmp/gale-release-audit-20260922/saved-harness-check/)
+[info] * audited-staged-maven: file:///private/tmp/gale-pr8-review-20260922/target/sona-staging/
+[info] * public: https://repo1.maven.org/maven2/
+[success] Total time: 0 s, completed Sep 22, 2026, 9:05:15 a.m.
+[info] * audited-staged-maven: file:///private/tmp/gale-pr8-review-20260922/target/sona-staging/
+[info] * public: https://repo1.maven.org/maven2/
+[success] Total time: 0 s, completed Sep 22, 2026, 9:05:15 a.m.
