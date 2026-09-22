@@ -86,6 +86,26 @@ class EigNonsymmetricLeftVectorSuite extends munit.FunSuite:
         i += 1
   }
 
+  test("left residuals hold on a near-repeated real cluster that is still diagonalizable") {
+    // Distinct but tightly clustered eigenvalues {2, 2+1e-6, 5}. Individual
+    // left vectors in the cluster are ill-conditioned; the residual identity
+    // wᴴA = λwᴴ must still hold, which is what callers can trust when Breeze
+    // cannot certify left vectors.
+    val a = Matrix.dense(3, 3)(
+      2.0, 1.0, 0.0,
+      0.0, 2.0 + 1e-6, 0.0,
+      0.0, 0.0, 5.0
+    )
+    val d = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.LeftAndRight).toOption.get
+    val scale = math.max(frobenius(a), 1.0)
+    assertUnitNorm(d)
+    var i = 0
+    while i < d.size do
+      assert(leftResidual(a, d, i) < 1e-6 * scale, s"clustered left residual $i = ${leftResidual(a, d, i)}")
+      i += 1
+    assert(d.diagnostics.worstResidual < 1e-6 * scale)
+  }
+
   test("left eigenvectors of a random matrix satisfy wᴴA = λwᴴ") {
     for seed <- Seq(1L, 42L, 2027L) do
       val a = randomReal(9, seed)

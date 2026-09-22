@@ -476,4 +476,5 @@ Gale does not provide:
 Continue with [Worked examples](examples.md) for more complete programs. Read
 [Advanced topics](../advanced/index.md) when allocation control, sparse
 structure reuse, backend selection, or matrix-free generalized eigensolving
-affects the application.
+affects the application. The current portable / backend-only / deferred split
+is tabulated in [Shipped vs deferred](../advanced/shipped-vs-deferred.md).

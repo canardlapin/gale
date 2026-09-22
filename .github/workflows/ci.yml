@@ -122,6 +122,10 @@ jobs:
   breeze-interop:
     name: Breeze parity and published interop
     runs-on: ubuntu-latest
+    # Bound stalled runs and identify the affected suite. Forked test JVMs
+    # isolate Breeze initialization from sbt, but netlib still probes native
+    # implementations before falling back to Java.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -130,9 +134,14 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - name: Run Breeze differential parity and conversion suites
-        run: sbt parityTest interopBreezeTest
+      - name: Run Breeze differential parity
+        timeout-minutes: 10
+        run: sbt parityTest
+      - name: Run Breeze conversion and migration suites
+        timeout-minutes: 8
+        run: sbt interopBreezeTest
       - name: Compile a clean consumer against the published local POM
+        timeout-minutes: 8
         run: sbt publishedInteropProbe
 
   release-dependencies:

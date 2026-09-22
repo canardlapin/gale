@@ -258,9 +258,14 @@ lazy val breezeVersion = "2.1.0"
 // Breeze 2.1.0 is cross-published for Scala 3 (org.scalanlp:breeze_3:2.1.0, a
 // native build carrying .tasty), so a plain `%%` resolves the Scala 3 artifact
 // directly; no `CrossVersion.for3Use2_13` shim is needed (and its 2.13 variant is
-// the more fragile path here). Its netlib backend (dev.ludovic.netlib) is a
-// pure-Java reference implementation with a JVM fallback — it may log a one-time
-// "native BLAS not found, using Java" notice, which is harmless.
+// the more fragile path here). Its netlib backend (dev.ludovic.netlib) probes
+// native implementations and falls back to Java when they are unavailable.
+//
+// Fork the tests to isolate Breeze initialization from sbt. CI timeouts bound
+// stalled runs. This does not disable native discovery: netlib 3.0.1 ignores
+// the `dev.ludovic.netlib.*.implementation=Java` properties, and the older
+// `com.github.fommil.netlib.*` selectors do not control this dependency.
+
 lazy val parity =
   project
     .in(file("parity"))
@@ -268,7 +273,7 @@ lazy val parity =
     .settings(
       name           := "gale-parity",
       publish / skip := true,
-      Test / fork    := false,
+      Test / fork    := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit"            % munitVersion  % Test,
@@ -292,7 +297,7 @@ lazy val interopBreeze =
       name := "gale-interop-breeze",
       description := "Breeze interoperability for gale (JVM).",
       scalacOptions ++= commonScalacOptions,
-      Test / fork := false,
+      Test / fork := true,
       libraryDependencies ++= Seq(
         "org.scalanlp"  %% "breeze" % breezeVersion,
         "org.scalameta" %% "munit"  % munitVersion % Test

@@ -21,6 +21,12 @@ Run the suite from the repository root:
 sbt parityTest
 ```
 
+CI runs `parityTest` and `interopBreezeTest` as separate timed steps on the
+`breeze-interop` job (`timeout-minutes: 20`). Both modules fork the test JVM
+to isolate Breeze initialization from sbt. The timeouts bound stalled runs;
+netlib still probes native implementations and falls back to Java when they
+are unavailable. These settings do not force a particular BLAS/LAPACK backend.
+
 `EverydayOpsParitySuite` uses ScalaCheck to vary matrix shapes and data seeds.
 The factorization and spectral suites use fixed adversarial and
 well-conditioned fixtures. A parity test should state the shared mathematical
@@ -57,7 +63,7 @@ the reference.
 | GSVD (full-column-rank) | — | `Svds.gsvd` | `GeneralizedSpectralParitySuite` | SciPy (Gram-pencil `eigh(AᵀA, BᵀB)`; no high-level `gsvd`) |
 | QZ / generalized nonsymmetric | — | `Eigen.eigGeneralizedNonsymmetric` | `GeneralizedSpectralParitySuite` | covered (unsupported-contract lock; SciPy `qz` / `eig(A,B)` is the future target) |
 | Sparse direct factorization | SuiteSparse / native | `SparseDirect` seam | `SparseDirectParitySuite` | SciPy (`splu` vs dense LU) + empty-provider lock |
-| Near-cutoff rank / `pinv` / `cond` | policy-dependent | `rankEstimate`, `pinv`, `conditionEstimate` | `NearCutoffParitySuite` | SciPy (`pinv` MATLAB `rtol`, SVD rank, `cond(A, 1)` lower bound) |
+| Near-cutoff rank / `pinv` / `cond` | policy-dependent | `rankEstimate`, `pinv`, `conditionEstimate` | `NearCutoffParitySuite` | SciPy (`pinv` MATLAB `rtol`, SVD rank, `cond(A, 1)` lower bound); Gale definitions in core `GaleNumericalContractSuite` |
 
 Published conversion and migration shims live in `interop-breeze` (`sbt
 interopBreezeTest`), not in this differential harness.

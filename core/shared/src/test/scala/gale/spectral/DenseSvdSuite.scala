@@ -287,6 +287,60 @@ class DenseSvdSuite extends munit.FunSuite:
       assert(error.getMessage.contains("malformed SVD factors"))
   }
 
+  /** `‖U_c U_cᵀ − W_c W_cᵀ‖_∞` over the cluster columns — sign- and
+    * rotation-invariant subspace agreement.
+    */
+  private def projectorDiff(left: DMat, right: DMat, cols: Range): Double =
+    val n = left.rows
+    var worst = 0.0
+    var i = 0
+    while i < n do
+      var j = 0
+      while j < n do
+        var pl = 0.0
+        var pr = 0.0
+        for c <- cols do
+          pl += left(i, c) * left(j, c)
+          pr += right(i, c) * right(j, c)
+        worst = math.max(worst, math.abs(pl - pr))
+        j += 1
+      i += 1
+    worst
+
+  test("clustered singular values are compared as subspace projectors, not as individual vectors") {
+    // Plant A = U Σ Vᵀ with σ = (5, 3, 3, 1). The repeated 3 is a 2-D
+    // subspace: individual U/V columns may rotate, but U Uᵀ / V Vᵀ on that
+    // block must match the planted projectors.
+    val m = 8
+    val n = 5
+    val uPlant = randomMat(m, m, 201L).qr.q
+    val vPlant = randomMat(n, n, 202L).qr.q
+    val sigmas = IndexedSeq(5.0, 3.0, 3.0, 1.0)
+    val a = Matrix.tabulate(m, n): (i, j) =>
+      var sum = 0.0
+      var k = 0
+      while k < sigmas.length do
+        sum += uPlant(i, k) * sigmas(k) * vPlant(j, k)
+        k += 1
+      sum
+    val s = Svds.svd(a, SingularSelection.All).toOption.get
+    fullChecks(a, s, 1e-9)
+    assertClose(values(s), IndexedSeq(5.0, 3.0, 3.0, 1.0, 0.0), 1e-8)
+    val cluster = 1 until 3
+    val uDiff = projectorDiff(s.u, uPlant, cluster)
+    assert(uDiff < 1e-8, s"U cluster projector mismatch $uDiff")
+    val vComputed = s.vt.t
+    val vDiff = projectorDiff(vComputed, vPlant, cluster)
+    assert(vDiff < 1e-8, s"V cluster projector mismatch $vDiff")
+    // Isolated values remain individually aligned up to sign.
+    var u0 = 0.0
+    var r = 0
+    while r < m do
+      u0 += s.u(r, 0) * uPlant(r, 0)
+      r += 1
+    assert(math.abs(math.abs(u0) - 1.0) < 1e-8, s"leading U not aligned: $u0")
+  }
+
   test("values-only providers must still return the complete spectrum") {
     val a = rectDiag(4, 3, Seq(4.0, 2.0, 1.0))
     val provider =
