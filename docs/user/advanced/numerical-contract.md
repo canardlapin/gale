@@ -5,7 +5,7 @@ explicit numerical or performance choice. It complements the runnable
 [worked examples](../guides/examples.md) and the focused
 [Breeze migration guide](../guides/breeze-equivalence.md). The current
 portable / backend-only / deferred split is tabulated in
-[Shipped vs deferred](../../shipped-vs-deferred.md).
+[Shipped vs deferred](shipped-vs-deferred.md).
 
 ## Floating-point guarantees
 
@@ -37,6 +37,33 @@ triangle. QR stores Householder reflectors and reports a numerical rank.
 Symmetric eigenvalues are ascending; singular values are descending. Legal
 pivot, reflector-sign, eigenvector-sign, and repeated-eigenspace choices are not
 part of the identity contract.
+
+### Cross-platform singularity, rank, and backend residuals
+
+LU reports `SingularMatrix` only when a pivot is exactly `0` or `NaN`.
+`conditionEstimate` maps that failure to `Right(+∞)` and rejects a rectangular
+input with `Left(NonSquareMatrix)`. A matrix that is rank-deficient in exact
+arithmetic but whose LU pivots stay nonzero is ill-conditioned, not singular:
+`conditionEstimate` stays finite.
+
+Scala.js (and the experimental Wasm lane) lower `PlatformMath.fma` to `a*b+c`,
+not IEEE FMA. Reconstructing `UΣVᵀ` with a planted `σ=0` after Householder QR
+is therefore only approximately singular on those platforms. Portable
+singularity plants are IEEE-exact outer products (for example
+`[[1,2,3],[2,4,6],[3,6,9]]`) or exact zero rows. Do not use a QR-reconstructed
+reduced SVD as a `SingularMatrix` / `+∞` fixture.
+
+`rankEstimate` is QR numerical rank at `2 · max(m, n) · ε · max|R_ii|`. `pinv`
+zeros singular values at or below the MATLAB/SciPy cutoff
+`max(m, n) · ε · σ_max`. Prefer exact diagonals and exact outer products so the
+keep/drop decision is not lost in reconstruction rounding. The shared
+`NumericalPolicySuite` pins these decisions on every core platform.
+
+An imported Vector or native BLAS/LAPACK backend must agree with
+`PureBackend` on the `LinAlgError` class for those IEEE-exact plants and must
+keep solve residuals inside the documented conformance tolerance. Factor
+entries, pivot indices, and reflector signs may differ. The reusable
+`BackendConformanceSuite` enforces that residual and error-class agreement.
 
 Structural failures use `Either[LinAlgError, A]` on total solve/factorization
 entry points. Primitive arithmetic operators and `mulInto` methods validate
@@ -119,10 +146,13 @@ The product plan is a fixed-pattern analyze-once/replay-many facility, not a
 general allocating sparse matrix-matrix multiplication facade. Gale v1 does not
 claim general sparse matrix-matrix multiplication, an implemented sparse direct
 LU/Cholesky/QR provider, complex sparse storage, every Matrix Market
-field/symmetry, or a full Breeze sparse-collection replacement. The JVM-only
-sparse-direct boundary advertises no capability in the current build. Do not
-infer sparse LU, Cholesky, or QR support merely from the presence of
-provider-facing types.
+field/symmetry, or a full Breeze sparse-collection replacement. The shared sparse-direct seam defaults to `SparseDirectProvider.none` on
+JVM and Scala.js. `import gale.sparse.direct.pure.given` enables portable
+sparse Cholesky only (minimum-degree `ProviderDefault`, exact-zero-style
+`NotPositiveDefinite`, fill guard). Do not infer sparse LU or QR from the
+types or from that import. Sparse QR, pivoting LU, and C Wasm each need
+their own spec in a [future version](../../sparse-direct-future.md). The
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Choosing a backend
 

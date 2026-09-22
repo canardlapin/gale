@@ -8,8 +8,9 @@ import gale.linalg.Vec
 
 /** Lock tests for the public surfaces that currently return a typed
   * `Left(UnsupportedOperation)` (or the documented `RankDeficient` stand-in
-  * for rank-deficient GSVD). The table in `docs/shipped-vs-deferred.md` is the
-  * narrative; this suite fails if a deferred row starts succeeding silently or
+  * for rank-deficient GSVD). The table in
+  * `docs/user/advanced/shipped-vs-deferred.md` is the narrative; this suite
+  * fails if a deferred row starts succeeding silently or
   * changes error class.
   */
 class UnsupportedSurfaceSuite extends munit.FunSuite:

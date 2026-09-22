@@ -6,8 +6,8 @@ typed numerical failures, matrix-free operators, and diagnostics that qualify
 iterative results. Optional allocation-control and JVM acceleration stay
 explicit.
 
-This site describes Gale @VERSION@. The project is preparing its first public
-release, so installation currently uses a pinned source revision or locally
+This site describes Gale @VERSION@. The first intended public checkpoint is
+`v0.1.0-M1`, so installation currently uses a pinned source revision or locally
 published artifacts.
 
 ## Reach a first result

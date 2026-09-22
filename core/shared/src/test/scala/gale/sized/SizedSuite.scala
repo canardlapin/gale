@@ -60,6 +60,7 @@ class SizedSuite extends munit.FunSuite:
     assertEqualsDouble((a + b)(0, 0), 5.0, 1e-12)
     assertEqualsDouble((a - b)(1, 1), 3.0, 1e-12)
     assertEqualsDouble(a.scale(3.0)(0, 1), 6.0, 1e-12)
+    assertEqualsDouble((a * 3.0)(0, 1), 6.0, 1e-12)
   }
 
   // --- compile-time NEGATIVES (the whole point) ------------------------------

@@ -52,6 +52,14 @@ final class DMatBuilder private (val rows: Int, val cols: Int, private[gale] val
   def result(): DMat =
     DMat.fromDoubleArrayOwned(rows, cols, takeOwnedData())
 
+  /** Consume a row-packed lower symmetric band as Cholesky working storage.
+    * Ownership transfers without a band copy. The builder closes even when
+    * factorization returns a numerical or shape error; no partial factor is
+    * published. See [[BandedCholesky.factorLower]] for the packing convention.
+    */
+  def consumeBandedCholesky(options: CholeskyOptions = CholeskyOptions.Default): Either[LinAlgError, BandedCholesky] =
+    BandedCholesky.fromOwnedLower(rows, cols, takeOwnedData(), options)
+
   /** Consume this builder as the owned working buffer for portable QR.
     * Every subsequent builder operation fails; factor results own independent
     * reflector and factor storage and retain no mutable builder alias.

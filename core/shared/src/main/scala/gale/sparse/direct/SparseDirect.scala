@@ -7,7 +7,7 @@ import gale.sparse.CSRPattern
 import gale.sparse.Permutation
 import scala.util.control.NonFatal
 
-/** Sparse factorization families a JVM provider may explicitly implement. */
+/** Sparse factorization families a provider may explicitly implement. */
 enum SparseDirectFactorization:
   case LU, Cholesky, QR
 
@@ -142,9 +142,9 @@ trait SparseDirectNumericFactor extends SparseDirectResource:
       workspace: SparseDirectWorkspace
   ): Either[LinAlgError, SparseSolveDiagnostics]
 
-/** JVM-only provider contract. Provider objects are resolved explicitly through
-  * a `given`, are safe for concurrent invocation, and fix their thread policy in
-  * [[config]] at construction time. Stateful native scratch belongs in distinct
+/** Provider contract. Provider objects are resolved explicitly through a
+  * `given`, are safe for concurrent invocation, and fix their thread policy in
+  * [[config]] at construction time. Stateful scratch belongs in distinct
   * [[SparseDirectWorkspace]] instances, never in the shared provider singleton.
   */
 trait SparseDirectProvider:
@@ -176,7 +176,7 @@ object SparseDirectProvider:
     val config: BackendConfig = BackendConfig.singleThreaded
 
     def createWorkspace(): Either[LinAlgError, SparseDirectWorkspace] =
-      Left(LinAlgError.UnsupportedOperation("sparse direct factorization: no JVM provider is installed"))
+      Left(LinAlgError.UnsupportedOperation("sparse direct factorization: no provider is installed"))
 
     def analyze(
         pattern: CSRPattern,
@@ -184,13 +184,18 @@ object SparseDirectProvider:
         ordering: SparseDirectOrdering,
         workspace: SparseDirectWorkspace
     ): Either[LinAlgError, SparseDirectSymbolicAnalysis] =
-      Left(LinAlgError.UnsupportedOperation("sparse direct factorization: no JVM provider is installed"))
+      Left(LinAlgError.UnsupportedOperation("sparse direct factorization: no provider is installed"))
 
   /** Capability-less default. The existence of this seam does not imply that LU,
     * Cholesky, or QR is implemented.
     */
   val none: SparseDirectProvider = NoSparseDirectProvider
   given default: SparseDirectProvider = none
+
+  /** Portable sparse Cholesky. Not the default `given`; import
+    * `gale.sparse.direct.pure.given` or pass this value explicitly.
+    */
+  def pure: SparseDirectProvider = gale.sparse.direct.pure.PureSparseDirectProvider
 
   def current(using provider: SparseDirectProvider): SparseDirectProviderReport =
     SparseDirectProviderReport(provider.name, provider.capabilities, provider.config, provider.capabilities.nonEmpty)
@@ -212,8 +217,9 @@ object SparseDirectProvider:
     require(errors.isEmpty, errors.mkString(s"invalid sparse-direct provider '${provider.name}': ", "; ", ""))
     provider
 
-/** Validated sparse-direct facade. Every method is JVM-only and explicitly
+/** Validated sparse-direct facade. Every method is explicitly
   * provider/workspace based; nothing routes through Gale's portable sparse APIs.
+  * The default `given` is [[SparseDirectProvider.none]] on every platform.
   */
 object SparseDirect:
   def capabilities(using provider: SparseDirectProvider): Set[SparseDirectCapability] =

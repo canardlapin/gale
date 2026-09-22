@@ -11,7 +11,9 @@ library needs real-`Double` matrices, typed failure and convergence evidence,
 or matrix-free algorithms without taking a JVM-only dependency.
 
 > **Status:** Pre-release and source-only. Untagged builds derive a unique
-> `1.0.0+...-SNAPSHOT` version; Gale is not available from Maven Central yet.
+> `0.1.0+...-SNAPSHOT` version; Gale is not available from Maven Central yet.
+> The first intended immutable checkpoint is `v0.1.0-M1`. `1.0` is a later
+> compatibility freeze, not the current development label.
 
 ## Quick start
 

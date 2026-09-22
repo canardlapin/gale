@@ -63,6 +63,15 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
     val tabulatedGale = Matrix.tabulate(4, 3)((i, j) => i * 10.0 + j)
     val tabulatedBreeze = DenseMatrix.tabulate(4, 3)((i, j) => i * 10.0 + j)
     assertMatClose(tabulatedGale, tabulatedBreeze, 0.0, "tabulate")
+
+    assertVecClose(Vec.zeros(4), DenseVector.zeros[Double](4), 0.0, "vector zeros")
+    assertVecClose(Vec.fill(5)(2.5), DenseVector.fill(5)(2.5), 0.0, "vector fill")
+    assertVecClose(
+      Vec.tabulate(6)(i => i * 0.5),
+      DenseVector.tabulate(6)(i => i * 0.5),
+      0.0,
+      "vector tabulate"
+    )
   }
 
   property("row, column, and contiguous slice access match Breeze") {
@@ -190,6 +199,12 @@ class EverydayOpsParitySuite extends ScalaCheckSuite:
         breezeLeft.mapValues(math.tanh),
         0.0,
         s"pointwise map $sample"
+      )
+      assertMatClose(
+        galeLeft.zipMapExact(galeRight)(_ * _),
+        breezeLeft *:* breezeRight,
+        0.0,
+        s"zipMapExact $sample"
       )
     }
   }

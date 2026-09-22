@@ -1,8 +1,9 @@
 # Shipped vs deferred surfaces
 
-This table describes the **current tree**, not the MATLAB/SciPy capability plan
-in `docs/spectral-parity.md`. Use it to see which public calls have a portable
-implementation, which require an imported backend, and which are locked to
+This table describes the **current tree**. The
+[MATLAB/SciPy capability plan](https://github.com/canardlapin/gale/blob/main/docs/spectral-parity.md)
+also includes future work. Use this table to see which public calls have a portable
+implementation, which require an explicit provider, and which are locked to
 `Left(UnsupportedOperation)` (or a documented stand-in) until work lands.
 
 Lock tests live in `UnsupportedSurfaceSuite`. Gale-owned numerical definitions
@@ -26,17 +27,20 @@ are pinned by `GaleNumericalContractSuite`.
 | Full-column-rank GSVD | portable | `Right` | `GeneralizedSvdSuite` |
 | Rank-deficient GSVD | backend-only | `Left(RankDeficient)` unless a capable backend is imported | `UnsupportedSurfaceSuite` |
 | Sparse CSR/CSC arithmetic and matvec | portable | values / views | sparse suites, `parity/` |
-| Sparse direct LU / Cholesky / QR | backend-only | `Left(UnsupportedOperation)` (no provider in this build) | `docs/sparse-direct-provider.md` |
+| Sparse direct Cholesky | portable, opt-in | select `SparseDirectProvider.pure` explicitly; the default provider remains empty | `PureSparseCholeskySuite`, [provider guide](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-provider.md) |
+| Sparse direct LU / QR | backend-only, no shipped provider | `Left(UnsupportedOperation)` with the default or pure provider | `SparseDirectSeamSuite`, `PureSparseCholeskySuite`, [future work](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md) |
 | Vector / FFM BLAS backends | backend-only | same answers within conformance; not bit-identical | backend suites |
-| Complex matrix storage | out | not an API | `docs/user/guides/breeze-equivalence.md` |
+| Complex matrix storage | out | not an API | [Breeze migration guide](../guides/breeze-equivalence.md) |
 
 Status words:
 
 - **portable** — implemented in `gale-core` with no acceleration import.
+- **portable, opt-in** — implemented in shared `gale-core` for JVM and Scala.js,
+  with an explicit provider selection required.
 - **backend-only** — the public method exists; the default `given` declines.
 - **deferred** — the public method exists and is locked to
   `UnsupportedOperation` until the named wiring lands.
-- **out** — not part of the real-`Double` v1 surface.
+- **out** — not part of the real-`Double` 0.1 surface.
 
 When a deferred row starts succeeding, update this table and the lock suite in
 the same change. Do not treat a green residual as a shipped extreme, and do not

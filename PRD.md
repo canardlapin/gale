@@ -1313,6 +1313,12 @@ Required regression suites:
 
 ## Release Roadmap
 
+These headings are historical feature milestones, not the live Maven version.
+Current untagged builds are `0.1.0+...-SNAPSHOT`. The first intended public tag
+is `v0.1.0-M1`. The **v1.0: Stability** section below remains the later
+compatibility-locked GA, not the current snapshot label. See
+`docs/release-policy.md`.
+
 ### v0.1: Dense Core
 
 - `DVec`, `DMat`, views, slices, transpose.

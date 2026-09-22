@@ -98,11 +98,13 @@ import gale.syntax.all.*
 val x = Vec(1.0, 0.5, -1.0)
 val ax = a * x
 val gram = a.t * a
+val scaled = a * 2.0
 val squared = a.pointwise * a
 val regularized = gram.addToDiagonal(1e-6)
 
 ax.toSeq
 gram.valuesRowMajor
+scaled.valuesRowMajor
 squared.valuesRowMajor
 regularized(0, 0)
 ```
@@ -113,7 +115,7 @@ The main dense operations are:
 | --- | --- |
 | Vector addition, subtraction, scaling | `x + y`, `x - y`, `x * scalar` |
 | Dot product and Euclidean norm | `x.dot(y)`, `x.norm2` |
-| Matrix addition and subtraction | `a + b`, `a - b` |
+| Matrix addition, subtraction, and scaling | `a + b`, `a - b`, `a * scalar`, `scalar * a` |
 | Matrix-vector and matrix-matrix products | `a * x`, `a * b` |
 | Transpose | `a.t` |
 | Elementwise multiply, divide, or map | `a.pointwise * b`, `a.pointwise / b`, `a.pointwise.map(f)` |
@@ -263,9 +265,12 @@ construct common structures without passing through a coordinate builder.
 CSR and CSC support element access, rows, columns, transpose, addition,
 subtraction, scalar multiplication, and conversion to dense storage.
 
-Gale does not provide sparse direct factorization. Use an iterative solver or
-convert a small sparse matrix to dense storage when the conversion is known to
-fit in memory.
+Gale's default sparse-direct provider is `none`. Use an iterative solver, or
+`import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
+canonical square CSR. That import is not SuiteSparse and does not provide
+sparse LU or QR. Those, plus C Wasm, each need their own spec in a
+[future version](../../sparse-direct-future.md); see
+[Scala.js sparse-direct](../../sparse-direct-js.md).
 
 ## Solve with an iterative method
 
@@ -363,7 +368,10 @@ the caller decides whether the reported convergence is sufficient.
 
 `conditionEstimate` is a 1-norm estimate. It is not Breeze's exact SVD-based
 2-norm condition number. Gale uses a different name because the returned
-quantity and its computational cost differ.
+quantity and its computational cost differ. LU reports `SingularMatrix` only
+on an exact-zero (or NaN) pivot; a reconstructed near-singular plant is not a
+portable `+∞` fixture. See the
+[numerical contract](../advanced/numerical-contract.md#cross-platform-singularity-rank-and-backend-residuals).
 
 Gale's full SVD returns economy-size factors rather than full square factors.
 Symmetric eigenvalue and Cholesky routines read the lower triangle of the input
@@ -378,9 +386,12 @@ factor entries.
 ## Coverage at a glance
 
 Differential checks against Breeze 2.1 for these common operations live in the
-[`parity/` module](../../../parity/README.md) (`sbt parityTest`). The table
-below is the migration surface; the parity README tracks which rows are
-cross-checked.
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+with no honest Breeze reference — generalized eigen / GSVD / QZ, sparse-direct
+factorization, near-cutoff rank / `pinv` / `cond`, and Krylov algorithm
+diagnostics — are checked against NumPy / SciPy fixtures in the same module.
+The table below is the migration surface; the parity README tracks which rows
+are cross-checked.
 
 | Task | Gale API | Important difference |
 | --- | --- | --- |
@@ -466,4 +477,4 @@ Continue with [Worked examples](examples.md) for more complete programs. Read
 [Advanced topics](../advanced/index.md) when allocation control, sparse
 structure reuse, backend selection, or matrix-free generalized eigensolving
 affects the application. The current portable / backend-only / deferred split
-is tabulated in [Shipped vs deferred](../../shipped-vs-deferred.md).
+is tabulated in [Shipped vs deferred](../advanced/shipped-vs-deferred.md).
