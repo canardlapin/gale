@@ -1,0 +1,52 @@
+{
+  "baseCommit": "da38f8c429294657d30ec29f06eae3fab636d428",
+  "controls": [
+    "Exact BigInt dyadic containment for nondegenerate multiplication rectangles in four sign quadrants.",
+    "Exact rational corner containment for strictly positive and strictly negative nondegenerate divisor intervals.",
+    "Positive-only and negative-only square bounds; adjacent Double.MaxValue outward-endpoint refusal.",
+    "Empty streams, late NaN/infinity refusal, and signed-zero endpoint preservation.",
+    "Test name states scalar-only live state is source-inspected, not allocation-measured."
+  ],
+  "limits": [
+    "No arithmetic/API/source change was made by this control slice.",
+    "The controls do not measure allocation, performance, sqrt/transcendentals, spectral/factor/inverse operations, or downstream scientific certification.",
+    "No publication, ScalaFIM pin, or production admission."
+  ],
+  "moteIssue": "bd-01M3SV1NNDMZ4E7C8DM7JB5M5G",
+  "moteReservation": "rv-01M3T472D1X6MGFTNYMQ3C6BAK",
+  "priorReceipt": {
+    "path": "docs/verification/outward-interval-enclosures-receipt.json",
+    "sha256": "1e2196035186473d1c12a4fe602665b862ce464f9db4176aa058bed8601072ae"
+  },
+  "schema": "gale.outward-interval-nondegenerate-review.v1",
+  "source": {
+    "documentation": {
+      "path": "docs/outward-interval-enclosures.md",
+      "sha256": "8931fa6bad195d886235a09169cf7f0a92ee58adf7d32ebd9545f355d909cf6e"
+    },
+    "implementation": {
+      "path": "core/shared/src/main/scala/gale/linalg/OutwardInterval.scala",
+      "sha256": "58162d844deeb27dedbda7b0a7a7c681b805c683625d2b561e2bca97fce16f1d"
+    },
+    "test": {
+      "path": "core/shared/src/test/scala/gale/linalg/OutwardIntervalSuite.scala",
+      "sha256": "ffcf808fccd51b4b44e7efe6297e9db3359329a150445add5489e759aa5d3595"
+    }
+  },
+  "verification": {
+    "actualExit": 0,
+    "command": "python3 /private/tmp/scalafim-execution-20260929/run-sbt.py /private/tmp/scalafim-execution-20260929/gale-outward-core gale-outward-nondegenerate-v1 'coreJVM/testOnly gale.linalg.OutwardIntervalSuite' 'coreJS/testOnly gale.linalg.OutwardIntervalSuite'",
+    "js": {
+      "failed": 0,
+      "passed": 8
+    },
+    "jvm": {
+      "failed": 0,
+      "passed": 8
+    },
+    "meta": "/private/tmp/scalafim-execution-20260929/logs/gale-outward-nondegenerate-v1.meta.json",
+    "metaSha256": "9335384f01ce430c7f100fc021c9521c1e6e2acc8f32a8ca761f6738ea2d673a",
+    "raw": "/private/tmp/scalafim-execution-20260929/logs/gale-outward-nondegenerate-v1",
+    "rawSha256": "0e341b9f7fdd05781ed5af113ab2a228917bbc1f6f4938899b663a2aa196c172"
+  }
+}
