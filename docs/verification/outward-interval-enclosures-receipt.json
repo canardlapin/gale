@@ -1,0 +1,55 @@
+{
+  "schema": "gale.outward-interval-enclosures-receipt.v2",
+  "base_commit": "da38f8c429294657d30ec29f06eae3fab636d428",
+  "control_commit": "df8b45408e8f2561436ab67999f0bc42ea858b34",
+  "worktree": "/private/tmp/scalafim-execution-20260929/gale-outward-core",
+  "mote_issue": "bd-01M3SV1NNDMZ4E7C8DM7JB5M5G",
+  "mote_reservation": "rv-01M3TAKG8QDWEBV91KGZZHKM4Q",
+  "source": {
+    "core/shared/src/main/scala/gale/linalg/OutwardInterval.scala": "58162d844deeb27dedbda7b0a7a7c681b805c683625d2b561e2bca97fce16f1d",
+    "core/shared/src/test/scala/gale/linalg/OutwardIntervalSuite.scala": "ffcf808fccd51b4b44e7efe6297e9db3359329a150445add5489e759aa5d3595",
+    "docs/outward-interval-enclosures.md": "8931fa6bad195d886235a09169cf7f0a92ee58adf7d32ebd9545f355d909cf6e"
+  },
+  "capability": {
+    "finite_closed_intervals": true,
+    "operations": ["point", "add", "subtract", "multiply", "divide-excluding-zero", "square", "streaming-dot", "streaming-absolute-sum"],
+    "ordinary_finite_result_expansion": "Math.nextDown/Math.nextUp",
+    "typed_refusals": ["non-finite endpoint", "unordered endpoints", "zero-containing divisor", "non-finite intermediate", "stream length mismatch"],
+    "storage": "constant extra scalar storage; no dense matrix allocation"
+  },
+  "explicitly_out_of_scope": [
+    "sqrt and every transcendental operation",
+    "eigensolvers, factors, inverses, and matrix certificates",
+    "original-family, whitening, reconstruction, HRF, or PHRF error certificates",
+    "ScalaFIM source, build pin, native, publication, or PHRF-11/29 closure"
+  ],
+  "toolchain": {
+    "java_home": "/private/tmp/scalafim-execution-20260929/jdk21-primary/jdk-21.0.12.1+1/Contents/Home",
+    "java_version": "Eclipse Temurin 21.0.12.1+1-LTS, macOS aarch64",
+    "provider_manifest": "/private/tmp/scalafim-execution-20260929/jdk21-primary/adoptium-assets-21-macos-aarch64.json",
+    "provider_manifest_sha256": "ac67394a603ddc78981970b171ac96310afcb57f34b24482f6dcdce57cb6da4a",
+    "distribution_sha256": "3623232f33a9c3baadf304480b2535f9a3cba8a58d42ecbb438ba267315d9998",
+    "official_checksum_manifest": "/private/tmp/scalafim-execution-20260929/jdk21-primary/OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.12.1_1.tar.gz.sha256.txt",
+    "official_checksum_manifest_sha256": "5e65dc46036c7403363c9ed48acbdf20507b04a3db3037a7235ec316f0939e1d"
+  },
+  "verification": {
+    "command": "JAVA_HOME=/private/tmp/scalafim-execution-20260929/jdk21-primary/jdk-21.0.12.1+1/Contents/Home PATH=/private/tmp/scalafim-execution-20260929/jdk21-primary/jdk-21.0.12.1+1/Contents/Home/bin:$PATH python3 /private/tmp/scalafim-execution-20260929/run-sbt.py /private/tmp/scalafim-execution-20260929/gale-outward-core gale-outward-primary-jdk21-r2.log scalafmtCheckAll 'coreJVM/testOnly gale.linalg.OutwardIntervalSuite' 'coreJS/testOnly gale.linalg.OutwardIntervalSuite'",
+    "raw_log": "/private/tmp/scalafim-execution-20260929/logs/gale-outward-primary-jdk21-r2.log",
+    "raw_sha256": "8446262d7e84e8fa2ed2041d08aa4576b1306f2bd3cbec7eff7f7cde5c69d46c",
+    "metadata": "/private/tmp/scalafim-execution-20260929/logs/gale-outward-primary-jdk21-r2.log.meta.json",
+    "metadata_sha256": "53b7ff80bad993eec5f2050e208a553e202430892d6f208c37f9ca09c4c4b64e",
+    "actual_exit": 0,
+    "scalafmt_check_all": "passed",
+    "jvm": {"passed": 8, "failed": 0},
+    "js": {"passed": 8, "failed": 0},
+    "oracle": "Exact dyadic Rational(BigInt) containment, independent of production Double arithmetic.",
+    "covered": ["fixed-bit randomized finite inputs", "subnormal underflow", "signed zero", "cancellation", "overflow refusal", "zero divisor refusal", "stream shape refusal"]
+  },
+  "prior_evidence": {
+    "parent_review": "/private/tmp/scalafim-execution-20260929/gale-outward-parent-final-review.json",
+    "parent_review_sha256": "10456174e8d14169392da5f1ea50ff693dd8c8112e8605aa02d2a6d74a5d732a",
+    "payload_archive": "/private/tmp/scalafim-execution-20260929/gale-outward-final-reviewed-payloads.json.gz",
+    "payload_archive_sha256": "a68a83a362425129105f43e0a134ab7161679315c1c695f9e5641c62a78198ac"
+  },
+  "review_status": "focused JDK 21 source and test verification passed; independent acceptance and all downstream certificate claims remain out of scope"
+}
