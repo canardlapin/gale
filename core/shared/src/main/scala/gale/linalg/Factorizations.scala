@@ -271,21 +271,15 @@ object DenseDecompositions:
     else
       val n = A.rows
       val lower = DoubleArray.alloc(n * n)
-      var i = 0
-      while i < n do
-        var j = 0
-        while j <= i do
-          var sum = A(i, j)
-          var k = 0
-          while k < j do
-            sum -= lower(i * n + k) * lower(j * n + k)
-            k += 1
-          if i == j then
-            if sum <= options.pivotTolerance || sum.isNaN then return Left(LinAlgError.NotPositiveDefinite(i))
-            lower(i * n + j) = math.sqrt(sum)
-          else lower(i * n + j) = sum / lower(j * n + j)
-          j += 1
-        i += 1
+      var row = 0
+      while row < n do
+        var col = 0
+        while col <= row do
+          lower(row * n + col) = A(row, col)
+          col += 1
+        row += 1
+      val pivot = DoubleKernels.dpotrfLower(n, lower, options.pivotTolerance)
+      if pivot >= 0 then return Left(LinAlgError.NotPositiveDefinite(pivot))
       Right(
         Cholesky(
           lower = DMat.fromDoubleArrayOwned(n, n, lower),

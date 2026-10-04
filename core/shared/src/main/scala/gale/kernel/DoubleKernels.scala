@@ -335,6 +335,28 @@ private[gale] object DoubleKernels:
       xj += xStride
       col += 1
 
+  /** In-place row-major lower Cholesky. Returns -1 on success or the first
+    * failed pivot. Only the lower triangle is read or written.
+    */
+  def dpotrfLower(n: Int, a: DoubleArray, tolerance: Double): Int =
+    var row = 0
+    while row < n do
+      var col = 0
+      while col <= row do
+        var sum = a(row * n + col)
+        var k = 0
+        while k < col do
+          sum -= a(row * n + k) * a(col * n + k)
+          k += 1
+        if !sum.isFinite then return col
+        if row == col then
+          if sum <= tolerance then return row
+          a(row * n + col) = math.sqrt(sum)
+        else a(row * n + col) = sum / a(col * n + col)
+        col += 1
+      row += 1
+    -1
+
   /** In-place triangular solve `T x = b` (`x` holds `b` on entry, the solution on
     * exit). `lower` selects forward vs back substitution; `unit` skips the diagonal
     * division (implicit unit diagonal, so the stored diagonal is never read).
