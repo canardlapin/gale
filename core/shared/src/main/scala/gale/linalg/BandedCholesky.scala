@@ -152,6 +152,15 @@ final class BandedCholesky private (
         i -= 1
     Right(())
 
+  /** Gradient and Hessian of `log det A(θ)` at this accepted factor, from the
+    * derivative bands of `A`. Costs O((d + d(d+1)/2) n bandwidth²) with
+    * `(d+1) n (bandwidth+1)` doubles of scratch, and performs no RHS solve.
+    * Derivative bands follow the `factorLower` padding and finiteness rules;
+    * a nonfinite derivative result is a typed error. The factor is not modified.
+    */
+  def logDetJet(derivatives: BandedDerivatives): Either[LinAlgError, BandedLogDetJet] =
+    BandedLogDetJet.compute(this, derivatives)
+
   /** O(n bandwidth) comparison bound, computed once with O(n) temporary storage.
     * For diagonal A the bound is the exact condition number; cancellation in
     * triangular inverses can make it conservative for wider bands.
