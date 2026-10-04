@@ -59,6 +59,14 @@ zeros singular values at or below the MATLAB/SciPy cutoff
 keep/drop decision is not lost in reconstruction rounding. The shared
 `NumericalPolicySuite` pins these decisions on every core platform.
 
+Caller-selected `SvdCutoff` applies consistently to `truncatedSvd`, `pinv`,
+`minimumNormLeastSquares`, row/column spaces and numerical null spaces. Keep
+exactly `sigma > cutoff`; the selected rank is independent of the existing
+`SVD.rank` metadata, whose default relative tolerance is `1e-10`. Deliberate
+truncation defines geometry and solves for the truncated matrix. Ordinary RREF
+pivot tolerance has a separate contract. See
+[minimum-norm solves and subspaces](../guides/subspaces-and-minimum-norm.md).
+
 An imported Vector or native BLAS/LAPACK backend must agree with
 `PureBackend` on the `LinAlgError` class for those IEEE-exact plants and must
 keep solve residuals inside the documented conformance tolerance. Factor

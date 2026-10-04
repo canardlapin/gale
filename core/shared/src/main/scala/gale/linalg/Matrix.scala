@@ -9,6 +9,10 @@ import gale.spectral.SVD
 import gale.spectral.SingularSelection
 import gale.spectral.SpectralBackend
 import gale.spectral.Svds
+import gale.spectral.SvdCutoff
+import gale.spectral.TruncatedSvd
+import gale.spectral.MinimumNormSolution
+import gale.spectral.MinimumNormSolutions
 import scala.annotation.targetName
 
 trait Matrix[A] extends LinearOperator[A]:
@@ -799,10 +803,30 @@ final class DMat private[gale] (
     * the MATLAB/SciPy-convention cutoff `max(m, n) · ε · σ_max` are treated as zero (see
     * [[gale.spectral.Svds.pinv]] for the exact convention), so a rank-deficient —
     * even all-zero — matrix pseudo-inverts cleanly rather than failing. `Left`
-    * exactly when [[svd]] is.
+    * on non-finite input entries or an underlying [[svd]] failure.
     */
   def pinv(using SpectralBackend): Either[LinAlgError, DMat] =
     Svds.pinv(this)
+
+  def pinv(cutoff: SvdCutoff)(using SpectralBackend): Either[LinAlgError, DMat] =
+    Svds.pinv(this, cutoff)
+
+  /** Retain one policy-selected SVD for repeated solves and subspace operations. */
+  def truncatedSvd(cutoff: SvdCutoff = SvdCutoff.Default)(using SpectralBackend): Either[LinAlgError, TruncatedSvd] =
+    TruncatedSvd.factor(this, cutoff)
+
+  def minimumNormLeastSquares(b: DVec, cutoff: SvdCutoff = SvdCutoff.Default)(using
+      SpectralBackend
+  ): Either[LinAlgError, MinimumNormSolution] =
+    Svds.minimumNormLeastSquares(this, b, cutoff)
+
+  def minimumNormLeastSquares(b: DMat)(using SpectralBackend): Either[LinAlgError, MinimumNormSolutions] =
+    Svds.minimumNormLeastSquares(this, b, SvdCutoff.Default)
+
+  def minimumNormLeastSquares(b: DMat, cutoff: SvdCutoff)(using
+      SpectralBackend
+  ): Either[LinAlgError, MinimumNormSolutions] =
+    Svds.minimumNormLeastSquares(this, b, cutoff)
 
   /** Kronecker product `this ⊗ that`: the `(m·p)×(n·q)` block matrix whose
     * `(i, j)` block is `this(i, j) * that`. Total on every shape (including

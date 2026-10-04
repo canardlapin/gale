@@ -1,0 +1,274 @@
+--- a/modules/design/shared/src/main/scala/scalafim/fmri/design/DesignDiagnostics.scala
++++ b/modules/design/shared/src/main/scala/scalafim/fmri/design/DesignDiagnostics.scala
+@@ -2,6 +2,7 @@
+ 
+ import gale.linalg.{DMat, DVec}
+ import gale.spectral.SpectralBackend.given
++import gale.spectral.SvdCutoff
+ import scalafim.fmri.hrf.linalg.Mat
+ 
+ /** A caller-named, disjoint set of columns whose explanatory power is reported
+@@ -381,36 +382,11 @@
+     if predictors.isEmpty then Right(LeastSquares(Array.emptyDoubleArray, targetNorm, targetNorm, 0, 0.0))
+     else
+       val x = DMat.tabulate(n, predictors.length)((r, column) => matrix(r, predictors(column)))
+-      x.svd.left.map(error => DesignDiagnosticsError.NumericalFailure(String.valueOf(error.getMessage))).map: svd =>
+-        val sigmaMax = if svd.size == 0 then 0.0 else svd.singularValues(0)
+-        val cutoff = policy.cutoff(x.rows, x.cols, sigmaMax)
+-        var kept = 0
+-        while kept < svd.size && svd.singularValues(kept) > cutoff do kept += 1
+-        val z = new Array[Double](kept)
+-        var component = 0
+-        while component < kept do
+-          var dot = 0.0
+-          var r = 0
+-          while r < n do
+-            dot += svd.u(r, component) * y(r)
+-            r += 1
+-          z(component) = dot
+-          component += 1
+-        val coefficients = new Array[Double](predictors.length)
+-        val residual = y.clone()
+-        component = 0
+-        while component < kept do
+-          val scaled = z(component) / svd.singularValues(component)
+-          var predictor = 0
+-          while predictor < predictors.length do
+-            coefficients(predictor) += svd.vt(component, predictor) * scaled
+-            predictor += 1
+-          var r = 0
+-          while r < n do
+-            residual(r) -= svd.u(r, component) * z(component)
+-            r += 1
+-          component += 1
+-        LeastSquares(coefficients, targetNorm, norm(residual), kept, cutoff)
++      x.minimumNormLeastSquares(
++        DVec.fromSeq(y.toIndexedSeq),
++        SvdCutoff.Relative(policy.relativeTolerance(x.rows, x.cols))
++      ).left.map(error => DesignDiagnosticsError.NumericalFailure(String.valueOf(error.getMessage))).map: fit =>
++        LeastSquares(fit.solution.toSeq.toArray, targetNorm, fit.residual.norm2, fit.rank, fit.cutoff)
+ 
+   private def projection(target: ColumnId, kind: ProjectionKind, predictors: Vector[Int], fit: LeastSquares): ProjectionRank =
+     ProjectionRank(target, kind, predictors.length, fit.cutoff, fit.rank)
+--- a/modules/design/shared/src/main/scala/scalafim/fmri/design/ContrastDiagnostics.scala
++++ b/modules/design/shared/src/main/scala/scalafim/fmri/design/ContrastDiagnostics.scala
+@@ -1,7 +1,8 @@
+ package scalafim.fmri.design
+ 
+-import gale.linalg.{DMat, DenseDecompositions, LinAlgError}
++import gale.linalg.{DMat, DenseDecompositions, LinAlgError, NullSpaceForm, RowReduction}
+ import gale.spectral.SpectralBackend.given
++import gale.spectral.{Subspace, SvdCutoff, TruncatedSvd}
+ 
+ final case class ColumnContrast(weights: Vector[(ColumnId, Double)]):
+   require(weights.nonEmpty, "a contrast must contain at least one weight")
+@@ -64,7 +65,8 @@
+     singular: Array[Double],
+     sigmaMax: Double,
+     cutoff: Double,
+-    tolerance: Double
++    tolerance: Double,
++    factor: TruncatedSvd
+ ):
+   def rank: Int = basis.length
+ 
+@@ -208,13 +210,14 @@
+               case Some(covariance) =>
+                 largestEigenvalue(covariance).map: value =>
+                   FContrastDiagnostic(contrast, evaluation.estimability, covariance.rows, Some(math.sqrt(value)))
++      aliasEquations <- aliases(geometry)
+     yield ContrastDiagnosticsResult(
+       schema.fingerprint,
+       selected._1,
+       rankPolicy,
+       space.rank,
+       space.cutoff,
+-      aliases(geometry),
++      aliasEquations,
+       t,
+       f,
+       geometry = geometry
+@@ -549,44 +552,14 @@
+     * numerical rank and the row-major `n x t` residual.
+     */
+   private def residualizeTask(x: DMat, task: Vector[Int], policy: RankPolicy): Either[DesignDiagnosticsError, (Int, Array[Double])] =
+-    val n = x.rows
+-    val t = task.length
+-    val residual = new Array[Double](n * t)
+-    var row = 0
+-    while row < n do
+-      var column = 0
+-      while column < t do
+-        residual(row * t + column) = x(row, task(column))
+-        column += 1
+-      row += 1
+-    val taskSet = task.toSet
+-    val nuisance = (0 until x.cols).filterNot(taskSet.contains).toVector
+-    if nuisance.isEmpty then Right(0 -> residual)
+-    else
+-      DMat.tabulate(n, nuisance.length)((r, c) => x(r, nuisance(c))).svd.left.map(numerical).map: svd =>
+-        val kept = keptCount(svd.singularValues(_), svd.size, policy.cutoff(n, nuisance.length, if svd.size == 0 then 0.0 else svd.singularValues(0)))
+-        val projection = new Array[Double](t)
+-        var component = 0
+-        while component < kept do
+-          java.util.Arrays.fill(projection, 0.0)
+-          var r = 0
+-          while r < n do
+-            val u = svd.u(r, component)
+-            var column = 0
+-            while column < t do
+-              projection(column) += u * residual(r * t + column)
+-              column += 1
+-            r += 1
+-          r = 0
+-          while r < n do
+-            val u = svd.u(r, component)
+-            var column = 0
+-            while column < t do
+-              residual(r * t + column) -= u * projection(column)
+-              column += 1
+-            r += 1
+-          component += 1
+-        kept -> residual
++    val taskMatrix = DMat.tabulate(x.rows, task.length)((r, c) => x(r, task(c)))
++    val nuisance = (0 until x.cols).filterNot(task.toSet.contains).toVector
++    if nuisance.isEmpty then Right(0 -> taskMatrix.valuesRowMajor.toArray)
++    else
++      val nuisanceMatrix = DMat.tabulate(x.rows, nuisance.length)((r, c) => x(r, nuisance(c)))
++      Subspace.columnSpace(nuisanceMatrix, SvdCutoff.Relative(policy.relativeTolerance(x.rows, nuisance.length)))
++        .left.map(numerical).flatMap: space =>
++          space.residual(taskMatrix).left.map(numerical).map(residual => space.rank -> residual.valuesRowMajor.toArray)
+ 
+   private def hasNumericalSignal(residual: Array[Double], original: DMat, task: Vector[Int], policy: RankPolicy): Boolean =
+     val values = Array.tabulate(original.rows * task.length)(index => original(index / task.length, task(index % task.length)))
+@@ -626,21 +599,14 @@
+             case Some((row, column)) => Left(DesignDiagnosticsError.NonFiniteValue(rows(row), schema.columnIds(column), matrix(row, column)))
+             case None => Right(rows -> matrix)
+ 
+-  private def keptCount(singular: Int => Double, size: Int, cutoff: Double): Int =
+-    var kept = 0
+-    while kept < size && singular(kept) > cutoff do kept += 1
+-    kept
+-
+   private[design] def rowSpace(x: DMat, policy: RankPolicy): Either[DesignDiagnosticsError, RowSpace] =
+-    x.svd.left.map(numerical).map: svd =>
+-      val sigmaMax = if svd.size == 0 then 0.0 else svd.singularValues(0)
+-      val cutoff = policy.cutoff(x.rows, x.cols, sigmaMax)
+-      val kept = keptCount(svd.singularValues(_), svd.size, cutoff)
+-      val basis = Vector.tabulate(kept)(component => Array.tabulate(x.cols)(column => svd.vt(component, column)))
+-      val singular = Array.tabulate(kept)(component => svd.singularValues(component))
++    x.truncatedSvd(SvdCutoff.Relative(policy.relativeTolerance(x.rows, x.cols))).left.map(numerical).map: factor =>
++      val space = factor.rowSpace
++      val basis = Vector.tabulate(space.rank)(component => space.basis.col(component).toSeq.toArray)
++      val singular = space.singularValues.toSeq.toArray
+       val relative = policy.relativeTolerance(x.rows, x.cols)
+-      val tolerance = if kept == 0 then relative else relative * (sigmaMax / singular(kept - 1))
+-      RowSpace(basis, singular, sigmaMax, cutoff, tolerance)
++      val tolerance = if space.rank == 0 then relative else relative * (space.sigmaMax / singular.last)
++      RowSpace(basis, singular, space.sigmaMax, space.cutoff, tolerance, factor)
+ 
+   /** Orthonormal basis of the hypothesis row space. Rows are first scaled to
+     * unit norm (a row's scale does not change the hypothesis), then the SVD
+@@ -809,40 +775,19 @@
+       if tied == 1 then Right(projected(0, 0) -> top)
+       else largestEigenvalue(projected).map(_ -> top)
+ 
+-  /** Dependencies from the RREF of the null-space projector `I - V_k V_k'`.
+-    * Economy SVD omits wide-null directions; the projector recovers them. At
+-    * most `p - rank` pivots are taken, and entries at or below the row space's
+-    * membership tolerance are treated as zero.
+-    */
+-  private def aliases(geometry: ContrastRunGeometry): Vector[AliasEquation] =
+-    val ids = geometry.ids
+-    val space = geometry.space
+-    val p = ids.length
+-    val nullity = p - space.rank
+-    if nullity <= 0 then Vector.empty
+-    else
+-      val projector = new Array[Double](p * p)
+-      var r = 0
+-      while r < p do
+-        projector(r * p + r) = 1.0
+-        r += 1
+-      var component = 0
+-      while component < space.rank do
+-        val v = space.basis(component)
+-        r = 0
+-        while r < p do
+-          var c = 0
+-          while c < p do
+-            projector(r * p + c) -= v(r) * v(c)
+-            c += 1
+-          r += 1
+-        component += 1
+-      reducedRowEchelon(projector, p, p, space.tolerance, nullity)
+-        .flatMap: row =>
+-          val coefficients = row.indices.collect { case column if row(column) != 0.0 => ids(column) -> row(column) }.toVector
+-          if coefficients.isEmpty then None
+-          else Some(AliasEquation(coefficients, aliasResidual(geometry.matrix, row, space.sigmaMax)))
+-        .sortBy(_.coefficients.length)
++  /** Gale supplies canonical row-reduced null equations without constructing
++    * a square projector. The application prunes displayed coefficients under
++    * its dimensionless membership uncertainty before reporting residuals.
++    */
++  private def aliases(geometry: ContrastRunGeometry): Either[DesignDiagnosticsError, Vector[AliasEquation]] =
++    RowReduction.nullSpaceBasis(geometry.space.factor, NullSpaceForm.Sparse).left.map(numerical).map: result =>
++      Vector.tabulate(result.nullity): component =>
++        val row = Array.tabulate(geometry.ids.length): column =>
++          val value = result.basis(column, component)
++          if math.abs(value) <= geometry.space.tolerance then 0.0 else value
++        val coefficients = row.indices.collect { case column if row(column) != 0.0 => geometry.ids(column) -> row(column) }.toVector
++        AliasEquation(coefficients, aliasResidual(geometry.matrix, row, geometry.space.sigmaMax))
++      .filter(_.coefficients.nonEmpty).sortBy(_.coefficients.length)
+ 
+   private def aliasResidual(x: DMat, coefficients: Array[Double], sigmaMax: Double): Double =
+     if sigmaMax == 0.0 then 0.0
+@@ -859,48 +804,6 @@
+         row += 1
+       DesignDiagnostics.norm(combination) / (sigmaMax * DesignDiagnostics.norm(coefficients))
+ 
+-  /** Gauss-Jordan reduction with partial pivoting of a row-major matrix,
+-    * taking at most `maximumPivots` pivots. Gale has no RREF capability; this
+-    * is the one remaining private dense elimination helper.
+-    */
+-  private def reducedRowEchelon(values: Array[Double], rows: Int, columns: Int, tolerance: Double, maximumPivots: Int): Vector[Array[Double]] =
+-    val a = values.clone()
+-    var pivotRow = 0
+-    var column = 0
+-    while pivotRow < rows && pivotRow < maximumPivots && column < columns do
+-      var best = pivotRow
+-      var r = pivotRow + 1
+-      while r < rows do
+-        if math.abs(a(r * columns + column)) > math.abs(a(best * columns + column)) then best = r
+-        r += 1
+-      if math.abs(a(best * columns + column)) <= tolerance then column += 1
+-      else
+-        var c = 0
+-        while c < columns do
+-          val held = a(pivotRow * columns + c)
+-          a(pivotRow * columns + c) = a(best * columns + c)
+-          a(best * columns + c) = held
+-          c += 1
+-        val pivot = a(pivotRow * columns + column)
+-        c = 0
+-        while c < columns do
+-          a(pivotRow * columns + c) /= pivot
+-          c += 1
+-        r = 0
+-        while r < rows do
+-          val factor = a(r * columns + column)
+-          if r != pivotRow && factor != 0.0 then
+-            c = 0
+-            while c < columns do
+-              a(r * columns + c) -= factor * a(pivotRow * columns + c)
+-              c += 1
+-          r += 1
+-        pivotRow += 1
+-        column += 1
+-    Vector.tabulate(pivotRow): row =>
+-      Array.tabulate(columns): c =>
+-        val value = a(row * columns + c)
+-        if math.abs(value) <= tolerance then 0.0 else value
+ 
+   // Validation helpers.
+ 

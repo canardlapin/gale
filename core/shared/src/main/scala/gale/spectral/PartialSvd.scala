@@ -168,22 +168,24 @@ object Svds:
     * all-zero `a` therefore yields the all-zero `A⁺` (its correct
     * pseudo-inverse), never a division by zero.
     *
-    * `Left` exactly when the underlying [[svd(a:gale\.linalg\.DMat*]] is: a
-    * non-positive dimension, or (in practice unreachable) kernel
+    * `Left` on non-finite input entries, a non-positive dimension, or kernel
     * non-convergence.
     */
   def pinv(a: DMat)(using SpectralBackend): Either[LinAlgError, DMat] =
-    svd(a, SingularSelection.All, EigenVectors.Right).map: s =>
-      val m = a.rows
-      val n = a.cols
-      val p = s.size
-      val sigmaMax = if p > 0 then s.singularValues(0) else 0.0
-      val cutoff = math.max(m, n).toDouble * MachineEpsilon * sigmaMax
-      // W = V·Σ⁺ (n×p): W(i, l) = Vᵀ(l, i) / σ_l above the cutoff, else 0.
-      val w = DMat.tabulate(n, p): (i, l) =>
-        val sigma = s.singularValues(l)
-        if sigma > cutoff then s.vt(l, i) / sigma else 0.0
-      w * s.u.t
+    pinv(a, SvdCutoff.Default)
+
+  def pinv(a: DMat, cutoff: SvdCutoff)(using SpectralBackend): Either[LinAlgError, DMat] =
+    TruncatedSvd.factor(a, cutoff).map(_.pinv)
+
+  def minimumNormLeastSquares(a: DMat, b: DVec, cutoff: SvdCutoff = SvdCutoff.Default)(using
+      SpectralBackend
+  ): Either[LinAlgError, MinimumNormSolution] =
+    TruncatedSvd.factor(a, cutoff).flatMap(_.solve(b))
+
+  def minimumNormLeastSquares(a: DMat, b: DMat, cutoff: SvdCutoff)(using
+      SpectralBackend
+  ): Either[LinAlgError, MinimumNormSolutions] =
+    TruncatedSvd.factor(a, cutoff).flatMap(_.solve(b))
 
   /** Route the full dense SVD (already validated: positive dims, legal vector
     * flag): a [[SpectralCapability.DenseSvd]]-capable backend computes the raw
@@ -285,9 +287,6 @@ object Svds:
         extremalityCertified = true
       )
     SVD(values, u, vt, rank, diagnostics)
-
-  /** IEEE machine epsilon for `Double` (2^-52), the `pinv` cutoff scale. */
-  private val MachineEpsilon: Double = 2.220446049250313e-16
 
   // ===========================================================================
   // Core

@@ -68,6 +68,10 @@ original design order. A rank-deficient or underdetermined least-squares solve
 returns a typed `Left`; the factorization itself remains available for rank and
 orthogonal-transform operations.
 
+For those systems, use SVD-backed `minimumNormLeastSquares` with an explicit
+singular-value cutoff. See [minimum-norm solves and subspaces](subspaces-and-minimum-norm.md)
+for reusable factors, numerical-rank semantics and projection operations.
+
 ## Construct selected cosine basis columns
 
 `DctBasis.columns` constructs explicit columns of a DCT-II basis. Rows index

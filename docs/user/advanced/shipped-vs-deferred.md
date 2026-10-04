@@ -14,7 +14,10 @@ are pinned by `GaleNumericalContractSuite`.
 | --- | --- | --- | --- |
 | Dense `+`/`−`/`*`/`solve`/`lu`/`cholesky`/`qr`/`det` | portable | factors or `Either` | core factorization suites |
 | Tall least squares | portable | `Either` (`RankDeficient` when rank drops) | `QRSuite` |
-| Underdetermined least squares | deferred | `Left(UnsupportedOperation)` | `UnsupportedSurfaceSuite` |
+| Underdetermined QR `leastSquares` | deferred | `Left(UnsupportedOperation)`; use SVD `minimumNormLeastSquares` | `UnsupportedSurfaceSuite` |
+| Cutoff-selected minimum-norm solves and `pinv` | portable | `SvdCutoff`; reusable `TruncatedSvd`; solution, residual, rank and cutoff | `TruncatedSvdSuite` |
+| Row/column spaces and projection | portable | orthonormal basis, singular metadata, projection/residual/distance without square projectors | `SubspaceSuite` |
+| RREF and complete null spaces | portable | separate spectral/pivot tolerance contracts; sparse or orthonormal basis | `RowReductionSuite` |
 | `rankEstimate` / `conditionEstimate` / `pinv` | portable (Gale contract) | QR rank; Hager `κ₁` (singular → `Right(+∞)`, rectangular → `Left(NonSquareMatrix)`); MATLAB/SciPy `pinv` cutoff | `GaleNumericalContractSuite` |
 | Dense symmetric / nonsymmetric eigen | portable | `Right` + diagnostics; dense path is `ExtremeCertified` | dense eigen suites |
 | Dense left eigenvectors | portable | `wᴴA = λwᴴ`; defective → `Left(SingularMatrix)` | `EigNonsymmetricLeftVectorSuite` |
