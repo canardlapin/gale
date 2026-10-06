@@ -69,6 +69,39 @@ class CholeskySuite extends munit.FunSuite:
     )
   }
 
+  test("non-finite vector and strided matrix RHS are rejected without mutating inputs or factor") {
+    val factor = Matrix.eye(2).cholesky.orThrow
+    val lowerBefore = Vector.tabulate(4)(i => factor.lower(i / 2, i % 2))
+    for bad <- Vector(Double.NaN, Double.PositiveInfinity, Double.NegativeInfinity) do
+      val vector = Vec(1.0, bad)
+      assertEquals(factor.solve(vector), Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side")))
+      assertEquals(vector(0), 1.0)
+      assertEquals(java.lang.Double.doubleToRawLongBits(vector(1)), java.lang.Double.doubleToRawLongBits(bad))
+      val matrix = Matrix(2, 2)(1.0, bad, 2.0, 3.0).t
+      assertEquals(factor.solve(matrix), Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side")))
+      assertEquals(java.lang.Double.doubleToRawLongBits(matrix(1, 0)), java.lang.Double.doubleToRawLongBits(bad))
+    assertEquals(Vector.tabulate(4)(i => factor.lower(i / 2, i % 2)), lowerBefore)
+    assertEquals(factor.solve(Vec(2.0, 3.0)).orThrow.toSeq, Seq(2.0, 3.0))
+  }
+
+  test("finite-input overflow cannot publish a successful vector or matrix solution") {
+    val factor = Matrix(1, 1)(1e-200).cholesky.orThrow
+    val vector = Vec(Double.MaxValue)
+    val matrix = Matrix(1, 1)(Double.MaxValue)
+    assertEquals(factor.solve(vector), Left(LinAlgError.InvalidArgument("non-finite Cholesky solution")))
+    assertEquals(factor.solve(matrix), Left(LinAlgError.InvalidArgument("non-finite Cholesky solution")))
+    assertEquals(vector(0), Double.MaxValue)
+    assertEquals(matrix(0, 0), Double.MaxValue)
+    assertEqualsDouble(factor.solve(Vec(1e-200)).orThrow(0), 1.0, 1e-14)
+    assertEqualsDouble(factor.solve(Matrix(1, 1)(1e-200)).orThrow(0, 0), 1.0, 1e-14)
+  }
+
+  test("shape failures retain precedence over RHS numerical validation") {
+    val factor = Matrix.eye(2).cholesky.orThrow
+    assert(factor.solve(Vec(Double.NaN)).left.exists(_.isInstanceOf[LinAlgError.DimensionMismatch]))
+    assert(factor.solve(Matrix(1, 1)(Double.NaN)).left.exists(_.isInstanceOf[LinAlgError.DimensionMismatch]))
+  }
+
   private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double): Unit =
     assertEquals(actual.rows, expected.rows)
     assertEquals(actual.cols, expected.cols)

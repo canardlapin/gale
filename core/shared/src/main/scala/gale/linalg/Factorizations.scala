@@ -123,7 +123,9 @@ final case class LU private[gale] (
   *
   * The factorization reads only the '''lower triangle''' of the input (including the diagonal); the strict upper
   * triangle is never inspected, so `A` is treated as symmetric by assumption and any asymmetry in its upper triangle is
-  * ignored. A non-positive pivot yields `Left(`[[LinAlgError.NotPositiveDefinite]]`)`.
+  * ignored. A non-positive pivot yields `Left(`[[LinAlgError.NotPositiveDefinite]]`)`. Vector and matrix solves return
+  * owned finite results. Non-finite right-hand sides or computed solutions (including overflow from finite inputs)
+  * return `Left(InvalidArgument)` without changing the input or reusable factor.
   */
 final case class Cholesky private[gale] (
     lower: DMat,
@@ -1283,11 +1285,13 @@ object DenseDecompositions:
       val lColStep = cholesky.lower.colStride.value
       // Owned contiguous copy of b, mutated in place into the solution.
       val x = b.toDoubleArrayOwnedCopy
+      if !finiteCholeskyValues(x) then return Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side"))
       val forward = DoubleKernels.dtrsv(n, lower = true, unit = false, 0.0, lData, lOff, lRowStep, lColStep, x, 0, 1)
       if forward >= 0 then Left(LinAlgError.NotPositiveDefinite(forward))
       else
         val back = DoubleKernels.dtrsv(n, lower = false, unit = false, 0.0, lData, lOff, lColStep, lRowStep, x, 0, 1)
         if back >= 0 then Left(LinAlgError.NotPositiveDefinite(back))
+        else if !finiteCholeskyValues(x) then Left(LinAlgError.InvalidArgument("non-finite Cholesky solution"))
         else Right(DVec.fromDoubleArrayOwned(x))
 
   def solve(cholesky: Cholesky, b: DMat): Either[LinAlgError, DMat] =
@@ -1303,6 +1307,7 @@ object DenseDecompositions:
     else
       val rhsCols = b.cols
       val x = b.toDoubleArrayCopyRowMajor
+      if !finiteCholeskyValues(x) then return Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side"))
       val lower = cholesky.lower
       var row = 0
       while row < n do
@@ -1330,7 +1335,15 @@ object DenseDecompositions:
           x(row * rhsCols + rhs) = value / diagonal
           rhs += 1
         row -= 1
-      Right(DMat.fromDoubleArrayOwned(n, rhsCols, x))
+      if !finiteCholeskyValues(x) then Left(LinAlgError.InvalidArgument("non-finite Cholesky solution"))
+      else Right(DMat.fromDoubleArrayOwned(n, rhsCols, x))
+
+  private def finiteCholeskyValues(values: DoubleArray): Boolean =
+    var index = 0
+    while index < values.length do
+      if !values(index).isFinite then return false
+      index += 1
+    true
 
   def solveLeastSquares(qr: QR, b: DVec): Either[LinAlgError, DVec] =
     val m = qr.reflectors.rows
