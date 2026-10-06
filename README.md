@@ -108,6 +108,40 @@ A capacity refusal leaves the builder unchanged. Builders are not thread-safe.
 Nonfinite inputs follow a separate IEEE addition channel; NaN payload bits and
 their ordering are unspecified.
 
+### Paired squared residual comparisons
+
+`gale.numeric.PairedResidualWorkspace` outward encloses the difference between
+two stored row-major linear predictions without subtracting independently
+rounded residual energies. A reusable workspace owns `2 * rows + 2 * columns`
+primitive scratch cells; `requiredArrayCells` checks that shape before allocation.
+
+```scala
+import gale.numeric.*
+
+val workspace = PairedResidualWorkspace(2, 1).toOption.get
+val comparison = workspace.compare(
+  response = Array(1.0, 1.0),
+  previousDesign = Array(1.0, 0.0),
+  candidateDesign = Array(1.0, 1.0),
+  previousCoefficients = Array(1.0),
+  candidateCoefficients = Array(1.0)
+).toOption.get
+assert(comparison.certifiesProfileDecrease)
+```
+
+The default profile check bounds the previous coefficients' possible
+suboptimality using the normal-equation residual and a positive Gershgorin
+lower bound for the previous Gram matrix. It certifies only a strictly negative
+profile-difference upper bound. A nonpositive sufficient Gram bound or an
+inconclusive sign returns explicit `Unresolved`; shape, nonfinite input and
+unbounded arithmetic return typed errors. Candidate rank need not be assumed.
+
+Inputs must stay unchanged during the synchronous call; workspaces are not
+thread-safe and results retain no input/scratch aliases. Common additive energy
+offsets are absent from this API. Priors, optimizer acceptance policy, callback
+identity and evaluation quotas remain the caller's responsibility. A data-only
+certificate cannot establish decrease of an augmented objective.
+
 ## Fit and boundaries
 
 Gale targets the real-`Double` linear algebra slice used by scientific and data
