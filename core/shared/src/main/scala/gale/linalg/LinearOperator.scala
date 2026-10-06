@@ -101,9 +101,15 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
   def scaled(alpha: Double): DoubleLinearOperator =
     LinearOperator.scaled(this, alpha)
 
+  /** Ordered output restriction. Empty indices produce a `0 x cols` operator;
+    * its adjoint replaces the destination with zeros without evaluating this operator.
+    */
   def restrictRows(indices: IndexedSeq[Int]): Either[LinAlgError, DoubleLinearOperator] =
     LinearOperator.restrictRows(this, indices)
 
+  /** Ordered input restriction. Empty indices produce a `rows x 0` zero operator
+    * without evaluating this operator; its adjoint has empty output.
+    */
   def restrictColumns(indices: IndexedSeq[Int]): Either[LinAlgError, DoubleLinearOperator] =
     LinearOperator.restrictColumns(this, indices)
 
@@ -258,21 +264,24 @@ object LinearOperator:
 
         override def applyTo(x: DVec, into: MutableDVec): Unit =
           requireApplicationShape(x, into, cols, rows)
-          val full = MutableDVec.zeros(operator.rows)
-          operator.applyTo(x, full)
-          var i = 0
-          while i < selected.length do
-            into(i) = full(selected(i))
-            i += 1
+          if selected.nonEmpty then
+            val full = MutableDVec.zeros(operator.rows)
+            operator.applyTo(x, full)
+            var i = 0
+            while i < selected.length do
+              into(i) = full(selected(i))
+              i += 1
 
         override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
           requireApplicationShape(x, into, rows, cols)
-          val full = MutableDVec.zeros(operator.rows)
-          var i = 0
-          while i < selected.length do
-            full(selected(i)) = x(i)
-            i += 1
-          operator.transposeApplyTo(full.asVec, into)
+          if selected.isEmpty then clear(into)
+          else
+            val full = MutableDVec.zeros(operator.rows)
+            var i = 0
+            while i < selected.length do
+              full(selected(i)) = x(i)
+              i += 1
+            operator.transposeApplyTo(full.asVec, into)
 
   def restrictColumns(
       operator: DoubleLinearOperator,
@@ -288,21 +297,24 @@ object LinearOperator:
 
         override def applyTo(x: DVec, into: MutableDVec): Unit =
           requireApplicationShape(x, into, cols, rows)
-          val full = MutableDVec.zeros(operator.cols)
-          var i = 0
-          while i < selected.length do
-            full(selected(i)) = x(i)
-            i += 1
-          operator.applyTo(full.asVec, into)
+          if selected.isEmpty then clear(into)
+          else
+            val full = MutableDVec.zeros(operator.cols)
+            var i = 0
+            while i < selected.length do
+              full(selected(i)) = x(i)
+              i += 1
+            operator.applyTo(full.asVec, into)
 
         override def transposeApplyTo(x: DVec, into: MutableDVec): Unit =
           requireApplicationShape(x, into, rows, cols)
-          val full = MutableDVec.zeros(operator.cols)
-          operator.transposeApplyTo(x, full)
-          var i = 0
-          while i < selected.length do
-            into(i) = full(selected(i))
-            i += 1
+          if selected.nonEmpty then
+            val full = MutableDVec.zeros(operator.cols)
+            operator.transposeApplyTo(x, full)
+            var i = 0
+            while i < selected.length do
+              into(i) = full(selected(i))
+              i += 1
 
   def blockDiagonal(
       operators: IndexedSeq[DoubleLinearOperator]
@@ -436,24 +448,27 @@ object LinearOperator:
       indices: IndexedSeq[Int],
       bound: Int
   ): Either[LinAlgError, IndexedSeq[Int]] =
-    if indices.isEmpty then
-      Left(LinAlgError.InvalidArgument("operator restriction must be non-empty"))
-    else
-      val seen = scala.collection.mutable.HashSet.empty[Int]
-      var i = 0
-      var error = Option.empty[LinAlgError]
-      while i < indices.length && error.isEmpty do
-        val index = indices(i)
-        if index < 0 || index >= bound then
-          error = Some(LinAlgError.IndexOutOfBounds(index, bound))
-        else if seen.contains(index) then
-          error = Some(LinAlgError.InvalidArgument(s"duplicate operator restriction index $index"))
-        else
-          seen += index
-        i += 1
-      error match
-        case Some(value) => Left(value)
-        case None        => Right(indices.toVector)
+    val seen = scala.collection.mutable.HashSet.empty[Int]
+    var i = 0
+    var error = Option.empty[LinAlgError]
+    while i < indices.length && error.isEmpty do
+      val index = indices(i)
+      if index < 0 || index >= bound then
+        error = Some(LinAlgError.IndexOutOfBounds(index, bound))
+      else if seen.contains(index) then
+        error = Some(LinAlgError.InvalidArgument(s"duplicate operator restriction index $index"))
+      else
+        seen += index
+      i += 1
+    error match
+      case Some(value) => Left(value)
+      case None        => Right(indices.toVector)
+
+  private def clear(output: MutableDVec): Unit =
+    var i = 0
+    while i < output.length do
+      output(i) = 0.0
+      i += 1
 
   private def requireApplicationShape(
       input: DVec,
