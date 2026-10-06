@@ -7,14 +7,20 @@ import gale.linalg.{Cols, DMat, DVec, LinAlgError, Rows, Shape}
   * floating point arithmetic must account for every input operation before
   * constructing this value.
   */
-final case class MatrixEnclosure private (lower: DMat, upper: DMat)
+final class MatrixEnclosure private (val lower: DMat, val upper: DMat):
+  require(MatrixEnclosure.validate(lower, upper).isRight, "invalid matrix enclosure")
 
 object MatrixEnclosure:
   def exact(value: DMat): Either[LinAlgError, MatrixEnclosure] =
     checked(value, value)
 
   def checked(lower: DMat, upper: DMat): Either[LinAlgError, MatrixEnclosure] =
-    if lower.rows != upper.rows || lower.cols != upper.cols then
+    validate(lower, upper).map(_ => new MatrixEnclosure(lower, upper))
+
+  private[spectral] def validate(lower: DMat, upper: DMat): Either[LinAlgError, Unit] =
+    if lower == null || upper == null then
+      Left(LinAlgError.InvalidArgument("matrix enclosure endpoints must be present"))
+    else if lower.rows != upper.rows || lower.cols != upper.cols then
       Left(LinAlgError.DimensionMismatch(Shape(Rows(lower.rows), Cols(lower.cols)), Shape(Rows(upper.rows), Cols(upper.cols))))
     else
       var r = 0
@@ -25,7 +31,7 @@ object MatrixEnclosure:
             return Left(LinAlgError.InvalidArgument(s"invalid matrix enclosure endpoint at ($r,$c)"))
           c += 1
         r += 1
-      Right(MatrixEnclosure(lower, upper))
+      Right(())
 
 /** Certified singular-value intervals obtained from finite candidate factors.
   * `factorError` bounds the Frobenius reconstruction error of every member of
@@ -53,6 +59,15 @@ final case class ValidatedSvdEnclosure(
   */
 object ValidatedSvd:
   def enclosure(input: MatrixEnclosure, candidate: SVD): Either[LinAlgError, ValidatedSvdEnclosure] =
+    if input == null then Left(LinAlgError.InvalidArgument("matrix enclosure must be present"))
+    else
+      MatrixEnclosure.validate(input.lower, input.upper).flatMap { _ =>
+        if candidate == null || candidate.u == null || candidate.vt == null || candidate.singularValues == null then
+          Left(LinAlgError.InvalidArgument("candidate factors must be present"))
+        else checkedEnclosure(input, candidate)
+      }
+
+  private def checkedEnclosure(input: MatrixEnclosure, candidate: SVD): Either[LinAlgError, ValidatedSvdEnclosure] =
     val p = math.min(input.lower.rows, input.lower.cols)
     if candidate.size != p || candidate.u.rows != input.lower.rows || candidate.u.cols != p ||
         candidate.vt.rows != p || candidate.vt.cols != input.lower.cols then

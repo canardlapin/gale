@@ -1,24 +1,30 @@
 package gale.spectral
 
-import gale.linalg.LinAlgError
+import gale.linalg.{LinAlgError, OutwardInterval, OutwardIntervalError}
 
 /** Finite outward-rounded real interval. Construction is checked. */
 final class RealInterval private (val lower: Double, val upper: Double):
-  def add(that: RealInterval): Either[LinAlgError, RealInterval] = RealInterval.checked(RealInterval.down(lower + that.lower), RealInterval.up(upper + that.upper))
-  def subtract(that: RealInterval): Either[LinAlgError, RealInterval] = RealInterval.checked(RealInterval.down(lower - that.upper), RealInterval.up(upper - that.lower))
+  // Constructor checks also apply to JVM callers bypassing Scala privacy.
+  private val interval = OutwardInterval(lower, upper).fold(
+    error => throw new IllegalArgumentException(error.toString),
+    identity
+  )
+  def add(that: RealInterval): Either[LinAlgError, RealInterval] =
+    RealInterval.from(interval + that.interval)
+  def subtract(that: RealInterval): Either[LinAlgError, RealInterval] =
+    RealInterval.from(interval - that.interval)
   def multiply(that: RealInterval): Either[LinAlgError, RealInterval] =
-    val xs = Vector(lower * that.lower, lower * that.upper, upper * that.lower, upper * that.upper)
-    if xs.exists(x => !x.isFinite) then RealInterval.fail else RealInterval.checked(RealInterval.down(xs.min), RealInterval.up(xs.max))
+    RealInterval.from(interval * that.interval)
   def divide(that: RealInterval): Either[LinAlgError, RealInterval] =
-    if that.lower <= 0.0 && that.upper >= 0.0 then Left(LinAlgError.InvalidArgument("interval division crosses zero"))
-    else
-      val xs = Vector(lower / that.lower, lower / that.upper, upper / that.lower, upper / that.upper)
-      if xs.exists(x => !x.isFinite) then RealInterval.fail else RealInterval.checked(RealInterval.down(xs.min), RealInterval.up(xs.max))
-  def square: Either[LinAlgError, RealInterval] = if lower <= 0.0 && upper >= 0.0 then RealInterval.checked(0.0, RealInterval.up(math.max(lower * lower, upper * upper))) else multiply(this).flatMap(x => RealInterval.checked(math.max(0.0,x.lower),x.upper))
+    RealInterval.from(interval / that.interval)
+  def square: Either[LinAlgError, RealInterval] =
+    RealInterval.from(interval.square).flatMap(x => RealInterval.checked(math.max(0.0, x.lower), x.upper))
   def sqrt: Either[LinAlgError, RealInterval] =
     if lower < 0.0 then Left(LinAlgError.InvalidArgument("interval square root requires nonnegative lower bound"))
     else for lo <- RealInterval.sqrtDown(lower); hi <- RealInterval.sqrtUp(upper); out <- RealInterval.checked(lo, hi) yield out
 object RealInterval:
+  private def from(value: Either[OutwardIntervalError, OutwardInterval]): Either[LinAlgError, RealInterval] =
+    value.left.map(error => LinAlgError.InvalidArgument(error.toString)).flatMap(x => checked(x.lower, x.upper))
   def exact(x: Double): Either[LinAlgError, RealInterval] = checked(x, x)
   def checked(lower: Double, upper: Double): Either[LinAlgError, RealInterval] =
     if lower.isFinite && upper.isFinite && lower <= upper then Right(new RealInterval(lower, upper)) else fail

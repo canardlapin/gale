@@ -73,3 +73,23 @@ class RealIntervalSuite extends FunSuite:
       contains(quotient, div(rational(numerator), rational(denominator)))
     }
   }
+
+  test("nondegenerate arithmetic boxes enclose each exact corner") {
+    val a = RealInterval.checked(-2.0, 3.0).toOption.get
+    Vector(4.0 -> 5.0, -5.0 -> -4.0).foreach { (lo, hi) =>
+      val b = RealInterval.checked(lo, hi).toOption.get
+      val product = a.multiply(b).toOption.get
+      val quotient = a.divide(b).toOption.get
+      for x <- Vector(a.lower, a.upper); y <- Vector(b.lower, b.upper) do
+        contains(product, mul(rational(x), rational(y)))
+        contains(quotient, div(rational(x), rational(y)))
+    }
+  }
+
+  test("underflowed squares keep their mathematical nonnegative lower bound") {
+    Vector(java.lang.Double.MIN_VALUE, -java.lang.Double.MIN_VALUE).foreach { value =>
+      val result = RealInterval.exact(value).toOption.get.square.toOption.get
+      assertEquals(result.lower, 0.0)
+      contains(result, mul(rational(value), rational(value)))
+    }
+  }
