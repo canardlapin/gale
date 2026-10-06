@@ -95,6 +95,18 @@ ordinary builds. The adapter is outside the 0.1 published artifact set.
   keeping ordinary returned results owned.
 - Add JVM Vector API or FFM BLAS/LAPACK acceleration explicitly; the portable
   core remains the default and Scala.js stays independent.
+- Accumulate exact double sums with `gale.numeric.ExactSum`, preserving
+  finite-input results across input permutations and merge trees.
+
+`ExactSum.zero()` creates a mutable builder. `add` and `addAll` return
+`Either[ExactSumError, Unit]`; successful calls reuse one result object. Its
+`value` rounds the exact total once to nearest, ties to even, and `copy()` owns
+independent storage. The supported capacity is `ExactSum.MaxTerms` (`2^60`)
+nonzero finite inputs, including inputs inherited through merges. Cancellation
+keeps the input count; zeros and nonfinite inputs do not consume capacity.
+A capacity refusal leaves the builder unchanged. Builders are not thread-safe.
+Nonfinite inputs follow a separate IEEE addition channel; NaN payload bits and
+their ordering are unspecified.
 
 ## Fit and boundaries
 
