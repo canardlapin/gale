@@ -20,6 +20,6 @@ The DarwinJVMV15 pair was constructed by an additional diagnostic after Remainin
 
 ## Gates
 
-Selected new suite:23/23 JVM. Full coreJVM:786/786. Full coreJS:774/774. Both full gates ran scalafmtCheckAll and emitted no compiler warnings. The23 new tests are included in full totals, not added again. JDK21.0.12.1, sbt1.11.7 and Node24.1 were used with requested3g/4CPUs and private sbt global/boot/ivy state. Optional native lanes were not run.
+Selected new suite:23/23 JVM. Full coreJVM:786/786. Full coreJS:774/774. Both full gates ran scalafmtCheckAll and emitted no compiler warnings. The23 new tests are included in full totals, not added again. JDK21.0.12.1 and sbt1.11.7 were used with requested3g/4CPUs and private sbt global/boot/ivy state. The historical Node version was not captured; the earlier Node24.1 wording was stale. The additive [runtime correction](runtime-correction.md) records23passing tests under explicitly measured Node24.21.0, preserving the original archive/receipt. Optional native lanes were not run.
 
 Portable patch/bundle and the source-bound receipt archive are prepared by the root coordinator/worker after gates. Publication is withheld pending concrete root review and separate scientific domain integration.
