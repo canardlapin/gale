@@ -70,6 +70,14 @@ libraryDependencies +=
 Do not invent a snapshot coordinate: use a pinned source revision or a
 published, non-snapshot version from the resolver used by your build.
 
+The optional, source-only `interopRavelJVM` and `interopRavelJS` projects provide
+owned copy conversions between Ravel arrays and Gale vectors/matrices. They
+resolve Ravel from the exact canonical revision in `build.sbt`, without local
+artifact publication. Run `sbt interopRavelTest` to verify both platforms. For
+coordinated development only, explicitly set
+`-Dgale.ravel.build=/absolute/path/to/ravel`; nearby checkouts do not affect
+ordinary builds. The adapter is outside the 0.1 published artifact set.
+
 ## What Gale covers
 
 - Build and transform immutable-facing dense vectors and matrices, including
