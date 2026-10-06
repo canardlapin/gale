@@ -24,10 +24,11 @@ documented in `README.md` under "Development".
   Scaladoc + Laika site; heavier).
 
 ### Non-obvious gotchas
-- `sbt update` at the **root** fails: the aggregated `interop-ravel` module
-  depends on an unpublished `ravel-core 1.0.0-SNAPSHOT`. Always scope
-  dependency resolution / tasks to specific modules (e.g. `coreJVM/update`),
-  which is why the update script does not use a bare `update`/`compile`.
+- The optional `interop-ravel` module uses an exact canonical Ravel source
+  revision; no local publication is required. `interopRavelTest` qualifies its
+  JVM/JS copy boundary. Local provider development must explicitly set
+  `-Dgale.ravel.build=/absolute/checkout`; sibling directories are not selected.
+  Scope root compilation when optional native lanes are unavailable.
 - `sbt console` does **not** accept piped stdin here (no TTY); it just prints the
   banner and exits. To exercise the API non-interactively, run `sbt docs/mdoc`
   (executes the README/getting-started examples) or add a temporary MUnit test.

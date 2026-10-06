@@ -52,6 +52,22 @@ jobs:
       - name: Run ${{ matrix.platform }} tests
         run: sbt -v "core${{ matrix.platform }}/test" "laws${{ matrix.platform }}/test"
 
+  ravel-interop:
+    name: Ravel copy adapter (canonical sources, JVM and JS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: sbt interopRavelTest
+
   docs:
     name: Scaladoc and executable guides
     runs-on: ubuntu-latest

@@ -326,7 +326,16 @@ lazy val vectorBackend =
       libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
     )
 
-lazy val ravelVersion = "1.0.0-SNAPSHOT"
+// The optional adapter uses an exact canonical source revision. A sibling
+// checkout never changes resolution implicitly.
+lazy val ravelRevision = "9b53145ebb5a9547fe003b5117e05da9d6eff186"
+lazy val ravelBuild: java.net.URI =
+  sys.props
+    .get("gale.ravel.build")
+    .map(path => file(path).getCanonicalFile.toURI)
+    .getOrElse(uri(s"https://github.com/canardlapin/ravel.git#$ravelRevision"))
+lazy val ravelCoreJVM = ProjectRef(ravelBuild, "coreJVM")
+lazy val ravelCoreJS  = ProjectRef(ravelBuild, "coreJS")
 
 // gale-interop-ravel is the copy-only boundary between neutral dense Ravel
 // storage and Gale's mathematical vector/matrix types. Neither core project
@@ -340,12 +349,11 @@ lazy val interopRavel: CrossProject =
     .settings(
       name := "gale-interop-ravel",
       description := "Explicit copy conversions between Ravel arrays and Gale vectors and matrices.",
-      // Ravel is still a development snapshot and is deliberately outside
-      // the 0.1 milestone artifact set.
-      publish / skip := true,
-      libraryDependencies +=
-        "io.github.canardlapin" %%% "ravel-core" % ravelVersion
+      // The source-only adapter remains outside the 0.1 artifact set.
+      publish / skip := true
     )
+    .jvmConfigure(_.dependsOn(ravelCoreJVM))
+    .jsConfigure(_.dependsOn(ravelCoreJS))
     .jsSettings(jsWasmSettings: _*)
 
 lazy val interopRavelJVM = interopRavel.jvm
