@@ -163,3 +163,57 @@ class LinearOperatorSuite extends munit.FunSuite:
         assert(math.abs(actual(row, col) - expected(row, col)) <= tolerance)
         col += 1
       row += 1
+
+  test("empty row restrictions are zero-sized forward maps with zero adjoints") {
+    var calls = 0
+    val source = LinearOperator.fromFunctions(2, 3)(
+      (_, _) => { calls += 1; throw new AssertionError("empty restriction evaluated forward") },
+      (_, _) => { calls += 1; throw new AssertionError("empty restriction evaluated adjoint") }
+    )
+    val restricted = source.restrictRows(Vector.empty).orThrow
+    assertEquals((restricted.rows, restricted.cols), (0, 3))
+    assertEquals(restricted(Vec(1.0, 2.0, 3.0)).length, 0)
+    val output = MutableVec.zeros(3)
+    output(0) = Double.NaN
+    output(1) = Double.PositiveInfinity
+    output(2) = -7.0
+    restricted.transposeApplyTo(Vec.zeros(0), output)
+    assertEquals(output.asVec.toSeq, Seq(0.0, 0.0, 0.0))
+    assertEquals(calls, 0)
+    intercept[LinAlgError.VectorLengthMismatch] { restricted(Vec(1.0)) }
+    assertEquals(calls, 0)
+  }
+
+  test("empty column restrictions are zero maps with zero-sized adjoints") {
+    var calls = 0
+    val source = LinearOperator.fromFunctions(2, 3)(
+      (_, _) => { calls += 1; throw new AssertionError("empty restriction evaluated forward") },
+      (_, _) => { calls += 1; throw new AssertionError("empty restriction evaluated adjoint") }
+    )
+    val restricted = source.restrictColumns(Vector.empty).orThrow
+    assertEquals((restricted.rows, restricted.cols), (2, 0))
+    val output = MutableVec.zeros(2)
+    output(0) = Double.NaN
+    output(1) = Double.PositiveInfinity
+    restricted.applyTo(Vec.zeros(0), output)
+    assertEquals(output.asVec.toSeq, Seq(0.0, 0.0))
+    assertEquals(restricted.adjoint(Vec(1.0, 2.0)).length, 0)
+    assertEquals(calls, 0)
+    intercept[LinAlgError.VectorLengthMismatch] { restricted.applyTo(Vec.zeros(0), MutableVec.zeros(1)) }
+    assertEquals(calls, 0)
+  }
+
+  test("empty restrictions compose and batch consistently with empty dense matrices") {
+    val source = Matrix(2, 3)(1, 2, 3, 4, 5, 6)
+    val rows = source.restrictRows(Vector.empty).orThrow
+    val columns = source.restrictColumns(Vector.empty).orThrow
+    val forwardRows = rows.applyTo(Matrix.eye(3)).orThrow
+    assertEquals((forwardRows.rows, forwardRows.cols), (0, 3))
+    val forwardColumns = columns.applyTo(Matrix.zeros(0, 4)).orThrow
+    assertEquals((forwardColumns.rows, forwardColumns.cols), (2, 4))
+    assertEquals(forwardColumns.valuesRowMajor, Vector.fill(8)(0.0))
+    val composed = rows.andThen(columns).orThrow
+    assertEquals(composed(Vec(1, 2, 3)).toSeq, Seq(0.0, 0.0))
+    assertEquals(source.restrictRows(Vector(-1)), Left(LinAlgError.IndexOutOfBounds(-1, 2)))
+    assert(source.restrictColumns(Vector(1, 1)).isLeft)
+  }
