@@ -108,6 +108,18 @@ A capacity refusal leaves the builder unchanged. Builders are not thread-safe.
 Nonfinite inputs follow a separate IEEE addition channel; NaN payload bits and
 their ordering are unspecified.
 
+`total.ratio(normalizer)` returns `Either[ExactSumError, Double]` by dividing
+the two exact finite totals before rounding once to nearest, ties to even.
+For example, a total containing two `Double.MaxValue` inputs divided by a
+normalizer containing two `1.0` inputs returns `Double.MaxValue`, even though
+`total.value` is infinity. Both totals may exceed Double range. The readout
+allocates integer scratch storage and leaves both builders and their capacity
+unchanged. It refuses nonfinite input channels (`NonFiniteRatio`) and exact
+zero denominators (`ZeroNormalizer`). True ratio overflow returns signed
+infinity; underflow rounds to subnormals or signed zero. An exact zero numerator
+returns positive zero. Products supplied as inputs are still rounded before
+accumulation; this is an exact sum and ratio, not an exact dot product.
+
 ### Paired squared residual comparisons
 
 `gale.numeric.PairedResidualWorkspace` outward encloses the difference between

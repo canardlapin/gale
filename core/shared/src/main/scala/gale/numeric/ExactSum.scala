@@ -95,6 +95,30 @@ final class ExactSum private (
       val rounded = roundMagnitude(magnitude)
       if negative then -rounded else rounded
 
+  /** Divide this exact finite total by another exact finite total before rounding once to nearest, ties to even.
+    * Neither builder is mutated; each retains its independent [[ExactSum.MaxTerms]] capacity. Finite totals may exceed
+    * Double range. A genuinely overflowing ratio returns signed infinity; underflow returns a subnormal or signed zero.
+    * An exactly zero numerator returns positive zero. Non-finite input channels and an exactly zero denominator are
+    * refused, even when their rounded readouts would suggest a usable ratio. This readout allocates arbitrary-precision
+    * integer scratch storage; addition and merging retain their existing allocation behavior.
+    */
+  def ratio(normalizer: ExactSum): Either[ExactSumError, Double] =
+    if hasSpecial || normalizer.hasSpecial then Left(ExactSumError.NonFiniteRatio)
+    else
+      val denominator = normalizer.exactInteger
+      if denominator == 0 then Left(ExactSumError.ZeroNormalizer)
+      else Right(roundRatio(exactInteger, denominator))
+
+  private def exactInteger: BigInt =
+    val normalized = digits.clone()
+    normalizeDigits(normalized)
+    var result = BigInt(normalized(DigitCount - 1))
+    var index = DigitCount - 2
+    while index >= 0 do
+      result = (result << 32) + normalized(index)
+      index -= 1
+    result
+
   private def normalize(): Unit =
     if pending > 0 then
       normalizeDigits(digits)
@@ -102,10 +126,14 @@ final class ExactSum private (
 
 enum ExactSumError:
   case CapacityExceeded(currentTerms: Long, incomingTerms: Long)
+  case NonFiniteRatio
+  case ZeroNormalizer
 
   def message: String = this match
     case CapacityExceeded(currentTerms, incomingTerms) =>
       s"Exact sum capacity ${ExactSum.MaxTerms} nonzero finite inputs exceeded: $currentTerms + $incomingTerms"
+    case NonFiniteRatio => "Exact sum ratio requires finite input channels in both accumulators"
+    case ZeroNormalizer => "Exact sum ratio requires a nonzero exact normalizer"
 
 object ExactSum:
   /** Supported number of nonzero finite inputs, counted across merges without resetting after cancellation. */
@@ -122,6 +150,40 @@ object ExactSum:
 
   def zero(): ExactSum =
     new ExactSum(new Array[Long](DigitCount), 0, 0.0, false, 0L)
+
+  private def roundRatio(numerator: BigInt, denominator: BigInt): Double =
+    if numerator == 0 then 0.0
+    else
+      val negative = numerator.signum != denominator.signum
+      val n = numerator.abs
+      val d = denominator.abs
+      // Locate the leading binary exponent using exact comparisons, including ratios below one.
+      var exponent = n.bitLength - d.bitLength
+      val below = if exponent >= 0 then n < (d << exponent) else (n << -exponent) < d
+      if below then exponent -= 1
+      val magnitude =
+        if exponent >= 1024 then Double.PositiveInfinity
+        else
+          var quantum = math.max(exponent - 52, -1074)
+          val (whole, remainder) =
+            if quantum >= 0 then n /% (d << quantum)
+            else (n << -quantum) /% d
+          val divisor = if quantum >= 0 then d << quantum else d
+          val comparison = (remainder << 1).compare(divisor)
+          var rounded = whole
+          if comparison > 0 || (comparison == 0 && whole.testBit(0)) then rounded += 1
+          if rounded.bitLength > 53 then
+            rounded >>= 1
+            quantum += 1
+          val significand = rounded.toLong
+          val bits =
+            if significand < (1L << 52) then significand // Subnormal or zero, in units of 2^-1074.
+            else
+              val field = quantum + 52 + 1023
+              if field >= 2047 then 0x7ff0000000000000L
+              else (field.toLong << 52) | (significand & 0xfffffffffffffL)
+          java.lang.Double.longBitsToDouble(bits)
+      if negative then -magnitude else magnitude
 
   private def normalizeDigits(digits: Array[Long]): Unit =
     var index = 0
