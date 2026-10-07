@@ -27,7 +27,7 @@ final class ExactSum private (
   def finiteTerms: Long = termCount
 
   /** Add one input. Successful additions reuse a shared result and allocate no result objects. */
-  def add(value: Double): Either[ExactSumError, Unit] =
+  def add(value: Double): Either[ExactSumError.CapacityExceeded, Unit] =
     if value != 0.0 then
       if !value.isFinite then
         special = if hasSpecial then special + value else value
@@ -58,7 +58,7 @@ final class ExactSum private (
     Added
 
   /** Merge exact state without rounding; self-merge doubles both the total and finite-input count. */
-  def addAll(other: ExactSum): Either[ExactSumError, Unit] =
+  def addAll(other: ExactSum): Either[ExactSumError.CapacityExceeded, Unit] =
     if MaxTerms - termCount < other.termCount then
       return Left(ExactSumError.CapacityExceeded(termCount, other.termCount))
     normalize()
@@ -139,7 +139,7 @@ object ExactSum:
   /** Supported number of nonzero finite inputs, counted across merges without resetting after cancellation. */
   val MaxTerms: Long = 1L << 60
 
-  private val Added: Either[ExactSumError, Unit] = Right(())
+  private val Added: Either[ExactSumError.CapacityExceeded, Unit] = Right(())
   // Every finite double has magnitude below 2^1024 = 2^2098 units, so bits 0 through 2097 (digits 0 through 65)
   // cover one term; the remaining digits absorb carries from up to 2^60 terms.
   private val DigitCount = 70

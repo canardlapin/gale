@@ -154,6 +154,34 @@ offsets are absent from this API. Priors, optimizer acceptance policy, callback
 identity and evaluation quotas remain the caller's responsibility. A data-only
 certificate cannot establish decrease of an augmented objective.
 
+## Bounded local optimization
+
+`gale.optim.BoxQuasiNewton` provides portable full-memory projected BFGS for
+finite boxes of dimension 1 through 1024. It accepts a value/gradient oracle,
+uses a projected Armijo line search, resets the inverse metric when the active
+set changes, and falls back to projected steepest descent for a non-descent
+direction. It can traverse regions with indefinite objective curvature.
+
+Construct `BoxBounds` and `BoxQuasiNewtonConfig` through their checked `from`
+methods, then call `BoxQuasiNewton.minimize` with an in-box initial vector.
+The oracle borrows a read-only coordinate array and must fill every entry of
+the supplied gradient array. Invalid input refuses before an oracle call;
+runtime oracle refusal preserves the last finite point and charges the attempt.
+Results own their coordinates and gradient and report evaluations, accepted
+iterations, rejected proposals, metric resets and the stopping reason.
+
+`Stationary` means the projected gradient meets the declared tolerance at the
+returned point. It does not certify positive curvature or a global minimum.
+Iteration, evaluation and line-search limits remain distinct from convergence.
+Coordinate/energy scaling, independent starts and application-specific terminal
+admission belong to the caller. Solver scratch is one n-by-n inverse metric,
+nine length-n Double arrays and two length-n Boolean arrays; it does not grow
+with the iteration count. This implementation is not L-BFGS-B.
+
+The separate `ExactSum.add` and `addAll` contracts expose only
+`ExactSumError.CapacityExceeded`; ratio/normalization errors belong to the
+normalized readout methods, not accumulator insertion.
+
 ## Fit and boundaries
 
 Gale targets the real-`Double` linear algebra slice used by scientific and data
