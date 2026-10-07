@@ -253,6 +253,111 @@ class ExactSumSuite extends munit.FunSuite:
   private def accepted(result: Either[ExactSumError, Unit]): Unit =
     assertEquals(result, Right(()))
 
+  test("ratios normalize overflowing totals and weights before rounding") {
+    val max = Double.MaxValue
+    assertEquals(accumulator(Vector(max, max)).ratio(accumulator(Vector(1.0, 1.0))), Right(max))
+    assertEquals(accumulator(Vector(-max, -max)).ratio(accumulator(Vector(1.0, 1.0))), Right(-max))
+    assertEquals(accumulator(Vector(max, max)).ratio(accumulator(Vector(max, max))), Right(1.0))
+    assertEquals(accumulator(Vector(max, max, -max, -max, 3.0)).ratio(accumulator(Vector(2.0))), Right(1.5))
+    // Unequal positive weights: 2 * 3 + 8 * 1, divided by 3 + 1.
+    assertEquals(accumulator(Vector(6.0, 8.0)).ratio(accumulator(Vector(3.0, 1.0))), Right(3.5))
+    assertEquals(accumulator(Vector(1.0)).ratio(accumulator(Vector(3.0))), Right(1.0 / 3.0))
+    assertEquals(accumulator(Vector(1.0)).ratio(accumulator(Vector(-2.0))), Right(-0.5))
+    val full = accumulator(Vector(max))
+    (0 until 60).foreach(_ => accepted(full.addAll(full)))
+    assertEquals(full.ratio(full), Right(1.0))
+    assertEquals(full.finiteTerms, ExactSum.MaxTerms)
+  }
+
+  test("ratios round ties, subnormals, signed underflow and overflow exactly") {
+    val tiny = Double.MinPositiveValue
+    val cases = Vector(
+      (Vector(tiny), Vector(2.0), 0.0),
+      (Vector(3.0 * tiny), Vector(2.0), 2.0 * tiny),
+      (Vector(5.0 * tiny), Vector(2.0), 2.0 * tiny),
+      (Vector(java.lang.Double.MIN_NORMAL, -tiny), Vector(1.0), java.lang.Double.MIN_NORMAL - tiny),
+      (Vector(2.0, math.ulp(1.0)), Vector(2.0), 1.0),
+      (Vector(2.0, math.ulp(1.0), tiny), Vector(2.0), 1.0 + math.ulp(1.0)),
+      (Vector(2.0, 3.0 * math.ulp(1.0)), Vector(2.0), 1.0 + 2.0 * math.ulp(1.0)),
+      (Vector(Double.MaxValue, math.ulp(Double.MaxValue) / 2.0), Vector(1.0), Double.PositiveInfinity),
+      (Vector(Double.MaxValue, math.ulp(Double.MaxValue) / 2.0, -tiny), Vector(1.0), Double.MaxValue),
+      (Vector(Double.MaxValue), Vector(tiny), Double.PositiveInfinity)
+    )
+    cases.foreach { (n, d, expected) =>
+      assertEquals(accumulator(n).ratio(accumulator(d)), Right(expected))
+      val negative = accumulator(n.map(-_)).ratio(accumulator(d)).toOption.get
+      assertEquals(java.lang.Double.doubleToRawLongBits(negative), java.lang.Double.doubleToRawLongBits(-expected))
+    }
+    assertEquals(accumulator(Vector(1.0, -1.0)).ratio(accumulator(Vector(-1.0))), Right(0.0))
+  }
+
+  test("ratio refusals and successful reads preserve both builders") {
+    val n = accumulator(Vector(Double.MaxValue, Double.MaxValue))
+    val d = accumulator(Vector(1.0, 1.0))
+    assertEquals(n.ratio(d), Right(Double.MaxValue))
+    assertEquals(n.ratio(d), Right(Double.MaxValue))
+    assertEquals(n.value, Double.PositiveInfinity)
+    assertEquals(d.value, 2.0)
+    assertEquals(n.finiteTerms, 2L)
+    assertEquals(d.finiteTerms, 2L)
+    accepted(n.add(-Double.MaxValue))
+    accepted(d.add(2.0))
+    assertEquals(n.ratio(d), Right(Double.MaxValue / 4.0))
+    Vector(Vector.empty[Double], Vector(-0.0), Vector(1.0, -1.0)).foreach { values =>
+      assertEquals(n.ratio(accumulator(values)), Left(ExactSumError.ZeroNormalizer))
+    }
+    Vector(Double.NaN, Double.PositiveInfinity, Double.NegativeInfinity).foreach { value =>
+      val special = accumulator(Vector(value))
+      assertEquals(n.ratio(special), Left(ExactSumError.NonFiniteRatio))
+      assertEquals(special.ratio(d), Left(ExactSumError.NonFiniteRatio))
+      assertEquals(special.ratio(ExactSum.zero()), Left(ExactSumError.NonFiniteRatio))
+      assertEquals(special.finiteTerms, 0L)
+    }
+  }
+
+  test("ratios match independent rational distances across permutations and merge trees") {
+    val random = new scala.util.Random(0x19ea1L)
+    def finite(): Double =
+      var x = java.lang.Double.longBitsToDouble(random.nextLong())
+      while !x.isFinite do x = java.lang.Double.longBitsToDouble(random.nextLong())
+      x
+    def merged(values: Vector[Double]): ExactSum =
+      var layer = random.shuffle(values).grouped(2).map(accumulator).toVector
+      while layer.length > 1 do
+        layer = random
+          .shuffle(layer)
+          .grouped(2)
+          .map { group =>
+            val total = group.head.copy()
+            group.drop(1).foreach(part => accepted(total.addAll(part)))
+            total
+          }
+          .toVector
+      layer.head
+    (0 until 400).foreach { trial =>
+      val ns = Vector.fill(1 + random.nextInt(8))(finite())
+      val ds = Vector.fill(1 + random.nextInt(8))(math.abs(finite())) :+ Double.MinPositiveValue
+      val n = ns.foldLeft(java.math.BigInteger.ZERO)((s, x) => s.add(units(x)))
+      val d = ds.foldLeft(java.math.BigInteger.ZERO)((s, x) => s.add(units(x)))
+      val actual = accumulator(ns).ratio(accumulator(ds)).toOption.get
+      assertEquals(merged(ns).ratio(merged(ds)), Right(actual), s"merge trial $trial")
+      assertEquals(accumulator(ns.reverse).ratio(accumulator(ds.reverse)), Right(actual), s"order trial $trial")
+      // Compare exact rational distances to adjacent doubles; this oracle does no binary quotient rounding.
+      val scaled = n.shiftLeft(1074)
+      if scaled.abs().compareTo(d.multiply(OverflowThreshold)) >= 0 then
+        assertEquals(actual, if n.signum() > 0 then Double.PositiveInfinity else Double.NegativeInfinity)
+      else
+        assert(actual.isFinite, s"trial $trial")
+        val distance = scaled.subtract(d.multiply(units(actual))).abs()
+        Vector(nextUp(actual), nextDown(actual)).filter(_.isFinite).foreach { neighbour =>
+          val other = scaled.subtract(d.multiply(units(neighbour))).abs()
+          val order = distance.compareTo(other)
+          assert(order <= 0, s"trial $trial: $neighbour is nearer than $actual")
+          if order == 0 then assertEquals(java.lang.Double.doubleToRawLongBits(actual) & 1L, 0L)
+        }
+    }
+  }
+
   private def accumulator(values: Seq[Double]): ExactSum =
     val sum = ExactSum.zero()
     values.foreach(value => accepted(sum.add(value)))
