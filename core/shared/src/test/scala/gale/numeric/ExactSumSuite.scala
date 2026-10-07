@@ -2,6 +2,14 @@ package gale.numeric
 
 class ExactSumSuite extends munit.FunSuite:
 
+  test("insertion contracts exclude normalization-only errors") {
+    val sum = ExactSum.zero()
+    val single: Either[ExactSumError.CapacityExceeded, Unit] = sum.add(1.0)
+    val merged: Either[ExactSumError.CapacityExceeded, Unit] = sum.addAll(ExactSum.zero())
+    assertEquals(single, Right(()))
+    assertEquals(merged, Right(()))
+  }
+
   // ExactSum promises bit-exact, correctly rounded totals, so these assertions compare doubles exactly.
 
   test("cancellation is exact where naive summation loses the small terms") {
@@ -201,12 +209,21 @@ class ExactSumSuite extends munit.FunSuite:
     assertEquals(limit.finiteTerms, ExactSum.MaxTerms)
     assertEquals(limit.value, powerOfTwo(60))
     val before = limit.copy()
-    assertEquals(limit.add(-1.0), Left(ExactSumError.CapacityExceeded(ExactSum.MaxTerms, 1L)))
-    assertEquals(limit.addAll(limit), Left(ExactSumError.CapacityExceeded(ExactSum.MaxTerms, ExactSum.MaxTerms)))
+    assertEquals(
+      limit.add(-1.0): Either[ExactSumError, Unit],
+      Left(ExactSumError.CapacityExceeded(ExactSum.MaxTerms, 1L))
+    )
+    assertEquals(
+      limit.addAll(limit): Either[ExactSumError, Unit],
+      Left(ExactSumError.CapacityExceeded(ExactSum.MaxTerms, ExactSum.MaxTerms))
+    )
     assertEquals(limit.value, before.value)
     assertEquals(limit.finiteTerms, before.finiteTerms)
     val receiver = accumulator(Vector(-1.0))
-    assertEquals(receiver.addAll(limit), Left(ExactSumError.CapacityExceeded(1L, ExactSum.MaxTerms)))
+    assertEquals(
+      receiver.addAll(limit): Either[ExactSumError, Unit],
+      Left(ExactSumError.CapacityExceeded(1L, ExactSum.MaxTerms))
+    )
     assertEquals(receiver.value, -1.0)
     assertEquals(receiver.finiteTerms, 1L)
     assertEquals(limit.value, before.value)
