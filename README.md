@@ -120,6 +120,14 @@ infinity; underflow rounds to subnormals or signed zero. An exact zero numerator
 returns positive zero. Products supplied as inputs are still rounded before
 accumulation; this is an exact sum and ratio, not an exact dot product.
 
+`ExactSum.resources` (also available as `builder.resources`) exposes immutable
+numerical capacity facts without normalizing or rounding state. State, copying
+and `value` report their Long-array payloads; `ratio` reports a conservative
+BigInt scratch estimate and maximum operand bit widths. These are source-level
+numerical payload estimates, with object, host and GC overhead excluded. They do
+not establish a heap/RSS limit or a JavaScript engine allocation bound. Consumers
+must account for their own retained results, staging and any native workspace.
+
 ### Paired squared residual comparisons
 
 `gale.numeric.PairedResidualWorkspace` outward encloses the difference between

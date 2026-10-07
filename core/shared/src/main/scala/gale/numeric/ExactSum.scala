@@ -1,5 +1,18 @@
 package gale.numeric
 
+/** Source-level numerical payload estimates, excluding object/host/GC overhead. State/copy/value capacities are exact
+  * Long-array payloads. Ratio is a deliberately conservative estimate for normalized arrays and bounded BigInt limb
+  * scratch; it is not a JVM heap/RSS or JavaScript engine-memory guarantee.
+  */
+final case class ExactSumResources(
+    stateBytes: Long,
+    copyAdditionalBytes: Long,
+    valueScratchBytes: Long,
+    ratioScratchBytes: Long,
+    maximumExactIntegerBits: Int,
+    maximumRatioOperandBits: Int
+)
+
 /** Exact, order-independent accumulation of IEEE doubles.
   *
   * Every finite double is an integer multiple of `2^-1074`, so the running total is held exactly as a fixed-point
@@ -22,6 +35,11 @@ final class ExactSum private (
     private var termCount: Long
 ):
   import ExactSum.*
+
+  /** Immutable facts shared by every state, including empty/special/capacity states. Inspection neither normalizes nor
+    * rounds the builder and allocates no workspace.
+    */
+  def resources: ExactSumResources = ExactSum.resources
 
   /** Number of nonzero finite inputs represented, including inputs inherited through merges. */
   def finiteTerms: Long = termCount
@@ -147,6 +165,26 @@ object ExactSum:
   // Each addition moves a digit by less than 2^32, so 2^30 additions keep every carry-save digit below 2^63.
   private val NormalizeEvery = 1 << 30
   private val SignificandWindow = 62
+
+  /** Qualified numerical capacity model for this implementation, not host allocation. A finite state is below 2^(2098 +
+    * log2(MaxTerms)) fixed-point units. A ratio operand can additionally shift by at most 1074 bits. Each readout
+    * converts two DigitCount arrays with repeated bounded shift/add scratch, then divides bounded operands. The limb
+    * allowance deliberately exceeds the ordinary live temporaries and cumulative primitive allocations of the qualified
+    * JVM path. Hosts needing total allocator/native bounds must supply separate evidence.
+    */
+  val resources: ExactSumResources =
+    val state = DigitCount.toLong * java.lang.Long.BYTES
+    val exactBits = 2098 + (63 - java.lang.Long.numberOfLeadingZeros(MaxTerms))
+    val operandBits = exactBits + 1074
+    val limbBytes = ((operandBits.toLong + 31) / 32) * java.lang.Integer.BYTES
+    ExactSumResources(
+      state,
+      state,
+      state,
+      2 * state + (16L * DigitCount + 4096L) * limbBytes,
+      exactBits,
+      operandBits
+    )
 
   def zero(): ExactSum =
     new ExactSum(new Array[Long](DigitCount), 0, 0.0, false, 0L)
