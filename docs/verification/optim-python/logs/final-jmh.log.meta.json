@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T18:49:15.032013+00:00",
+  "finished_utc": "2026-10-07T18:50:19.295046+00:00",
+  "duration_seconds": 64.262795,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "benchmarksJVM/Jmh/run -i 3 -wi 2 -r 1s -w 1s -f 2 -t 1 -prof gc -foe true -rf json -rff /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-python/jmh-solves-v1.json gale.bench.OptimizationJmhBench.solve",
+    "benchmarksJVM/Jmh/run -i 3 -wi 2 -r 1s -w 1s -f 2 -t 1 -prof gc -foe true -rf json -rff /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-python/jmh-proximal-v1.json gale.bench.OptimizationProximalBench.*",
+    "coreJVM/testOnly gale.optim.FirstOrderOptimizationSuite"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim/final-jmh.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 600.0,
+  "log_bytes": 27629
+}

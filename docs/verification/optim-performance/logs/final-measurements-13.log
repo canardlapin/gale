@@ -1,0 +1,651 @@
+Both nine-case comparisons pass; reports in /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/final-firstorder
+Both ten-case Gale comparisons pass independent endpoint/certificate checks: /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/final-extensions
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] running (fork) org.openjdk.jmh.Main -wi 3 -i 4 -w 1s -r 1s -f 2 -t 1 -prof gc -rf json -rff /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/jmh-final.json .*OptimizationPortfolioBench.*
+[error] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = lm-exp-offset-256)
+[info] # Run progress: 0.00% complete, ETA 00:01:38
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 388.024 us/op
+[info] # Warmup Iteration   2: 228.070 us/op
+[info] # Warmup Iteration   3: 224.032 us/op
+[info] Iteration   1: 224.145 us/op
+[info]                  gc.alloc.rate:      1127.353 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.549 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 224.286 us/op
+[info]                  gc.alloc.rate:      1126.609 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.549 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 225.545 us/op
+[info]                  gc.alloc.rate:      1120.405 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.558 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   4: 224.508 us/op
+[info]                  gc.alloc.rate:      1125.522 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.551 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            2.000 ms
+[info] # Run progress: 7.14% complete, ETA 00:01:37
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 540.069 us/op
+[info] # Warmup Iteration   2: 231.217 us/op
+[info] # Warmup Iteration   3: 226.874 us/op
+[info] Iteration   1: 226.770 us/op
+[info]                  gc.alloc.rate:      1114.343 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.566 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   2: 226.024 us/op
+[info]                  gc.alloc.rate:      1117.957 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.562 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 226.493 us/op
+[info]                  gc.alloc.rate:      1115.713 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.565 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   4: 226.131 us/op
+[info]                  gc.alloc.rate:      1117.432 MB/sec
+[info]                  gc.alloc.rate.norm: 265017.570 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   225.488 ?(99.9%) 1.988 us/op [Average]
+[info]   (min, avg, max) = (224.145, 225.488, 226.770), stdev = 1.040
+[info]   CI (99.9%): [223.500, 227.476] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   1120.667 ?(99.9%) 9.856 MB/sec [Average]
+[info]   (min, avg, max) = (1114.343, 1120.667, 1127.353), stdev = 5.155
+[info]   CI (99.9%): [1110.811, 1130.522] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   265017.559 ?(99.9%) 0.016 B/op [Average]
+[info]   (min, avg, max) = (265017.549, 265017.559, 265017.570), stdev = 0.008
+[info]   CI (99.9%): [265017.543, 265017.575] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   28.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (3.000, 3.500, 4.000), stdev = 0.535
+[info]   CI (99.9%): [28.000, 28.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   20.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (2.000, 2.500, 4.000), stdev = 0.756
+[info]   CI (99.9%): [20.000, 20.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = lm-scaled-linear-8)
+[info] # Run progress: 14.29% complete, ETA 00:01:29
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 32.134 us/op
+[info] # Warmup Iteration   2: 20.539 us/op
+[info] # Warmup Iteration   3: 20.424 us/op
+[info] Iteration   1: 20.422 us/op
+[info]                  gc.alloc.rate:      1581.878 MB/sec
+[info]                  gc.alloc.rate.norm: 33880.141 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   2: 20.466 us/op
+[info]                  gc.alloc.rate:      1578.493 MB/sec
+[info]                  gc.alloc.rate.norm: 33880.141 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 20.524 us/op
+[info]                  gc.alloc.rate:      1573.980 MB/sec
+[info]                  gc.alloc.rate.norm: 33880.142 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   4: 20.440 us/op
+[info]                  gc.alloc.rate:      1580.514 MB/sec
+[info]                  gc.alloc.rate.norm: 33880.141 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] # Run progress: 21.43% complete, ETA 00:01:21
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 70.347 us/op
+[info] # Warmup Iteration   2: 25.653 us/op
+[info] # Warmup Iteration   3: 24.694 us/op
+[info] Iteration   1: 24.860 us/op
+[info]                  gc.alloc.rate:      1311.179 MB/sec
+[info]                  gc.alloc.rate.norm: 34184.174 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 24.653 us/op
+[info]                  gc.alloc.rate:      1322.161 MB/sec
+[info]                  gc.alloc.rate.norm: 34184.170 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 24.642 us/op
+[info]                  gc.alloc.rate:      1322.760 MB/sec
+[info]                  gc.alloc.rate.norm: 34184.170 B/op
+[info]                  gc.count:           4.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   4: 24.623 us/op
+[info]                  gc.alloc.rate:      1323.789 MB/sec
+[info]                  gc.alloc.rate.norm: 34184.169 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   22.579 ?(99.9%) 4.327 us/op [Average]
+[info]   (min, avg, max) = (20.422, 22.579, 24.860), stdev = 2.263
+[info]   CI (99.9%): [18.252, 26.906] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   1449.344 ?(99.9%) 264.573 MB/sec [Average]
+[info]   (min, avg, max) = (1311.179, 1449.344, 1581.878), stdev = 138.377
+[info]   CI (99.9%): [1184.771, 1713.918] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   34032.156 ?(99.9%) 310.717 B/op [Average]
+[info]   (min, avg, max) = (33880.141, 34032.156, 34184.174), stdev = 162.511
+[info]   CI (99.9%): [33721.440, 34342.873] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   34.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (3.000, 4.250, 5.000), stdev = 0.707
+[info]   CI (99.9%): [34.000, 34.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   22.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (2.000, 2.750, 4.000), stdev = 0.707
+[info]   CI (99.9%): [22.000, 22.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = box-diagonal-512)
+[info] # Run progress: 28.57% complete, ETA 00:01:14
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 93287.197 us/op
+[info] # Warmup Iteration   2: 86444.038 us/op
+[info] # Warmup Iteration   3: 82583.163 us/op
+[info] Iteration   1: 82985.506 us/op
+[info]                  gc.alloc.rate:      874.898 MB/sec
+[info]                  gc.alloc.rate.norm: 76144600.615 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 83825.424 us/op
+[info]                  gc.alloc.rate:      866.137 MB/sec
+[info]                  gc.alloc.rate.norm: 76144650.667 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 82292.538 us/op
+[info]                  gc.alloc.rate:      882.267 MB/sec
+[info]                  gc.alloc.rate.norm: 76144600.615 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   4: 82092.311 us/op
+[info]                  gc.alloc.rate:      884.470 MB/sec
+[info]                  gc.alloc.rate.norm: 76144576.000 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            1.000 ms
+[info] # Run progress: 35.71% complete, ETA 00:01:07
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 117742.639 us/op
+[info] # Warmup Iteration   2: 90678.799 us/op
+[info] # Warmup Iteration   3: 108971.129 us/op
+[info] Iteration   1: 88283.240 us/op
+[info]                  gc.alloc.rate:      981.925 MB/sec
+[info]                  gc.alloc.rate.norm: 90912178.667 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   2: 88348.215 us/op
+[info]                  gc.alloc.rate:      981.226 MB/sec
+[info]                  gc.alloc.rate.norm: 90912178.667 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 96602.777 us/op
+[info]                  gc.alloc.rate:      897.198 MB/sec
+[info]                  gc.alloc.rate.norm: 90912234.909 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   4: 99125.390 us/op
+[info]                  gc.alloc.rate:      873.746 MB/sec
+[info]                  gc.alloc.rate.norm: 90912237.818 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   87944.425 ?(99.9%) 12682.752 us/op [Average]
+[info]   (min, avg, max) = (82092.311, 87944.425, 99125.390), stdev = 6633.325
+[info]   CI (99.9%): [75261.673, 100627.178] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   905.234 ?(99.9%) 91.751 MB/sec [Average]
+[info]   (min, avg, max) = (866.137, 905.234, 981.925), stdev = 47.988
+[info]   CI (99.9%): [813.482, 996.985] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   83528407.245 ?(99.9%) 15092395.212 B/op [Average]
+[info]   (min, avg, max) = (76144576.000, 83528407.245, 90912237.818), stdev = 7893614.521
+[info]   CI (99.9%): [68436012.033, 98620802.457] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   23.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (2.000, 2.875, 3.000), stdev = 0.354
+[info]   CI (99.9%): [23.000, 23.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   16.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (1.000, 2.000, 3.000), stdev = 0.535
+[info]   CI (99.9%): [16.000, 16.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = box-rotated-32)
+[info] # Run progress: 42.86% complete, ETA 00:01:01
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 824.060 us/op
+[info] # Warmup Iteration   2: 527.351 us/op
+[info] # Warmup Iteration   3: 526.883 us/op
+[info] Iteration   1: 524.121 us/op
+[info]                  gc.alloc.rate:      1708.342 MB/sec
+[info]                  gc.alloc.rate.norm: 939012.371 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 523.661 us/op
+[info]                  gc.alloc.rate:      1709.650 MB/sec
+[info]                  gc.alloc.rate.norm: 938928.742 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 526.937 us/op
+[info]                  gc.alloc.rate:      1698.960 MB/sec
+[info]                  gc.alloc.rate.norm: 938912.210 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   4: 524.705 us/op
+[info]                  gc.alloc.rate:      1706.222 MB/sec
+[info]                  gc.alloc.rate.norm: 938900.378 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] # Run progress: 50.00% complete, ETA 00:00:53
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 704.593 us/op
+[info] # Warmup Iteration   2: 540.556 us/op
+[info] # Warmup Iteration   3: 538.690 us/op
+[info] Iteration   1: 539.042 us/op
+[info]                  gc.alloc.rate:      1734.919 MB/sec
+[info]                  gc.alloc.rate.norm: 980766.996 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Iteration   2: 539.217 us/op
+[info]                  gc.alloc.rate:      1734.223 MB/sec
+[info]                  gc.alloc.rate.norm: 980734.824 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 538.136 us/op
+[info]                  gc.alloc.rate:      1737.730 MB/sec
+[info]                  gc.alloc.rate.norm: 980724.505 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   4: 536.939 us/op
+[info]                  gc.alloc.rate:      1741.631 MB/sec
+[info]                  gc.alloc.rate.norm: 980724.479 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   531.595 ?(99.9%) 13.954 us/op [Average]
+[info]   (min, avg, max) = (523.661, 531.595, 539.217), stdev = 7.298
+[info]   CI (99.9%): [517.641, 545.549] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   1721.460 ?(99.9%) 32.845 MB/sec [Average]
+[info]   (min, avg, max) = (1698.960, 1721.460, 1741.631), stdev = 17.178
+[info]   CI (99.9%): [1688.615, 1754.304] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   959838.063 ?(99.9%) 42718.652 B/op [Average]
+[info]   (min, avg, max) = (938900.378, 959838.063, 980766.996), stdev = 22342.681
+[info]   CI (99.9%): [917119.411, 1002556.716] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   40.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (5.000, 5.000, 5.000), stdev = 0.001
+[info]   CI (99.9%): [40.000, 40.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   26.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (3.000, 3.250, 4.000), stdev = 0.463
+[info]   CI (99.9%): [26.000, 26.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = box-diag-quadratic-n16-k1e3)
+[info] # Run progress: 57.14% complete, ETA 00:00:45
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 820.664 us/op
+[info] # Warmup Iteration   2: 677.046 us/op
+[info] # Warmup Iteration   3: 678.311 us/op
+[info] Iteration   1: 674.928 us/op
+[info]                  gc.alloc.rate:      2137.355 MB/sec
+[info]                  gc.alloc.rate.norm: 1512894.679 B/op
+[info]                  gc.count:           7.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Iteration   2: 674.000 us/op
+[info]                  gc.alloc.rate:      2140.030 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.654 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 672.691 us/op
+[info]                  gc.alloc.rate:      2144.154 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.645 B/op
+[info]                  gc.count:           7.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Iteration   4: 673.673 us/op
+[info]                  gc.alloc.rate:      2141.049 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.654 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] # Run progress: 64.29% complete, ETA 00:00:38
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 798.390 us/op
+[info] # Warmup Iteration   2: 679.355 us/op
+[info] # Warmup Iteration   3: 669.435 us/op
+[info] Iteration   1: 669.420 us/op
+[info]                  gc.alloc.rate:      2154.919 MB/sec
+[info]                  gc.alloc.rate.norm: 1512886.346 B/op
+[info]                  gc.count:           7.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Iteration   2: 668.065 us/op
+[info]                  gc.alloc.rate:      2159.090 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.614 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 669.483 us/op
+[info]                  gc.alloc.rate:      2154.475 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.623 B/op
+[info]                  gc.count:           7.000 counts
+[info]                  gc.time:            5.000 ms
+[info] Iteration   4: 666.748 us/op
+[info]                  gc.alloc.rate:      2163.344 MB/sec
+[info]                  gc.alloc.rate.norm: 1512740.626 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            4.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   671.126 ?(99.9%) 5.862 us/op [Average]
+[info]   (min, avg, max) = (666.748, 671.126, 674.928), stdev = 3.066
+[info]   CI (99.9%): [665.264, 676.988] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   2149.302 ?(99.9%) 18.770 MB/sec [Average]
+[info]   (min, avg, max) = (2137.355, 2149.302, 2163.344), stdev = 9.817
+[info]   CI (99.9%): [2130.532, 2168.072] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   1512778.105 ?(99.9%) 132.720 B/op [Average]
+[info]   (min, avg, max) = (1512740.614, 1512778.105, 1512894.679), stdev = 69.415
+[info]   CI (99.9%): [1512645.385, 1512910.825] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   52.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (6.000, 6.500, 7.000), stdev = 0.535
+[info]   CI (99.9%): [52.000, 52.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   33.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (3.000, 4.125, 5.000), stdev = 0.991
+[info]   CI (99.9%): [33.000, 33.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = lasso-m256-n32)
+[info] # Run progress: 71.43% complete, ETA 00:00:30
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 374.055 us/op
+[info] # Warmup Iteration   2: 323.254 us/op
+[info] # Warmup Iteration   3: 320.519 us/op
+[info] Iteration   1: 319.413 us/op
+[info]                  gc.alloc.rate:      850.722 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.207 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   2: 317.893 us/op
+[info]                  gc.alloc.rate:      854.786 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.197 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 318.547 us/op
+[info]                  gc.alloc.rate:      853.034 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.200 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   4: 321.697 us/op
+[info]                  gc.alloc.rate:      844.667 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.222 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] # Run progress: 78.57% complete, ETA 00:00:22
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 372.785 us/op
+[info] # Warmup Iteration   2: 323.959 us/op
+[info] # Warmup Iteration   3: 319.320 us/op
+[info] Iteration   1: 317.129 us/op
+[info]                  gc.alloc.rate:      856.824 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.191 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   2: 317.789 us/op
+[info]                  gc.alloc.rate:      855.057 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.195 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 317.841 us/op
+[info]                  gc.alloc.rate:      854.925 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.195 B/op
+[info]                  gc.count:           2.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   4: 319.032 us/op
+[info]                  gc.alloc.rate:      851.734 MB/sec
+[info]                  gc.alloc.rate.norm: 284978.204 B/op
+[info]                  gc.count:           3.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   318.667 ?(99.9%) 2.733 us/op [Average]
+[info]   (min, avg, max) = (317.129, 318.667, 321.697), stdev = 1.429
+[info]   CI (99.9%): [315.935, 321.400] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   852.719 ?(99.9%) 7.275 MB/sec [Average]
+[info]   (min, avg, max) = (844.667, 852.719, 856.824), stdev = 3.805
+[info]   CI (99.9%): [845.443, 859.994] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   284978.201 ?(99.9%) 0.019 B/op [Average]
+[info]   (min, avg, max) = (284978.191, 284978.201, 284978.222), stdev = 0.010
+[info]   CI (99.9%): [284978.183, 284978.220] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   22.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (2.000, 2.750, 3.000), stdev = 0.463
+[info]   CI (99.9%): [22.000, 22.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   16.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (1.000, 2.000, 3.000), stdev = 0.756
+[info]   CI (99.9%): [16.000, 16.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 3 iterations, 1 s each
+[info] # Measurement: 4 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationPortfolioBench.solve
+[info] # Parameters: (caseId = lasso-m1024-n128)
+[info] # Run progress: 85.71% complete, ETA 00:00:15
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 3680.939 us/op
+[info] # Warmup Iteration   2: 3463.771 us/op
+[info] # Warmup Iteration   3: 3371.992 us/op
+[info] Iteration   1: 3400.058 us/op
+[info]                  gc.alloc.rate:      246.931 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.459 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   2: 3400.521 us/op
+[info]                  gc.alloc.rate:      246.891 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.539 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   3: 3391.353 us/op
+[info]                  gc.alloc.rate:      247.562 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.380 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            ? 0 ms
+[info] Iteration   4: 3376.899 us/op
+[info]                  gc.alloc.rate:      248.627 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.114 B/op
+[info]                  gc.count:           ? 0 counts
+[info] # Run progress: 92.86% complete, ETA 00:00:07
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 3704.952 us/op
+[info] # Warmup Iteration   2: 3469.586 us/op
+[info] # Warmup Iteration   3: 3409.100 us/op
+[info] Iteration   1: 3430.675 us/op
+[info]                  gc.alloc.rate:      244.726 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.619 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   2: 3415.105 us/op
+[info]                  gc.alloc.rate:      245.842 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.539 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            1.000 ms
+[info] Iteration   3: 3400.245 us/op
+[info]                  gc.alloc.rate:      246.916 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.539 B/op
+[info]                  gc.count:           1.000 counts
+[info]                  gc.time:            ? 0 ms
+[info] Iteration   4: 3400.264 us/op
+[info]                  gc.alloc.rate:      246.915 MB/sec
+[info]                  gc.alloc.rate.norm: 880495.349 B/op
+[info]                  gc.count:           ? 0 counts
+[info] Result "gale.bench.OptimizationPortfolioBench.solve":
+[info]   3401.890 ?(99.9%) 30.226 us/op [Average]
+[info]   (min, avg, max) = (3376.899, 3401.890, 3430.675), stdev = 15.809
+[info]   CI (99.9%): [3371.664, 3432.116] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate":
+[info]   246.801 ?(99.9%) 2.191 MB/sec [Average]
+[info]   (min, avg, max) = (244.726, 246.801, 248.627), stdev = 1.146
+[info]   CI (99.9%): [244.610, 248.992] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.alloc.rate.norm":
+[info]   880495.442 ?(99.9%) 0.306 B/op [Average]
+[info]   (min, avg, max) = (880495.114, 880495.442, 880495.619), stdev = 0.160
+[info]   CI (99.9%): [880495.136, 880495.749] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.count":
+[info]   6.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (? 0, 0.750, 1.000), stdev = 0.463
+[info]   CI (99.9%): [6.000, 6.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationPortfolioBench.solve:gc.time":
+[info]   4.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (? 0, 0.500, 1.000), stdev = 0.535
+[info]   CI (99.9%): [4.000, 4.000] (assumes normal distribution)
+[info] # Run complete. Total time: 00:01:46
+[info] REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+[info] why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+[info] experiments, perform baseline and negative tests that provide experimental control, make sure
+[info] the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+[info] Do not assume the numbers tell you what you want them to tell.
+[info] NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+[info] extra caution when trusting the results, look into the generated code to check the benchmark still
+[info] works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+[info] different JVMs are already problematic, the performance difference caused by different Blackhole
+[info] modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+[info] Benchmark                                                               (caseId)  Mode  Cnt         Score          Error   Units
+[info] OptimizationPortfolioBench.solve                               lm-exp-offset-256  avgt    8       225.488 ?        1.988   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                 lm-exp-offset-256  avgt    8      1120.667 ?        9.856  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm            lm-exp-offset-256  avgt    8    265017.559 ?        0.016    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                      lm-exp-offset-256  avgt    8        28.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                       lm-exp-offset-256  avgt    8        20.000                     ms
+[info] OptimizationPortfolioBench.solve                              lm-scaled-linear-8  avgt    8        22.579 ?        4.327   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                lm-scaled-linear-8  avgt    8      1449.344 ?      264.573  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm           lm-scaled-linear-8  avgt    8     34032.156 ?      310.717    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                     lm-scaled-linear-8  avgt    8        34.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                      lm-scaled-linear-8  avgt    8        22.000                     ms
+[info] OptimizationPortfolioBench.solve                                box-diagonal-512  avgt    8     87944.425 ?    12682.752   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                  box-diagonal-512  avgt    8       905.234 ?       91.751  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm             box-diagonal-512  avgt    8  83528407.245 ? 15092395.212    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                       box-diagonal-512  avgt    8        23.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                        box-diagonal-512  avgt    8        16.000                     ms
+[info] OptimizationPortfolioBench.solve                                  box-rotated-32  avgt    8       531.595 ?       13.954   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                    box-rotated-32  avgt    8      1721.460 ?       32.845  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm               box-rotated-32  avgt    8    959838.063 ?    42718.652    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                         box-rotated-32  avgt    8        40.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                          box-rotated-32  avgt    8        26.000                     ms
+[info] OptimizationPortfolioBench.solve                     box-diag-quadratic-n16-k1e3  avgt    8       671.126 ?        5.862   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate       box-diag-quadratic-n16-k1e3  avgt    8      2149.302 ?       18.770  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm  box-diag-quadratic-n16-k1e3  avgt    8   1512778.105 ?      132.720    B/op
+[info] OptimizationPortfolioBench.solve:gc.count            box-diag-quadratic-n16-k1e3  avgt    8        52.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time             box-diag-quadratic-n16-k1e3  avgt    8        33.000                     ms
+[info] OptimizationPortfolioBench.solve                                  lasso-m256-n32  avgt    8       318.667 ?        2.733   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                    lasso-m256-n32  avgt    8       852.719 ?        7.275  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm               lasso-m256-n32  avgt    8    284978.201 ?        0.019    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                         lasso-m256-n32  avgt    8        22.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                          lasso-m256-n32  avgt    8        16.000                     ms
+[info] OptimizationPortfolioBench.solve                                lasso-m1024-n128  avgt    8      3401.890 ?       30.226   us/op
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate                  lasso-m1024-n128  avgt    8       246.801 ?        2.191  MB/sec
+[info] OptimizationPortfolioBench.solve:gc.alloc.rate.norm             lasso-m1024-n128  avgt    8    880495.442 ?        0.306    B/op
+[info] OptimizationPortfolioBench.solve:gc.count                       lasso-m1024-n128  avgt    8         6.000                 counts
+[info] OptimizationPortfolioBench.solve:gc.time                        lasso-m1024-n128  avgt    8         4.000                     ms
+[info] Benchmark result is saved to /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/jmh-final.json
+[success] Total time: 108 s (0:01:48.0), completed Oct 7, 2026, 5:49:19 p.m.
+Final nineteen-fixture JVM/JS endpoint comparisons and seven-case forked profiles complete.

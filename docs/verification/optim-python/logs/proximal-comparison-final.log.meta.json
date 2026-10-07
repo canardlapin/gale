@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T18:42:06.100922+00:00",
+  "finished_utc": "2026-10-07T18:43:06.683894+00:00",
+  "duration_seconds": 60.582718,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "scalafmtAll",
+    "scalafmtCheckAll",
+    "benchmarksJVM/runMain gale.bench.ProximalComparison",
+    "set benchmarksJS / Compile / mainClass := Some(\"gale.bench.ProximalComparison\")",
+    "set benchmarksJS / scalaJSStage := FullOptStage",
+    "benchmarksJS/run",
+    "benchmarksJVM/Jmh/run -i 3 -wi 2 -r 1s -w 1s -f 2 -t 1 -prof gc -foe true -rf json -rff /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-python/jmh-proximal-v1.json gale.bench.OptimizationProximalBench.*",
+    "docsCheck"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim/proximal-comparison-final.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 600.0,
+  "log_bytes": 17295
+}

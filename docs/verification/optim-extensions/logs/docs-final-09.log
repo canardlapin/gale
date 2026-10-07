@@ -1,0 +1,38 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] scalafmt: Checking 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Checking 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[success] Total time: 2 s, completed Oct 7, 2026, 4:32:58 p.m.
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] running mdoc.SbtMain 
+[34minfo[39m: Compiling 29 files to /Users/bbuchsbaum/code/scala/gale/site/target/mdoc
+[33mwarning[39m: advanced/numerical-contract.md:162:21: Unknown link '../sparse-direct-future.md'.
+their own spec in a [future version](../../sparse-direct-future.md). The
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: advanced/numerical-contract.md:163:17: Unknown link '../sparse-direct-js.md'.
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/nonlinear-and-bounded-optimization.md:220:18: Unknown link '../verification/optim-extensions/README.md'.
+package. Use the [qualification report](../../verification/optim-extensions/README.md)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:382:1: Unknown link '../sparse-direct-future.md'.
+[future version](../../sparse-direct-future.md); see
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:383:1: Unknown link '../sparse-direct-js.md'.
+[Scala.js sparse-direct](../../sparse-direct-js.md).
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:518:1: Unknown link '../../parity/README.md'.
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[34minfo[39m: Compiled in 5.54s (0 errors, 6 warnings)
+[success] Total time: 11 s, completed Oct 7, 2026, 4:33:08 p.m.

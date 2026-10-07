@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T20:32:49.778086+00:00",
+  "finished_utc": "2026-10-07T20:33:08.972332+00:00",
+  "duration_seconds": 19.194058,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "scalafmtCheckAll",
+    "docs/mdoc"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-extensions/docs-final-09.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 600.0,
+  "log_bytes": 2763
+}

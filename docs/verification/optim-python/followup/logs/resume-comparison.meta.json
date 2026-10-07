@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "log": "docs/verification/optim-python/followup/logs/resume-comparison.log",
+  "note": "Resumed session tool exit status; resume-gates portable checks pass before JMH relative-result-path failure; resume-profile uses absolute paths."
+}

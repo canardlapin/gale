@@ -33,6 +33,8 @@ the live `gale-core` API.
   partial results, and diagnostics.
 - [First-order composite optimization](guides/first-order-optimization.md) —
   proximal, projected, primal-dual, and exact-reduction methods.
+- [Nonlinear fitting and bounded optimization](guides/nonlinear-and-bounded-optimization.md) —
+  residual/Jacobian least squares and smooth box-constrained minimization.
 - [Moving from Breeze](guides/breeze-equivalence.md) — the supported migration
   boundary, conversions, and deliberate differences.
 

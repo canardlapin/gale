@@ -13,6 +13,8 @@ Start from the problem you need to solve:
   a singular-value cutoff, reuse projections, and report null equations.
 - [First-order composite optimization](first-order-optimization.md) — choose
   proximal, projected, primal-dual, or exact-reduction capabilities.
+- [Nonlinear fitting and bounded optimization](nonlinear-and-bounded-optimization.md) —
+  fit residual models with LM or minimize smooth objectives with L-BFGS-B.
 - [Moving a Breeze workload to Gale](breeze-equivalence.md) — migrate the
   supported real-`Double` linear algebra slice without assuming source
   compatibility.

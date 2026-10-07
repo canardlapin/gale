@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T20:26:54.102031+00:00",
+  "finished_utc": "2026-10-07T20:27:05.652962+00:00",
+  "duration_seconds": 11.550791,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "scalafmtAll",
+    "coreJVM/testOnly gale.optim.*",
+    "benchmarksJVM/runMain gale.bench.OptimizationExtensionsBench 0 1"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-extensions/wolfe-04.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 600.0,
+  "log_bytes": 10139
+}

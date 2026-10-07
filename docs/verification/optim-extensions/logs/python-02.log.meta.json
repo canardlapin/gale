@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T20:27:40.916823+00:00",
+  "finished_utc": "2026-10-07T20:27:41.748823+00:00",
+  "duration_seconds": 0.831936,
+  "command": [
+    "env",
+    "OPENBLAS_NUM_THREADS=1",
+    "OMP_NUM_THREADS=1",
+    "VECLIB_MAXIMUM_THREADS=1",
+    "/private/tmp/gale-optim-python-venv/bin/python",
+    "tools/optim-extensions/compare.py",
+    "python"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-extensions/python-02.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 600.0,
+  "log_bytes": 707
+}

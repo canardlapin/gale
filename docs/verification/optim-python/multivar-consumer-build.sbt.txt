@@ -1,0 +1,7 @@
+scalaVersion := "3.7.4"
+Compile / unmanagedSourceDirectories += file("/Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala")
+Test / unmanagedSourceDirectories += file("/Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala")
+Compile / unmanagedClasspath += Attributed.blank(file("/Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/classes"))
+libraryDependencies += "org.scalameta" %% "munit" % "1.2.1" % Test
+scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Xmax-inlines:64")
+Test / unmanagedClasspath += Attributed.blank(file("/Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/classes"))

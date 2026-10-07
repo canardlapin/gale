@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T21:40:06.332297+00:00",
+  "finished_utc": "2026-10-07T21:41:07.364888+00:00",
+  "duration_seconds": 61.031932,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "scalafmtAll",
+    "coreJVM/testOnly gale.optim.*",
+    "benchmarksJVM/Jmh/run -p caseId=box-diagonal-512,box-rotated-32,lm-exp-offset-256 -wi 3 -i 4 -w 1s -r 1s -f 2 -t 1 -prof gc -rf json -rff /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/jmh-restricted.json .*OptimizationPortfolioBench.*"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/restricted-10.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 900.0,
+  "log_bytes": 21413
+}

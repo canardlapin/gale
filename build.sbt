@@ -14,8 +14,8 @@ lazy val scalaNextVersion = "3.8.4"
 ThisBuild / organization := "io.github.canardlapin"
 ThisBuild / scalaVersion := scalaBaselineVersion
 ThisBuild / versionScheme := Some("early-semver")
-ThisBuild / homepage     := Some(url("https://github.com/canardlapin/gale"))
-ThisBuild / licenses     := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / homepage := Some(url("https://github.com/canardlapin/gale"))
+ThisBuild / licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/canardlapin/gale"),
@@ -56,22 +56,24 @@ def galeReleaseFallbackVersion(date: java.util.Date): String = {
   s"0.1.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
 }
 
-inThisBuild(List(
-  version := dynverGitDescribeOutput.value.mkVersion(
-    galeReleaseVersion,
-    galeReleaseFallbackVersion(dynverCurrentDate.value)
-  ),
-  // Own snapshot classification so a synthetic M1 dry-run version is not
-  // treated as a snapshot and routed to Central's snapshot service.
-  isSnapshot := version.value.endsWith("-SNAPSHOT"),
-  dynver := {
-    val date = new java.util.Date
-    sbtdynver.DynVer
-      .getGitDescribeOutput(date)
-      .map(galeReleaseVersion)
-      .getOrElse(galeReleaseFallbackVersion(date))
-  }
-))
+inThisBuild(
+  List(
+    version := dynverGitDescribeOutput.value.mkVersion(
+      galeReleaseVersion,
+      galeReleaseFallbackVersion(dynverCurrentDate.value)
+    ),
+    // Own snapshot classification so a synthetic M1 dry-run version is not
+    // treated as a snapshot and routed to Central's snapshot service.
+    isSnapshot := version.value.endsWith("-SNAPSHOT"),
+    dynver := {
+      val date = new java.util.Date
+      sbtdynver.DynVer
+        .getGitDescribeOutput(date)
+        .map(galeReleaseVersion)
+        .getOrElse(galeReleaseFallbackVersion(date))
+    }
+  )
+)
 
 lazy val commonScalacOptions = Seq(
   "-deprecation",
@@ -107,9 +109,7 @@ lazy val releaseSnapshotSettings = Seq(
       .flatMap(_.modules)
       .map(_.module)
       .filter(_.revision.toUpperCase.contains("SNAPSHOT"))
-      .filterNot(m =>
-        m.organization == organization.value && releaseInternalModules.contains(m.name)
-      )
+      .filterNot(m => m.organization == organization.value && releaseInternalModules.contains(m.name))
       .distinct
 
     if (snapshots.nonEmpty) {
@@ -144,7 +144,7 @@ lazy val releaseVersionSettings = Seq(
       sys.error(s"release candidate $candidate is still classified as a snapshot")
     publishTo.value match {
       case Some(destination) if destination.name == "local-staging" => ()
-      case other =>
+      case other                                                    =>
         sys.error(
           s"release candidate $candidate must publish to local-staging, found ${other.fold("no destination")(_.toString)}"
         )
@@ -182,7 +182,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= commonScalacOptions,
   Test / fork := false,
   libraryDependencies ++= Seq(
-    "org.scalameta" %%% "munit"            % munitVersion % Test,
+    "org.scalameta" %%% "munit" % munitVersion % Test,
     "org.scalameta" %%% "munit-scalacheck" % munitVersion % Test
   )
 )
@@ -216,16 +216,16 @@ lazy val laws: CrossProject =
       scalacOptions ++= commonScalacOptions,
       Test / fork := false,
       libraryDependencies ++= Seq(
-        "org.scalameta" %%% "munit"            % munitVersion,
+        "org.scalameta" %%% "munit" % munitVersion,
         "org.scalameta" %%% "munit-scalacheck" % munitVersion
       )
     )
     .jsSettings(jsWasmSettings: _*)
 
-lazy val lawsJS  = laws.js
+lazy val lawsJS = laws.js
 lazy val lawsJVM = laws.jvm
 
-lazy val coreJS  = core.js
+lazy val coreJS = core.js
 lazy val coreJVM = core.jvm
 
 // Executable public guide site. User-facing Markdown lives under docs/user;
@@ -239,7 +239,7 @@ lazy val docs =
     .dependsOn(coreJVM)
     .enablePlugins(TypelevelSitePlugin)
     .settings(
-      name           := "gale-docs",
+      name := "gale-docs",
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       mdocIn := file("docs/user"),
@@ -271,14 +271,14 @@ lazy val parity =
     .in(file("parity"))
     .dependsOn(coreJVM)
     .settings(
-      name           := "gale-parity",
+      name := "gale-parity",
       publish / skip := true,
-      Test / fork    := true,
+      Test / fork := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
-        "org.scalameta" %% "munit"            % munitVersion  % Test,
-        "org.scalameta" %% "munit-scalacheck" % munitVersion  % Test,
-        "org.scalanlp"  %% "breeze"           % breezeVersion % Test
+        "org.scalameta" %% "munit" % munitVersion % Test,
+        "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+        "org.scalanlp" %% "breeze" % breezeVersion % Test
       )
     )
 
@@ -299,8 +299,8 @@ lazy val interopBreeze =
       scalacOptions ++= commonScalacOptions,
       Test / fork := true,
       libraryDependencies ++= Seq(
-        "org.scalanlp"  %% "breeze" % breezeVersion,
-        "org.scalameta" %% "munit"  % munitVersion % Test
+        "org.scalanlp" %% "breeze" % breezeVersion,
+        "org.scalameta" %% "munit" % munitVersion % Test
       )
     )
 
@@ -335,7 +335,7 @@ lazy val ravelBuild: java.net.URI =
     .map(path => file(path).getCanonicalFile.toURI)
     .getOrElse(uri(s"https://github.com/canardlapin/ravel.git#$ravelRevision"))
 lazy val ravelCoreJVM = ProjectRef(ravelBuild, "coreJVM")
-lazy val ravelCoreJS  = ProjectRef(ravelBuild, "coreJS")
+lazy val ravelCoreJS = ProjectRef(ravelBuild, "coreJS")
 
 // gale-interop-ravel is the copy-only boundary between neutral dense Ravel
 // storage and Gale's mathematical vector/matrix types. Neither core project
@@ -357,7 +357,7 @@ lazy val interopRavel: CrossProject =
     .jsSettings(jsWasmSettings: _*)
 
 lazy val interopRavelJVM = interopRavel.jvm
-lazy val interopRavelJS  = interopRavel.js
+lazy val interopRavelJS = interopRavel.js
 
 // JVM 22+ native storage. Kept separate so core and every Scala.js artifact stay
 // free of java.lang.foreign references.
@@ -411,6 +411,7 @@ lazy val benchmarksJVM =
     .settings(benchmarkSettings)
     .settings(
       name := "gale-benchmarks-jvm",
+      Compile / unmanagedSourceDirectories += (ThisBuild / baseDirectory).value / "benchmarks" / "shared" / "src" / "main" / "scala",
       Jmh / javaOptions += "--add-modules=jdk.incubator.vector",
       // Breeze in COMPILE scope here (not test) so the paired gale-vs-Breeze JMH
       // benchmarks can call it. This module is publish-skipped and is never a
@@ -442,6 +443,8 @@ lazy val benchmarksJS =
     .settings(benchmarkSettings)
     .settings(
       name := "gale-benchmarks-js",
+      Compile / unmanagedSourceDirectories += (ThisBuild / baseDirectory).value / "benchmarks" / "shared" / "src" / "main" / "scala",
+      Compile / mainClass := Some("gale.bench.DenseKernelJsBench"),
       scalaJSUseMainModuleInitializer := true
     )
     .settings(jsWasmSettings: _*)
@@ -457,7 +460,7 @@ lazy val demo =
     .enablePlugins(ScalaJSPlugin)
     .dependsOn(coreJS)
     .settings(
-      name           := "gale-demo",
+      name := "gale-demo",
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       scalaJSUseMainModuleInitializer := true,
@@ -474,8 +477,8 @@ lazy val scalaNextConsumer =
   project
     .in(file("compat/scala-next-consumer"))
     .settings(
-      name           := "gale-scala-next-consumer-probe",
-      scalaVersion   := scalaNextVersion,
+      name := "gale-scala-next-consumer-probe",
+      scalaVersion := scalaNextVersion,
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies += "io.github.canardlapin" %% "gale-core" % version.value
@@ -490,7 +493,7 @@ lazy val publishedInteropConsumer =
   project
     .in(file("compat/published-interop-consumer"))
     .settings(
-      name           := "gale-published-interop-consumer-probe",
+      name := "gale-published-interop-consumer-probe",
       publish / skip := true,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies += "io.github.canardlapin" %% "gale-interop-breeze" % version.value
@@ -500,16 +503,29 @@ lazy val root =
   project
     .in(file("."))
     .aggregate(
-      coreJS, coreJVM, lawsJS, lawsJVM, benchmarksJVM, benchmarksJS,
-      parity, interopBreeze, interopRavelJVM, interopRavelJS, vectorBackend,
-      nativeBackend, blasFfmBackend
+      coreJS,
+      coreJVM,
+      lawsJS,
+      lawsJVM,
+      benchmarksJVM,
+      benchmarksJS,
+      parity,
+      interopBreeze,
+      interopRavelJVM,
+      interopRavelJS,
+      vectorBackend,
+      nativeBackend,
+      blasFfmBackend
     )
     .settings(
       name := "gale",
       publish / skip := true
     )
 
-addCommandAlias("compileAll", ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;coreJVM/publishLocal;scalaNextConsumer/compile")
+addCommandAlias(
+  "compileAll",
+  ";coreJVM/compile;coreJS/compile;lawsJVM/compile;lawsJS/compile;coreJVM/publishLocal;scalaNextConsumer/compile"
+)
 addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 // Like testAll, then a full-optimizing Scala.js link of the JS test bundles as a
 // stricter (Closure-level) check that fastLink-only builds can miss.
@@ -549,7 +565,10 @@ addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.
 addCommandAlias("demoBuild", ";demo/fastLinkJS")
 addCommandAlias("scalaNextConsumerProbe", ";coreJVM/publishLocal;scalaNextConsumer/compile")
-addCommandAlias("publishedInteropProbe", ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile")
+addCommandAlias(
+  "publishedInteropProbe",
+  ";coreJVM/publishLocal;interopBreeze/publishLocal;publishedInteropConsumer/compile"
+)
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
 // Compile API docs for both public platforms and execute/render the guide site.
 addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")

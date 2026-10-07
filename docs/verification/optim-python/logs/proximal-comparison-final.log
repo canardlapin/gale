@@ -1,0 +1,257 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] scalafmt: Formatting 3 Scala sources (/Users/bbuchsbaum/code/scala/gale/benchmarks/js)...
+[info] scalafmt: Formatting 12 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[info] scalafmt: Formatting 12 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Formatting 8 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Formatting 8 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[info] scalafmt: Formatting 4 Scala sources (/Users/bbuchsbaum/code/scala/gale/benchmarks/jvm)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 3 s, completed Oct 7, 2026, 2:42:17 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 2:42:17 p.m.
+[info] compiling 2 Scala sources to /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] running gale.bench.ProximalComparison 
+method	median_ms	kkt	iterations	callbacks
+fixed-step	22.235542	9.994487851217038E-8	15295	61186
+accelerated	4.029583	9.763080345559505E-8	866	5184
+[success] Total time: 4 s, completed Oct 7, 2026, 2:42:21 p.m.
+[info] Defining benchmarksJS / Compile / mainClass
+[info] The new value will be used by benchmarksJS / Compile / bspBuildTargetRun, benchmarksJS / Compile / packageBin / packageOptions and 2 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] Defining benchmarksJS / scalaJSStage
+[info] The new value will be used by benchmarksJS / Compile / scalaJSLinkedFile, benchmarksJS / Compile / scalaJSLinkerResult and 2 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/benchmarks/js/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] Full optimizing /Users/bbuchsbaum/code/scala/gale/benchmarks/js/target/scala-3.7.4/gale-benchmarks-js-opt
+[info] Running gale.bench.ProximalComparison.
+method	median_ms	kkt	iterations	callbacks
+fixed-step	63.104458	9.994487851217038e-8	15295	61186
+accelerated	9.300208	9.763080345559505e-8	866	5184
+[success] Total time: 6 s, completed Oct 7, 2026, 2:42:31 p.m.
+[info] running (fork) org.openjdk.jmh.generators.bytecode.JmhBytecodeGenerator /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/classes /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/src_managed/jmh /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/resource_managed/jmh default
+[info] Processing 245 classes from /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/classes with "reflection" generator
+[info] Writing out Java source to /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/src_managed/jmh and resources to /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/resource_managed/jmh
+[info] compiling 6 Java sources to /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] running (fork) org.openjdk.jmh.Main -i 3 -wi 2 -r 1s -w 1s -f 2 -t 1 -prof gc -foe true -rf json -rff /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-python/jmh-proximal-v1.json gale.bench.OptimizationProximalBench.*
+[error] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 2 iterations, 1 s each
+[info] # Measurement: 3 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationProximalBench.accelerated
+[info] # Run progress: 0.00% complete, ETA 00:00:20
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 3689.385 us/op
+[info] # Warmup Iteration   2: 3075.480 us/op
+[info] Iteration   1: 3099.479 us/op
+[info]                  gc.alloc.rate:      2052.359 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.498 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 3100.966 us/op
+[info]                  gc.alloc.rate:      2051.396 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.366 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 3089.667 us/op
+[info]                  gc.alloc.rate:      2058.928 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.301 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            2.000 ms
+[info] # Run progress: 25.00% complete, ETA 00:00:16
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 3543.367 us/op
+[info] # Warmup Iteration   2: 3121.631 us/op
+[info] Iteration   1: 3099.893 us/op
+[info]                  gc.alloc.rate:      2052.123 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.366 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 3080.590 us/op
+[info]                  gc.alloc.rate:      2064.997 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.235 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   3: 3083.868 us/op
+[info]                  gc.alloc.rate:      2062.786 MB/sec
+[info]                  gc.alloc.rate.norm: 6671349.301 B/op
+[info]                  gc.count:           7.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Result "gale.bench.OptimizationProximalBench.accelerated":
+[info]   3092.410 ?(99.9%) 25.062 us/op [Average]
+[info]   (min, avg, max) = (3080.590, 3092.410, 3100.966), stdev = 8.937
+[info]   CI (99.9%): [3067.348, 3117.472] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.accelerated:gc.alloc.rate":
+[info]   2057.098 ?(99.9%) 16.723 MB/sec [Average]
+[info]   (min, avg, max) = (2051.396, 2057.098, 2064.997), stdev = 5.964
+[info]   CI (99.9%): [2040.375, 2073.821] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.accelerated:gc.alloc.rate.norm":
+[info]   6671349.345 ?(99.9%) 0.252 B/op [Average]
+[info]   (min, avg, max) = (6671349.235, 6671349.345, 6671349.498), stdev = 0.090
+[info]   CI (99.9%): [6671349.093, 6671349.597] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.accelerated:gc.count":
+[info]   37.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (6.000, 6.167, 7.000), stdev = 0.408
+[info]   CI (99.9%): [37.000, 37.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.accelerated:gc.time":
+[info]   17.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (2.000, 2.833, 3.000), stdev = 0.408
+[info]   CI (99.9%): [17.000, 17.000] (assumes normal distribution)
+[info] # JMH version: 1.37
+[info] # VM version: JDK 21.0.12.1, OpenJDK 64-Bit Server VM, 21.0.12.1+1-LTS
+[info] # VM invoker: /private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home/bin/java
+[info] # VM options: --add-modules=jdk.incubator.vector
+[info] # Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+[info] # Warmup: 2 iterations, 1 s each
+[info] # Measurement: 3 iterations, 1 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: gale.bench.OptimizationProximalBench.fixedStep
+[info] # Run progress: 50.00% complete, ETA 00:00:10
+[info] # Fork: 1 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 22527.887 us/op
+[info] # Warmup Iteration   2: 21303.826 us/op
+[info] Iteration   1: 21241.344 us/op
+[info]                  gc.alloc.rate:      1807.190 MB/sec
+[info]                  gc.alloc.rate.norm: 40260608.667 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 21174.523 us/op
+[info]                  gc.alloc.rate:      1813.037 MB/sec
+[info]                  gc.alloc.rate.norm: 40260608.667 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 21265.427 us/op
+[info]                  gc.alloc.rate:      1805.316 MB/sec
+[info]                  gc.alloc.rate.norm: 40260610.333 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] # Run progress: 75.00% complete, ETA 00:00:05
+[info] # Fork: 2 of 2
+[info] WARNING: Using incubator modules: jdk.incubator.vector
+[info] # Warmup Iteration   1: 22498.383 us/op
+[info] # Warmup Iteration   2: 21229.414 us/op
+[info] Iteration   1: 21344.982 us/op
+[info]                  gc.alloc.rate:      1798.562 MB/sec
+[info]                  gc.alloc.rate.norm: 40260611.745 B/op
+[info]                  gc.count:           6.000 counts
+[info]                  gc.time:            3.000 ms
+[info] Iteration   2: 21131.495 us/op
+[info]                  gc.alloc.rate:      1816.738 MB/sec
+[info]                  gc.alloc.rate.norm: 40260608.667 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Iteration   3: 21089.924 us/op
+[info]                  gc.alloc.rate:      1820.277 MB/sec
+[info]                  gc.alloc.rate.norm: 40260611.000 B/op
+[info]                  gc.count:           5.000 counts
+[info]                  gc.time:            2.000 ms
+[info] Result "gale.bench.OptimizationProximalBench.fixedStep":
+[info]   21207.949 ?(99.9%) 263.324 us/op [Average]
+[info]   (min, avg, max) = (21089.924, 21207.949, 21344.982), stdev = 93.904
+[info]   CI (99.9%): [20944.626, 21471.273] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.fixedStep:gc.alloc.rate":
+[info]   1810.187 ?(99.9%) 22.457 MB/sec [Average]
+[info]   (min, avg, max) = (1798.562, 1810.187, 1820.277), stdev = 8.009
+[info]   CI (99.9%): [1787.729, 1832.644] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.fixedStep:gc.alloc.rate.norm":
+[info]   40260609.846 ?(99.9%) 3.834 B/op [Average]
+[info]   (min, avg, max) = (40260608.667, 40260609.846, 40260611.745), stdev = 1.367
+[info]   CI (99.9%): [40260606.012, 40260613.680] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.fixedStep:gc.count":
+[info]   33.000 ?(99.9%) 0.001 counts [Sum]
+[info]   (min, avg, max) = (5.000, 5.500, 6.000), stdev = 0.548
+[info]   CI (99.9%): [33.000, 33.000] (assumes normal distribution)
+[info] Secondary result "gale.bench.OptimizationProximalBench.fixedStep:gc.time":
+[info]   15.000 ?(99.9%) 0.001 ms [Sum]
+[info]   (min, avg, max) = (2.000, 2.500, 3.000), stdev = 0.548
+[info]   CI (99.9%): [15.000, 15.000] (assumes normal distribution)
+[info] # Run complete. Total time: 00:00:21
+[info] REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+[info] why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+[info] experiments, perform baseline and negative tests that provide experimental control, make sure
+[info] the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+[info] Do not assume the numbers tell you what you want them to tell.
+[info] NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+[info] extra caution when trusting the results, look into the generated code to check the benchmark still
+[info] works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+[info] different JVMs are already problematic, the performance difference caused by different Blackhole
+[info] modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+[info] Benchmark                                                 Mode  Cnt         Score     Error   Units
+[info] OptimizationProximalBench.accelerated                     avgt    6      3092.410 ?  25.062   us/op
+[info] OptimizationProximalBench.accelerated:gc.alloc.rate       avgt    6      2057.098 ?  16.723  MB/sec
+[info] OptimizationProximalBench.accelerated:gc.alloc.rate.norm  avgt    6   6671349.345 ?   0.252    B/op
+[info] OptimizationProximalBench.accelerated:gc.count            avgt    6        37.000            counts
+[info] OptimizationProximalBench.accelerated:gc.time             avgt    6        17.000                ms
+[info] OptimizationProximalBench.fixedStep                       avgt    6     21207.949 ? 263.324   us/op
+[info] OptimizationProximalBench.fixedStep:gc.alloc.rate         avgt    6      1810.187 ?  22.457  MB/sec
+[info] OptimizationProximalBench.fixedStep:gc.alloc.rate.norm    avgt    6  40260609.846 ?   3.834    B/op
+[info] OptimizationProximalBench.fixedStep:gc.count              avgt    6        33.000            counts
+[info] OptimizationProximalBench.fixedStep:gc.time               avgt    6        15.000                ms
+[info] Benchmark result is saved to /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-python/jmh-proximal-v1.json
+[success] Total time: 23 s, completed Oct 7, 2026, 2:42:54 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 2:42:54 p.m.
+[info] Main Scala API documentation to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines
+[warn] Flag -classpath set repeatedly
+[warn] -- Warning: core/shared/src/main/scala/gale/linalg/Matrix.scala:619:6 ----------
+[warn] 619 |  def *(alpha: Double): DMat =
+[warn]     |      ^
+[warn]     |      Couldn't resolve a member for the given link query: DVec.*
+[warn] -- Warning: core/shared/src/main/scala/gale/sized/Sized.scala:158:8 ------------
+[warn] 158 |    def scale(alpha: Double): SMat[R, C] =
+[warn]     |        ^
+[warn]     |        Couldn't resolve a member for the given link query: *
+[warn] three warnings found
+[info] Main Scala API documentation successful.
+[success] Total time: 4 s, completed Oct 7, 2026, 2:42:58 p.m.
+[info] running mdoc.SbtMain 
+[34minfo[39m: Compiling 28 files to /Users/bbuchsbaum/code/scala/gale/site/target/mdoc
+[33mwarning[39m: advanced/numerical-contract.md:162:21: Unknown link '../sparse-direct-future.md'.
+their own spec in a [future version](../../sparse-direct-future.md). The
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: advanced/numerical-contract.md:163:17: Unknown link '../sparse-direct-js.md'.
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:382:1: Unknown link '../sparse-direct-future.md'.
+[future version](../../sparse-direct-future.md); see
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:383:1: Unknown link '../sparse-direct-js.md'.
+[Scala.js sparse-direct](../../sparse-direct-js.md).
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:518:1: Unknown link '../../parity/README.md'.
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[34minfo[39m: Compiled in 5.53s (0 errors, 5 warnings)
+[info] Delete API dir
+[info] Parsing 24 markup documents, 0 templates, 4 configurations, 0 stylesheets ...
+[info] Rendering 24 html documents, copying 14 static files ...
+[info] Generated html in /Users/bbuchsbaum/code/scala/gale/site/target/docs/site
+[success] Total time: 8 s, completed Oct 7, 2026, 2:43:06 p.m.

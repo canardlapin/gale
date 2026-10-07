@@ -1,0 +1,52 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Homebrew Java 25.0.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31736 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] Defining coreJVM / Test / unmanagedSourceDirectories
+[info] The new value will be used by coreJVM / Test / bspBuildTargetSourcesItem, coreJVM / Test / scalafmt and 3 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] Defining coreJS / Test / unmanagedSourceDirectories
+[info] The new value will be used by coreJS / Test / bspBuildTargetSourcesItem, coreJS / Test / scalafmt and 3 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] compiling 65 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] compiling 110 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/test-classes ...
+[info] done compiling
+Test run gale.optim.OptimReviewProbeSuite started
+gale.optim.OptimReviewProbeSuite: finished 0.046s
+Test run gale.optim.OptimReviewProbeSuite finished: 0 failed, 0 ignored, 5 total 0.06s
+Test run gale.optim.ConstrainedRayleighSuite started
+gale.optim.ConstrainedRayleighSuite: finished 0.067s
+Test run gale.optim.ConstrainedRayleighSuite finished: 0 failed, 0 ignored, 3 total 0.077s
+Test run gale.optim.FirstOrderOptimizationSuite started
+gale.optim.FirstOrderOptimizationSuite: finished 0.073s
+Test run gale.optim.FirstOrderOptimizationSuite finished: 0 failed, 0 ignored, 8 total 0.083s
+[info] Passed: Total 16, Failed 0, Errors 0, Passed 16
+[success] Total time: 19 s, completed Oct 7, 2026, 12:14:25 p.m.
+[info] compiling 65 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] compiling 107 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/test-classes ...
+[info] done compiling
+[info] Fast optimizing /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/gale-core-test-fastopt
+Test run gale.optim.OptimReviewProbeSuite started
+Test run gale.optim.FirstOrderOptimizationSuite started
+gale.optim.OptimReviewProbeSuite: finished 0.006s
+Test run gale.optim.OptimReviewProbeSuite finished: 0 failed, 0 ignored, 5 total 0.006s
+gale.optim.FirstOrderOptimizationSuite: finished 0.015s
+Test run gale.optim.FirstOrderOptimizationSuite finished: 0 failed, 0 ignored, 8 total 0.015s
+Test run gale.optim.ConstrainedRayleighSuite started
+gale.optim.ConstrainedRayleighSuite: finished 0.068s
+Test run gale.optim.ConstrainedRayleighSuite finished: 0 failed, 0 ignored, 3 total 0.068s
+[info] Passed: Total 16, Failed 0, Errors 0, Passed 16
+[success] Total time: 18 s, completed Oct 7, 2026, 12:14:43 p.m.

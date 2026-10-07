@@ -1,0 +1,13 @@
+lm-exp-64 valid= True ms= 0.1087 metric= 0.0
+lm-exp-offset-256 valid= True ms= 0.1755 metric= 4.7034443709042216e-11
+lm-rosenbrock valid= True ms= 0.1791 metric= 0.0
+lm-scaled-linear-8 valid= True ms= 0.0561 metric= 0.0
+lm-rank-deficient-3 valid= True ms= 0.0504 metric= 2.961410142717641e-13
+box-diagonal-16 valid= True ms= 0.2035 metric= 3.3323344084124074e-10
+Traceback (most recent call last):
+  File "/Users/bbuchsbaum/code/scala/gale/tools/optim-extensions/compare.py", line 253, in <module>
+    benchmark(args.baseline)
+    ~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/bbuchsbaum/code/scala/gale/tools/optim-extensions/compare.py", line 186, in benchmark
+    raise ValueError(f"reference fails independent checks: {case['id']} {refmetric}")
+ValueError: reference fails independent checks: box-diagonal-512 2.5234307286668334e-06

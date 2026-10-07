@@ -1,0 +1,956 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] scalafmt: Formatting 2 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Formatting 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Formatting 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[info] scalafmt: Formatting 2 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 2 s, completed Oct 7, 2026, 5:49:57 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 5:49:58 p.m.
+[info] compiling 2 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[success] Total time: 3 s, completed Oct 7, 2026, 5:50:01 p.m.
+[info] compiling 2 Scala sources to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/classes ...
+[info] done compiling
+[success] Total time: 1 s, completed Oct 7, 2026, 5:50:02 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 5:50:02 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 5:50:02 p.m.
+[info] Wrote /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/gale-core_3-0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT.pom
+[info] Main Scala API documentation to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines
+[warn] Flag -classpath set repeatedly
+[warn] -- Warning: core/shared/src/main/scala/gale/linalg/Matrix.scala:619:6 ----------
+[warn] 619 |  def *(alpha: Double): DMat =
+[warn]     |      ^
+[warn]     |      Couldn't resolve a member for the given link query: DVec.*
+[warn] -- Warning: core/shared/src/main/scala/gale/sized/Sized.scala:158:8 ------------
+[warn] 158 |    def scale(alpha: Double): SMat[R, C] =
+[warn]     |        ^
+[warn]     |        Couldn't resolve a member for the given link query: *
+[warn] three warnings found
+[info] Main Scala API documentation successful.
+[info] :: delivering :: io.github.canardlapin#gale-core_3;0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT :: 0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT :: integration :: Wed Oct 07 17:50:07 EDT 2026
+[info] 	delivering ivy file to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/ivy-0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT.xml
+[info] 	published gale-core_3 to /Users/bbuchsbaum/.ivy2/local/io.github.canardlapin/gale-core_3/0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT/poms/gale-core_3.pom
+[info] 	published gale-core_3 to /Users/bbuchsbaum/.ivy2/local/io.github.canardlapin/gale-core_3/0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT/jars/gale-core_3.jar
+[info] 	published gale-core_3 to /Users/bbuchsbaum/.ivy2/local/io.github.canardlapin/gale-core_3/0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT/srcs/gale-core_3-sources.jar
+[info] 	published gale-core_3 to /Users/bbuchsbaum/.ivy2/local/io.github.canardlapin/gale-core_3/0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT/docs/gale-core_3-javadoc.jar
+[info] 	published ivy to /Users/bbuchsbaum/.ivy2/local/io.github.canardlapin/gale-core_3/0.1.0+130-cf1cbe0d+20261007-1749-SNAPSHOT/ivys/ivy.xml
+[success] Total time: 5 s, completed Oct 7, 2026, 5:50:07 p.m.
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/compat/scala-next-consumer/target/scala-3.8.4/classes ...
+[info] done compiling
+[success] Total time: 2 s, completed Oct 7, 2026, 5:50:09 p.m.
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/test-classes ...
+[info] done compiling
+Test run gale.linalg.DenseLawSuite started
+gale.linalg.DenseLawSuite: finished 0.045s
+Test run gale.linalg.ShapeOverflowSuite started
+gale.linalg.ShapeOverflowSuite: finished 0.045s
+Test run gale.sparse.SparseOpsSuite started
+gale.sparse.SparseOpsSuite: finished 0.045s
+Test run userland.InteropSuite started
+userland.InteropSuite: finished 0.045s
+Test run gale.linalg.ShapeOverflowSuite finished: 0 failed, 0 ignored, 5 total 0.062s
+Test run gale.sparse.SparseOpsSuite finished: 0 failed, 0 ignored, 2 total 0.062s
+Test run userland.InteropSuite finished: 0 failed, 0 ignored, 5 total 0.062s
+Test run gale.linalg.DenseLawSuite finished: 0 failed, 0 ignored, 2 total 0.062s
+Test run gale.spectral.MetricSolveSuite started
+gale.spectral.MetricSolveSuite: finished 0.071s
+Test run gale.spectral.MetricSolveSuite finished: 0 failed, 0 ignored, 7 total 0.081s
+Test run gale.sparse.SparseErrorSuite started
+gale.sparse.SparseErrorSuite: finished 0.001s
+Test run gale.sparse.SparseErrorSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+Test run userland.PropertyWrapperInteropSuite started
+userland.PropertyWrapperInteropSuite: finished 0.004s
+Test run userland.PropertyWrapperInteropSuite finished: 0 failed, 0 ignored, 1 total 0.004s
+Test run gale.optim.StandardTermsSuite started
+gale.optim.StandardTermsSuite: finished 0.081s
+Test run gale.optim.StandardTermsSuite finished: 0 failed, 0 ignored, 7 total 0.091s
+Test run gale.linalg.GaleNumericalContractSuite started
+gale.linalg.GaleNumericalContractSuite: finished 0.083s
+Test run gale.linalg.GaleNumericalContractSuite finished: 0 failed, 0 ignored, 9 total 0.093s
+Test run gale.sparse.SparseCanonicalSuite started
+gale.sparse.SparseCanonicalSuite: finished 0.008s
+Test run gale.sparse.SparseCanonicalSuite finished: 0 failed, 0 ignored, 7 total 0.008s
+Test run gale.solvers.SolverRegressionSuite started
+gale.solvers.SolverRegressionSuite: finished 0.011s
+Test run gale.solvers.SolverRegressionSuite finished: 0 failed, 0 ignored, 10 total 0.012s
+Test run gale.sparse.BandedSuite started
+gale.sparse.BandedSuite: finished 0.015s
+Test run gale.sparse.BandedSuite finished: 0 failed, 0 ignored, 4 total 0.015s
+Test run gale.linalg.TinyKernelSuite started
+gale.linalg.TinyKernelSuite: finished 0.014s
+Test run gale.linalg.TinyKernelSuite finished: 0 failed, 0 ignored, 3 total 0.014s
+Test run gale.linalg.FactorizationTypeSuite started
+gale.linalg.FactorizationTypeSuite: finished 0.005s
+Test run gale.linalg.FactorizationTypeSuite finished: 0 failed, 0 ignored, 3 total 0.005s
+Test run gale.sparse.direct.SparseDirectSeamSuite started
+gale.sparse.direct.SparseDirectSeamSuite: finished 0.004s
+Test run gale.sparse.direct.SparseDirectSeamSuite finished: 0 failed, 0 ignored, 2 total 0.004s
+Test run gale.sparse.SparsePerfSuite started
+gale.sparse.SparsePerfSuite: finished 0.017s
+Test run gale.sparse.SparsePerfSuite finished: 0 failed, 0 ignored, 8 total 0.017s
+Test run gale.spectral.NonsymmetricEigenPackingSuite started
+gale.spectral.NonsymmetricEigenPackingSuite: finished 0.014s
+Test run gale.spectral.NonsymmetricEigenPackingSuite finished: 0 failed, 0 ignored, 10 total 0.015s
+Test run gale.spectral.PartialSvdSuite started
+gale.spectral.PartialSvdSuite: finished 0.11s
+Test run gale.spectral.PartialSvdSuite finished: 0 failed, 0 ignored, 13 total 0.12s
+Test run gale.spectral.ValidatedSvdSuite started
+gale.spectral.ValidatedSvdSuite: finished 0.113s
+Test run gale.spectral.ValidatedSvdSuite finished: 0 failed, 0 ignored, 9 total 0.123s
+Test run gale.spectral.EigSymmetricGeneralizedOperatorSuite started
+gale.spectral.EigSymmetricGeneralizedOperatorSuite: finished 0.118s
+Test run gale.spectral.EigSymmetricGeneralizedOperatorSuite finished: 0 failed, 0 ignored, 6 total 0.128s
+Test run gale.spectral.DenseSpectralKernelsSymmetricSuite started
+gale.spectral.DenseSpectralKernelsSymmetricSuite: finished 0.037s
+Test run gale.spectral.DenseSpectralKernelsSymmetricSuite finished: 0 failed, 0 ignored, 15 total 0.037s
+Test run gale.spectral.GeneralizedBlockKernelsSuite started
+gale.spectral.GeneralizedBlockKernelsSuite: finished 0.016s
+Test run gale.spectral.GeneralizedBlockKernelsSuite finished: 0 failed, 0 ignored, 11 total 0.016s
+Test run gale.linalg.DenseCoreSuite started
+gale.linalg.DenseCoreSuite: finished 0.009s
+Test run gale.linalg.DenseCoreSuite finished: 0 failed, 0 ignored, 6 total 0.009s
+Test run gale.optim.LevenbergMarquardtSuite started
+gale.optim.LevenbergMarquardtSuite: finished 0.124s
+Test run gale.optim.LevenbergMarquardtSuite finished: 0 failed, 0 ignored, 13 total 0.134s
+Test run gale.linalg.DenseTransformSuite started
+gale.linalg.DenseTransformSuite: finished 0.025s
+Test run gale.linalg.DenseTransformSuite finished: 0 failed, 0 ignored, 8 total 0.025s
+Test run gale.sparse.SparseInteropSuite started
+gale.sparse.SparseInteropSuite: finished 0.03s
+Test run gale.sparse.SparseInteropSuite finished: 0 failed, 0 ignored, 7 total 0.03s
+Test run gale.spectral.ValidatedSvdJvmSuite started
+gale.spectral.ValidatedSvdJvmSuite: finished 0.01s
+Test run gale.spectral.ValidatedSvdJvmSuite finished: 0 failed, 0 ignored, 2 total 0.01s
+Test run gale.linalg.CholeskySuite started
+gale.linalg.CholeskySuite: finished 0.014s
+Test run gale.linalg.CholeskySuite finished: 0 failed, 0 ignored, 8 total 0.014s
+Test run gale.spectral.SpectralDiagnosticsSuite started
+gale.spectral.SpectralDiagnosticsSuite: finished 0.016s
+Test run gale.spectral.SpectralDiagnosticsSuite finished: 0 failed, 0 ignored, 6 total 0.016s
+Test run gale.spectral.GeneralizedSvdSuite started
+gale.spectral.GeneralizedSvdSuite: finished 0.034s
+Test run gale.spectral.GeneralizedSvdSuite finished: 0 failed, 0 ignored, 10 total 0.035s
+Test run gale.linalg.MutableMatrixSuite started
+gale.linalg.MutableMatrixSuite: finished 0.019s
+Test run gale.linalg.MutableMatrixSuite finished: 0 failed, 0 ignored, 5 total 0.019s
+Test run gale.linalg.TriangularSolveSuite started
+gale.linalg.TriangularSolveSuite: finished 0.01s
+Test run gale.linalg.TriangularSolveSuite finished: 0 failed, 0 ignored, 5 total 0.011s
+Test run gale.linalg.RowReductionSuite started
+gale.linalg.RowReductionSuite: finished 0.052s
+Test run gale.linalg.RowReductionSuite finished: 0 failed, 0 ignored, 7 total 0.053s
+Test run gale.linalg.PivotedQRScreenSuite started
+gale.linalg.PivotedQRScreenSuite: finished 0.163s
+Test run gale.linalg.PivotedQRScreenSuite finished: 0 failed, 0 ignored, 7 total 0.173s
+Test run gale.spectral.EigNonsymmetricLeftVectorSuite started
+gale.spectral.EigNonsymmetricLeftVectorSuite: finished 0.039s
+Test run gale.spectral.EigNonsymmetricLeftVectorSuite finished: 0 failed, 0 ignored, 10 total 0.039s
+Test run gale.sparse.CompressedPatternSuite started
+gale.sparse.CompressedPatternSuite: finished 0.034s
+Test run gale.sparse.CompressedPatternSuite finished: 0 failed, 0 ignored, 10 total 0.034s
+Test run gale.spectral.GeneralizedEigenSuite started
+gale.spectral.GeneralizedEigenSuite: finished 0.04s
+Test run gale.spectral.GeneralizedEigenSuite finished: 0 failed, 0 ignored, 14 total 0.04s
+Test run gale.linalg.IllConditionedSuite started
+gale.linalg.IllConditionedSuite: finished 0.002s
+Test run gale.linalg.IllConditionedSuite finished: 0 failed, 0 ignored, 5 total 0.002s
+Test run gale.linalg.WorkspaceSuite started
+gale.linalg.WorkspaceSuite: finished 0.1s
+Test run gale.linalg.WorkspaceSuite finished: 0 failed, 0 ignored, 9 total 0.1s
+Test run gale.sparse.COOSuite started
+gale.sparse.COOSuite: finished 0.003s
+Test run gale.sparse.COOSuite finished: 0 failed, 0 ignored, 3 total 0.003s
+Test run gale.sparse.MatrixMarketHeaderSuite started
+gale.sparse.MatrixMarketHeaderSuite: finished 0.008s
+Test run gale.sparse.MatrixMarketHeaderSuite finished: 0 failed, 0 ignored, 5 total 0.008s
+Test run gale.spectral.EigSymmetricGeneralizedSuite started
+gale.spectral.EigSymmetricGeneralizedSuite: finished 0.028s
+Test run gale.spectral.LobpcgSuite started
+gale.spectral.LobpcgSuite: finished 0.046s
+Test run gale.spectral.EigSymmetricGeneralizedSuite finished: 0 failed, 0 ignored, 8 total 0.03s
+Test run gale.spectral.LobpcgSuite finished: 0 failed, 0 ignored, 8 total 0.048s
+Test run gale.spectral.DenseSvdSuite started
+gale.spectral.DenseSvdSuite: finished 0.038s
+Test run gale.spectral.DenseSvdSuite finished: 0 failed, 0 ignored, 19 total 0.038s
+Test run gale.spectral.DenseSymmetricWorkspaceSuite started
+gale.spectral.DenseSymmetricWorkspaceSuite: finished 0.009s
+Test run gale.spectral.DenseSymmetricWorkspaceSuite finished: 0 failed, 0 ignored, 4 total 0.009s
+Test run gale.linalg.PinvKronSuite started
+gale.linalg.PinvKronSuite: finished 0.018s
+Test run gale.linalg.PinvKronSuite finished: 0 failed, 0 ignored, 12 total 0.018s
+Test run gale.spectral.EigNonsymmetricDenseSuite started
+gale.spectral.EigNonsymmetricDenseSuite: finished 0.027s
+Test run gale.spectral.EigNonsymmetricDenseSuite finished: 0 failed, 0 ignored, 12 total 0.027s
+Test run gale.sized.SizedSuite started
+gale.sized.SizedSuite: finished 0.03s
+Test run gale.sized.SizedSuite finished: 0 failed, 0 ignored, 10 total 0.03s
+Test run gale.linalg.NumericalPolicySuite started
+gale.linalg.NumericalPolicySuite: finished 0.008s
+Test run gale.linalg.NumericalPolicySuite finished: 0 failed, 0 ignored, 5 total 0.008s
+Test run gale.sparse.SparsePropertiesSuite started
+gale.sparse.SparsePropertiesSuite: finished 0.004s
+Test run gale.sparse.SparsePropertiesSuite finished: 0 failed, 0 ignored, 4 total 0.004s
+Test run gale.sparse.SparseViewSuite started
+gale.sparse.SparseViewSuite: finished 0.004s
+Test run gale.sparse.SparseViewSuite finished: 0 failed, 0 ignored, 5 total 0.004s
+Test run gale.spectral.EigNonsymmetricArnoldiSuite started
+gale.spectral.EigNonsymmetricArnoldiSuite: finished 0.135s
+Test run gale.spectral.EigNonsymmetricArnoldiSuite finished: 0 failed, 0 ignored, 10 total 0.135s
+Test run gale.backend.BackendSeamSuite started
+gale.backend.BackendSeamSuite: finished 0.07s
+Test run gale.backend.BackendSeamSuite finished: 0 failed, 0 ignored, 15 total 0.07s
+Test run gale.linalg.PerfDoctrineSuite started
+gale.linalg.PerfDoctrineSuite: finished 0.269s
+Test run gale.linalg.PerfDoctrineSuite finished: 0 failed, 0 ignored, 8 total 0.279s
+Test run userland.MutableViewOpacitySuite started
+userland.MutableViewOpacitySuite: finished 0.001s
+Test run userland.MutableViewOpacitySuite finished: 0 failed, 0 ignored, 2 total 0.001s
+Test run gale.spectral.DenseSpectralKernelsNonsymmetricSuite started
+gale.spectral.DenseSpectralKernelsNonsymmetricSuite: finished 0.053s
+Test run gale.spectral.DenseSpectralKernelsNonsymmetricSuite finished: 0 failed, 0 ignored, 13 total 0.053s
+Test run gale.sparse.SparsePlanSuite started
+gale.sparse.SparsePlanSuite: finished 0.055s
+Test run gale.sparse.SparsePlanSuite finished: 0 failed, 0 ignored, 7 total 0.055s
+Test run gale.backend.BackendContractSuite started
+gale.backend.BackendContractSuite: finished 0.019s
+Test run gale.backend.BackendContractSuite finished: 0 failed, 0 ignored, 15 total 0.019s
+Test run gale.spectral.GeneralizedOperatorAdversarialSuite started
+gale.spectral.GeneralizedOperatorAdversarialSuite: finished 0.025s
+Test run gale.spectral.GeneralizedOperatorAdversarialSuite finished: 0 failed, 0 ignored, 8 total 0.025s
+Test run gale.spectral.GeneralizedEigenTrustSuite started
+gale.spectral.GeneralizedEigenTrustSuite: finished 0.02s
+Test run gale.spectral.GeneralizedEigenTrustSuite finished: 0 failed, 0 ignored, 7 total 0.02s
+Test run gale.solvers.IterativeSolversSuite started
+gale.solvers.IterativeSolversSuite: finished 0.003s
+Test run gale.solvers.IterativeSolversSuite finished: 0 failed, 0 ignored, 4 total 0.003s
+Test run userland.SyntaxConformanceSuite started
+userland.SyntaxConformanceSuite: finished 0.006s
+Test run userland.SyntaxConformanceSuite finished: 0 failed, 0 ignored, 4 total 0.007s
+Test run gale.spectral.SpectralBackendSuite started
+gale.spectral.SpectralBackendSuite: finished 0.014s
+Test run gale.spectral.SpectralBackendSuite finished: 0 failed, 0 ignored, 7 total 0.014s
+Test run gale.sparse.CanonicalizationSuite started
+gale.sparse.CanonicalizationSuite: finished 0.005s
+Test run gale.sparse.CanonicalizationSuite finished: 0 failed, 0 ignored, 4 total 0.005s
+Test run gale.examples.WorkedExamplesSuite started
+gale.examples.WorkedExamplesSuite: finished 0.013s
+Test run gale.examples.WorkedExamplesSuite finished: 0 failed, 0 ignored, 5 total 0.013s
+Test run gale.spectral.SubspaceSuite started
+gale.spectral.SubspaceSuite: finished 0.013s
+Test run gale.spectral.SubspaceSuite finished: 0 failed, 0 ignored, 4 total 0.013s
+Test run gale.spectral.SpectralSelectionSuite started
+gale.spectral.SpectralSelectionSuite: finished 0.01s
+Test run gale.spectral.SpectralSelectionSuite finished: 0 failed, 0 ignored, 8 total 0.01s
+Test run gale.linalg.RankConditionSuite started
+gale.linalg.RankConditionSuite: finished 0.003s
+Test run gale.linalg.RankConditionSuite finished: 0 failed, 0 ignored, 4 total 0.003s
+Test run gale.linalg.MutableVectorSuite started
+gale.linalg.MutableVectorSuite: finished 0.003s
+Test run gale.linalg.MutableVectorSuite finished: 0 failed, 0 ignored, 2 total 0.003s
+Test run gale.spectral.TruncatedSvdSuite started
+gale.spectral.TruncatedSvdSuite: finished 0.016s
+Test run gale.spectral.TruncatedSvdSuite finished: 0 failed, 0 ignored, 7 total 0.016s
+Test run gale.optim.DenseObjectivesSuite started
+gale.optim.DenseObjectivesSuite: finished 0.026s
+Test run gale.optim.DenseObjectivesSuite finished: 0 failed, 0 ignored, 4 total 0.026s
+Test run gale.spectral.EigSymmetricBackendSeamSuite started
+gale.spectral.EigSymmetricBackendSeamSuite: finished 0.021s
+Test run gale.spectral.EigSymmetricBackendSeamSuite finished: 0 failed, 0 ignored, 13 total 0.021s
+Test run gale.sparse.CSCParitySuite started
+gale.sparse.CSCParitySuite: finished 0.004s
+Test run gale.sparse.CSCParitySuite finished: 0 failed, 0 ignored, 7 total 0.004s
+Test run gale.spectral.GeneralizedLanczosSuite started
+gale.spectral.GeneralizedLanczosSuite: finished 0.153s
+Test run gale.spectral.GeneralizedLanczosSuite finished: 0 failed, 0 ignored, 11 total 0.153s
+Test run gale.linalg.DenseDestinationSuite started
+gale.linalg.DenseDestinationSuite: finished 0.006s
+Test run gale.linalg.DenseDestinationSuite finished: 0 failed, 0 ignored, 7 total 0.006s
+Test run gale.solvers.CgWorkspaceSuite started
+gale.solvers.CgWorkspaceSuite: finished 0.011s
+Test run gale.solvers.CgWorkspaceSuite finished: 0 failed, 0 ignored, 7 total 0.011s
+Test run gale.sparse.MatrixMarketLawSuite started
+gale.sparse.MatrixMarketLawSuite: finished 0.001s
+Test run gale.sparse.MatrixMarketLawSuite finished: 0 failed, 0 ignored, 1 total 0.001s
+Test run gale.optim.OptimizationNumericsSuite started
+gale.optim.OptimizationNumericsSuite: finished 0.001s
+Test run gale.optim.OptimizationNumericsSuite finished: 0 failed, 0 ignored, 1 total 0.001s
+Test run gale.solvers.LsqrSuite started
+gale.solvers.LsqrSuite: finished 0.004s
+Test run gale.solvers.LsqrSuite finished: 0 failed, 0 ignored, 3 total 0.004s
+Test run gale.solvers.PreconditionedSolverSuite started
+gale.solvers.PreconditionedSolverSuite: finished 0.013s
+Test run gale.solvers.PreconditionedSolverSuite finished: 0 failed, 0 ignored, 5 total 0.013s
+Test run gale.solvers.SolverApiSuite started
+gale.solvers.SolverApiSuite: finished 0.007s
+Test run gale.solvers.SolverApiSuite finished: 0 failed, 0 ignored, 6 total 0.007s
+Test run gale.linalg.FactorizationCapabilitySuite started
+gale.linalg.FactorizationCapabilitySuite: finished 0.008s
+Test run gale.linalg.FactorizationCapabilitySuite finished: 0 failed, 0 ignored, 7 total 0.008s
+Test run gale.sparse.SparseStorageSuite started
+gale.sparse.SparseStorageSuite: finished 0.005s
+Test run gale.sparse.SparseStorageSuite finished: 0 failed, 0 ignored, 2 total 0.005s
+Test run userland.SizedOpacitySuite started
+userland.SizedOpacitySuite: finished 0.01s
+Test run userland.SizedOpacitySuite finished: 0 failed, 0 ignored, 3 total 0.01s
+Test run gale.linalg.LinearOperatorSuite started
+gale.linalg.LinearOperatorSuite: finished 0.017s
+Test run gale.linalg.LinearOperatorSuite finished: 0 failed, 0 ignored, 11 total 0.017s
+Test run gale.optim.LBFGSBSuite started
+gale.optim.LBFGSBSuite: finished 0.036s
+Test run gale.optim.LBFGSBSuite finished: 0 failed, 0 ignored, 11 total 0.036s
+Test run gale.linalg.OutwardIntervalSuite started
+gale.linalg.OutwardIntervalSuite: finished 0.033s
+Test run gale.linalg.OutwardIntervalSuite finished: 0 failed, 0 ignored, 8 total 0.033s
+Test run gale.spectral.UnsupportedSurfaceSuite started
+gale.spectral.UnsupportedSurfaceSuite: finished 0.001s
+Test run gale.spectral.UnsupportedSurfaceSuite finished: 0 failed, 0 ignored, 5 total 0.001s
+Test run gale.kernel.PlatformFmaSuite started
+gale.kernel.PlatformFmaSuite: finished 0.002s
+Test run gale.kernel.PlatformFmaSuite finished: 0 failed, 0 ignored, 3 total 0.002s
+Test run gale.spectral.RealIntervalSuite started
+gale.spectral.RealIntervalSuite: finished 0.015s
+Test run gale.spectral.RealIntervalSuite finished: 0 failed, 0 ignored, 8 total 0.015s
+Test run gale.spectral.ComplexAndGeneralizedSuite started
+gale.spectral.ComplexAndGeneralizedSuite: finished 0.004s
+Test run gale.spectral.ComplexAndGeneralizedSuite finished: 0 failed, 0 ignored, 4 total 0.004s
+Test run gale.spectral.EigSymmetricGeneralizedBackendSuite started
+gale.spectral.EigSymmetricGeneralizedBackendSuite: finished 0.024s
+Test run gale.spectral.EigSymmetricGeneralizedBackendSuite finished: 0 failed, 0 ignored, 9 total 0.024s
+Test run gale.linalg.GemmTuningSuite started
+gale.linalg.GemmTuningSuite: finished 0.007s
+Test run gale.linalg.GemmTuningSuite finished: 0 failed, 0 ignored, 5 total 0.007s
+Test run gale.linalg.KernelRegressionSuite started
+gale.linalg.KernelRegressionSuite: finished 0.002s
+Test run gale.linalg.KernelRegressionSuite finished: 0 failed, 0 ignored, 4 total 0.002s
+Test run gale.optim.SmoothOptimizationSuite started
+gale.optim.SmoothOptimizationSuite: finished 0.095s
+Test run gale.optim.SmoothOptimizationSuite finished: 0 failed, 0 ignored, 9 total 0.095s
+Test run gale.sparse.SparseWorkspaceSuite started
+gale.sparse.SparseWorkspaceSuite: finished 0.004s
+Test run gale.sparse.SparseWorkspaceSuite finished: 0 failed, 0 ignored, 3 total 0.004s
+Test run gale.linalg.MatrixPropertiesSuite started
+gale.linalg.MatrixPropertiesSuite: finished 0.016s
+Test run gale.linalg.MatrixPropertiesSuite finished: 0 failed, 0 ignored, 7 total 0.016s
+Test run gale.linalg.DenseCholeskyWorkspaceSuite started
+gale.linalg.DenseCholeskyWorkspaceSuite: finished 0.016s
+Test run gale.linalg.DenseCholeskyWorkspaceSuite finished: 0 failed, 0 ignored, 8 total 0.016s
+Test run gale.linalg.LUSuite started
+gale.linalg.LUSuite: finished 0.003s
+Test run gale.linalg.LUSuite finished: 0 failed, 0 ignored, 4 total 0.003s
+Test run gale.optim.ConstrainedRayleighSuite started
+gale.optim.ConstrainedRayleighSuite: finished 0.207s
+Test run gale.optim.ConstrainedRayleighSuite finished: 0 failed, 0 ignored, 7 total 0.208s
+Test run gale.linalg.FiniteSymmetricSolveBoundsSuite started
+gale.linalg.FiniteSymmetricSolveBoundsSuite: finished 0.025s
+Test run gale.linalg.FiniteSymmetricSolveBoundsSuite finished: 0 failed, 0 ignored, 5 total 0.025s
+Test run gale.spectral.EigSymmetricDenseSuite started
+gale.spectral.EigSymmetricDenseSuite: finished 0.013s
+Test run gale.spectral.EigSymmetricDenseSuite finished: 0 failed, 0 ignored, 9 total 0.013s
+Test run gale.optim.OptimizationContractsSuite started
+gale.optim.OptimizationContractsSuite: finished 0.063s
+Test run gale.optim.OptimizationContractsSuite finished: 0 failed, 0 ignored, 7 total 0.063s
+Test run gale.sparse.direct.pure.PureSparseCholeskySuite started
+gale.sparse.direct.pure.PureSparseCholeskySuite: finished 0.444s
+Test run gale.sparse.direct.pure.PureSparseCholeskySuite finished: 0 failed, 0 ignored, 10 total 0.454s
+Test run gale.optim.FirstOrderOptimizationSuite started
+gale.optim.FirstOrderOptimizationSuite: finished 0.08s
+Test run gale.optim.FirstOrderOptimizationSuite finished: 0 failed, 0 ignored, 16 total 0.081s
+Test run gale.sparse.direct.SparseDirectProviderSuite started
+gale.sparse.direct.SparseDirectProviderSuite: finished 0.063s
+Test run gale.sparse.direct.SparseDirectProviderSuite finished: 0 failed, 0 ignored, 7 total 0.063s
+Test run gale.linalg.BandedCholeskySuite started
+gale.linalg.BandedCholeskySuite: finished 0.331s
+Test run gale.linalg.BandedCholeskySuite finished: 0 failed, 0 ignored, 12 total 0.332s
+Test run gale.optim.AcceleratedProximalSuite started
+gale.optim.AcceleratedProximalSuite: finished 0.122s
+Test run gale.optim.AcceleratedProximalSuite finished: 0 failed, 0 ignored, 11 total 0.122s
+Test run gale.numeric.PairedSquaredResidualComparisonSuite started
+gale.numeric.PairedSquaredResidualComparisonSuite: finished 0.122s
+Test run gale.numeric.PairedSquaredResidualComparisonSuite finished: 0 failed, 0 ignored, 23 total 0.122s
+Test run gale.numeric.ExactSumSuite started
+gale.numeric.ExactSumSuite: finished 0.311s
+Test run gale.numeric.ExactSumSuite finished: 0 failed, 0 ignored, 17 total 0.311s
+Test run gale.spectral.EigSymmetricLanczosSuite started
+gale.spectral.EigSymmetricLanczosSuite: finished 0.155s
+Test run gale.spectral.EigSymmetricLanczosSuite finished: 0 failed, 0 ignored, 19 total 0.156s
+Test run gale.linalg.QRSuite started
+gale.linalg.QRSuite: finished 0.375s
+Test run gale.linalg.QRSuite finished: 0 failed, 0 ignored, 33 total 0.375s
+Test run gale.linalg.BandedLogDetJetSuite started
+gale.linalg.BandedLogDetJetSuite: finished 0.681s
+Test run gale.linalg.BandedLogDetJetSuite finished: 0 failed, 0 ignored, 8 total 0.681s
+Test run gale.linalg.DctBasisSuite started
+gale.linalg.DctBasisSuite: finished 2.192s
+Test run gale.linalg.DctBasisSuite finished: 0 failed, 0 ignored, 6 total 2.193s
+[info] Passed: Total 868, Failed 0, Errors 0, Passed 868
+[success] Total time: 3 s, completed Oct 7, 2026, 5:50:12 p.m.
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/test-classes ...
+[info] done compiling
+[info] Fast optimizing /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/gale-core-test-fastopt
+Test run gale.sparse.SparseCanonicalSuite started
+Test run gale.optim.LevenbergMarquardtSuite started
+gale.sparse.SparseCanonicalSuite: finished 0.010s
+Test run gale.sparse.SparseCanonicalSuite finished: 0 failed, 0 ignored, 7 total 0.010s
+gale.optim.LevenbergMarquardtSuite: finished 0.023s
+Test run gale.optim.LevenbergMarquardtSuite finished: 0 failed, 0 ignored, 13 total 0.023s
+Test run gale.linalg.PerfDoctrineSuite started
+gale.linalg.PerfDoctrineSuite: finished 0.062s
+Test run gale.linalg.PerfDoctrineSuite finished: 0 failed, 0 ignored, 8 total 0.062s
+Test run gale.sparse.SparsePerfSuite started
+gale.sparse.SparsePerfSuite: finished 0.013s
+Test run gale.sparse.SparsePerfSuite finished: 0 failed, 0 ignored, 8 total 0.013s
+Test run gale.sparse.SparseStorageSuite started
+gale.sparse.SparseStorageSuite: finished 0.003s
+Test run gale.sparse.SparseStorageSuite finished: 0 failed, 0 ignored, 2 total 0.003s
+Test run gale.linalg.OutwardIntervalSuite started
+gale.linalg.OutwardIntervalSuite: finished 0.046s
+Test run gale.linalg.OutwardIntervalSuite finished: 0 failed, 0 ignored, 8 total 0.046s
+Test run userland.SizedOpacitySuite started
+userland.SizedOpacitySuite: finished 0.006s
+Test run userland.SizedOpacitySuite finished: 0 failed, 0 ignored, 3 total 0.006s
+Test run gale.linalg.RowReductionSuite started
+gale.linalg.RowReductionSuite: finished 0.019s
+Test run gale.linalg.RowReductionSuite finished: 0 failed, 0 ignored, 7 total 0.019s
+Test run gale.spectral.EigSymmetricGeneralizedOperatorSuite started
+gale.spectral.EigSymmetricGeneralizedOperatorSuite: finished 0.025s
+Test run gale.spectral.EigSymmetricGeneralizedOperatorSuite finished: 0 failed, 0 ignored, 6 total 0.025s
+Test run gale.linalg.NumericalPolicySuite started
+gale.linalg.NumericalPolicySuite: finished 0.003s
+Test run gale.linalg.NumericalPolicySuite finished: 0 failed, 0 ignored, 5 total 0.003s
+Test run gale.backend.BackendContractSuite started
+gale.backend.BackendContractSuite: finished 0.009s
+Test run gale.backend.BackendContractSuite finished: 0 failed, 0 ignored, 15 total 0.009s
+Test run userland.InteropSuite started
+userland.InteropSuite: finished 0.001s
+Test run userland.InteropSuite finished: 0 failed, 0 ignored, 5 total 0.001s
+Test run gale.linalg.CholeskySuite started
+Test run gale.sparse.SparseOpsSuite started
+gale.sparse.SparseOpsSuite: finished 0.001s
+Test run gale.sparse.SparseOpsSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+Test run userland.PropertyWrapperInteropSuite started
+userland.PropertyWrapperInteropSuite: finished 0.002s
+Test run userland.PropertyWrapperInteropSuite finished: 0 failed, 0 ignored, 1 total 0.002s
+Test run gale.linalg.LUSuite started
+gale.linalg.CholeskySuite: finished 0.015s
+Test run gale.linalg.CholeskySuite finished: 0 failed, 0 ignored, 8 total 0.015s
+Test run gale.linalg.DenseCholeskyWorkspaceSuite started
+Test run gale.solvers.CgWorkspaceSuite started
+gale.linalg.LUSuite: finished 0.010s
+Test run gale.linalg.LUSuite finished: 0 failed, 0 ignored, 4 total 0.010s
+gale.linalg.DenseCholeskyWorkspaceSuite: finished 0.007s
+Test run gale.linalg.DenseCholeskyWorkspaceSuite finished: 0 failed, 0 ignored, 8 total 0.007s
+Test run gale.linalg.PinvKronSuite started
+gale.solvers.CgWorkspaceSuite: finished 0.005s
+Test run gale.solvers.CgWorkspaceSuite finished: 0 failed, 0 ignored, 7 total 0.005s
+Test run gale.linalg.FiniteSymmetricSolveBoundsSuite started
+Test run gale.spectral.UnsupportedSurfaceSuite started
+Test run gale.spectral.SpectralSelectionSuite started
+gale.spectral.UnsupportedSurfaceSuite: finished 0.004s
+Test run gale.spectral.UnsupportedSurfaceSuite finished: 0 failed, 0 ignored, 5 total 0.004s
+gale.spectral.SpectralSelectionSuite: finished 0.006s
+Test run gale.spectral.SpectralSelectionSuite finished: 0 failed, 0 ignored, 8 total 0.006s
+Test run gale.spectral.EigNonsymmetricArnoldiSuite started
+Test run gale.sparse.SparseViewSuite started
+gale.sparse.SparseViewSuite: finished 0.005s
+Test run gale.sparse.SparseViewSuite finished: 0 failed, 0 ignored, 5 total 0.005s
+gale.linalg.FiniteSymmetricSolveBoundsSuite: finished 0.020s
+Test run gale.linalg.FiniteSymmetricSolveBoundsSuite finished: 0 failed, 0 ignored, 5 total 0.020s
+Test run gale.linalg.QRSuite started
+Test run gale.sparse.CompressedPatternSuite started
+gale.linalg.PinvKronSuite: finished 0.027s
+Test run gale.linalg.PinvKronSuite finished: 0 failed, 0 ignored, 12 total 0.027s
+Test run gale.sparse.SparsePlanSuite started
+gale.sparse.CompressedPatternSuite: finished 0.005s
+Test run gale.sparse.CompressedPatternSuite finished: 0 failed, 0 ignored, 10 total 0.005s
+Test run gale.spectral.GeneralizedEigenSuite started
+Test run gale.sparse.SparsePropertiesSuite started
+gale.sparse.SparsePropertiesSuite: finished 0.003s
+Test run gale.sparse.SparsePropertiesSuite finished: 0 failed, 0 ignored, 4 total 0.003s
+Test run gale.linalg.RankConditionSuite started
+Test run gale.linalg.DenseCoreSuite started
+gale.linalg.DenseCoreSuite: finished 0.002s
+Test run gale.linalg.DenseCoreSuite finished: 0 failed, 0 ignored, 6 total 0.002s
+gale.spectral.GeneralizedEigenSuite: finished 0.023s
+Test run gale.spectral.GeneralizedEigenSuite finished: 0 failed, 0 ignored, 14 total 0.023s
+gale.linalg.RankConditionSuite: finished 0.007s
+Test run gale.linalg.RankConditionSuite finished: 0 failed, 0 ignored, 4 total 0.007s
+Test run gale.linalg.MatrixPropertiesSuite started
+Test run gale.linalg.GemmTuningSuite started
+gale.linalg.MatrixPropertiesSuite: finished 0.002s
+Test run gale.linalg.MatrixPropertiesSuite finished: 0 failed, 0 ignored, 7 total 0.002s
+gale.linalg.GemmTuningSuite: finished 0.004s
+Test run gale.linalg.GemmTuningSuite finished: 0 failed, 0 ignored, 5 total 0.004s
+Test run gale.linalg.KernelRegressionSuite started
+Test run gale.linalg.TriangularSolveSuite started
+gale.linalg.TriangularSolveSuite: finished 0.004s
+Test run gale.linalg.TriangularSolveSuite finished: 0 failed, 0 ignored, 5 total 0.004s
+Test run gale.spectral.DenseSpectralKernelsNonsymmetricSuite started
+gale.linalg.KernelRegressionSuite: finished 0.004s
+Test run gale.linalg.KernelRegressionSuite finished: 0 failed, 0 ignored, 4 total 0.004s
+Test run gale.sparse.SparseWorkspaceSuite started
+gale.sparse.SparsePlanSuite: finished 0.050s
+Test run gale.sparse.SparsePlanSuite finished: 0 failed, 0 ignored, 7 total 0.050s
+gale.sparse.SparseWorkspaceSuite: finished 0.007s
+Test run gale.sparse.SparseWorkspaceSuite finished: 0 failed, 0 ignored, 3 total 0.007s
+Test run gale.linalg.FactorizationCapabilitySuite started
+Test run gale.linalg.DctBasisSuite started
+gale.linalg.FactorizationCapabilitySuite: finished 0.004s
+Test run gale.linalg.FactorizationCapabilitySuite finished: 0 failed, 0 ignored, 7 total 0.004s
+Test run gale.numeric.ExactSumSuite started
+Test run gale.numeric.PairedSquaredResidualComparisonSuite started
+gale.spectral.DenseSpectralKernelsNonsymmetricSuite: finished 0.029s
+Test run gale.spectral.DenseSpectralKernelsNonsymmetricSuite finished: 0 failed, 0 ignored, 13 total 0.029s
+Test run gale.linalg.IllConditionedSuite started
+gale.linalg.IllConditionedSuite: finished 0.002s
+Test run gale.linalg.IllConditionedSuite finished: 0 failed, 0 ignored, 5 total 0.002s
+Test run gale.spectral.NonsymmetricEigenPackingSuite started
+Test run gale.optim.DenseObjectivesSuite started
+gale.spectral.NonsymmetricEigenPackingSuite: finished 0.003s
+Test run gale.spectral.NonsymmetricEigenPackingSuite finished: 0 failed, 0 ignored, 10 total 0.003s
+Test run gale.spectral.ValidatedSvdSuite started
+Test run gale.optim.OptimizationContractsSuite started
+gale.optim.DenseObjectivesSuite: finished 0.007s
+Test run gale.optim.DenseObjectivesSuite finished: 0 failed, 0 ignored, 4 total 0.007s
+Test run gale.examples.WorkedExamplesSuite started
+Test run gale.optim.OptimizationNumericsSuite started
+gale.optim.OptimizationNumericsSuite: finished 0.001s
+Test run gale.optim.OptimizationNumericsSuite finished: 0 failed, 0 ignored, 1 total 0.001s
+Test run gale.spectral.GeneralizedBlockKernelsSuite started
+gale.optim.OptimizationContractsSuite: finished 0.012s
+Test run gale.optim.OptimizationContractsSuite finished: 0 failed, 0 ignored, 7 total 0.012s
+gale.spectral.ValidatedSvdSuite: finished 0.021s
+Test run gale.spectral.ValidatedSvdSuite finished: 0 failed, 0 ignored, 9 total 0.021s
+gale.spectral.EigNonsymmetricArnoldiSuite: finished 0.130s
+Test run gale.spectral.EigNonsymmetricArnoldiSuite finished: 0 failed, 0 ignored, 10 total 0.130s
+Test run gale.optim.FirstOrderOptimizationSuite started
+gale.spectral.GeneralizedBlockKernelsSuite: finished 0.012s
+Test run gale.spectral.GeneralizedBlockKernelsSuite finished: 0 failed, 0 ignored, 11 total 0.012s
+Test run gale.sparse.direct.SparseDirectSeamSuite started
+gale.sparse.direct.SparseDirectSeamSuite: finished 0.001s
+Test run gale.sparse.direct.SparseDirectSeamSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+Test run gale.sparse.CanonicalizationSuite started
+gale.sparse.CanonicalizationSuite: finished 0.001s
+Test run gale.sparse.CanonicalizationSuite finished: 0 failed, 0 ignored, 4 total 0.001s
+Test run userland.MutableViewOpacitySuite started
+userland.MutableViewOpacitySuite: finished 0.002s
+Test run userland.MutableViewOpacitySuite finished: 0 failed, 0 ignored, 2 total 0.002s
+Test run gale.optim.StandardTermsSuite started
+gale.optim.FirstOrderOptimizationSuite: finished 0.020s
+Test run gale.optim.FirstOrderOptimizationSuite finished: 0 failed, 0 ignored, 16 total 0.020s
+gale.optim.StandardTermsSuite: finished 0.002s
+Test run gale.optim.StandardTermsSuite finished: 0 failed, 0 ignored, 7 total 0.002s
+Test run gale.linalg.DenseTransformSuite started
+Test run gale.linalg.TinyKernelSuite started
+gale.linalg.TinyKernelSuite: finished 0.001s
+Test run gale.linalg.TinyKernelSuite finished: 0 failed, 0 ignored, 3 total 0.001s
+gale.examples.WorkedExamplesSuite: finished 0.015s
+Test run gale.examples.WorkedExamplesSuite finished: 0 failed, 0 ignored, 5 total 0.015s
+Test run gale.spectral.LobpcgSuite started
+Test run gale.sparse.direct.pure.PureSparseCholeskySuite started
+Test run gale.linalg.ShapeOverflowSuite started
+gale.linalg.DenseTransformSuite: finished 0.005s
+Test run gale.linalg.DenseTransformSuite finished: 0 failed, 0 ignored, 8 total 0.005s
+Test run gale.spectral.PartialSvdSuite started
+gale.linalg.ShapeOverflowSuite: finished 0.001s
+Test run gale.linalg.ShapeOverflowSuite finished: 0 failed, 0 ignored, 5 total 0.001s
+Test run gale.sparse.CSCParitySuite started
+Test run gale.spectral.EigNonsymmetricDenseSuite started
+gale.sparse.CSCParitySuite: finished 0.002s
+Test run gale.sparse.CSCParitySuite finished: 0 failed, 0 ignored, 7 total 0.002s
+Test run gale.spectral.EigSymmetricDenseSuite started
+Test run gale.sparse.MatrixMarketLawSuite started
+gale.sparse.MatrixMarketLawSuite: finished 0.003s
+Test run gale.sparse.MatrixMarketLawSuite finished: 0 failed, 0 ignored, 1 total 0.003s
+Test run gale.spectral.EigSymmetricBackendSeamSuite started
+gale.spectral.EigSymmetricDenseSuite: finished 0.015s
+Test run gale.spectral.EigSymmetricDenseSuite finished: 0 failed, 0 ignored, 9 total 0.015s
+Test run gale.optim.AcceleratedProximalSuite started
+gale.spectral.EigNonsymmetricDenseSuite: finished 0.019s
+Test run gale.spectral.EigNonsymmetricDenseSuite finished: 0 failed, 0 ignored, 12 total 0.019s
+Test run gale.spectral.DenseSymmetricWorkspaceSuite started
+gale.spectral.EigSymmetricBackendSeamSuite: finished 0.014s
+Test run gale.spectral.EigSymmetricBackendSeamSuite finished: 0 failed, 0 ignored, 13 total 0.014s
+Test run gale.spectral.DenseSpectralKernelsSymmetricSuite started
+gale.spectral.DenseSymmetricWorkspaceSuite: finished 0.004s
+Test run gale.spectral.DenseSymmetricWorkspaceSuite finished: 0 failed, 0 ignored, 4 total 0.004s
+Test run gale.spectral.RealIntervalSuite started
+Test run gale.linalg.GaleNumericalContractSuite started
+Test run gale.solvers.IterativeSolversSuite started
+gale.linalg.GaleNumericalContractSuite: finished 0.008s
+Test run gale.linalg.GaleNumericalContractSuite finished: 0 failed, 0 ignored, 9 total 0.008s
+gale.spectral.RealIntervalSuite: finished 0.013s
+Test run gale.spectral.RealIntervalSuite finished: 0 failed, 0 ignored, 8 total 0.013s
+Test run gale.spectral.GeneralizedOperatorAdversarialSuite started
+gale.solvers.IterativeSolversSuite: finished 0.015s
+Test run gale.solvers.IterativeSolversSuite finished: 0 failed, 0 ignored, 4 total 0.015s
+Test run gale.spectral.ComplexAndGeneralizedSuite started
+gale.spectral.ComplexAndGeneralizedSuite: finished 0.001s
+Test run gale.spectral.ComplexAndGeneralizedSuite finished: 0 failed, 0 ignored, 4 total 0.001s
+Test run gale.spectral.EigSymmetricGeneralizedBackendSuite started
+Test run gale.spectral.EigSymmetricLanczosSuite started
+gale.optim.AcceleratedProximalSuite: finished 0.040s
+Test run gale.optim.AcceleratedProximalSuite finished: 0 failed, 0 ignored, 11 total 0.040s
+Test run gale.linalg.LinearOperatorSuite started
+gale.linalg.LinearOperatorSuite: finished 0.005s
+Test run gale.linalg.LinearOperatorSuite finished: 0 failed, 0 ignored, 11 total 0.005s
+Test run gale.solvers.SolverApiSuite started
+gale.numeric.PairedSquaredResidualComparisonSuite: finished 0.153s
+Test run gale.numeric.PairedSquaredResidualComparisonSuite finished: 0 failed, 0 ignored, 23 total 0.153s
+gale.spectral.DenseSpectralKernelsSymmetricSuite: finished 0.054s
+Test run gale.spectral.DenseSpectralKernelsSymmetricSuite finished: 0 failed, 0 ignored, 15 total 0.054s
+gale.solvers.SolverApiSuite: finished 0.003s
+Test run gale.solvers.SolverApiSuite finished: 0 failed, 0 ignored, 6 total 0.003s
+Test run gale.spectral.TruncatedSvdSuite started
+Test run gale.backend.BackendSeamSuite started
+gale.spectral.GeneralizedOperatorAdversarialSuite: finished 0.037s
+Test run gale.spectral.GeneralizedOperatorAdversarialSuite finished: 0 failed, 0 ignored, 8 total 0.037s
+Test run gale.linalg.BandedCholeskySuite started
+gale.spectral.PartialSvdSuite: finished 0.090s
+Test run gale.spectral.PartialSvdSuite finished: 0 failed, 0 ignored, 13 total 0.090s
+gale.spectral.TruncatedSvdSuite: finished 0.007s
+Test run gale.spectral.TruncatedSvdSuite finished: 0 failed, 0 ignored, 7 total 0.007s
+Test run gale.spectral.SpectralBackendSuite started
+Test run gale.spectral.EigNonsymmetricLeftVectorSuite started
+gale.spectral.SpectralBackendSuite: finished 0.002s
+Test run gale.spectral.SpectralBackendSuite finished: 0 failed, 0 ignored, 7 total 0.002s
+Test run gale.solvers.LsqrSuite started
+Test run gale.linalg.MutableMatrixSuite started
+Test run gale.sparse.MatrixMarketHeaderSuite started
+gale.spectral.EigSymmetricGeneralizedBackendSuite: finished 0.047s
+Test run gale.spectral.EigSymmetricGeneralizedBackendSuite finished: 0 failed, 0 ignored, 9 total 0.047s
+gale.sparse.MatrixMarketHeaderSuite: finished 0.003s
+Test run gale.sparse.MatrixMarketHeaderSuite finished: 0 failed, 0 ignored, 5 total 0.003s
+gale.solvers.LsqrSuite: finished 0.011s
+Test run gale.solvers.LsqrSuite finished: 0 failed, 0 ignored, 3 total 0.011s
+Test run gale.spectral.GeneralizedEigenTrustSuite started
+Test run gale.solvers.SolverRegressionSuite started
+gale.linalg.MutableMatrixSuite: finished 0.013s
+Test run gale.linalg.MutableMatrixSuite finished: 0 failed, 0 ignored, 5 total 0.013s
+gale.solvers.SolverRegressionSuite: finished 0.002s
+Test run gale.solvers.SolverRegressionSuite finished: 0 failed, 0 ignored, 10 total 0.002s
+Test run gale.linalg.WorkspaceSuite started
+gale.spectral.EigNonsymmetricLeftVectorSuite: finished 0.020s
+Test run gale.spectral.EigNonsymmetricLeftVectorSuite finished: 0 failed, 0 ignored, 10 total 0.020s
+Test run gale.sparse.SparseInteropSuite started
+Test run gale.spectral.GeneralizedLanczosSuite started
+gale.spectral.LobpcgSuite: finished 0.122s
+Test run gale.spectral.LobpcgSuite finished: 0 failed, 0 ignored, 8 total 0.122s
+gale.spectral.GeneralizedEigenTrustSuite: finished 0.015s
+Test run gale.spectral.GeneralizedEigenTrustSuite finished: 0 failed, 0 ignored, 7 total 0.015s
+Test run gale.linalg.MutableVectorSuite started
+Test run gale.linalg.FactorizationTypeSuite started
+gale.linalg.MutableVectorSuite: finished 0.001s
+Test run gale.linalg.MutableVectorSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+gale.linalg.FactorizationTypeSuite: finished 0.001s
+gale.sparse.SparseInteropSuite: finished 0.008s
+Test run gale.sparse.SparseInteropSuite finished: 0 failed, 0 ignored, 7 total 0.008s
+Test run gale.spectral.GeneralizedSvdSuite started
+Test run gale.linalg.FactorizationTypeSuite finished: 0 failed, 0 ignored, 3 total 0.001s
+Test run gale.linalg.DenseLawSuite started
+gale.linalg.DenseLawSuite: finished 0.001s
+Test run gale.linalg.DenseLawSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+Test run gale.spectral.EigSymmetricGeneralizedSuite started
+Test run gale.sparse.COOSuite started
+gale.spectral.GeneralizedSvdSuite: finished 0.010s
+Test run gale.spectral.GeneralizedSvdSuite finished: 0 failed, 0 ignored, 10 total 0.010s
+gale.sparse.COOSuite: finished 0.001s
+Test run gale.sparse.COOSuite finished: 0 failed, 0 ignored, 3 total 0.001s
+Test run gale.sized.SizedSuite started
+Test run gale.linalg.DenseDestinationSuite started
+gale.linalg.DenseDestinationSuite: finished 0.002s
+Test run gale.linalg.DenseDestinationSuite finished: 0 failed, 0 ignored, 7 total 0.002s
+gale.sized.SizedSuite: finished 0.003s
+Test run gale.sized.SizedSuite finished: 0 failed, 0 ignored, 10 total 0.003s
+Test run gale.optim.SmoothOptimizationSuite started
+gale.backend.BackendSeamSuite: finished 0.060s
+Test run gale.backend.BackendSeamSuite finished: 0 failed, 0 ignored, 15 total 0.060s
+Test run gale.spectral.MetricSolveSuite started
+gale.spectral.EigSymmetricGeneralizedSuite: finished 0.014s
+Test run gale.spectral.EigSymmetricGeneralizedSuite finished: 0 failed, 0 ignored, 8 total 0.014s
+Test run gale.sparse.BandedSuite started
+Test run gale.sparse.SparseErrorSuite started
+gale.spectral.MetricSolveSuite: finished 0.003s
+Test run gale.spectral.MetricSolveSuite finished: 0 failed, 0 ignored, 7 total 0.003s
+gale.sparse.SparseErrorSuite: finished 0.001s
+Test run gale.sparse.SparseErrorSuite finished: 0 failed, 0 ignored, 2 total 0.001s
+gale.sparse.BandedSuite: finished 0.003s
+Test run gale.sparse.BandedSuite finished: 0 failed, 0 ignored, 4 total 0.003s
+Test run gale.spectral.DenseSvdSuite started
+Test run userland.SyntaxConformanceSuite started
+Test run gale.linalg.BandedLogDetJetSuite started
+userland.SyntaxConformanceSuite: finished 0.002s
+Test run userland.SyntaxConformanceSuite finished: 0 failed, 0 ignored, 4 total 0.002s
+Test run gale.optim.ConstrainedRayleighSuite started
+Test run gale.solvers.PreconditionedSolverSuite started
+Test run gale.optim.LBFGSBSuite started
+gale.solvers.PreconditionedSolverSuite: finished 0.029s
+Test run gale.solvers.PreconditionedSolverSuite finished: 0 failed, 0 ignored, 5 total 0.029s
+gale.optim.SmoothOptimizationSuite: finished 0.051s
+Test run gale.optim.SmoothOptimizationSuite finished: 0 failed, 0 ignored, 9 total 0.051s
+Test run gale.spectral.SubspaceSuite started
+Test run gale.linalg.PivotedQRScreenSuite started
+gale.spectral.SubspaceSuite: finished 0.002s
+Test run gale.spectral.SubspaceSuite finished: 0 failed, 0 ignored, 4 total 0.002s
+Test run gale.spectral.SpectralDiagnosticsSuite started
+gale.linalg.WorkspaceSuite: finished 0.092s
+Test run gale.linalg.WorkspaceSuite finished: 0 failed, 0 ignored, 9 total 0.092s
+gale.spectral.SpectralDiagnosticsSuite: finished 0.002s
+Test run gale.spectral.SpectralDiagnosticsSuite finished: 0 failed, 0 ignored, 6 total 0.002s
+gale.optim.LBFGSBSuite: finished 0.031s
+Test run gale.optim.LBFGSBSuite finished: 0 failed, 0 ignored, 11 total 0.031s
+gale.spectral.DenseSvdSuite: finished 0.060s
+Test run gale.spectral.DenseSvdSuite finished: 0 failed, 0 ignored, 19 total 0.060s
+gale.linalg.BandedCholeskySuite: finished 0.148s
+Test run gale.linalg.BandedCholeskySuite finished: 0 failed, 0 ignored, 12 total 0.148s
+gale.linalg.QRSuite: finished 0.419s
+Test run gale.linalg.QRSuite finished: 0 failed, 0 ignored, 33 total 0.419s
+gale.linalg.PivotedQRScreenSuite: finished 0.061s
+Test run gale.linalg.PivotedQRScreenSuite finished: 0 failed, 0 ignored, 7 total 0.061s
+gale.numeric.ExactSumSuite: finished 0.363s
+Test run gale.numeric.ExactSumSuite finished: 0 failed, 0 ignored, 17 total 0.363s
+gale.spectral.GeneralizedLanczosSuite: finished 0.163s
+Test run gale.spectral.GeneralizedLanczosSuite finished: 0 failed, 0 ignored, 11 total 0.163s
+gale.spectral.EigSymmetricLanczosSuite: finished 0.228s
+Test run gale.spectral.EigSymmetricLanczosSuite finished: 0 failed, 0 ignored, 19 total 0.228s
+gale.optim.ConstrainedRayleighSuite: finished 0.135s
+Test run gale.optim.ConstrainedRayleighSuite finished: 0 failed, 0 ignored, 7 total 0.135s
+gale.linalg.BandedLogDetJetSuite: finished 1.336s
+Test run gale.linalg.BandedLogDetJetSuite finished: 0 failed, 0 ignored, 8 total 1.336s
+gale.sparse.direct.pure.PureSparseCholeskySuite: finished 2.194s
+Test run gale.sparse.direct.pure.PureSparseCholeskySuite finished: 0 failed, 0 ignored, 10 total 2.194s
+gale.linalg.DctBasisSuite: finished 5.131s
+Test run gale.linalg.DctBasisSuite finished: 0 failed, 0 ignored, 6 total 5.131s
+[info] Passed: Total 856, Failed 0, Errors 0, Passed 856
+[success] Total time: 13 s, completed Oct 7, 2026, 5:50:26 p.m.
+Test run gale.laws.BandedLawSuite started
+gale.laws.BandedLawSuite: finished 0.018s
+Test run gale.laws.BandedLawSuite finished: 0 failed, 0 ignored, 2 total 0.02s
+Test run gale.laws.SolverLawSuite started
+gale.laws.SolverLawSuite: finished 0.018s
+Test run gale.laws.SolverLawSuite finished: 0 failed, 0 ignored, 1 total 0.02s
+Test run gale.laws.CanonicalizationLawSuite started
+gale.laws.CanonicalizationLawSuite: finished 0.02s
+Test run gale.laws.CanonicalizationLawSuite finished: 0 failed, 0 ignored, 4 total 0.022s
+Test run gale.laws.BandedCholeskyLawSuite started
+gale.laws.BandedCholeskyLawSuite: finished 0.025s
+Test run gale.laws.BandedCholeskyLawSuite finished: 0 failed, 0 ignored, 9 total 0.027s
+Test run gale.laws.SpectralBackendLawSuite started
+gale.laws.SpectralBackendLawSuite: finished 0.048s
+Test run gale.laws.SpectralBackendLawSuite finished: 0 failed, 0 ignored, 4 total 0.05s
+Test run gale.laws.AdversarialGeneratorSuite started
+gale.laws.AdversarialGeneratorSuite: finished 0.03s
+Test run gale.laws.AdversarialGeneratorSuite finished: 0 failed, 0 ignored, 3 total 0.031s
+Test run gale.laws.MatrixMarketLawSuite started
+gale.laws.MatrixMarketLawSuite: finished 0.075s
+Test run gale.laws.MatrixMarketLawSuite finished: 0 failed, 0 ignored, 1 total 0.077s
+Test run gale.laws.GeneralizedOperatorLawSuite started
+gale.laws.GeneralizedOperatorLawSuite: finished 0.071s
+Test run gale.laws.GeneralizedOperatorLawSuite finished: 0 failed, 0 ignored, 4 total 0.071s
+Test run gale.laws.GeneralizedLanczosLawSuite started
+gale.laws.GeneralizedLanczosLawSuite: finished 0.083s
+Test run gale.laws.GeneralizedLanczosLawSuite finished: 0 failed, 0 ignored, 3 total 0.084s
+Test run gale.laws.DenseLawSuite started
+gale.laws.DenseLawSuite: finished 0.084s
+Test run gale.laws.DenseLawSuite finished: 0 failed, 0 ignored, 11 total 0.084s
+Test run gale.laws.SpectralLawSuite started
+gale.laws.SpectralLawSuite: finished 0.108s
+Test run gale.laws.SpectralLawSuite finished: 0 failed, 0 ignored, 12 total 0.108s
+[info] Passed: Total 54, Failed 0, Errors 0, Passed 54
+[success] Total time: 0 s, completed Oct 7, 2026, 5:50:26 p.m.
+[info] Fast optimizing /Users/bbuchsbaum/code/scala/gale/laws/js/target/scala-3.7.4/gale-laws-test-fastopt
+Test run gale.laws.DenseLawSuite started
+Test run gale.laws.GeneralizedLanczosLawSuite started
+gale.laws.DenseLawSuite: finished 0.077s
+Test run gale.laws.DenseLawSuite finished: 0 failed, 0 ignored, 11 total 0.077s
+gale.laws.GeneralizedLanczosLawSuite: finished 0.077s
+Test run gale.laws.GeneralizedLanczosLawSuite finished: 0 failed, 0 ignored, 3 total 0.077s
+Test run gale.laws.BandedCholeskyLawSuite started
+Test run gale.laws.SolverLawSuite started
+gale.laws.BandedCholeskyLawSuite: finished 0.018s
+Test run gale.laws.BandedCholeskyLawSuite finished: 0 failed, 0 ignored, 9 total 0.018s
+gale.laws.SolverLawSuite: finished 0.005s
+Test run gale.laws.SolverLawSuite finished: 0 failed, 0 ignored, 1 total 0.005s
+Test run gale.laws.MatrixMarketLawSuite started
+Test run gale.laws.AdversarialGeneratorSuite started
+Test run gale.laws.SpectralLawSuite started
+gale.laws.MatrixMarketLawSuite: finished 0.032s
+Test run gale.laws.MatrixMarketLawSuite finished: 0 failed, 0 ignored, 1 total 0.032s
+Test run gale.laws.SpectralBackendLawSuite started
+gale.laws.AdversarialGeneratorSuite: finished 0.021s
+Test run gale.laws.AdversarialGeneratorSuite finished: 0 failed, 0 ignored, 3 total 0.021s
+Test run gale.laws.GeneralizedOperatorLawSuite started
+Test run gale.laws.CanonicalizationLawSuite started
+gale.laws.SpectralBackendLawSuite: finished 0.017s
+Test run gale.laws.SpectralBackendLawSuite finished: 0 failed, 0 ignored, 4 total 0.017s
+gale.laws.CanonicalizationLawSuite: finished 0.007s
+Test run gale.laws.CanonicalizationLawSuite finished: 0 failed, 0 ignored, 4 total 0.007s
+Test run gale.laws.BandedLawSuite started
+gale.laws.BandedLawSuite: finished 0.005s
+Test run gale.laws.BandedLawSuite finished: 0 failed, 0 ignored, 2 total 0.005s
+gale.laws.GeneralizedOperatorLawSuite: finished 0.061s
+Test run gale.laws.GeneralizedOperatorLawSuite finished: 0 failed, 0 ignored, 4 total 0.061s
+gale.laws.SpectralLawSuite: finished 0.098s
+Test run gale.laws.SpectralLawSuite finished: 0 failed, 0 ignored, 12 total 0.098s
+[info] Passed: Total 54, Failed 0, Errors 0, Passed 54
+[success] Total time: 2 s, completed Oct 7, 2026, 5:50:28 p.m.
+[info] Full optimizing /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/gale-core-test-opt
+[success] Total time: 4 s, completed Oct 7, 2026, 5:50:32 p.m.
+[info] Full optimizing /Users/bbuchsbaum/code/scala/gale/laws/js/target/scala-3.7.4/gale-laws-test-opt
+[success] Total time: 2 s, completed Oct 7, 2026, 5:50:34 p.m.
+Test run gale.parity.NearCutoffParitySuite started
+gale.parity.NearCutoffParitySuite: finished 0.081s
+Test run gale.parity.NearCutoffParitySuite finished: 0 failed, 0 ignored, 4 total 0.092s
+Test run gale.parity.EverydayOpsParitySuite started
+gale.parity.EverydayOpsParitySuite: finished 0.742s
+Test run gale.parity.EverydayOpsParitySuite finished: 0 failed, 0 ignored, 7 total 0.743s
+Test run gale.parity.SparseDirectParitySuite started
+gale.parity.SparseDirectParitySuite: finished 0.005s
+Test run gale.parity.SparseDirectParitySuite finished: 0 failed, 0 ignored, 2 total 0.005s
+Oct 07, 2026 5:50:35 P.M. dev.ludovic.netlib.lapack.InstanceBuilder initializeNative
+WARNING: Failed to load implementation from:dev.ludovic.netlib.lapack.JNILAPACK
+Oct 07, 2026 5:50:35 P.M. dev.ludovic.netlib.blas.InstanceBuilder initializeNative
+WARNING: Failed to load implementation from:dev.ludovic.netlib.blas.JNIBLAS
+trying to return java 16 instance
+Oct 07, 2026 5:50:35 P.M. dev.ludovic.netlib.blas.InstanceBuilder initializeJava
+WARNING: Failed to load implementation from:dev.ludovic.netlib.blas.VectorBLAS
+return java 11 instance
+Test run gale.parity.FactorizationParitySuite started
+gale.parity.FactorizationParitySuite: finished 0.137s
+Test run gale.parity.FactorizationParitySuite finished: 0 failed, 0 ignored, 18 total 0.137s
+Test run gale.parity.IterativeSolveParitySuite started
+gale.parity.IterativeSolveParitySuite: finished 0.023s
+Test run gale.parity.IterativeSolveParitySuite finished: 0 failed, 0 ignored, 5 total 0.023s
+Test run gale.parity.IterativeAlgorithmParitySuite started
+gale.parity.IterativeAlgorithmParitySuite: finished 0.003s
+Test run gale.parity.IterativeAlgorithmParitySuite finished: 0 failed, 0 ignored, 1 total 0.004s
+Test run gale.parity.FullSvdParitySuite started
+gale.parity.FullSvdParitySuite: finished 0.046s
+Test run gale.parity.FullSvdParitySuite finished: 0 failed, 0 ignored, 6 total 0.046s
+Test run gale.parity.BandedCholeskyParitySuite started
+gale.parity.BandedCholeskyParitySuite: finished 0.019s
+Test run gale.parity.BandedCholeskyParitySuite finished: 0 failed, 0 ignored, 1 total 0.019s
+Test run gale.parity.NonsymmetricEigenParitySuite started
+gale.parity.NonsymmetricEigenParitySuite: finished 0.053s
+Test run gale.parity.NonsymmetricEigenParitySuite finished: 0 failed, 0 ignored, 4 total 0.053s
+Test run gale.parity.GeneralizedSpectralParitySuite started
+gale.parity.GeneralizedSpectralParitySuite: finished 0.013s
+Test run gale.parity.GeneralizedSpectralParitySuite finished: 0 failed, 0 ignored, 6 total 0.014s
+Test run gale.parity.SpectralParitySuite started
+gale.parity.SpectralParitySuite: finished 0.052s
+Test run gale.parity.SpectralParitySuite finished: 0 failed, 0 ignored, 5 total 0.053s
+Test run gale.parity.BandedSparseParitySuite started
+gale.parity.BandedSparseParitySuite: finished 0.033s
+Test run gale.parity.BandedSparseParitySuite finished: 0 failed, 0 ignored, 11 total 0.035s
+Test run gale.parity.SvdQrParitySuite started
+gale.parity.SvdQrParitySuite: finished 0.157s
+Test run gale.parity.SvdQrParitySuite finished: 0 failed, 0 ignored, 4 total 0.157s
+Test run gale.parity.DenseOpsParitySuite started
+gale.parity.DenseOpsParitySuite: finished 0.04s
+Test run gale.parity.DenseOpsParitySuite finished: 0 failed, 0 ignored, 11 total 0.04s
+[info] Passed: Total 85, Failed 0, Errors 0, Passed 85
+[success] Total time: 2 s, completed Oct 7, 2026, 5:50:36 p.m.
+Oct 07, 2026 5:50:37 P.M. dev.ludovic.netlib.blas.InstanceBuilder initializeNative
+WARNING: Failed to load implementation from:dev.ludovic.netlib.blas.JNIBLAS
+trying to return java 16 instance
+Oct 07, 2026 5:50:37 P.M. dev.ludovic.netlib.blas.InstanceBuilder initializeJava
+WARNING: Failed to load implementation from:dev.ludovic.netlib.blas.VectorBLAS
+return java 11 instance
+Oct 07, 2026 5:50:37 P.M. dev.ludovic.netlib.lapack.InstanceBuilder initializeNative
+WARNING: Failed to load implementation from:dev.ludovic.netlib.lapack.JNILAPACK
+Test run userland.BreezeMigrationSuite started
+userland.BreezeMigrationSuite: finished 0.868s
+Test run userland.BreezeMigrationSuite finished: 0 failed, 0 ignored, 16 total 0.88s
+Test run userland.BreezeConversionsSuite started
+userland.BreezeConversionsSuite: finished 0.019s
+Test run userland.BreezeConversionsSuite finished: 0 failed, 0 ignored, 13 total 0.02s
+[info] Passed: Total 29, Failed 0, Errors 0, Passed 29
+[success] Total time: 1 s, completed Oct 7, 2026, 5:50:37 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 5:50:37 p.m.
+[info] Main Scala API documentation to /Users/bbuchsbaum/code/scala/gale/core/js/target/scala-3.7.4/api...
+[info] Skipping unused scalacOptions: -Werror, -Xmax-inlines
+[warn] Flag -classpath set repeatedly
+[warn] -- Warning: core/shared/src/main/scala/gale/linalg/Matrix.scala:619:6 ----------
+[warn] 619 |  def *(alpha: Double): DMat =
+[warn]     |      ^
+[warn]     |      Couldn't resolve a member for the given link query: DVec.*
+[warn] -- Warning: core/shared/src/main/scala/gale/sized/Sized.scala:158:8 ------------
+[warn] 158 |    def scale(alpha: Double): SMat[R, C] =
+[warn]     |        ^
+[warn]     |        Couldn't resolve a member for the given link query: *
+[warn] three warnings found
+[info] Main Scala API documentation successful.
+[success] Total time: 6 s, completed Oct 7, 2026, 5:50:43 p.m.
+[info] running mdoc.SbtMain 
+[34minfo[39m: Compiling 29 files to /Users/bbuchsbaum/code/scala/gale/site/target/mdoc
+[33mwarning[39m: advanced/numerical-contract.md:162:21: Unknown link '../sparse-direct-future.md'.
+their own spec in a [future version](../../sparse-direct-future.md). The
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: advanced/numerical-contract.md:163:17: Unknown link '../sparse-direct-js.md'.
+current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:382:1: Unknown link '../sparse-direct-future.md'.
+[future version](../../sparse-direct-future.md); see
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:383:1: Unknown link '../sparse-direct-js.md'.
+[Scala.js sparse-direct](../../sparse-direct-js.md).
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[33mwarning[39m: guides/breeze-equivalence.md:518:1: Unknown link '../../parity/README.md'.
+[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[34minfo[39m: Compiled in 7.26s (0 errors, 5 warnings)
+[info] Delete API dir
+[info] Parsing 25 markup documents, 0 templates, 4 configurations, 0 stylesheets ...
+[info] Rendering 25 html documents, copying 14 static files ...
+[info] Generated html in /Users/bbuchsbaum/code/scala/gale/site/target/docs/site
+[success] Total time: 10 s, completed Oct 7, 2026, 5:50:54 p.m.
+[success] Total time: 1 s, completed Oct 7, 2026, 5:50:55 p.m.
+[success] Total time: 0 s, completed Oct 7, 2026, 5:50:55 p.m.
+[info] Defining coreJS / scalaJSStage
+[info] The new value will be used by coreJS / Compile / scalaJSLinkedFile, coreJS / Compile / scalaJSLinkerResult and 2 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+Test run gale.optim.DenseObjectivesSuite started
+Test run gale.optim.StandardTermsSuite started
+gale.optim.DenseObjectivesSuite: finished 0.008s
+gale.optim.StandardTermsSuite: finished 0.009s
+Test run gale.optim.StandardTermsSuite finished: 0 failed, 0 ignored, 7 total 0.009s
+Test run gale.optim.DenseObjectivesSuite finished: 0 failed, 0 ignored, 4 total 0.008s
+Test run gale.optim.OptimizationNumericsSuite started
+Test run gale.optim.OptimizationContractsSuite started
+gale.optim.OptimizationNumericsSuite: finished 0.011s
+Test run gale.optim.OptimizationNumericsSuite finished: 0 failed, 0 ignored, 1 total 0.011s
+gale.optim.OptimizationContractsSuite: finished 0.027s
+Test run gale.optim.OptimizationContractsSuite finished: 0 failed, 0 ignored, 7 total 0.027s
+Test run gale.optim.FirstOrderOptimizationSuite started
+Test run gale.optim.LevenbergMarquardtSuite started
+gale.optim.FirstOrderOptimizationSuite: finished 0.056s
+Test run gale.optim.FirstOrderOptimizationSuite finished: 0 failed, 0 ignored, 16 total 0.056s
+Test run gale.optim.LBFGSBSuite started
+gale.optim.LevenbergMarquardtSuite: finished 0.061s
+Test run gale.optim.LevenbergMarquardtSuite finished: 0 failed, 0 ignored, 13 total 0.061s
+gale.optim.LBFGSBSuite: finished 0.048s
+Test run gale.optim.LBFGSBSuite finished: 0 failed, 0 ignored, 11 total 0.048s
+Test run gale.optim.AcceleratedProximalSuite started
+Test run gale.optim.ConstrainedRayleighSuite started
+Test run gale.optim.SmoothOptimizationSuite started
+gale.optim.AcceleratedProximalSuite: finished 0.052s
+Test run gale.optim.AcceleratedProximalSuite finished: 0 failed, 0 ignored, 11 total 0.052s
+gale.optim.SmoothOptimizationSuite: finished 0.045s
+Test run gale.optim.SmoothOptimizationSuite finished: 0 failed, 0 ignored, 9 total 0.045s
+gale.optim.ConstrainedRayleighSuite: finished 0.085s
+Test run gale.optim.ConstrainedRayleighSuite finished: 0 failed, 0 ignored, 7 total 0.085s
+[info] Passed: Total 86, Failed 0, Errors 0, Passed 86
+[success] Total time: 2 s, completed Oct 7, 2026, 5:51:02 p.m.

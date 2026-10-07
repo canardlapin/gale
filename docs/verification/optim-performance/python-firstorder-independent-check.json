@@ -1,0 +1,65 @@
+[
+  {
+    "id": "diag-quadratic-n16-k1e3",
+    "objective": 3.918294079090162e-16,
+    "metric": 5.8819704662482764e-08,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "diag-quadratic-n512-k1e3",
+    "objective": 1.8038278772334383e-15,
+    "metric": 7.663158996251695e-08,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "box-diag-quadratic-n16-k1e3",
+    "objective": 83.8233735324118,
+    "metric": 3.3323344084124074e-10,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "rotated-quadratic-n32-k1e3",
+    "objective": 9.701303163203723e-16,
+    "metric": 5.256116718277956e-08,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "rosenbrock-n2",
+    "objective": 1.7054976811715944e-17,
+    "metric": 3.245967866265849e-08,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "rosenbrock-n32",
+    "objective": 1.206773403467809e-17,
+    "metric": 6.229452108929562e-08,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "logistic-l2-m1024-n16",
+    "objective": 0.646891949999602,
+    "metric": 8.017029618015154e-09,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "lasso-m256-n32",
+    "objective": 0.43938789515705723,
+    "metric": 2.2173667069136371e-10,
+    "feasible": true,
+    "valid": true
+  },
+  {
+    "id": "lasso-m1024-n128",
+    "objective": 1.3985855058000027,
+    "metric": 3.7640857791787496e-10,
+    "feasible": true,
+    "valid": true
+  }
+]

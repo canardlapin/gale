@@ -13,7 +13,7 @@ generated from the published M1 artifacts after that immutable version exists.
 | `gale.sparse` | COO/CSR/CSC and structured matrices, canonicalization, Matrix Market IO, compressed patterns, and symbolic replay plans |
 | `gale.solvers` | iterative solver options, results, diagnostics, preconditioners, convergence semantics, and reusable workspaces |
 | `gale.spectral` | dense and partial decompositions, typed selection, result ordering, convergence and extremality diagnostics, generalized operators, and explicit metric-solve contracts |
-| `gale.optim` | first-order optimization problems, options, typed failures, diagnostics, and constrained-Rayleigh helpers |
+| `gale.optim` | optimization contracts, L-BFGS/L-BFGS-B, dense nonlinear least squares/LM, accelerated proximal gradient, standard terms/sets, work controls, diagnostics, and constrained-Rayleigh helpers |
 | `gale.sized` | optional compile-time sized wrappers and their checked conversion boundary |
 | `gale.backend` | caller-visible capabilities, backend selection, fallback behavior, configuration, thresholds, and factorization-provider contracts |
 | `gale.syntax` | the `all` and `unicode` opt-in extension modules, including `zipMapExact`, pointwise operations, matrix product, and dot aliases |
@@ -74,3 +74,22 @@ Before M1, compare the exact candidate commit against the last shared consumer
 pin, review every exported addition and removal, and retain the complete diff
 in the release evidence. Do not describe the candidate as binary-verified until
 M1 artifacts exist and a post-M1 compatibility gate runs against them.
+
+## Optimization additions before M1
+
+Existing four first-order entry points and callback traits remain available.
+Primal-dual calls add an optional dual start; configurations add optional work
+controls. New stopping/error/method cases require consumers with exhaustive
+matches to handle the additions. Primal-dual extrapolation is restricted to 1.
+Summary-only certificates no longer bind matrices, and supplied certificates
+must bind the exact result and matching objective. Rayleigh matrices must be
+symmetric, with a positive-definite denominator. These are deliberate numerical
+contract repairs, not binary-compatibility claims against a published baseline.
+
+The LM/L-BFGS-B extension adds `LeastSquaresObjective`, `LeastSquaresSolution`,
+`LevenbergMarquardtConfig`, `LevenbergMarquardt`, `MatrixBoxBounds`, `LBFGSBConfig`, and
+`LBFGSB`. It adds two `FirstOrderMethod` cases, two `AlgorithmSettings` cases,
+and residual/Jacobian callback counters to `EvaluationCounts`. Consumers that
+pattern-match these enums or case-class products must review the additions.
+The LM result uses raw gradient stationarity; L-BFGS-B uses a unit projected
+gradient. Neither changes the meaning of existing fixed-step residuals.

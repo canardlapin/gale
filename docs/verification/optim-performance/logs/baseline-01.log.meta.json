@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T20:39:21.861463+00:00",
+  "finished_utc": "2026-10-07T20:39:46.111589+00:00",
+  "duration_seconds": 24.249915,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "python3",
+    "tools/optim-python/run_comparison.py",
+    "--python",
+    "/private/tmp/gale-optim-python-venv/bin/python",
+    "--output",
+    ".agent-work/optim-performance/before-firstorder"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-performance/baseline-01.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 900.0,
+  "log_bytes": 126
+}

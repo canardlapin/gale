@@ -129,6 +129,103 @@ class FirstOrderOptimizationSuite extends munit.FunSuite:
       case other =>
         fail(s"expected a typed operator failure, got $other")
 
+  test("single-step residual describes the returned point"):
+    val config = FirstOrderConfig.from(1, FirstOrderTolerance.strict).toOption.get
+    val result =
+      FirstOrderSolvers.proximalGradient(quadratic(DMat.zeros(1, 1)), l1Term(1, 0.0), DMat.eye(1), config).toOption.get
+    assertEquals(result.status, FirstOrderStoppingStatus.IterationLimit)
+    assertEqualsDouble(result.primal(0, 0), 0.01, 1e-14)
+    assertEqualsDouble(result.certificate.primalResidual, 0.01, 1e-14)
+
+  test("rounded and partially rounded steps never certify stationarity"):
+    for columns <- Vector(1, 2) do
+      val objective = new SmoothObjective:
+        val variableRows = 1
+        val lipschitz = 1e12
+        def value(at: DMat): Either[FirstOrderError, Double] =
+          Right((0 until columns).map(c => 0.5 * math.pow(at(0, c) - (if c == 0 then 1e8 else 0.0), 2)).sum)
+        def gradient(at: DMat): Either[FirstOrderError, DMat] =
+          Right(DMat.tabulate(1, columns)((_, c) => at(0, c) - (if c == 0 then 1e8 else 0.0)))
+      val initial = DMat.tabulate(1, columns)((_, c) => if c == 0 then 1e8 + 10.0 else 1.0)
+      val config = FirstOrderConfig.from(2, FirstOrderTolerance.strict).toOption.get
+      val result = FirstOrderSolvers.proximalGradient(objective, l1Term(1, 0.0), initial, config).toOption.get
+      assert(result.status != FirstOrderStoppingStatus.Converged)
+      assert(
+        result.certificate.primalResolution > result.certificate.settings.tolerance
+          .threshold(result.certificate.settings.primalResidualScale)
+      )
+      assertEqualsDouble(objective.gradient(result.primal).toOption.get(0, 0), 10.0, 0.0)
+
+  test("derived zero step is a typed numerical failure"):
+    val objective = new SmoothObjective:
+      val variableRows = 1
+      val lipschitz = 1e308
+      def value(at: DMat): Either[FirstOrderError, Double] = Right(0.5 * at(0, 0) * at(0, 0))
+      def gradient(at: DMat): Either[FirstOrderError, DMat] = Right(at)
+    val config = FirstOrderConfig.from(1, FirstOrderTolerance.strict, stepSafety = 1e-320).toOption.get
+    assert(
+      FirstOrderSolvers
+        .proximalGradient(objective, l1Term(1, 0.0), DMat.eye(1), config)
+        .left
+        .toOption
+        .exists(_.isInstanceOf[FirstOrderError.NumericalFailure])
+    )
+
+  test("certificate binding rejects a permutation preserving all summaries"):
+    val solution = FirstOrderSolvers
+      .proximalGradient(quadratic(matrix(Vector(Vector(1.0), Vector(2.0)))), l1Term(2, 0.0), DMat.zeros(2, 1))
+      .toOption
+      .get
+    val permuted = DMat.tabulate(2, 1)((r, _) => solution.primal(1 - r, 0))
+    assertEquals(ValueSummary.from(permuted), ValueSummary.from(solution.primal))
+    assert(!solution.certificate.binds(permuted, None))
+    assert(solution.certificate.binds(DMat.tabulate(2, 1)((r, c) => solution.primal(r, c)), None))
+    intercept[IllegalArgumentException](solution.copy(objective = solution.objective + 1.0))
+
+  test("primal-dual rejects unqualified extrapolation before oracle execution"):
+    val config = FirstOrderConfig.from(10, FirstOrderTolerance.strict, extrapolation = 0.0).toOption.get
+    val operator = BoundedLinearOperator.from(DMat.eye(1), 1.0).toOption.get
+    val center = DMat.eye(1)
+    assert(
+      FirstOrderSolvers
+        .linearCompositePrimalDual(proximalQuadratic(center), l1Functional(1, 10.0), operator, DMat.zeros(1, 1), config)
+        .isLeft
+    )
+    assert(
+      FirstOrderSolvers
+        .smoothCompositePrimalDual(
+          quadratic(center),
+          l1Term(1, 0.0),
+          l1Functional(1, 10.0),
+          operator,
+          DMat.zeros(1, 1),
+          config
+        )
+        .isLeft
+    )
+
+  test("nonconvex projections retain a local fixed-point path"):
+    val center = matrix(Vector(Vector(2.0), Vector(1.0)))
+    val circle = new ProjectionSet:
+      val variableRows = 2
+      def project(at: DMat): Either[FirstOrderError, DMat] =
+        val norm = math.hypot(at(0, 0), at(1, 0))
+        Right(at * (1.0 / norm))
+    val result = FirstOrderSolvers
+      .projectedGradient(quadratic(center), circle, matrix(Vector(Vector(1.0), Vector(0.0))))
+      .toOption
+      .get
+    assertEquals(result.status, FirstOrderStoppingStatus.Converged)
+    assertEqualsDouble(result.primal(0, 0), 2.0 / math.sqrt(5.0), 1e-7)
+    assertEqualsDouble(result.primal(1, 0), 1.0 / math.sqrt(5.0), 1e-7)
+
+  test("null-space verification certifies containment without completeness"):
+    val constraint = matrix(Vector(Vector(1.0, -1.0)))
+    val zeroBasis = DMat.zeros(2, 1)
+    val certificate = ExactLinearReduction.verify(zeroBasis, constraint, FirstOrderTolerance.strict).toOption.get
+    assertEqualsDouble(certificate.residual, 0.0, 0.0)
+    assertEqualsDouble(certificate.basisImage.squaredNorm, 0.0, 0.0)
+
   private def quadratic(center: DMat): SmoothObjective =
     new SmoothObjective:
       val variableRows: Int = center.rows
@@ -170,8 +267,7 @@ class FirstOrderOptimizationSuite extends munit.FunSuite:
       def value(at: DMat): Either[FirstOrderError, Double] = Right(weight * l1(at))
       def proximal(at: DMat, step: Double): Either[FirstOrderError, DMat] =
         Right(map(at): value =>
-          Math.signum(value) * Math.max(0.0, Math.abs(value) - weight * step)
-        )
+          Math.signum(value) * Math.max(0.0, Math.abs(value) - weight * step))
 
   private def l1Functional(rows: Int, weight: Double): LinearCompositeFunctional =
     new LinearCompositeFunctional:
@@ -233,3 +329,17 @@ class FirstOrderOptimizationSuite extends munit.FunSuite:
         assertEqualsDouble(actual(row, column), expected(row, column), tolerance)
         column += 1
       row += 1
+
+  test("a valid tiny Lipschitz bound for an affine objective cannot dilute a box residual"):
+    val smooth = new SmoothObjective:
+      val variableRows = 1
+      val lipschitz = 1e-12
+      def value(x: DMat) = Right(1e16 - 2.0 * x(0, 0))
+      def gradient(x: DMat) = Right(DMat.tabulate(1, 1)((_, _) => -2.0))
+    val box = ProjectionSets.box(1, -1.0, 1.0).toOption.get
+    val result = FirstOrderSolvers.projectedGradient(smooth, box, DMat.zeros(1, 1)).toOption.get
+    assertEqualsDouble(result.primal(0, 0), 1.0, 1e-8)
+    assertEquals(result.status, FirstOrderStoppingStatus.Converged)
+    assertEquals(result.evaluations.projections, 4)
+    assertEquals(result.evaluations.gradients, 4)
+    assertEqualsDouble(result.primalResidualStep, 1.0, 0.0)

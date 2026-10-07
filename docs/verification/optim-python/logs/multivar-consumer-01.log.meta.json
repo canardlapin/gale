@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-07T18:37:44.739792+00:00",
+  "finished_utc": "2026-10-07T18:38:14.575901+00:00",
+  "duration_seconds": 29.835923,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "sbt",
+    "testOnly multivar.solver.VariationalSolverCompilerSuite multivar.optimization.OptimizationGuaranteesSuite multivar.family.canonical.ConstrainedCanonicalSuite multivar.core.NumericsOptimizationSuite"
+  ],
+  "cwd": "/private/tmp/gale-optim-consumer",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim/multivar-consumer-01.log",
+  "exit_code": 1,
+  "child_returncode": 1,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 900.0,
+  "log_bytes": 48876
+}

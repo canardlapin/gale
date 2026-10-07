@@ -1,0 +1,616 @@
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading project definition from /private/tmp/gale-optim-consumer/project
+[info] loading settings for project gale-optim-consumer from build.sbt...
+[info] set current project to gale-optim-consumer (in build file:/private/tmp/gale-optim-consumer/)
+[info] compiling 98 Scala sources to /private/tmp/gale-optim-consumer/target/scala-3.7.4/classes ...
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/family/glrm/FittedLatentEncoder.scala:214:31 
+[warn] 214 |        termination = solution.status match
+[warn]     |                      ^^^^^^^^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/family/glrm/FittedLatentEncoder.scala:221:33 
+[warn] 221 |        admittedClaim = solution.status match
+[warn]     |                        ^^^^^^^^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/solver/CompositePenaltyCompiler.scala:679:10 
+[warn] 679 |          status match
+[warn]     |          ^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/solver/VariationalFunctionalFrames.scala:462:22 
+[warn] 462 |    val termination = stopping match
+[warn]     |                      ^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: multivar.solver.VariationalFrameStopping.FirstOrder(NumericalStagnation), multivar.solver.VariationalFrameStopping.FirstOrder(EvaluationLimit), multivar.solver.VariationalFrameStopping.FirstOrder(Cancelled), multivar.solver.VariationalFrameStopping.FirstOrder(LineSearchFailed)
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/solver/VariationalSolverCompiler.scala:349:24 
+[warn] 349 |      status = solution.status match
+[warn]     |               ^^^^^^^^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/solver/VariationalSolverCompiler.scala:396:24 
+[warn] 396 |      status = solution.status match
+[warn]     |               ^^^^^^^^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] -- [E029] Pattern Match Exhaustivity Warning: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/main/scala/multivar/solver/VariationalSolverCompiler.scala:481:24 
+[warn] 481 |      status = solution.status match
+[warn]     |               ^^^^^^^^^^^^^^^
+[warn]     |match may not be exhaustive.
+[warn]     |
+[warn]     |It would fail on pattern case: NumericalStagnation, EvaluationLimit, Cancelled, LineSearchFailed
+[warn]     |
+[warn]     | longer explanation available when compiling with `-explain`
+[warn] 7 warnings found
+[info] done compiling
+[info] compiling 77 Scala sources to /private/tmp/gale-optim-consumer/target/scala-3.7.4/test-classes ...
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:10:7 
+[error] 10 |import gale.linalg.DMat
+[error]    |       ^^^^
+[error]    |       Not found: gale
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:110:12 
+[error] 110 |        val natural = factors.decoder.natural(factors.rowCodes.values, row, feature)
+[error]     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |     gale.linalg.DVec is not defined in inferred type gale.linalg.DVec
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:118:16 
+[error] 118 |            val actual = accepted(loss.naturalGradient(specification.id, embedding, natural))
+[error]     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |     gale.linalg.DVec is not defined in inferred type gale.linalg.DVec
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:170:10 
+[error] 170 |      val natural = factors.decoder.natural(factors.rowCodes.values, row, 0)
+[error]     |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |     gale.linalg.DVec is not defined in inferred type gale.linalg.DVec
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/core/FactorialDesignSuite.scala:3:12 
+[error] 3 |import gale.backend.Backend.given
+[error]   |       ^^^^^^^^^^^^
+[error]   |       value backend is not a member of gale
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:272:26 
+[error] 272 |      actual: gale.linalg.DVec,
+[error]     |              ^^^^^^^^^^^^^^^^
+[error]     |              type DVec is not a member of gale.linalg
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsDifferentialSuite.scala:174:12 
+[error] 174 |        val gradient = accepted(loss.naturalGradient(featureId, embedding, natural))
+[error]     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |     gale.linalg.DVec is not defined in inferred type gale.linalg.DVec
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:10:19 
+[error] 10 |import gale.linalg.DMat
+[error]    |                   ^^^^
+[error]    |                   value DMat is not a member of gale.linalg
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:11:19 
+[error] 11 |import gale.linalg.DVec
+[error]    |                   ^^^^
+[error]    |                   value DVec is not a member of gale.linalg
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:166:54 
+[error] 166 |  private def matrix(values: Vector[Vector[Double]]): DMat =
+[error]     |                                                      ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:169:46 
+[error] 169 |  private def vector(values: Vector[Double]): DVec =
+[error]     |                                              ^^^^
+[error]     |                                              Not found: type DVec
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:146:14 
+[error] 146 |      actual: DVec,
+[error]     |              ^^^^
+[error]     |              Not found: type DVec
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:113:10 
+[error] 113 |    assert(result.achievedGuarantee.isInstanceOf[AchievedOptimizationGuarantee.Stationary])
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |missing argument for parameter clue of method assert in trait Assertions: (cond: => Boolean, clue: => Any)(implicit loc: munit.Location): Unit
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:114:10 
+[error] 114 |    assert(result.uniqueness.isInstanceOf[LatentCodeUniqueness.UniqueByStrongConvexity])
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |missing argument for parameter clue of method assert in trait Assertions: (cond: => Boolean, clue: => Any)(implicit loc: munit.Location): Unit
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsEncodingDifferentialSuite.scala:154:24 
+[error] 154 |      assertEqualsDouble(actual(index), expected(index), tolerance)
+[error]     |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |missing argument for parameter clue of method assertEqualsDouble in trait Assertions: (obtained: Double, expected: Double, delta: Double, clue: => Any)
+[error]     |  (implicit loc: munit.Location): Unit
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:10:19 
+[error] 10 |import gale.linalg.DMat
+[error]    |                   ^^^^
+[error]    |                   value DMat is not a member of gale.linalg
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:422:46 
+[error] 422 |  private def column(values: Vector[Double]): DMat =
+[error]     |                                              ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:419:78 
+[error] 419 |  private def block(state: PalmState, parameter: ParameterId): Either[String, DMat] =
+[error]     |                                                                              ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:354:16 
+[error] 354 |      rowCodes: DMat,
+[error]     |                ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:355:15 
+[error] 355 |      decoder: DMat
+[error]     |               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:323:83 
+[error] 323 |  private def exactRowUpdate(data: Vector[Vector[Double]], ridge: Double, decoder: DMat): DMat =
+[error]     |                                                                                   ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:323:90 
+[error] 323 |  private def exactRowUpdate(data: Vector[Vector[Double]], ridge: Double, decoder: DMat): DMat =
+[error]     |                                                                                          ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:337:88 
+[error] 337 |  private def exactDecoderUpdate(data: Vector[Vector[Double]], ridge: Double, rowCodes: DMat): DMat =
+[error]     |                                                                                        ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:337:95 
+[error] 337 |  private def exactDecoderUpdate(data: Vector[Vector[Double]], ridge: Double, rowCodes: DMat): DMat =
+[error]     |                                                                                               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:259:8 
+[error] 259 |    val rowCodes = accepted(scalaFit.state.block(fixture.rowParameter)).values
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |    gale.linalg.DMat is not defined in inferred type gale.linalg.DMat
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:260:8 
+[error] 260 |    val decoder = accepted(scalaFit.state.block(fixture.decoderParameter)).values
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |    gale.linalg.DMat is not defined in inferred type gale.linalg.DMat
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:289:16 
+[error] 289 |      rowCodes: DMat,
+[error]     |                ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:290:15 
+[error] 290 |      decoder: DMat,
+[error]     |               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:403:36 
+[error] 403 |  private def reconstruct(rowCodes: DMat, decoder: DMat): Vector[Vector[Double]] =
+[error]     |                                    ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:403:51 
+[error] 403 |  private def reconstruct(rowCodes: DMat, decoder: DMat): Vector[Vector[Double]] =
+[error]     |                                                   ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:298:16 
+[error] 298 |      rowCodes: DMat,
+[error]     |                ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:299:15 
+[error] 299 |      decoder: DMat,
+[error]     |               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:311:16 
+[error] 311 |      rowCodes: DMat,
+[error]     |                ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:312:15 
+[error] 312 |      decoder: DMat,
+[error]     |               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/LowRankModelsFittedDifferentialSuite.scala:407:34 
+[error] 407 |  private def squaredNorm(matrix: DMat): Double =
+[error]     |                                  ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:4:19 
+[error] 4 |import gale.linalg.Matrix
+[error]   |                   ^^^^^^
+[error]   |                   value Matrix is not a member of gale.linalg
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:11:19 
+[error] 11 |import gale.linalg.DMat
+[error]    |                   ^^^^
+[error]    |                   value DMat is not a member of gale.linalg
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:15:21 
+[error] 15 |  private val data = Matrix(4, 3)(
+[error]    |                     ^^^^^^
+[error]    |                     Not found: Matrix
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:22:24 
+[error] 22 |  private val pairedY = Matrix(4, 2)(
+[error]    |                        ^^^^^^
+[error]    |                        Not found: Matrix
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:29:40 
+[error] 29 |  private def assertMatrixClose(actual: DMat, expected: DMat, tol: Double): Unit =
+[error]    |                                        ^^^^
+[error]    |                               Not found: type DMat - did you mean Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:29:56 
+[error] 29 |  private def assertMatrixClose(actual: DMat, expected: DMat, tol: Double): Unit =
+[error]    |                                                        ^^^^
+[error]    |                               Not found: type DMat - did you mean Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:36:26 
+[error] 36 |        assertEqualsDouble(actual(row, col), expected(row, col), tol)
+[error]    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]    |missing argument for parameter clue of method assertEqualsDouble in trait Assertions: (obtained: Double, expected: Double, delta: Double, clue: => Any)
+[error]    |  (implicit loc: munit.Location): Unit
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:41:18 
+[error] 41 |    val pca = Pca.fit(data, components = 2).orThrow
+[error]    |                  ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:42:18 
+[error] 42 |    val svd = Svd.fit(data, components = 2).orThrow
+[error]    |                  ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:52:28 
+[error] 52 |    val pls = PlsRegression.fit(data, pairedY, components = 1).orThrow
+[error]    |                            ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:65:40 
+[error] 65 |    assertMatrixClose(fisher.typedFrame.project(data).orThrow, fisher.transform(data).orThrow, 1e-12)
+[error]    |                                        ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:65:70 
+[error] 65 |    assertMatrixClose(fisher.typedFrame.project(data).orThrow, fisher.transform(data).orThrow, 1e-12)
+[error]    |                                                                      ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:67:20 
+[error] 67 |    val rowDesign = Matrix(4, 1)(1.0, 0.0, 0.0, 0.0)
+[error]    |                    ^^^^^^
+[error]    |                    Not found: Matrix
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:68:24 
+[error] 68 |    val featureDesign = Matrix(3, 1)(1.0, 0.0, 0.0)
+[error]    |                        ^^^^^^
+[error]    |                        Not found: Matrix
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:70:8 
+[error] 70 |    val restored = cpca.fittedPreprocessor
+[error]    |    ^
+[error]    |    gale.linalg.DMat is not defined in inferred type gale.linalg.DMat
+[error] 71 |      .inverseTransform(MatrixView.dense(cpca.reconstructWorking().orThrow))
+[error] 72 |      .flatMap(_.toDense())
+[error] 73 |      .orThrow
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/advanced/AdvancedSurfaceSuite.scala:80:12 
+[error] 80 |        Pca.fit(data, components = 0).orThrow
+[error]    |            ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:10:19 
+[error] 10 |import gale.linalg.DMat
+[error]    |                   ^^^^
+[error]    |                   value DMat is not a member of gale.linalg
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:11:19 
+[error] 11 |import gale.linalg.DVec
+[error]    |                   ^^^^
+[error]    |                   value DVec is not a member of gale.linalg
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:25:6 
+[error] 25 |      DVec.fromSeq(scale),
+[error]    |      ^^^^
+[error]    |      Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:26:6 
+[error] 26 |      DVec.fromSeq(shift)
+[error]    |      ^^^^
+[error]    |      Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:21:14 
+[error] 21 |  val newRaw: DMat = GaleNumerics.matrixFromRows(
+[error]    |              ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:35:15 
+[error] 35 |  val weights: DMat = GaleNumerics.matrixFromRows(
+[error]    |               ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:48:40 
+[error] 48 |  private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double = 1e-12): Unit =
+[error]    |                                        ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:48:56 
+[error] 48 |  private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double = 1e-12): Unit =
+[error]    |                                                        ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:55:26 
+[error] 55 |        assertEqualsDouble(actual(row, col), expected(row, col), tolerance)
+[error]    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]    |missing argument for parameter clue of method assertEqualsDouble in trait Assertions: (obtained: Double, expected: Double, delta: Double, clue: => Any)
+[error]    |  (implicit loc: munit.Location): Unit
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:59:34 
+[error] 59 |  private def assertFinite(input: DMat): Unit =
+[error]    |                                  ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:77:53 
+[error] 77 |    assertMatrixClose(contribution.values, transform.project(MatrixView.dense(R.newRaw)).toOption.get)
+[error]    |                                                     ^
+[error]    |    Cannot resolve reference to type gale.linalg.type.DMat.
+[error]    |    The classfile defining the type might be missing from the classpath.
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:50:18 
+[error] 50 |  val partialRaw: DMat = GaleNumerics.matrixFromRows(
+[error]    |                  ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:64:27 
+[error] 64 |  val partialContribution: DMat = GaleNumerics.matrixFromRows(
+[error]    |                           ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:71:27 
+[error] 71 |  val partialLeastSquares: DMat = GaleNumerics.matrixFromRows(
+[error]    |                           ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:78:21 
+[error] 78 |  val partialMetric: DMat = GaleNumerics.matrixFromRows(
+[error]    |                     ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:84:33 
+[error] 84 |  val partialMetricLeastSquares: DMat = GaleNumerics.matrixFromRows(
+[error]    |                                 ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:169:34 
+[error] 169 |    assertEquals(recovered.values.rows, R.newRaw.rows)
+[error]     |                 ^^^^^^^^^^^^^^^^^^^^^
+[error]     |                 value rows is not a member of gale.linalg.DMat
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:170:34 
+[error] 170 |    assertEquals(recovered.values.cols, R.weights.cols)
+[error]     |                 ^^^^^^^^^^^^^^^^^^^^^
+[error]     |                 value cols is not a member of gale.linalg.DMat
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:229:18 
+[error] 229 |    val pca = Pca.fit(x, componentCount).toOption.get.typedFrame
+[error]     |                  ^
+[error]     |  Cannot resolve reference to type gale.linalg.type.DMat.
+[error]     |  The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:230:20 
+[error] 230 |    val plsc = Plsc.fit(x, y, componentCount).toOption.get.sourceFrame
+[error]     |                    ^
+[error]     |  Cannot resolve reference to type gale.linalg.type.DMat.
+[error]     |  The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:231:18 
+[error] 231 |    val cca = Cca.fit(x, y, componentCount, ridge = 0.1).toOption.get.sourceFrame
+[error]     |                  ^
+[error]     |  Cannot resolve reference to type gale.linalg.type.DMat.
+[error]     |  The classfile defining the type might be missing from the classpath.
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:232:36 
+[error] 232 |    val rrr = ReducedRankRegression.fit(x, y, componentCount).toOption.get.sourceFrame
+[error]     |                                    ^
+[error]     |  Cannot resolve reference to type gale.linalg.type.DMat.
+[error]     |  The classfile defining the type might be missing from the classpath.
+[error] -- [E007] Type Mismatch Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedProjectionSuite.scala:238:23 
+[error] 238 |      val restricted = transform.restrictFeatures(column).toOption.get
+[error]     |                       ^^^^^^^^^
+[error]     |Found:    (transform : Nothing)
+[error]     |Required: ?{ restrictFeatures: ? }
+[error]     |Note that implicit conversions were not tried because the result of an implicit conversion
+[error]     |must be more specific than ?{ restrictFeatures: [applied to (column) returning ?{ toOption: ?{ get: <?> } }
+[error]     |  ] }
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:9:19 
+[error] 9 |import gale.linalg.DMat
+[error]   |                   ^^^^
+[error]   |                   value DMat is not a member of gale.linalg
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:10:19 
+[error] 10 |import gale.linalg.DVec
+[error]    |                   ^^^^
+[error]    |                   value DVec is not a member of gale.linalg
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:22:40 
+[error] 22 |    FittedColumnAffine(R.center.length, DVec.fromSeq(scale), DVec.fromSeq(shift))
+[error]    |                                        ^^^^
+[error]    |                                        Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:22:61 
+[error] 22 |    FittedColumnAffine(R.center.length, DVec.fromSeq(scale), DVec.fromSeq(shift))
+[error]    |                                                             ^^^^
+[error]    |                                                         Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:40:52 
+[error] 40 |    FittedColumnAffine(R.pairedTargetCenter.length, DVec.fromSeq(scale), DVec.fromSeq(shift))
+[error]    |                                                    ^^^^
+[error]    |                                                    Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:40:73 
+[error] 40 |    FittedColumnAffine(R.pairedTargetCenter.length, DVec.fromSeq(scale), DVec.fromSeq(shift))
+[error]    |                                                                         ^^^^
+[error]    |                                                         Not found: DVec
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:43:8 
+[error] 43 |    val training = GaleNumerics.matrixFromRows(
+[error]    |    ^
+[error]    |    gale.linalg.DMat is not defined in inferred type gale.linalg.DMat
+[error] 44 |      Vector(
+[error] 45 |        R.pairedTargetCenter,
+[error] 46 |        R.pairedTargetCenter.zip(R.pairedTargetScale).map(_ + _),
+[error] 47 |        R.pairedTargetCenter.zip(R.pairedTargetScale).map(_ - _)
+[error] 48 |      )
+[error] 49 |    )
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:155:27 
+[error] 155 |  val pairedTargetWeights: DMat = GaleNumerics.matrixFromRows(
+[error]     |                           ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:62:40 
+[error] 62 |  private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double = 1e-12): Unit =
+[error]    |                                        ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:62:56 
+[error] 62 |  private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double = 1e-12): Unit =
+[error]    |                                                        ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:69:26 
+[error] 69 |        assertEqualsDouble(actual(row, col), expected(row, col), tolerance)
+[error]    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]    |missing argument for parameter clue of method assertEqualsDouble in trait Assertions: (obtained: Double, expected: Double, delta: Double, clue: => Any)
+[error]    |  (implicit loc: munit.Location): Unit
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:73:30 
+[error] 73 |  private def selected(input: DMat, columns: Vector[Int]): DMat =
+[error]    |                              ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:73:59 
+[error] 73 |  private def selected(input: DMat, columns: Vector[Int]): DMat =
+[error]    |                                                           ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:135:15 
+[error] 135 |  val decoder: DMat = GaleNumerics.matrixFromRows(
+[error]     |               ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:43:18 
+[error] 43 |  val fullScores: DMat = GaleNumerics.matrixFromRows(
+[error]    |                  ^^^^
+[error]    |              Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]    |
+[error]    | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:141:29 
+[error] 141 |  val reconstructionWorking: DMat = GaleNumerics.matrixFromRows(
+[error]     |                             ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:148:25 
+[error] 148 |  val reconstructionRaw: DMat = GaleNumerics.matrixFromRows(
+[error]     |                         ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:129:8 
+[error] 129 |    val weights = GaleNumerics.matrixFromRows(
+[error]     |    ^
+[error]     |    gale.linalg.DMat is not defined in inferred type gale.linalg.DMat
+[error] 130 |      Vector(
+[error] 131 |        Vector(1.0, 0.0),
+[error] 132 |        Vector(0.0, 1.0),
+[error] 133 |        Vector(0.0, 0.0)
+[error] 134 |      )
+[error] 135 |    )
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:202:21 
+[error] 202 |    assertMatrixClose(selectedWorking.values, selected(R.reconstructionWorking, Vector(1, 3)))
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |missing argument for parameter tolerance of method assertMatrixClose in class FittedSynthesisSuite
+[error] -- [E171] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:203:21 
+[error] 203 |    assertMatrixClose(selectedOriginal.values, selected(R.reconstructionRaw, Vector(1, 3)))
+[error]     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |missing argument for parameter tolerance of method assertMatrixClose in class FittedSynthesisSuite
+[error] -- [E050] Type Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:248:33 
+[error] 248 |    assert(Math.abs(contribution.values(0, 0) - recovered.values(0, 0)) > 1e-3)
+[error]     |                    ^^^^^^^^^^^^^^^^^^^
+[error]     |   value values in class ReconstructionResult does not take parameters
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:162:27 
+[error] 162 |  val pairedTargetDecoder: DMat = GaleNumerics.matrixFromRows(
+[error]     |                           ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:168:23 
+[error] 168 |  val transferWorking: DMat = GaleNumerics.matrixFromRows(
+[error]     |                       ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- [E006] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/ProjectionParityReferenceFixtures.scala:175:19 
+[error] 175 |  val transferRaw: DMat = GaleNumerics.matrixFromRows(
+[error]     |                   ^^^^
+[error]     |            Not found: type DMat - did you mean Dual? or perhaps Math?
+[error]     |
+[error]     | longer explanation available when compiling with `-explain`
+[error] -- Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:323:20 
+[error] 323 |    val plsc = Plsc.fit(x, y, components).toOption.get
+[error]     |                    ^
+[error]     |  Cannot resolve reference to type gale.linalg.type.DMat.
+[error]     |  The classfile defining the type might be missing from the classpath.
+[error] -- [E008] Not Found Error: /Users/bbuchsbaum/code/scala/multivar/modules/core/shared/src/test/scala/multivar/capability/FittedSynthesisSuite.scala:328:53 
+[error] 328 |    assertEquals(plscTransfer(x).toOption.get.values.rows, x.rows)
+[error]     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[error]     |                 value rows is not a member of gale.linalg.DMat
+[error] 1862 errors found
+[error] (Test / compileIncremental) Compilation failed
+[error] Total time: 27 s, completed Oct 7, 2026, 2:38:14 p.m.

@@ -1,0 +1,33 @@
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading project definition from /private/tmp/gale-optim-consumer/project
+[info] loading settings for project gale-optim-consumer from build.sbt...
+[info] set current project to gale-optim-consumer (in build file:/private/tmp/gale-optim-consumer/)
+multivar.core.NumericsOptimizationSuite:
+  + isApproximatelyIdentity accepts exact and rejects perturbed identity 0.015s
+  + inverseSquareRoot short-circuits exact identity without a full spectrum 0.005s
+  + counted symmetric eigen returns the leading slice of the full spectrum 0.023s
+  + column-Gram and row-Gram SVD agree on a square rank-one matrix 0.006s
+  + full-rank one-dimensional SVD retains its requested component 0.001s
+multivar.optimization.OptimizationGuaranteesSuite:
+  + phantom proof constants cannot be interchanged and reject invalid values 0.011s
+  + identity bindings make complete and observed masks explicit 0.026s
+  + PSD runtime witnesses reuse and identity-check the extant certificate algebra 0.004s
+  + a numerical Converged status cannot manufacture a global claim 0.005s
+  + exact global admission requires the contract theorem, its witnesses, and an admitted oracle 0.008s
+  + compiler-style admission reports every absent proof obligation 0.001s
+  + coercivity, norm, exact-oracle, and controlled-inexactness obligations are identity-bound 0.004s
+  + epsilon-global and unique-minimizer claims retain their quantitative bounds 0.004s
+  + stationary, coordinatewise-stationary, feasible, and unresolved remain distinct 0.003s
+  + coordinatewise stationarity must cover every bound parameter block 0.002s
+  + semantic certificates reject foreign result and operator identities 0.001s
+multivar.solver.VariationalSolverCompilerSuite:
+  + execution-form matching is exhaustive and deterministic 0.027s
+  + missing numerical capability fails before the semantic operator is evaluated 0.021s
+  + compiled matrix-free programs execute through linalg and bind numerical evidence 0.043s
+multivar.family.canonical.ConstrainedCanonicalSuite:
+  + nonnegative canonical root is a distinct coordinate-constrained estimand 0.106s
+  + inactive nonnegative constraint recovers the ordinary positive solution 0.003s
+  + coordinate permutations preserve the constrained root and permute the frame 0.001s
+  + solver specification rejects invalid tolerance and iteration budgets 0.002s
+[info] Passed: Total 23, Failed 0, Errors 0, Passed 23
+[success] Total time: 1 s, completed Oct 7, 2026, 2:54:10 p.m.
