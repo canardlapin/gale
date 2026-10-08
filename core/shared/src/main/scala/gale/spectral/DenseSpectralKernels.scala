@@ -232,6 +232,8 @@ private[gale] object DenseSpectralKernels:
       eOffset: Int,
       accumulate: Boolean
   ): Unit =
+    // The empty matrix is already tridiagonal; `d`/`e` have no slot to clear.
+    if n == 0 then return
     // Reduce from the last row inward; row i is eliminated against columns 0..i-1.
     var i = n - 1
     while i >= 1 do
@@ -331,8 +333,24 @@ private[gale] object DenseSpectralKernels:
     * When `z` is `Some(zData)` (an `n x n` row-major basis) its columns are
     * rotated in lockstep so that, starting from `Q` or the identity, they end as
     * the eigenvectors. Eigenvalues are sorted ascending afterwards with `z`'s
-    * columns permuted to match. Returns `Left(DidNotConverge)` if any eigenvalue
-    * needs more than `maxSweeps` QL sweeps.
+    * columns permuted to match. For finite `T` an off-diagonal is deflated once
+    * it is at most `ε · max(|d(m)| + |d(m+1)|, ‖T‖_max)` (`‖T‖_max` the largest
+    * entry magnitude, which cannot overflow and is within a factor 3 of `‖T‖₂`),
+    * so every eigenvalue carries an absolute error of order `ε ‖T‖`: the solver
+    * is normwise backward-stable only, and tiny eigenvalues of graded matrices
+    * get no relative accuracy. If `T` has an infinite entry the norm-scaled test
+    * is disabled and only the local test applies, exactly as before it was
+    * added. Returns `Left(DidNotConverge)` if any eigenvalue needs more than
+    * `maxSweeps` QL sweeps; with finite input and the Wilkinson shift this is not
+    * expected (a few sweeps per eigenvalue). Finite `T` with entries above
+    * `2^600` is solved on the exact rescaling `2^-600 T` so that QL
+    * intermediates cannot overflow. A NaN never satisfies either test,
+    * so NaN input exhausts the cap; ±Inf input behaves as under the local test
+    * alone (it may converge to non-finite values or exhaust the cap).
+    *
+    * Shared by the dense symmetric routes and, through
+    * [[symmetricTridiagonalEigen]], the Lanczos projected problems (including
+    * the `PartialSvd` Golub–Kahan–Lanczos path).
     */
   private def solveTridiagonal(
       n: Int,
@@ -351,16 +369,45 @@ private[gale] object DenseSpectralKernels:
       i += 1
     e(eOffset + n - 1) = 0.0
 
+    // ‖T‖_max, the largest entry magnitude of the input tridiagonal: it cannot
+    // overflow for finite input and ‖T‖_max ≤ ‖T‖₂ ≤ 3‖T‖_max. Orthogonal QL
+    // sweeps preserve ‖T‖₂, so it stays a valid scale for the whole solve. A
+    // non-finite scale would deflate every finite e(m) at once, so it disables
+    // the norm-scaled test (scale 0 leaves only the local test).
+    var tMax = 0.0
+    i = 0
+    while i < n do
+      tMax = math.max(tMax, math.max(math.abs(d(i)), math.abs(e(eOffset + i))))
+      i += 1
+    // The QL recurrences form intermediates up to a few times ‖T‖, so a finite
+    // T near the overflow threshold is first scaled by the exact power of two
+    // 2^-600 (dsteqr's safe-range scaling); eigenvalues are scaled back below
+    // and eigenvectors are unaffected. Ordinary inputs are never rescaled.
+    val rescaled = tMax.isFinite && tMax > HugeTridiagonalEntry
+    if rescaled then
+      i = 0
+      while i < n do
+        d(i) = d(i) * ScaleDownHuge
+        e(eOffset + i) = e(eOffset + i) * ScaleDownHuge
+        i += 1
+      tMax = tMax * ScaleDownHuge
+    val normScale = if tMax.isFinite then tMax else 0.0
+
     var l = 0
     while l < n do
       var iter = 0
       var continue = true
       while continue do
-        // Find a small off-diagonal e(m) to split the problem at.
+        // Find a negligible off-diagonal e(m) to split the problem at: small
+        // relative to its diagonal neighbours (the purely local test of
+        // Numerical Recipes' tqli; EISPACK tql2 uses a running tst1) OR to ‖T‖.
+        // The norm-scaled test is the backward-stable one (dropping e(m) is an
+        // O(ε‖T‖) perturbation); without it a cluster of eigenvalues near 0
+        // can never satisfy the local test and the sweep cap is exhausted.
         var m = l
         var found = false
         while m < n - 1 && !found do
-          val dd = math.abs(d(m)) + math.abs(d(m + 1))
+          val dd = math.max(math.abs(d(m)) + math.abs(d(m + 1)), normScale)
           if math.abs(e(eOffset + m)) <= Epsilon * dd then found = true
           else m += 1
         if m == l then
@@ -413,6 +460,11 @@ private[gale] object DenseSpectralKernels:
             e(eOffset + m) = 0.0
       l += 1
 
+    if rescaled then
+      i = 0
+      while i < n do
+        d(i) = d(i) * ScaleUpHuge
+        i += 1
     sortAscending(n, d, z)
     val values = DVec.fromDoubleArrayOwned(d)
     val vectors = z.map(zData => DMat.fromDoubleArrayOwned(n, n, zData))
@@ -1062,6 +1114,11 @@ private[gale] object DenseSpectralKernels:
 
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
+
+  /** Tridiagonal entries above `2^600` are scaled by `2^-600` before QL. */
+  private val HugeTridiagonalEntry: Double = java.lang.Double.longBitsToDouble((1023L + 600L) << 52)
+  private val ScaleDownHuge: Double = java.lang.Double.longBitsToDouble((1023L - 600L) << 52)
+  private val ScaleUpHuge: Double = HugeTridiagonalEntry
 
   /** `sqrt(a² + b²)` without forming the overflow-prone intermediate, using only
     * correctly-rounded `sqrt` so the result is identical on JVM and Scala.js
