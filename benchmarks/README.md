@@ -161,6 +161,9 @@ stderr (`[breeze-netlib] ...`) and as one JSON line appended to the sidecar
 also carries the JDK version and whether `jdk.incubator.vector` was resolved. Both
 lane aliases delete the sidecar first (`benchmarksJVM/breezeNetlibReset`), so every
 run writes a fresh one: copy it next to the JSON receipt before the next run.
+Running the two lanes concurrently in one checkout is unsupported, because the
+reset and both lanes share that fixed path: use a separate worktree per lane, or
+give each run its own `-Dgale.bench.netlibSidecar` (which the reset does not delete).
 
 ### Scoreboard
 
