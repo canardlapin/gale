@@ -27,6 +27,9 @@ object LinAlgError:
   final case class UnsupportedOperation(operation: String)
       extends LinAlgError(s"unsupported linear algebra operation: $operation")
 
+  final case class EmptyInput(operation: String)
+      extends LinAlgError(s"$operation requires a non-empty input")
+
   final case class InvalidArgument(message: String)
       extends LinAlgError(message)
 

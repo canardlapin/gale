@@ -35,6 +35,55 @@ The default duplicate policy sums repeated coordinates. Checked ingestion via
 requested `DuplicatePolicy.Error` in `Either[LinAlgError, A]` rather than the
 throwing convenience path.
 
+## Work with sparse vectors
+
+`SparseVector` stores a fixed-length vector as strictly increasing indices and
+their values. Build one from `(index, value)` pairs in any order; repeated
+indices follow the same `DuplicatePolicy` as matrix assembly:
+
+```scala mdoc
+val features = SparseVector.fromEntries(8, Seq(5 -> 2.0, 1 -> -1.0, 5 -> 0.5, 3 -> 0.0))
+val weights = SparseVector.fromDense(Vec(0.0, 3.0, 0.0, 0.0, 0.0, 4.0, 0.0, 1.0))
+
+(features.activeIndices, features.activeValues, features.dot(weights))
+```
+
+Explicit zeros stay stored, as in Breeze: index 3 above is active although its
+value is `0.0`. `+`, `-`, scaling and `mapActive` also keep their patterns when
+a value cancels. `compact` is the one operation that drops stored zeros, and
+`fromDense` never stores them:
+
+```scala mdoc
+val cancelled = features - features
+(cancelled.activeSize, cancelled.compact.activeSize)
+```
+
+Products (`dot`, `axpyInto`) visit active entries only. Reductions describe the
+dense vector, so `max` and `min` include `0.0` whenever an implicit zero exists,
+and a length-0 vector has no maximum:
+
+```scala mdoc
+val negative = SparseVector.fromEntries(4, Seq(0 -> -3.0, 2 -> -1.0))
+(negative.max, negative.min, negative.norm2, SparseVector.zeros(0).sum)
+```
+
+`mapActive` applies its function to stored values only; it equals a dense map
+only when the function sends `0.0` to `0.0`. Checked construction via
+`SparseVector.tryFromEntries` returns `Either[LinAlgError, SparseVector]` for
+out-of-range indices, a rejected duplicate, or a non-finite value under
+`SparseValuePolicy.RequireFinite`.
+
+CSR rows and CSC columns convert without a dense intermediate, and a CSR
+matrix multiplies a sparse vector into a dense result. That product follows
+the `dot` rule, so implicit zeros of `x` never multiply stored values of the
+matrix:
+
+```scala mdoc
+val firstRow = stiffness.rowSparse(0)
+val unitLoad = SparseVector.fromEntries(3, Seq(2 -> 1.0))
+(firstRow.activeIndices, firstRow.activeValues, (stiffness * unitLoad).toSeq)
+```
+
 ## Solve the sparse system iteratively
 
 Conjugate gradient is appropriate when the operator is symmetric positive
