@@ -130,10 +130,12 @@ squares at n = 96, 128, 200 and 300. `SpectralHardeningParitySuite` covers eigSy
 same sizes. All comparisons use c·n·ε·κ, Weyl or Davis–Kahan tolerances, so they stay valid
 under reassociation. The core-suite exact twins recommended below are still needed.
 
-W5.3 also found that the current unblocked tridiagonal QL kernel
-(`DenseSpectralKernels.solveTridiagonal`) exhausts its 30-sweeps-per-value cap. It does so
-for n ≥ about 96 when the spectrum has a highly repeated eigenvalue at 0. It was reported to
-the coordinator. W1.5 must not be judged against that baseline on such inputs.
+W5.3 also found that the unblocked tridiagonal QL kernel
+(`DenseSpectralKernels.solveTridiagonal`) used to exhaust its 30-sweeps-per-value cap for
+n ≥ about 96 when the spectrum had a highly repeated eigenvalue at 0. Commit `5237c48` on
+this branch fixed it with a norm-scaled deflation test. The fix changes no existing
+exact-equality result: `coreJVM`, `coreJS`, `lawsJVM` and `parity` all pass unchanged. W1.5
+should be measured against the post-fix kernel.
 
 ## Recommendations by W1 item
 
