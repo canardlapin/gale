@@ -435,8 +435,11 @@ object SparseVector:
       var value = vals(order(read))
       var next = read + 1
       while next < n && idx(order(next)) == index do
-        if duplicates == DuplicatePolicy.Sum then value += vals(order(next))
-        else value = vals(order(next))
+        duplicates match
+          case DuplicatePolicy.Sum  => value += vals(order(next))
+          case DuplicatePolicy.Last => value = vals(order(next))
+          case DuplicatePolicy.Error =>
+            throw IllegalStateException("duplicate indices were rejected in the first pass")
         next += 1
       outIdx(write) = index
       outVal(write) = value
