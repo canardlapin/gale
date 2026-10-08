@@ -291,7 +291,7 @@ names the result axis with `Axis`. `Axis.Rows` gives one value per row, and
 | Breeze | Gale | Note |
 | --- | --- | --- |
 | `sum(v)`, `sum(a)` | `v.sum`, `a.sum` | `sumExact` is correctly rounded and the same on every platform. |
-| `breeze.stats.mean(v)` | `v.mean` | `sum / n`, as in NumPy. |
+| `breeze.stats.mean(v)` | `v.mean` | `sum / n`, recomputed as `Σ(x_i / n)` if the sum overflows. |
 | `max(v)`, `min(v)` | `v.max`, `v.min` | |
 | `argmax(v)`, `argmin(v)` | `v.argmax`, `v.argmin` | A matrix returns `(row, col)`. |
 | `sum(a(::, *)).t` | `a.sum(Axis.Cols)` | Breeze returns a transposed row vector; Gale returns a `DVec`. |
@@ -356,8 +356,9 @@ infinity that faces an implicit zero, so `x.dot(y)` can differ from
 
 ### Where Gale and Breeze 2.1 disagree
 
-These are deliberate. `sbt parityTest` pins each one: it checks Gale's
-documented result and Breeze's observed result
+Most of these are deliberate Gale choices. One is a Breeze bug (marked
+below). `sbt parityTest` pins each one: it checks Gale's documented result and
+Breeze's observed result
 (`ReductionsNumericsParitySuite` and `SparseVectorParitySuite`). The
 [numerical contract](../advanced/numerical-contract.md#reductions-and-elementwise-numerics)
 states the Gale rules.
@@ -366,13 +367,12 @@ states the Gale rules.
 | --- | --- | --- |
 | `argmax`/`argmin` with a NaN | index of the first NaN | skips the NaN unless it comes first |
 | `argmin` ties | first minimum | last minimum |
-| Matrix `argmax`/`argmin` ties and NaN | row-major order, first NaN | column-major order, NaN skipped |
+| Matrix `argmax`/`argmin` ties and NaN | row-major order, first NaN | column-major order (`argmin` takes the last tie), NaN skipped |
 | `max`/`min` of `0.0` and `-0.0` | the first one | `max` is `0.0`, `min` is `-0.0` |
 | Empty `max`, `mean`, per-axis `max` | throw `LinAlgError.EmptyInput` | `-Inf`, `0.0`, `-Inf` per line |
 | Empty `min`, `argmax` | throw `LinAlgError.EmptyInput` | throw `IllegalArgumentException` |
-| `mean` near `Double.MaxValue` | `sum / n`, so it can overflow to `+Inf` | running mean, finite |
 | `norm2`, Frobenius with entries near `1e300` or `1e-300` | scaled; finite and nonzero | overflows to `+Inf`, underflows to `0.0` |
-| Log-sum-exp with a `+Inf` entry | `+Inf` | `softmax` returns `-Inf` |
+| Log-sum-exp with a `+Inf` entry | `+Inf` | `softmax` returns `-Inf` (Breeze bug: its `max.isInfinite` guard for all `-Inf` also catches `+Inf`) |
 | `sigmoid(x)` for `-745 < x < -709.78` | subnormal `≈ exp(x)` | exactly `0.0` |
 | Sparse `max`/`min` of a length-0 vector | throw `LinAlgError.EmptyInput` | `max` is `-Inf`; `min` throws |
 | Sparse duplicate indices | `DuplicatePolicy.Sum` (default), `Last`, or `Error` | always summed |

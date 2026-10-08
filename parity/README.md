@@ -30,13 +30,8 @@ are unavailable. These settings do not force a particular BLAS/LAPACK backend.
 `EverydayOpsParitySuite` uses ScalaCheck to vary matrix shapes and data seeds.
 `ReductionsNumericsParitySuite` and `SparseVectorParitySuite` do the same for
 sizes 1 to 64, plus fixed 1K and 64K cases. To replay a printed failing seed,
-run `sbt -Dgale.parity.seed=<seed> parityTest`. Where Gale's documented
-semantics differ from Breeze, these suites check both results. The
-[Breeze migration guide](../docs/user/guides/breeze-equivalence.md) lists those
-cases.
-`ReductionsNumericsParitySuite` and `SparseVectorParitySuite` do the same for
-sizes 1 to 64, plus fixed 1K and 64K cases. To replay a printed failing seed,
-run `sbt -Dgale.parity.seed=<seed> parityTest`. Where Gale's documented
+run the failing suite alone:
+`sbt -Dgale.parity.seed=<seed> "parity/testOnly gale.parity.<Suite>"`. Where Gale's documented
 semantics differ from Breeze, these suites check both results. The
 [Breeze migration guide](../docs/user/guides/breeze-equivalence.md) lists those
 cases.
@@ -54,9 +49,6 @@ the reference.
 | --- | --- | --- | --- | --- |
 | Dense ± / * / axpy / dot / scale | `+`, `-`, `*`, `dot` | same, including `A * α` | `DenseOpsParitySuite` | covered |
 | Slice / strided-view products | `A(i until j, …) * x` | `slice` then `*` / `col` as `x` | `DenseOpsParitySuite` | covered |
-| Reductions, per-axis reductions, norms | `sum`, `mean`, `max`, `argmax`, `sum(A(::, *))`, `norm(v, p)` | `sum`, `sumExact`, `mean`, `max`, `argmax`, `sum(Axis.Cols)`, `norm1`/`norm2`/`normInf`/`normFrobenius` | `ReductionsNumericsParitySuite` | covered (divergences pinned) |
-| Elementwise and log-domain numerics | `breeze.numerics.*`, `softmax` (= log-sum-exp) | `Numerics.exp`/`log`/`log1p`/`expm1`/`sigmoid`/`logSumExp`/`softmax`/`logSoftmax` | `ReductionsNumericsParitySuite` | covered (divergences pinned) |
-| Sparse vectors | `SparseVector`, `VectorBuilder`, `CSCMatrix * SparseVector` | `SparseVector`, `rowSparse`/`colSparse`, `CSR * SparseVector` | `SparseVectorParitySuite` | covered (divergences pinned) |
 | Reductions, per-axis reductions, norms | `sum`, `mean`, `max`, `argmax`, `sum(A(::, *))`, `norm(v, p)` | `sum`, `sumExact`, `mean`, `max`, `argmax`, `sum(Axis.Cols)`, `norm1`/`norm2`/`normInf`/`normFrobenius` | `ReductionsNumericsParitySuite` | covered (divergences pinned) |
 | Elementwise and log-domain numerics | `breeze.numerics.*`, `softmax` (= log-sum-exp) | `Numerics.exp`/`log`/`log1p`/`expm1`/`sigmoid`/`logSumExp`/`softmax`/`logSoftmax` | `ReductionsNumericsParitySuite` | covered (divergences pinned) |
 | Sparse vectors | `SparseVector`, `VectorBuilder`, `CSCMatrix * SparseVector` | `SparseVector`, `rowSparse`/`colSparse`, `CSR * SparseVector` | `SparseVectorParitySuite` | covered (divergences pinned) |

@@ -36,7 +36,10 @@ import org.scalacheck.Prop.forAllNoShrink
   *   - `max`, `min`, `argmax`, `argmin`, `normInf`, and the per-axis extrema:
   *     exact. They select an entry and do no arithmetic.
   *   - `exp`, `log`, `log1p`, `expm1`: exact. Gale and `breeze.numerics` both
-  *     apply `java.lang.Math` to each entry.
+  *     apply `java.lang.Math` to each entry. This relies on HotSpot using the
+  *     same `Math` intrinsic stubs in the interpreter and in compiled code (and
+  *     `log1p`/`expm1` delegating to `StrictMath`); a JVM that mixed
+  *     implementations could differ by the 1 ulp the `Math` spec allows.
   *   - `sigmoid`: 4 ulps. Breeze evaluates `1/(1+exp(-x))`; Gale uses
   *     `exp(x)/(1+exp(x))` for `x < 0` to avoid overflow.
   *   - `sum`, `mean`, per-axis sums: `|Δ| ≤ 2 n ε Σ|x|` (divided by `n` for a
@@ -46,9 +49,10 @@ import org.scalacheck.Prop.forAllNoShrink
   *     correctly rounded `BigDecimal` sum.
   *   - `norm1`, `norm2`, Frobenius, matrix 1/∞ norms: relative `4 n ε`, since
   *     every term is non-negative and the summation is well conditioned.
-  *   - `logSumExp`, `logSoftmax`: absolute `4 (n + 2) ε max(1, |r|)`; softmax
-  *     probabilities: absolute `4 (n + max|x|) ε`, because the Breeze reference
-  *     `exp(x - softmax(x))` loses `ε |x|` in the subtraction.
+  *   - `logSumExp`: `4 (n + 2) ε max(1, |r|)`. Softmax probabilities and
+  *     `logSoftmax`: absolute `4 (n + 2 + max|x|) ε`, unscaled, because the
+  *     Breeze references `exp(x - softmax(x))` and `x - softmax(x)` inherit the
+  *     log-sum-exp error and lose `ε |x|` in the subtraction.
   *
   * Divergences from Breeze 2.1.0 are asserted as Gale's documented semantics,
   * with Breeze's observed behaviour pinned beside it (tests named
@@ -63,13 +67,12 @@ import org.scalacheck.Prop.forAllNoShrink
   *   1. Empty input: Gale's `max`, `mean`, per-axis `max` throw
   *      `LinAlgError.EmptyInput`; Breeze returns `-Inf`, `0.0`, `-Inf`. `min` and
   *      `argmax` throw in both (Breeze: `IllegalArgumentException`).
-  *   1. `mean` overflow: Gale is `sum / n` (NumPy), so `mean(MaxValue, MaxValue)`
-  *      is `+Inf`; Breeze's running mean returns `MaxValue`.
   *   1. `norm2`/Frobenius: Gale scales, so `1e300` entries give a finite norm and
   *      `1e-300` entries a nonzero one; Breeze overflows to `+Inf` and underflows
   *      to `0.0`.
   *   1. `logSumExp` with `+Inf`: Gale gives `+Inf`; Breeze's `softmax` gives
-  *      `-Inf`.
+  *      `-Inf`. This is a Breeze bug: its `max.isInfinite` guard for the all
+  *      `-Inf` case also catches `+Inf`.
   *   1. `sigmoid` below `-log(Double.MaxValue) ≈ -709.78`: Breeze's
   *      `1/(1+exp(-x))` overflows to exactly `0.0`; Gale returns the subnormal
   *      `≈ exp(x)` down to `x ≈ -745`.
@@ -139,6 +142,13 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     if !(g == b || math.abs(g - b) <= rel * math.max(math.abs(g), math.abs(b))) then
       fail(s"$clue: gale=$g breeze=$b relΔ=${math.abs(g - b) / math.max(math.abs(g), math.abs(b))} tol=$rel")
 
+  /** Unscaled absolute check, for results whose error is set by the input
+    * magnitude rather than by their own size.
+    */
+  private def assertAbsClose(g: Double, b: Double, tol: Double, clue: => String): Unit =
+    if !(g == b || (g.isNaN && b.isNaN) || math.abs(g - b) <= tol) then
+      fail(s"$clue: gale=$g breeze=$b |Δ|=${math.abs(g - b)} tol=$tol (absolute)")
+
   private def assertUlps(g: Double, b: Double, ulps: Int, clue: => String): Unit =
     val same = g == b || (g.isNaN && b.isNaN)
     if !same && !(math.abs(g - b) <= ulps * math.ulp(math.max(math.abs(g), math.abs(b)))) then
@@ -195,8 +205,8 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     }
   }
 
-  test("vector reductions at n = 1K and 64K") {
-    for n <- Seq(1024, 65536) do
+  test("vector reductions at n = 1023, 1024, 65536 and 65537") {
+    for n <- Seq(1023, 1024, 65536, 65537) do
       checkVectorReductions(vectorData(n, 17L * n), s"n=$n")
       // Cancellation-heavy: large alternating entries plus small noise.
       val noisy = vectorData(n, 31L * n).zipWithIndex.map((x, i) => (if i % 2 == 0 then 1e8 else -1e8) + x)
@@ -271,8 +281,10 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     }
   }
 
-  test("matrix reductions at 32x32 (1K) and 256x256 (64K)") {
+  test("matrix reductions at about 1K and 64K entries, including odd shapes") {
     for n <- Seq(32, 256) do checkMatrixReductions(matrixData(n, n, 23L * n), s"${n}x$n")
+    checkMatrixReductions(matrixData(31, 33, 4L), "31x33")
+    checkMatrixReductions(matrixData(255, 257, 9L), "255x257")
     checkMatrixReductions(matrixData(1, 1024, 5L), "1x1024")
     checkMatrixReductions(matrixData(1024, 1, 6L), "1024x1")
   }
@@ -313,7 +325,7 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     val lse = bLogSumExp(b)
     val maxAbs = data.foldLeft(0.0)((a, x) => math.max(a, math.abs(x)))
     val lseTol = 4.0 * (n + 2) * Eps
-    val probTol = 4.0 * (n + maxAbs) * Eps
+    val probTol = 4.0 * (n + 2 + maxAbs) * Eps
     for (layout, g) <- vectorViews(data) do
       val c = s"$clue $layout"
       assertScalarClose(Numerics.logSumExp(g), lse, lseTol, s"logSumExp vs Breeze softmax $c")
@@ -321,9 +333,8 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
       val lp = Numerics.logSoftmax(g)
       for i <- 0 until n do
         val ref = math.exp(data(i) - lse)
-        if !(math.abs(p(i) - ref) <= probTol) then
-          fail(s"softmax[$i] $c: gale=${p(i)} breeze exp(x - softmax(x))=$ref tol=$probTol")
-        assertScalarClose(lp(i), data(i) - lse, probTol, s"logSoftmax[$i] $c")
+        assertAbsClose(p(i), ref, probTol, s"softmax[$i] $c (breeze exp(x - softmax(x)))")
+        assertAbsClose(lp(i), data(i) - lse, probTol, s"logSoftmax[$i] $c")
       assertSumClose(p.sum, 1.0, n, 1.0, s"softmax sums to one $c")
 
   property("exp, log, log1p, expm1 and sigmoid match breeze.numerics") {
@@ -340,8 +351,8 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     }
   }
 
-  test("elementwise and log-domain functions at n = 1K and 64K") {
-    for n <- Seq(1024, 65536) do
+  test("elementwise and log-domain functions at n = 1023, 1024, 65536 and 65537") {
+    for n <- Seq(1023, 1024, 65536, 65537) do
       checkElementwise(vectorData(n, 3L * n).map(_ * 40.0), s"n=$n")
       checkLogDomain(vectorData(n, 7L * n).map(_ * 30.0), s"n=$n")
   }
@@ -366,16 +377,16 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
       val lpCols = Numerics.logSoftmax(g, Axis.Cols)
       val gExp = Numerics.exp(g)
       val gSig = Numerics.sigmoid(g)
-      val rowTol = 4.0 * (cols + maxAbs) * Eps
-      val colTol = 4.0 * (rows + maxAbs) * Eps
-      val allTol = 4.0 * (rows * cols + maxAbs) * Eps
+      val rowTol = 4.0 * (cols + 2 + maxAbs) * Eps
+      val colTol = 4.0 * (rows + 2 + maxAbs) * Eps
+      val allTol = 4.0 * (rows * cols + 2 + maxAbs) * Eps
       for i <- 0 until rows; j <- 0 until cols do
         val x = data(i)(j)
-        assertScalarClose(pRows(i, j), math.exp(x - rowLse(i)), rowTol, s"softmax(Rows)($i,$j) $c")
-        assertScalarClose(pCols(i, j), math.exp(x - colLse(j)), colTol, s"softmax(Cols)($i,$j) $c")
-        assertScalarClose(pAll(i, j), math.exp(x - allLse), allTol, s"softmax(all)($i,$j) $c")
-        assertScalarClose(lpRows(i, j), x - rowLse(i), rowTol, s"logSoftmax(Rows)($i,$j) $c")
-        assertScalarClose(lpCols(i, j), x - colLse(j), colTol, s"logSoftmax(Cols)($i,$j) $c")
+        assertAbsClose(pRows(i, j), math.exp(x - rowLse(i)), rowTol, s"softmax(Rows)($i,$j) $c")
+        assertAbsClose(pCols(i, j), math.exp(x - colLse(j)), colTol, s"softmax(Cols)($i,$j) $c")
+        assertAbsClose(pAll(i, j), math.exp(x - allLse), allTol, s"softmax(all)($i,$j) $c")
+        assertAbsClose(lpRows(i, j), x - rowLse(i), rowTol, s"logSoftmax(Rows)($i,$j) $c")
+        assertAbsClose(lpCols(i, j), x - colLse(j), colTol, s"logSoftmax(Cols)($i,$j) $c")
         assertExact(gExp(i, j), math.exp(x), s"exp($i,$j) $c")
         assertSigmoid(gSig(i, j), x, s"sigmoid($i,$j) $c")
 
@@ -529,6 +540,19 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     assertEquals(bArgmin(BDV(1.0, 0.0, 0.0, 2.0)), 2)
   }
 
+  test("divergence: matrix argmin ties and NaN use row-major order; Breeze differs") {
+    val ties = Array(Array(3.0, 1.0), Array(1.0, 2.0))
+    for (layout, g) <- matrixViews(ties) do assertEquals(g.argmin, (0, 1), s"ties $layout")
+    // Breeze returns the last tie in column-major order, which happens to coincide here.
+    assertEquals(bArgmin(breezeMatrix(ties)), (0, 1))
+    val ties3 = Array(Array(1.0, 0.0, 0.0), Array(0.0, 2.0, 3.0))
+    for (layout, g) <- matrixViews(ties3) do assertEquals(g.argmin, (0, 1), s"three ties $layout")
+    assertEquals(bArgmin(breezeMatrix(ties3)), (0, 2))
+    val withNaN = Array(Array(1.0, -5.0), Array(NaN, 2.0))
+    for (layout, g) <- matrixViews(withNaN) do assertEquals(g.argmin, (1, 0), s"NaN $layout")
+    assertEquals(bArgmin(breezeMatrix(withNaN)), (0, 1))
+  }
+
   test("divergence: matrix argmax ties and NaN use row-major order; Breeze column-major, skipping NaN") {
     val ties = Array(Array(1.0, 5.0), Array(5.0, 2.0))
     assertEquals(galeMatrix(ties).argmax, (0, 1))
@@ -567,10 +591,22 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     assertEquals(colMax.toArray.toSeq, Seq(-Inf, -Inf, -Inf))
   }
 
-  test("divergence: mean is sum / n and overflows; Breeze's running mean does not") {
-    val big = Vec(Double.MaxValue, Double.MaxValue)
-    assertEquals(big.mean, Inf)
-    assertEquals(bMean(BDV(Double.MaxValue, Double.MaxValue)), Double.MaxValue)
+  test("mean does not overflow for entries near Double.MaxValue, as in Breeze") {
+    val max = Double.MaxValue
+    for data <- Seq(Array(max, max), Array(max, max, max), Array(-max, -max, -max, -max, 1.0), Array(max, max, -max)) do
+      val b = bMean(breezeVector(data))
+      for (layout, g) <- vectorViews(data) do assertRelClose(g.mean, b, 4 * Eps, s"mean ${data.mkString(",")} $layout")
+    val overflowing = Array(Array(max, max, max), Array(max, 1.0, -max))
+    val bm = breezeMatrix(overflowing)
+    val rowMeans: BDV[Double] = bMean(bm(Every, ::))
+    val colMeans: BDV[Double] = bMean(bm(::, Every)).t
+    for (layout, g) <- matrixViews(overflowing) do
+      assertRelClose(g.mean, bMean(bm), 4 * Eps, s"matrix mean $layout")
+      for i <- 0 until 2 do assertRelClose(g.mean(Axis.Rows)(i), rowMeans(i), 4 * Eps, s"mean(Rows)($i) $layout")
+      for j <- 0 until 3 do assertRelClose(g.mean(Axis.Cols)(j), colMeans(j), 4 * Eps, s"mean(Cols)($j) $layout")
+    // Infinite entries keep their IEEE result rather than becoming NaN.
+    assertEquals(Vec(max, max, -Inf).mean, -Inf)
+    assertEquals(bMean(BDV(max, max, -Inf)), -Inf)
   }
 
   test("divergence: norm2 and Frobenius are scaled; Breeze overflows and underflows") {
@@ -586,7 +622,7 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
     assertEquals(bNorm(breezeVector(tiny)), 0.0)
   }
 
-  test("divergence: logSumExp with +Inf is +Inf; Breeze softmax returns -Inf") {
+  test("divergence (Breeze bug): logSumExp with +Inf is +Inf; Breeze softmax returns -Inf") {
     assertEquals(Numerics.logSumExp(Vec(1.0, Inf)), Inf)
     assertEquals(Numerics.logSumExp(Vec(Inf, Inf)), Inf)
     assertEquals(bLogSumExp(BDV(1.0, Inf)), -Inf)
