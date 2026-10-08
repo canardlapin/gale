@@ -86,6 +86,12 @@ object Eigen:
     * [[EigenSelection.ValueInterval]] every eigenvalue in `(lower, upper]`. Output
     * is ascending regardless.
     *
+    * The empty `0 × 0` matrix has an empty decomposition: `All` (and any
+    * `ValueInterval`) returns `Right` with no eigenvalues and `0 × 0` eigenvectors,
+    * like `lu`/`qr`/`cholesky` on empty input; `Count`/`IndexRange` are `Left`
+    * because no `k ≥ 1` or index is in range. (Breeze's `eigSym` throws
+    * `MatrixEmptyException` here instead.)
+    *
     * '''Backend routing (seam S8 of `docs/spectral-backend-boundary.md`).''' A
     * [[SpectralCapability.DenseSymmetricEigen]]-capable `given SpectralBackend`
     * whose [[SpectralBackend.denseSymmetricEigenMinSize]] the matrix order clears
@@ -106,8 +112,16 @@ object Eigen:
     *
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a symmetric problem
     * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
-    * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or (in
-    * practice unreachable) kernel non-convergence.
+    * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or
+    * kernel non-convergence (`DidNotConverge`) when some eigenvalue needs more than
+    * 30 implicit QL sweeps. For finite input the tridiagonal solver deflates an
+    * off-diagonal once it is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖_max)`, so it
+    * converges in a few sweeps per eigenvalue (at most 10 observed, including
+    * clusters of repeated eigenvalues at zero). The result is normwise
+    * backward-stable only: eigenvalues carry absolute error `O(ε ‖A‖)`, so tiny
+    * eigenvalues of graded matrices get no relative accuracy. NaN entries never
+    * deflate and return this `Left`; with an infinite entry only the local
+    * neighbour test applies, which may yield non-finite values or this `Left`.
     */
   def eigSymmetric(
       a: DMat,
@@ -156,6 +170,7 @@ object Eigen:
     * deliberately bypasses optional providers: reuse of the caller's workspace
     * is part of the method contract, whereas provider scratch ownership is not.
     * The ordinary [[eigSymmetric]] facade retains backend routing unchanged.
+    * Empty input follows [[eigSymmetric]]: `All` on `0 × 0` is an empty `Right`.
     */
   def eigSymmetricWith(
       a: DMat,
@@ -567,7 +582,8 @@ object Eigen:
     * ([[EigenSelection.Count]] with an algebraic/magnitude order,
     * [[EigenSelection.IndexRange]], [[EigenSelection.ValueInterval]] all legal;
     * real-part orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs
-    * [[EigenVectors.Right]].
+    * [[EigenVectors.Right]]. An empty `0 × 0` pencil has an empty decomposition
+    * under `All`, as in [[eigSymmetric]].
     *
     * '''Scope.''' This overload is the dense path. The separate typed operator
     * overload runs matrix-free LOBPCG; the generalized '''nonsymmetric''' pencil
@@ -578,7 +594,8 @@ object Eigen:
     * same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal for a
     * symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an
     * inverted `ValueInterval`; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]];
-    * or (in practice unreachable) kernel non-convergence.
+    * or tridiagonal-solver non-convergence, under the same 30-sweeps-per-eigenvalue
+    * bound as [[eigSymmetric]].
     */
   def eigSymmetricGeneralized(
       a: DMat,

@@ -84,11 +84,11 @@ Order by expected gain against risk:
    - Re-measure, and if needed remove, the 2c794d8 copy and finiteness overhead by folding the check into the panel pass.
    - Do this after the workspace task (`bd-01M427…`) lands, or coordinate with its owner.
 5. **Blocked tridiagonalization** (dsytrd: latrd panel plus a `dsyr2kLowerUpdate`) for n ≥ about 64 in `spectral/DenseSpectralKernels.scala:226`.
-   - Ordinary and workspace eigen routes must keep calling one shared kernel (`DenseSymmetricWorkspaceSuite:52` asserts they agree exactly).
+   - Ordinary and workspace eigen routes must keep calling one shared kernel (`DenseSymmetricWorkspaceSuite:61` asserts they agree exactly).
    - Fit the `(d, e, eOffset, workspace)` layout.
    - This is the largest item; do it last.
 6. **Accept-or-revert rule.** Each item ships only if the scoreboard shows ≥ 1.0× (lane A) at its target sizes and no regression greater than 3% elsewhere. JS gets the same code and has its own gate: no more than 5% regression at n ≤ 256 in `benchSmokeJSFull`. If JS fails that gate, make the blocking threshold platform-specific through `core/{jvm,js}` platform constants.
-7. **Bit-pinning audit (before W1.3 to W1.5).** List the tests that assert exact equality on LU, Cholesky or eigen outputs: the `LUSuite` pivots, `DenseCholeskyWorkspaceSuite:36,45`, `DenseSymmetricWorkspaceSuite:52`, `GaleNumericalContractSuite:172` and the `BackendSeamSuite` witnesses. Workspace and ordinary routes must keep sharing one kernel, so exact agreement between them still holds. Tests that compare against hard-coded values switch to tolerance only where the numerical contract already allows reassociation. Never loosen them to make a failing result pass.
+7. **Bit-pinning audit (before W1.3 to W1.5).** List the tests that assert exact equality on LU, Cholesky or eigen outputs: the `LUSuite` pivots, `DenseCholeskyWorkspaceSuite:36,45`, `DenseSymmetricWorkspaceSuite:61`, `GaleNumericalContractSuite:172` and the `BackendSeamSuite` witnesses. Workspace and ordinary routes must keep sharing one kernel, so exact agreement between them still holds. Tests that compare against hard-coded values switch to tolerance only where the numerical contract already allows reassociation. Never loosen them to make a failing result pass.
 
 ## W2 — Reopen ADR A-2b: SIMD for L1 and reductions (gated)
 

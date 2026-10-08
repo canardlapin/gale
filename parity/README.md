@@ -77,6 +77,7 @@ the reference.
 | Blocked QR / lstsq | `qr`, `\` | `qr`, `leastSquares` | `SvdQrParitySuite` | covered |
 | Iterative solve (solution equivalence) | dense `\` | `cg` / `bicgstab` / `gmres` / `lsqr` / `cgnr` | `IterativeSolveParitySuite` | covered (workload replaceability vs Breeze `\\`) |
 | Iterative algorithm (Krylov diagnostics) | — | `cg` / `bicgstab` / `gmres` / `lsqr` | `IterativeAlgorithmParitySuite` | SciPy (`sparse.linalg`; solution + residual band + iteration band) |
+| L-BFGS / L-BFGS-B (x*, f*, residual, active set) | `LBFGS`, `LBFGSB` with an equivalent stopping rule | `LBFGS.minimize`, `LBFGSB.minimize` | `OptimizerParitySuite` | covered (timings and callback counts informational, in `parity/target/optimizer-parity.md`) |
 | Generalized symmetric eigen | — | `Eigen.eigSymmetricGeneralized` | `GeneralizedSpectralParitySuite` | SciPy (`eigh(A, B)` type 1) |
 | GSVD (full-column-rank) | — | `Svds.gsvd` | `GeneralizedSpectralParitySuite` | SciPy (Gram-pencil `eigh(AᵀA, BᵀB)`; no high-level `gsvd`) |
 | QZ / generalized nonsymmetric | — | `Eigen.eigGeneralizedNonsymmetric` | `GeneralizedSpectralParitySuite` | covered (unsupported-contract lock; SciPy `qz` / `eig(A,B)` is the future target) |

@@ -116,6 +116,172 @@ object ParitySupport:
     Array.tabulate(n, n)((i, j) => q(i, j))
 
   // ---------------------------------------------------------------------------
+  // Hardening fixtures: ill-conditioned inputs and non-contiguous views
+  // ---------------------------------------------------------------------------
+
+  /** Unit roundoff spacing `ε = 2⁻⁵²` used to scale hardening tolerances. */
+  val Eps: Double = Math.ulp(1.0)
+
+  /** The `n × n` Hilbert matrix `1 / (i + j + 1)`: SPD, `κ₂ ≈ e^{3.5n}`. */
+  def hilbert(n: Int): Array[Array[Double]] =
+    Array.tabulate(n, n)((i, j) => 1.0 / (i + j + 1).toDouble)
+
+  /** A geometric spectrum from `1` down to `1 / kappa` (descending), length `n`. */
+  def geometricSpectrum(n: Int, kappa: Double): Array[Double] =
+    if n == 1 then Array(1.0)
+    else Array.tabulate(n)(i => math.pow(kappa, -i.toDouble / (n - 1).toDouble))
+
+  /** [[diagonallyDominant]] with each row divided by its diagonal: the unit
+    * diagonal keeps `det` representable at large `n` while `κ` stays small.
+    */
+  def unitDiagonallyDominant(n: Int, seed: Long): Array[Array[Double]] =
+    val a = diagonallyDominant(n, seed)
+    Array.tabulate(n)(i => a(i).map(_ / a(i)(i)))
+
+  def transpose(data: Array[Array[Double]]): Array[Array[Double]] =
+    if data.isEmpty then data
+    else Array.tabulate(data(0).length, data.length)((i, j) => data(j)(i))
+
+  /** Embed `data` at `(top, left)` in a larger `NaN`-padded buffer, so a slice of
+    * it is a genuinely strided view whose neighbours would poison any kernel that
+    * read outside the window.
+    */
+  def embedded(data: Array[Array[Double]], top: Int, left: Int, bottom: Int, right: Int): Array[Array[Double]] =
+    val rows = data.length
+    val cols = if rows == 0 then 0 else data(0).length
+    Array.tabulate(top + rows + bottom, left + cols + right): (i, j) =>
+      val r = i - top
+      val c = j - left
+      if r >= 0 && r < rows && c >= 0 && c < cols then data(r)(c) else Double.NaN
+
+  /** Three non-contiguous gale views of the logical matrix `data`: a transposed
+    * view (unit row stride), a strided interior slice (row stride > cols), and a
+    * transposed strided slice (neither stride is 1 along a row).
+    */
+  def galeViews(data: Array[Array[Double]]): List[(String, DMat)] =
+    val rows = data.length
+    val cols = if rows == 0 then 0 else data(0).length
+    val transposedView = galeMatrix(transpose(data)).t
+    val slice = galeMatrix(embedded(data, 2, 3, 1, 4)).slice(2, 2 + rows, 3, 3 + cols)
+    val transposedSlice =
+      galeMatrix(embedded(transpose(data), 1, 2, 3, 1)).slice(1, 1 + cols, 2, 2 + rows).t
+    List("transposed" -> transposedView, "strided slice" -> slice, "transposed slice" -> transposedSlice)
+
+  /** A stride-3 gale vector view of `data` (a column of a `NaN`-padded matrix). */
+  def stridedVector(data: Array[Double]): DVec =
+    galeMatrix(Array.tabulate(data.length, 3)((i, j) => if j == 1 then data(i) else Double.NaN)).col(1)
+
+  // ---------------------------------------------------------------------------
+  // Norm-wise error measures for conditioning-scaled comparisons
+  // ---------------------------------------------------------------------------
+
+  def maxAbs(data: Array[Array[Double]]): Double =
+    data.foldLeft(0.0)((m, row) => row.foldLeft(m)((mm, x) => math.max(mm, math.abs(x))))
+
+  /** `max |g − b| / max |b|`, the entrywise-max relative distance. */
+  def relDiff(g: DVec, b: BDV[Double]): Double =
+    if g.length != b.length then throw new AssertionError(s"length gale=${g.length} breeze=${b.length}")
+    var num = 0.0
+    var den = 0.0
+    var i = 0
+    while i < g.length do
+      num = math.max(num, math.abs(g(i) - b(i)))
+      den = math.max(den, math.abs(b(i)))
+      i += 1
+    if den == 0.0 then num else num / den
+
+  def relDiff(g: DMat, b: BDM[Double]): Double =
+    if g.rows != b.rows || g.cols != b.cols then
+      throw new AssertionError(s"shape gale=${g.rows}x${g.cols} breeze=${b.rows}x${b.cols}")
+    var num = 0.0
+    var den = 0.0
+    var i = 0
+    while i < g.rows do
+      var j = 0
+      while j < g.cols do
+        num = math.max(num, math.abs(g(i, j) - b(i, j)))
+        den = math.max(den, math.abs(b(i, j)))
+        j += 1
+      i += 1
+    if den == 0.0 then num else num / den
+
+  /** Norm-wise backward error `‖b − A x‖∞ / (‖A‖∞ ‖x‖∞ + ‖b‖∞)` (Rigal–Gaches),
+    * meaningful even where the forward error is not (`κ ε ≳ 1`).
+    */
+  def backwardError(a: Array[Array[Double]], x: Int => Double, b: Array[Double]): Double =
+    val m = a.length
+    val n = if m == 0 then 0 else a(0).length
+    var resid = 0.0
+    var aNorm = 0.0
+    var i = 0
+    while i < m do
+      var s = 0.0
+      var rowSum = 0.0
+      var j = 0
+      while j < n do
+        s += a(i)(j) * x(j)
+        rowSum += math.abs(a(i)(j))
+        j += 1
+      resid = math.max(resid, math.abs(b(i) - s))
+      aNorm = math.max(aNorm, rowSum)
+      i += 1
+    val xNorm = (0 until n).foldLeft(0.0)((acc, j) => math.max(acc, math.abs(x(j))))
+    val bNorm = b.foldLeft(0.0)((acc, v) => math.max(acc, math.abs(v)))
+    resid / (aNorm * xNorm + bNorm)
+
+  def assertBelow(value: Double, bound: Double, clue: => String): Unit =
+    if !(value <= bound) then throw new AssertionError(s"$clue: value=$value bound=$bound")
+
+  /** `‖G_c − B_c (B_cᵀ G_c)‖_F` for orthonormal eigenvector columns `cols` of
+    * gale (`G`) and Breeze (`B`): the sine of the principal angles between the two
+    * invariant subspaces (Frobenius), insensitive to signs and to rotations within
+    * a cluster. Unlike `√(1 − cos²)` it has no `√ε` floor.
+    */
+  def subspaceSine(g: DMat, b: BDM[Double], cols: Range): Double =
+    val n = g.rows
+    val k = cols.length
+    val proj = Array.ofDim[Double](k, k) // proj(p)(q) = ⟨b_p, g_q⟩
+    for p <- 0 until k; q <- 0 until k do
+      var s = 0.0
+      var i = 0
+      while i < n do
+        s += b(i, cols(p)) * g(i, cols(q))
+        i += 1
+      proj(p)(q) = s
+    var sum = 0.0
+    var i = 0
+    while i < n do
+      var q = 0
+      while q < k do
+        var r = g(i, cols(q))
+        var p = 0
+        while p < k do
+          r -= b(i, cols(p)) * proj(p)(q)
+          p += 1
+        sum += r * r
+        q += 1
+      i += 1
+    math.sqrt(sum)
+
+  /** Group ascending `values` into clusters whose internal gaps are `≤ gap`; each
+    * cluster comes with its separation from the rest of the spectrum (`∞` if none).
+    */
+  def spectralClusters(values: IndexedSeq[Double], gap: Double): List[(Range, Double)] =
+    val ranges = List.newBuilder[Range]
+    var start = 0
+    var i = 1
+    while i < values.length do
+      if values(i) - values(i - 1) > gap then
+        ranges += (start until i)
+        start = i
+      i += 1
+    if values.nonEmpty then ranges += (start until values.length)
+    ranges.result().map: r =>
+      val below = if r.start > 0 then values(r.start) - values(r.start - 1) else Double.PositiveInfinity
+      val above = if r.end < values.length then values(r.end) - values(r.end - 1) else Double.PositiveInfinity
+      (r, math.min(below, above))
+
+  // ---------------------------------------------------------------------------
   // Conversions to each library
   // ---------------------------------------------------------------------------
 
