@@ -214,13 +214,17 @@ final class DVec private[gale] (
   def sumExact: Double =
     DVec.exactSum(data, offset.value, length, stride.value, 1, 0)
 
-  /** Arithmetic mean, `sum / length`. As in NumPy, the intermediate sum can
-    * overflow to `±Inf` even when the mean is representable (entries near
-    * `Double.MaxValue`). Throws [[LinAlgError.EmptyInput]] when empty.
+  /** Arithmetic mean, `sum / length`. When that sum is not finite the mean is
+    * recomputed as `sum(x_i / length)`, so entries near `Double.MaxValue` give a
+    * finite mean instead of an overflowed `±Inf`, while infinite and NaN entries
+    * keep their IEEE results (`mean(MaxValue, MaxValue, -Inf)` is `-Inf`).
+    * Throws [[LinAlgError.EmptyInput]] when empty.
     */
   def mean: Double =
     requireNonEmpty("mean")
-    sum / length
+    val total = sum
+    if total.isFinite then total / length
+    else DoubleKernels.dmeanOfNonFiniteSum(length, data, offset.value, stride.value)
 
   /** Largest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
     * when empty.
