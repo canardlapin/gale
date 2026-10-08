@@ -4,15 +4,20 @@ import scala.compiletime.uninitialized
 
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.DenseVector as BDV
+import gale.backend.Backend
 import gale.bench.BreezeBenchData.*
 import gale.linalg.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.BenchmarkParams
 import org.openjdk.jmh.infra.Blackhole
 
 /** BLAS-1 (`O(n)`) paired benchmarks: dot, in-place axpy, and 2-norm, gale vs
   * Breeze on identical length-`n` vectors. Both axpy variants mutate a preallocated
   * work vector reset each iteration, so neither allocates in the timed method.
+  *
+  * Backend-insensitive: gale's `dot`, `norm2` and `axpyInPlace` take no `Backend`,
+  * so these gale methods have no `GaleBackendState` and run once per size.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -34,7 +39,8 @@ class BlasL1BreezeJmh:
   private var bWork: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val xData = vectorData(n, 1L)
     val yData = vectorData(n, 2L)
     gx = galeVector(xData)
@@ -47,7 +53,7 @@ class BlasL1BreezeJmh:
     gWork = gy.mutableCopy
     bWork = by.copy
 
-  @Benchmark def galeDot(): Double        = gx.dot(gy)
+  @Benchmark def galeDot(): Double       = gx.dot(gy)
   @Benchmark def breezeDot(): Double      = bx.dot(by)
 
   @Benchmark def galeAxpy(): Double =
@@ -57,7 +63,7 @@ class BlasL1BreezeJmh:
     breeze.linalg.axpy(alpha, bx, bWork)
     bWork(0)
 
-  @Benchmark def galeNorm(): Double       = gy.norm2
+  @Benchmark def galeNorm(): Double      = gy.norm2
   @Benchmark def breezeNorm(): Double     = breeze.linalg.norm(by)
 
 /** BLAS-2 (`O(n²)`) paired benchmarks: matrix–vector product `A·x` and its
@@ -80,7 +86,8 @@ class BlasL2BreezeJmh:
   private var bx: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val aData = matrixData(n, n, 10L)
     val xData = vectorData(n, 20L)
     ga = galeMatrix(aData)
@@ -88,10 +95,16 @@ class BlasL2BreezeJmh:
     ba = breezeMatrix(aData)
     bx = breezeVector(xData)
 
-  @Benchmark def galeGemv(bh: Blackhole): Unit   = bh.consume(ga * gx)
+  @Benchmark def galeGemv(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(ga * gx)
   @Benchmark def breezeGemv(bh: Blackhole): Unit = bh.consume(ba * bx)
 
-  @Benchmark def galeGemvT(bh: Blackhole): Unit   = bh.consume(ga.t * gx)
+  @Benchmark def galeGemvT(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(ga.t * gx)
   @Benchmark def breezeGemvT(bh: Blackhole): Unit = bh.consume(ba.t * bx)
 
 /** BLAS-3 (`O(n³)`) paired benchmarks: square `A·B`, tall-skinny `T·B`
@@ -115,7 +128,8 @@ class BlasL3BreezeJmh:
   private var bt: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val aData = matrixData(n, n, 30L)
     val bData = matrixData(n, n, 40L)
     val tData = matrixData(4 * n, n, 50L)
@@ -126,11 +140,20 @@ class BlasL3BreezeJmh:
     bb = breezeMatrix(bData)
     bt = breezeMatrix(tData)
 
-  @Benchmark def galeGemm(bh: Blackhole): Unit   = bh.consume(ga * gb)
+  @Benchmark def galeGemm(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(ga * gb)
   @Benchmark def breezeGemm(bh: Blackhole): Unit = bh.consume(ba * bb)
 
-  @Benchmark def galeGemmTall(bh: Blackhole): Unit   = bh.consume(gt * gb)
+  @Benchmark def galeGemmTall(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gt * gb)
   @Benchmark def breezeGemmTall(bh: Blackhole): Unit = bh.consume(bt * bb)
 
-  @Benchmark def galeAtA(bh: Blackhole): Unit   = bh.consume(gt.t * gt)
+  @Benchmark def galeAtA(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gt.t * gt)
   @Benchmark def breezeAtA(bh: Blackhole): Unit = bh.consume(bt.t * bt)

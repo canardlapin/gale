@@ -118,30 +118,89 @@ identical seeded `@Setup` data at matching `@Param` sizes:
 - `LeastSquaresBreezeJmh` — overdetermined `m = 4n` least-squares: gale `leastSquares` vs breeze backslash (`n` in {16, 64, 256}).
 - `SymEigenBreezeJmh` — symmetric eigen with vectors: gale `Eigen.eigSymmetric(All)` vs breeze `eigSym` (`n` in {16, 64, 128}).
 
-Run the whole Breeze sweep (all pairs, all sizes, default 2 forks):
+Backend-sensitive `gale*` methods also take a `GaleBackendState` whose
+`@Param backend` is `pure` or `vector` (the `backend-jvm-vector` SIMD backend);
+the Breeze twins do not, so each Breeze row runs once per size. Coverage:
+
+| gale methods | backend param | scoreboard label |
+|---|---|---|
+| `gemv`, `gemvT`, `gemm`, `gemmTall`, `AtA` | `pure`, `vector` | `pure` / `vector` |
+| `lu`, `chol`, `solve`, `qr`, `lstsq` | `pure`, `vector` | `vector (gemm-routed only)`: the backend is reached only where a product routes through its gemm |
+| `dot`, `axpy`, `norm`, `eigSym` | none | `backend-insensitive`: the operation takes no `Backend` (eigen resolves a `SpectralBackend` the Vector backend does not supply), so these always run pure gale; W2 brings them back when L1 routing lands |
+
+### Two lanes
+
+Breeze's `dev.ludovic.netlib` picks native JNI BLAS first, then `VectorBLAS`
+whenever `jdk.incubator.vector` is resolvable, then scalar Java BLAS
+(`Java11BLAS`); LAPACK is `F2jLAPACK` unless native LAPACK loads. The JMH config
+adds `--add-modules=jdk.incubator.vector`, and forks inherit it, so a plain
+`Jmh/run` gives Breeze **SIMD VectorBLAS**. Run one of the two lanes instead:
+
+| Lane | sbt alias | Fork JVM args | Breeze BLAS | gale backend |
+|---|---|---|---|---|
+| A, out-of-box | `breezeLaneA` | `-jvmArgs -Dgale.bench.lane=A` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
+| B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
+
+Both aliases set `-rf json`; append a result file, JMH options and a benchmark
+regex. Use one pinned JDK (25 LTS) for both lanes:
 
 ```bash
-sbt "benchmarksJVM/Jmh/run .*Breeze.*"
+sbt "breezeLaneA -rff target/breeze-laneA.json .*BreezeJmh.*"
+sbt "breezeLaneB -rff target/breeze-laneB.json .*BreezeJmh.*"
 ```
 
-Run one class, or a single pair at one size with the allocation profiler:
+`-p backend=vector` in lane A fails that trial with an explicit
+`IllegalStateException` (the Vector API module is absent); the other benchmarks
+still run. Run single pairs with the same aliases, for example
+`sbt "breezeLaneA -prof gc -p n=256 .*BlasL3BreezeJmh.*Gemm$"`.
+
+Each Breeze bench records the netlib classes it resolved, once per trial, to
+stderr (`[breeze-netlib] ...`) and as one JSON line appended to the sidecar
+`benchmarks/jvm/target/breeze-netlib.jsonl` (the fork's working directory is
+`benchmarks/jvm`; override with `-Dgale.bench.netlibSidecar=<path>`). Each record
+also carries the JDK version and whether `jdk.incubator.vector` was resolved. Both
+lane aliases delete the sidecar first (`benchmarksJVM/breezeNetlibReset`), so every
+run writes a fresh one: copy it next to the JSON receipt before the next run.
+Running the two lanes concurrently in one checkout is unsupported, because the
+reset and both lanes share that fixed path: use a separate worktree per lane, or
+give each run its own `-Dgale.bench.netlibSidecar` (which the reset does not delete).
+
+### Scoreboard
+
+`tools/bench/breeze_scoreboard.py` turns a lane's JMH JSON and sidecar into the
+markdown scoreboard, replacing hand-written tables (`--strict` fails on unpaired
+rows):
 
 ```bash
-sbt "benchmarksJVM/Jmh/run .*FactorizationBreezeJmh.*"
-sbt "benchmarksJVM/Jmh/run -prof gc -p n=256 .*BlasL3BreezeJmh.*Gemm$"
+python3 tools/bench/breeze_scoreboard.py --lane A \
+  --netlib benchmarks/jvm/target/breeze-netlib.jsonl target/breeze-laneA.json \
+  -o benchmarks/results/<date>-breeze-laneA.md
+python3 -I tools/bench/test_breeze_scoreboard.py   # self-test on synthetic fixtures
 ```
 
-### Pure-JVM baseline caveat
+Pairing convention: a paired benchmark is `<Class>.gale<Op>` / `<Class>.breeze<Op>`
+(`<Op>` upper-case first); rows pair on class, op, and params with gale's
+`backend` removed. New Breeze benches must follow it. The ratio is gale speed over
+Breeze speed (>1 means gale is faster; time modes are inverted), and the verdict
+is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. The
+header records the lane, JDK, fork JVM args, netlib BLAS/LAPACK classes, and
+commit. Any receipt is rejected when the sidecar and results disagree (JDK, a
+result without a sidecar record, or a stale record without a result) or a score
+is not positive. A lane-A receipt is **rejected** if Breeze resolved `VectorBLAS`
+or a native BLAS/LAPACK (a Linux host with `libblas.so.3` would otherwise quietly
+get native BLAS), if any fork resolved the Vector module (via the JMH args or, for
+example, `JDK_JAVA_OPTIONS`), or if gale ran a non-`pure` backend; a lane-B receipt
+is rejected unless every fork had the module and Breeze resolved `VectorBLAS`.
 
-Breeze here runs on its **pure-Java netlib fallback** (`dev.ludovic.netlib`'s
-F2J/Java BLAS — it logs "native BLAS not found … return java instance" at
-startup). That is the deliberate comparison target: gale is a pure-JVM / Scala.js
-library, so the honest baseline is pure-JVM Breeze. **Native-BLAS Breeze (system
-OpenBLAS/MKL via JNI) is a separate, much faster target and is out of scope
-here** — closing that gap is deferred to gale's v0.5 acceleration work. Read every
-number strictly against the pure-JVM baseline, and note that pure-Java netlib is
-itself a mature, heavily loop-unrolled BLAS — beating it is a real bar, not a
-formality.
+### What each lane measures
+
+Lane A compares portable pure-JVM gale with out-of-box scalar Breeze. Lane B
+compares both gale backends with Breeze on its SIMD `VectorBLAS`. **Native-BLAS
+Breeze (system OpenBLAS/MKL via JNI) is a separate, much faster target and is out
+of scope here.** Note that netlib's Java BLAS is itself a mature, heavily
+loop-unrolled BLAS, so beating it is a real bar. Receipts before the two lanes
+existed did not record Breeze's BLAS class; see the correction in
+`results/2026-07-11-breeze-release-grade.md`.
 
 ### Sessions only smoke-compile
 
