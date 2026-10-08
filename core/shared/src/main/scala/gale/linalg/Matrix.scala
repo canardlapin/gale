@@ -874,6 +874,283 @@ final class DMat private[gale] (
       i += 1
     out
 
+  // ---------------------------------------------------------------------------
+  // Reductions and norms. Whole-matrix reductions read a contiguous block (row-
+  // or column-major) in one kernel call; otherwise they walk lines along the
+  // smaller stride. Per-axis reductions follow [[Axis]]: `Axis.Rows` gives one
+  // value per row, `Axis.Cols` one value per column.
+  // ---------------------------------------------------------------------------
+
+  /** Fast sum of all entries; `0.0` for an empty matrix. May reassociate, so
+    * the final bits are build- and platform-specific; see [[sumExact]].
+    */
+  def sum: Double =
+    if isContiguousBlock then DoubleKernels.dsum(rows * cols, data, offset.value, 1)
+    else
+      var acc = 0.0
+      var line = 0
+      while line < traversalLines do
+        acc += DoubleKernels.dsum(traversalLength, data, offset.value + line * traversalLineStep, traversalElementStep)
+        line += 1
+      acc
+
+  /** Sum of all entries rounded once to the nearest `Double` via
+    * [[gale.numeric.ExactSum]]: independent of layout, order, and platform.
+    */
+  def sumExact: Double =
+    DVec.exactSum(data, offset.value, traversalLength, traversalElementStep, traversalLines, traversalLineStep)
+
+  /** Arithmetic mean of all entries, `sum / (rows * cols)`. Like NumPy's mean,
+    * the intermediate sum can overflow to `±Inf` even when the mean itself would
+    * be representable (for example entries near `Double.MaxValue`). Throws
+    * [[LinAlgError.EmptyInput]] when the matrix has no entries.
+    */
+  def mean: Double =
+    requireNonEmpty("mean")
+    sum / (rows.toDouble * cols.toDouble)
+
+  /** Largest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
+    * when the matrix has no entries.
+    */
+  def max: Double =
+    requireNonEmpty("max")
+    val (row, col) = extremePosition(largest = true)
+    data(index(row, col))
+
+  /** Smallest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
+    * when the matrix has no entries.
+    */
+  def min: Double =
+    requireNonEmpty("min")
+    val (row, col) = extremePosition(largest = false)
+    data(index(row, col))
+
+  /** `(row, col)` of the first largest entry in row-major order, or of the
+    * first NaN in row-major order if any entry is NaN — independent of the
+    * storage layout. Throws [[LinAlgError.EmptyInput]] when empty.
+    */
+  def argmax: (Int, Int) =
+    requireNonEmpty("argmax")
+    extremePosition(largest = true)
+
+  /** `(row, col)` of the first smallest entry in row-major order, or of the
+    * first NaN if any. Throws [[LinAlgError.EmptyInput]] when empty.
+    */
+  def argmin: (Int, Int) =
+    requireNonEmpty("argmin")
+    extremePosition(largest = false)
+
+  /** Per-axis sums: `Axis.Rows` gives the length-`rows` vector of row sums,
+    * `Axis.Cols` the length-`cols` vector of column sums. Empty lines sum to
+    * `0.0`.
+    */
+  def sum(axis: Axis): DVec =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val lineStep = axisLineStep(axis)
+    val elementStep = axisElementStep(axis)
+    val out = DVec.zeros(lines)
+    val outData = out.data
+    if streamsAxis(axis) then
+      // The kept axis is unit-stride: accumulate whole slices into `out` so the
+      // reduction streams through storage instead of striding down each line.
+      var k = 0
+      while k < length do
+        DoubleKernels.dadd(lines, outData, 0, 1, data, offset.value + k * elementStep, 1, outData, 0, 1)
+        k += 1
+    else
+      var line = 0
+      while line < lines do
+        outData(line) = DoubleKernels.dsum(length, data, offset.value + line * lineStep, elementStep)
+        line += 1
+    out
+
+  /** Per-axis means: the per-axis sum divided by the line length. Throws
+    * [[LinAlgError.EmptyInput]] when the result is non-empty but each reduced
+    * line is empty (for example `Axis.Rows` on an `n×0` matrix, `n > 0`).
+    */
+  def mean(axis: Axis): DVec =
+    requireNonEmptyLines(axis, "mean")
+    val out = sum(axis)
+    val length = axisLength(axis).toDouble
+    DoubleKernels.dmapInto(out.length, out.data, 0, 1, out.data, 0, 1)(v => v / length)
+    out
+
+  /** Per-axis maxima, each with the semantics of [[DVec.max]] (NaN propagates).
+    * Throws [[LinAlgError.EmptyInput]] when the reduced lines are empty.
+    */
+  def max(axis: Axis): DVec =
+    requireNonEmptyLines(axis, "max")
+    axisExtremes(axis, largest = true)
+
+  /** Per-axis minima, each with the semantics of [[DVec.min]]. Throws
+    * [[LinAlgError.EmptyInput]] when the reduced lines are empty.
+    */
+  def min(axis: Axis): DVec =
+    requireNonEmptyLines(axis, "min")
+    axisExtremes(axis, largest = false)
+
+  /** Matrix 1-norm: the maximum absolute column sum. `0.0` when empty; NaN if
+    * any entry is NaN.
+    */
+  def norm1: Double =
+    maxAbsLineSum(Axis.Cols)
+
+  /** Matrix ∞-norm: the maximum absolute row sum. `0.0` when empty; NaN if any
+    * entry is NaN.
+    */
+  def normInf: Double =
+    maxAbsLineSum(Axis.Rows)
+
+  /** Frobenius norm `sqrt(sum a_ij^2)`, computed with a max-scaled second pass
+    * when needed so it neither overflows (entries near `1e300`) nor loses tiny
+    * entries to underflow. `0.0` when empty; NaN if any entry is NaN, otherwise
+    * `+Inf` if any entry is infinite.
+    */
+  def normFrobenius: Double =
+    DoubleKernels.dnrmFrobenius(rows, cols, data, offset.value, rowStride.value, colStride.value)
+
+  private def isContiguousBlock: Boolean =
+    isContiguousRowMajor || isContiguousColMajor
+
+  // Whole-matrix traversal: lines along the smaller stride, except that a
+  // single row or column is always one line (one kernel call).
+  private def traverseRows: Boolean =
+    if rows == 1 then true else if cols == 1 then false else colStride.value <= rowStride.value
+  private[gale] def traversalLines: Int = if traverseRows then rows else cols
+  private[gale] def traversalLength: Int = if traverseRows then cols else rows
+  private[gale] def traversalLineStep: Int = if traverseRows then rowStride.value else colStride.value
+  private[gale] def traversalElementStep: Int = if traverseRows then colStride.value else rowStride.value
+
+  // Per-axis geometry: `axisLines(axis)` results, each reducing `axisLength(axis)` entries.
+  private[gale] def axisLines(axis: Axis): Int = if axis == Axis.Rows then rows else cols
+  private[gale] def axisLength(axis: Axis): Int = if axis == Axis.Rows then cols else rows
+  private[gale] def axisLineStep(axis: Axis): Int =
+    if axis == Axis.Rows then rowStride.value else colStride.value
+  private[gale] def axisElementStep(axis: Axis): Int =
+    if axis == Axis.Rows then colStride.value else rowStride.value
+
+  /** True when a per-axis reduction should stream whole slices into per-line
+    * accumulators: the kept axis is unit-stride while each line is strided (for
+    * example `Axis.Cols` on a row-major matrix), so reading slice by slice is
+    * sequential in memory. Requires at least one entry per line.
+    */
+  private[gale] def streamsAxis(axis: Axis): Boolean =
+    axisLines(axis) > 1 && axisLength(axis) > 0 && axisLineStep(axis) == 1 && axisElementStep(axis) > 1
+
+  /** Streamed per-line extremes for [[streamsAxis]] geometry, written to
+    * `out(0 until lines)`. Equivalent to the per-line `dmaxIndex`/`dminIndex`
+    * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
+    */
+  private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
+    if largest then streamExtremes(axis, out)(_ > _) else streamExtremes(axis, out)(_ < _)
+
+  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline better: (Double, Double) => Boolean): Unit =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val elementStep = axisElementStep(axis)
+    val base = offset.value
+    var line = 0
+    while line < lines do
+      out(line) = data(base + line)
+      line += 1
+    var k = 1
+    while k < length do
+      val start = base + k * elementStep
+      line = 0
+      while line < lines do
+        val current = out(line)
+        val value = data(start + line)
+        if better(value, current) || (value != value && current == current) then out(line) = value
+        line += 1
+      k += 1
+
+  private def extremePosition(largest: Boolean): (Int, Int) =
+    if isContiguousRowMajor then
+      val n = rows * cols
+      val k =
+        if largest then DoubleKernels.dmaxIndex(n, data, offset.value, 1)
+        else DoubleKernels.dminIndex(n, data, offset.value, 1)
+      (k / cols, k % cols)
+    else if cols == 1 then
+      val k =
+        if largest then DoubleKernels.dmaxIndex(rows, data, offset.value, rowStride.value)
+        else DoubleKernels.dminIndex(rows, data, offset.value, rowStride.value)
+      (k, 0)
+    else
+      val colStep = colStride.value
+      var bestRow = -1
+      var bestCol = -1
+      var best = 0.0
+      var row = 0
+      while row < rows do
+        val start = offset.value + row * rowStride.value
+        val col =
+          if largest then DoubleKernels.dmaxIndex(cols, data, start, colStep)
+          else DoubleKernels.dminIndex(cols, data, start, colStep)
+        val value = data(start + col * colStep)
+        if value.isNaN then return (row, col)
+        if bestRow < 0 || (largest && value > best) || (!largest && value < best) then
+          bestRow = row
+          bestCol = col
+          best = value
+        row += 1
+      (bestRow, bestCol)
+
+  private def axisExtremes(axis: Axis, largest: Boolean): DVec =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val lineStep = axisLineStep(axis)
+    val elementStep = axisElementStep(axis)
+    val out = DVec.zeros(lines)
+    if streamsAxis(axis) then streamedExtremes(axis, largest, out.data)
+    else
+      var line = 0
+      while line < lines do
+        val start = offset.value + line * lineStep
+        val k =
+          if largest then DoubleKernels.dmaxIndex(length, data, start, elementStep)
+          else DoubleKernels.dminIndex(length, data, start, elementStep)
+        out.data(line) = data(start + k * elementStep)
+        line += 1
+    out
+
+  /** Largest absolute line sum, the lines being given by `axis`. */
+  private def maxAbsLineSum(axis: Axis): Double =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val lineStep = axisLineStep(axis)
+    val elementStep = axisElementStep(axis)
+    var out = 0.0
+    if streamsAxis(axis) then
+      // Accumulate |slice| into per-line sums so storage is read sequentially.
+      val sums = DoubleArray.alloc(lines)
+      var k = 0
+      while k < length do
+        val start = offset.value + k * elementStep
+        var line = 0
+        while line < lines do
+          sums(line) = sums(line) + math.abs(data(start + line))
+          line += 1
+        k += 1
+      var line = 0
+      while line < lines do
+        out = math.max(out, sums(line))
+        line += 1
+    else
+      var line = 0
+      while line < lines do
+        out = math.max(out, DoubleKernels.dasum(length, data, offset.value + line * lineStep, elementStep))
+        line += 1
+    out
+
+  private def requireNonEmpty(operation: String): Unit =
+    if rows == 0 || cols == 0 then throw LinAlgError.EmptyInput(s"DMat.$operation")
+
+  private[gale] def requireNonEmptyLines(axis: Axis, operation: String): Unit =
+    if axisLines(axis) > 0 && axisLength(axis) == 0 then
+      throw LinAlgError.EmptyInput(s"DMat.$operation(Axis.$axis)")
+
   private inline def index(row: Int, col: Int): Int =
     offset.value + row * rowStride.value + col * colStride.value
 

@@ -88,7 +88,22 @@ private[gale] object DoubleKernels:
             ssq += ratio * ratio
         xi += xStride
         i += 1
-      scale * math.sqrt(ssq)
+      val norm = scale * math.sqrt(ssq)
+      // The recurrence forms `Inf / Inf` once two infinite entries meet; a NaN
+      // here therefore means "some NaN" or "several infinities". Rescan only on
+      // that rare path so the result is `NaN` iff an entry is NaN, else `+Inf`.
+      if norm.isNaN && !containsNaN(n, x, xOffset, xStride) then Double.PositiveInfinity
+      else norm
+
+  /** True when any of the `n` strided elements is NaN. */
+  def containsNaN(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Boolean =
+    var i = 0
+    var xi = xOffset
+    while i < n do
+      if x(xi).isNaN then return true
+      xi += xStride
+      i += 1
+    false
 
   def dcopy(
       n: Int,
@@ -820,4 +835,487 @@ private[gale] object DoubleKernels:
       while j < i do
         c(cRowI + j) = c(cOffset + j * cRowStride + i)
         j += 1
+      i += 1
+
+  // ---------------------------------------------------------------------------
+  // Reductions and elementwise numerics (public facade: DVec/DMat members and
+  // gale.linalg.Numerics). Every kernel has a unit-stride fast path and a
+  // strided fallback; NaN and infinities follow IEEE arithmetic unless a kernel
+  // documents a different propagation rule.
+  // ---------------------------------------------------------------------------
+
+  /** Sum of `n` elements. The contiguous path uses four accumulators, so it
+    * reassociates relative to a left-to-right loop (shared JVM/JS code).
+    */
+  def dsum(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    if xStride == 1 then
+      var acc0 = 0.0
+      var acc1 = 0.0
+      var acc2 = 0.0
+      var acc3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      while i < limit do
+        acc0 += x(xi)
+        acc1 += x(xi + 1)
+        acc2 += x(xi + 2)
+        acc3 += x(xi + 3)
+        xi += 4
+        i += 4
+      var acc = (acc0 + acc1) + (acc2 + acc3)
+      while i < n do
+        acc += x(xi)
+        xi += 1
+        i += 1
+      acc
+    else
+      var acc = 0.0
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        acc += x(xi)
+        xi += xStride
+        i += 1
+      acc
+
+  /** Sum of absolute values (the vector 1-norm); `0.0` when `n == 0`. */
+  def dasum(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    if xStride == 1 then
+      var acc0 = 0.0
+      var acc1 = 0.0
+      var acc2 = 0.0
+      var acc3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      while i < limit do
+        acc0 += math.abs(x(xi))
+        acc1 += math.abs(x(xi + 1))
+        acc2 += math.abs(x(xi + 2))
+        acc3 += math.abs(x(xi + 3))
+        xi += 4
+        i += 4
+      var acc = (acc0 + acc1) + (acc2 + acc3)
+      while i < n do
+        acc += math.abs(x(xi))
+        xi += 1
+        i += 1
+      acc
+    else
+      var acc = 0.0
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        acc += math.abs(x(xi))
+        xi += xStride
+        i += 1
+      acc
+
+  /** Largest absolute value (the vector ∞-norm); `0.0` when `n == 0`. A NaN
+    * element makes the result NaN (`math.max` propagates NaN on JVM and JS).
+    */
+  def damax(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    if xStride == 1 then
+      var m0 = 0.0
+      var m1 = 0.0
+      var m2 = 0.0
+      var m3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      while i < limit do
+        m0 = math.max(m0, math.abs(x(xi)))
+        m1 = math.max(m1, math.abs(x(xi + 1)))
+        m2 = math.max(m2, math.abs(x(xi + 2)))
+        m3 = math.max(m3, math.abs(x(xi + 3)))
+        xi += 4
+        i += 4
+      var m = math.max(math.max(m0, m1), math.max(m2, m3))
+      while i < n do
+        m = math.max(m, math.abs(x(xi)))
+        xi += 1
+        i += 1
+      m
+    else
+      var m = 0.0
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        m = math.max(m, math.abs(x(xi)))
+        xi += xStride
+        i += 1
+      m
+
+  /** Index of the first maximum, `-1` when `n == 0`. The first NaN wins: its
+    * index is returned as soon as it is seen, so a NaN anywhere propagates to
+    * the value read back at the returned index.
+    */
+  def dmaxIndex(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Int =
+    extremeIndex(n, x, xOffset, xStride, Double.NegativeInfinity)(_ > _)
+
+  /** Index of the first minimum, `-1` when `n == 0`; the first NaN wins. */
+  def dminIndex(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Int =
+    extremeIndex(n, x, xOffset, xStride, Double.PositiveInfinity)(_ < _)
+
+  /** Shared first-occurrence search. `better(v, best)` must be a strict IEEE
+    * comparison (false for NaN). The contiguous path keeps four lanes, each the
+    * first occurrence within its residue class; the combine step breaks value
+    * ties toward the smaller index, so the result equals a sequential scan.
+    */
+  private inline def extremeIndex(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
+      inline better: (Double, Double) => Boolean
+  ): Int =
+    if n <= 0 then -1
+    else if xStride == 1 then
+      var b0 = worst
+      var b1 = worst
+      var b2 = worst
+      var b3 = worst
+      var i0 = Int.MaxValue
+      var i1 = Int.MaxValue
+      var i2 = Int.MaxValue
+      var i3 = Int.MaxValue
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      var nan = -1
+      while i < limit && nan < 0 do
+        val v0 = x(xi)
+        val v1 = x(xi + 1)
+        val v2 = x(xi + 2)
+        val v3 = x(xi + 3)
+        if better(v0, b0) then
+          b0 = v0; i0 = i
+        else if v0 != v0 then nan = i
+        if nan < 0 then
+          if better(v1, b1) then
+            b1 = v1; i1 = i + 1
+          else if v1 != v1 then nan = i + 1
+        if nan < 0 then
+          if better(v2, b2) then
+            b2 = v2; i2 = i + 2
+          else if v2 != v2 then nan = i + 2
+        if nan < 0 then
+          if better(v3, b3) then
+            b3 = v3; i3 = i + 3
+          else if v3 != v3 then nan = i + 3
+        xi += 4
+        i += 4
+      if nan >= 0 then nan
+      else
+        var best = b0
+        var bestIndex = i0
+        if better(b1, best) || (b1 == best && i1 < bestIndex) then
+          best = b1; bestIndex = i1
+        if better(b2, best) || (b2 == best && i2 < bestIndex) then
+          best = b2; bestIndex = i2
+        if better(b3, best) || (b3 == best && i3 < bestIndex) then
+          best = b3; bestIndex = i3
+        while i < n && nan < 0 do
+          val v = x(xi)
+          if better(v, best) then
+            best = v; bestIndex = i
+          else if v != v then nan = i
+          xi += 1
+          i += 1
+        if nan >= 0 then nan
+        // Every element equalled `worst` (e.g. all -Inf for a max): the first wins.
+        else if bestIndex == Int.MaxValue then 0
+        else bestIndex
+    else
+      var best = x(xOffset)
+      if best != best then 0
+      else
+        var bestIndex = 0
+        var nan = -1
+        var i = 1
+        var xi = xOffset + xStride
+        while i < n && nan < 0 do
+          val v = x(xi)
+          if better(v, best) then
+            best = v; bestIndex = i
+          else if v != v then nan = i
+          xi += xStride
+          i += 1
+        if nan >= 0 then nan else bestIndex
+
+  /** Sum of squares, `sum x_i^2` (four fma accumulators when contiguous). */
+  def dsumsq(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    ddot(n, x, xOffset, xStride, x, xOffset, xStride)
+
+  /** Scaled sum of squares `sum (x_i / scale)^2` for a positive finite `scale`. */
+  def dsumsqScaled(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, scale: Double): Double =
+    var acc = 0.0
+    var i = 0
+    var xi = xOffset
+    while i < n do
+      val v = x(xi) / scale
+      acc = fma(v, v, acc)
+      xi += xStride
+      i += 1
+    acc
+
+  // The optimistic unscaled sum of squares is trusted when it is finite and at
+  // least this large. Each square that underflows loses at most 2^-1075, so even
+  // Int.MaxValue such losses stay ~1e-35 relative to the total: negligible.
+  // Smaller totals (tiny entries, or exactly zero) and overflow rescan scaled.
+  private val FrobeniusTrustedMin = 1e-280
+
+  /** Frobenius norm of a `rows×cols` strided block, overflow- and underflow-safe.
+    *
+    * One optimistic pass forms the plain fma sum of squares. Only when that
+    * total is non-finite, zero, or below a safe floor does a second pair of
+    * passes find the largest magnitude `m` and sum `(a/m)^2`, giving
+    * `m * sqrt(...)`. NaN anywhere gives NaN; otherwise an infinite entry gives
+    * `+Inf`; an empty block gives `0.0`. A block whose storage is one
+    * contiguous run (row- or column-major), or a single row or column, is
+    * reduced line by line in one kernel call.
+    */
+  def dnrmFrobenius(
+      rows: Int,
+      cols: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      rowStride: Int,
+      colStride: Int
+  ): Double =
+    if rows == 0 || cols == 0 then 0.0
+    else
+      val contiguous = (colStride == 1 && rowStride == cols) || (rowStride == 1 && colStride == rows)
+      val byRows = if rows == 1 then true else if cols == 1 then false else colStride <= rowStride
+      val lines = if contiguous then 1 else if byRows then rows else cols
+      val lineLength = if contiguous then rows * cols else if byRows then cols else rows
+      val lineStep = if byRows then rowStride else colStride
+      val elementStep = if contiguous then 1 else if byRows then colStride else rowStride
+      var ssq = 0.0
+      var line = 0
+      while line < lines do
+        ssq += dsumsq(lineLength, x, xOffset + line * lineStep, elementStep)
+        line += 1
+      if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
+      else
+        var m = 0.0
+        line = 0
+        while line < lines do
+          m = math.max(m, damax(lineLength, x, xOffset + line * lineStep, elementStep))
+          line += 1
+        if m == 0.0 || m.isNaN || m.isInfinite then m
+        else
+          var scaled = 0.0
+          line = 0
+          while line < lines do
+            scaled += dsumsqScaled(lineLength, x, xOffset + line * lineStep, elementStep, m)
+            line += 1
+          m * math.sqrt(scaled)
+
+  /** `y_i := f(x_i)`; `y` may be `x` itself (same offset and stride). */
+  inline def dmapInto(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int
+  )(inline f: Double => Double): Unit =
+    if xStride == 1 && yStride == 1 then
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < limit do
+        y(yi) = f(x(xi))
+        y(yi + 1) = f(x(xi + 1))
+        y(yi + 2) = f(x(xi + 2))
+        y(yi + 3) = f(x(xi + 3))
+        xi += 4
+        yi += 4
+        i += 4
+      while i < n do
+        y(yi) = f(x(xi))
+        xi += 1
+        yi += 1
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < n do
+        y(yi) = f(x(xi))
+        xi += xStride
+        yi += yStride
+        i += 1
+
+  def dexpInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(math.exp)
+
+  def dlogInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(math.log)
+
+  def dlog1pInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(math.log1p)
+
+  def dexpm1Into(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(math.expm1)
+
+  /** Logistic sigmoid `1 / (1 + exp(-x))`, evaluated without overflow: with
+    * `t = exp(-|x|) <= 1` it is `1/(1+t)` for `x >= 0` and `t/(1+t)` otherwise.
+    * `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`, `sigmoid(NaN) = NaN`.
+    */
+  inline def sigmoid(v: Double): Double =
+    val t = math.exp(-math.abs(v))
+    if v >= 0.0 then 1.0 / (1.0 + t) else t / (1.0 + t)
+
+  def dsigmoidInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(v => sigmoid(v))
+
+  /** `sum exp(x_i - shift)` with four accumulators when contiguous. */
+  def dsumExpShifted(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, shift: Double): Double =
+    if xStride == 1 then
+      var acc0 = 0.0
+      var acc1 = 0.0
+      var acc2 = 0.0
+      var acc3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      while i < limit do
+        acc0 += math.exp(x(xi) - shift)
+        acc1 += math.exp(x(xi + 1) - shift)
+        acc2 += math.exp(x(xi + 2) - shift)
+        acc3 += math.exp(x(xi + 3) - shift)
+        xi += 4
+        i += 4
+      var acc = (acc0 + acc1) + (acc2 + acc3)
+      while i < n do
+        acc += math.exp(x(xi) - shift)
+        xi += 1
+        i += 1
+      acc
+    else
+      var acc = 0.0
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        acc += math.exp(x(xi) - shift)
+        xi += xStride
+        i += 1
+      acc
+
+  /** The value at [[dmaxIndex]]: the first NaN if any, else the maximum. */
+  private def maxValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    x(xOffset + dmaxIndex(n, x, xOffset, xStride) * xStride)
+
+  /** `log(sum exp(x_i))` by the two-pass max shift `m + log(sum exp(x_i - m))`.
+    *
+    * Empty gives `-Inf` (the log of an empty sum). Otherwise NaN anywhere gives
+    * NaN; else any `+Inf` gives `+Inf`; else all `-Inf` gives `-Inf`. Finite
+    * inputs never overflow: the shifted maximum contributes exactly `exp(0) = 1`.
+    */
+  def dlogSumExp(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    if n == 0 then Double.NegativeInfinity
+    else
+      val m = maxValue(n, x, xOffset, xStride)
+      if m.isNaN || m.isInfinite then m
+      else m + math.log(dsumExpShifted(n, x, xOffset, xStride, m))
+
+  /** `y := softmax(x) = exp(x - m) / sum exp(x - m)`. If the maximum `m` is not
+    * finite (NaN anywhere, any `+Inf`, or all `-Inf`) every output is NaN.
+    */
+  def dsoftmaxInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    if n > 0 then
+      val m = maxValue(n, x, xOffset, xStride)
+      if m.isNaN || m.isInfinite then fillStrided(n, Double.NaN, y, yOffset, yStride)
+      else
+        val total = dexpShiftedSumInto(n, x, xOffset, xStride, m, y, yOffset, yStride)
+        // Divide rather than multiply by `1 / total`: one rounding per entry.
+        dmapInto(n, y, yOffset, yStride, y, yOffset, yStride)(v => v / total)
+
+  /** `y_i := exp(x_i - shift)`, returning `sum y_i` from the same pass (four
+    * accumulators when both operands are contiguous).
+    */
+  def dexpShiftedSumInto(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      shift: Double,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int
+  ): Double =
+    if xStride == 1 && yStride == 1 then
+      var acc0 = 0.0
+      var acc1 = 0.0
+      var acc2 = 0.0
+      var acc3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < limit do
+        val e0 = math.exp(x(xi) - shift)
+        val e1 = math.exp(x(xi + 1) - shift)
+        val e2 = math.exp(x(xi + 2) - shift)
+        val e3 = math.exp(x(xi + 3) - shift)
+        y(yi) = e0
+        y(yi + 1) = e1
+        y(yi + 2) = e2
+        y(yi + 3) = e3
+        acc0 += e0
+        acc1 += e1
+        acc2 += e2
+        acc3 += e3
+        xi += 4
+        yi += 4
+        i += 4
+      var acc = (acc0 + acc1) + (acc2 + acc3)
+      while i < n do
+        val e = math.exp(x(xi) - shift)
+        y(yi) = e
+        acc += e
+        xi += 1
+        yi += 1
+        i += 1
+      acc
+    else
+      var acc = 0.0
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < n do
+        val e = math.exp(x(xi) - shift)
+        y(yi) = e
+        acc += e
+        xi += xStride
+        yi += yStride
+        i += 1
+      acc
+
+  /** `y := x - logSumExp(x)`, evaluated as `(x - m) - log(sum exp(x - m))`.
+    * Non-finite maxima give an all-NaN result, as in [[dsoftmaxInto]].
+    */
+  def dlogSoftmaxInto(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int
+  ): Unit =
+    if n > 0 then
+      val m = maxValue(n, x, xOffset, xStride)
+      if m.isNaN || m.isInfinite then fillStrided(n, Double.NaN, y, yOffset, yStride)
+      else
+        val logTotal = math.log(dsumExpShifted(n, x, xOffset, xStride, m))
+        dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(v => (v - m) - logTotal)
+
+  private def fillStrided(n: Int, value: Double, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
+    var i = 0
+    var yi = yOffset
+    while i < n do
+      y(yi) = value
+      yi += yStride
       i += 1

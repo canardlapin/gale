@@ -133,3 +133,29 @@ from COO assembly. Unlike Breeze's in-place `compact()`, `compact` returns a
 new immutable vector. `CSR * SparseVector` follows the `dot` rule: implicit
 zeros never multiply stored values, so it can differ from
 `A * x.toDense` when `A` stores a non-finite value.
+
+## Everyday-ops additions before M1
+
+`DVec` adds `sum`, `sumExact`, `mean`, `max`, `min`, `argmax`, `argmin`,
+`norm1`, and `normInf`. `DMat` adds `sum`, `sumExact`, `mean`, `max`, `min`,
+`argmax`/`argmin` (returning `(row, col)`), per-axis `sum`/`mean`/`max`/`min`
+taking the new `gale.linalg.Axis` enum, and `norm1`, `normInf`, and
+`normFrobenius`. `gale.linalg.Numerics` adds `exp`, `log`, `log1p`, `expm1`,
+`sigmoid`, `logSumExp`, `softmax`, and `logSoftmax` for vectors and matrices,
+with per-axis matrix forms of the last three. `Axis.Rows` means one result per
+row and `Axis.Cols` one result per column.
+
+`LinAlgError` gains the `EmptyInput(operation)` case. Consumers with exhaustive
+matches on `LinAlgError` must handle it. Order statistics and means of empty
+inputs throw it; sums and norms of empty inputs return `0.0`.
+
+`DVec.norm2` now returns `+Inf`, rather than NaN, for a vector holding several
+infinite entries and no NaN. The private dense 1-norm used by
+`conditionEstimate` and the Frobenius norm used by the nonsymmetric
+left-eigenvector residual guard now share the public implementations; the
+Frobenius guard is now overflow-safe. For a row-major input the shared 1-norm
+sums each column in the same order as before; for column-major or other strided
+inputs it uses the unrolled kernel, so `conditionEstimate` can change in the
+last ulp. Compact pivoted QR (width 8 or less) applies the same infinite-entry
+repair as `norm2`, so its pivot choice matches the wider screened path. These are numerical-contract repairs, not
+binary-compatibility claims against a published baseline.

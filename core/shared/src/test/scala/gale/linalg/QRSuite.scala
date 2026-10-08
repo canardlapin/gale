@@ -243,6 +243,25 @@ class QRSuite extends munit.FunSuite:
       assertEquals(repeated.diagnostics, actual.diagnostics)
   }
 
+  test("a column with several infinite entries pivots identically on the compact and screened widths") {
+    // The compact (n <= 8) and screened (n > 8) pivot searches must rank a
+    // column holding two infinities as +Inf, as `DVec.norm2` does, so the first
+    // pivot and its Householder norm do not depend on the matrix width.
+    val options = QROptions(pivoting = QRPivoting.Column)
+    def fixture(cols: Int): DMat =
+      Matrix.tabulate(6, cols)((i, j) =>
+        if j == 2 && (i == 0 || i == 3) then Double.PositiveInfinity
+        else math.sin(1.0 + i * 7.0 + j * 3.0)
+      )
+    val results = for cols <- Seq(5, 12) yield
+      val qr = fixture(cols).qr(options)
+      (qr.columnPermutation.toIndexSeq.head, qr.r(0, 0))
+    for (pivot, diagonal) <- results do
+      assertEquals(pivot, 2)
+      assertEquals(diagonal, Double.NegativeInfinity)
+    assertEquals(results(0), results(1))
+  }
+
   test("pivoted QR exactly matches the column-wise reference across compact-width boundaries") {
     val options = QROptions(pivoting = QRPivoting.Column)
     val columnCounts = Seq(1, 3, 5, 6, 8, 9, 16, 24)
