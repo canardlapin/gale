@@ -8,9 +8,12 @@ JVM and Scala.js.
 
 Gale is not source-compatible with Breeze, and it does not replace Breeze's
 probability, statistics, signal-processing, plotting, machine
-learning, or tensor modules. Its optimizers cover Breeze's `LBFGS` and
-`LBFGSB` (see [Replace Breeze L-BFGS and L-BFGS-B](#replace-breeze-l-bfgs-and-l-bfgs-b)),
-not the rest of `breeze.optimize`. Use this guide to check the supported linear
+learning, or tensor modules. `gale.optim` has its own optimizers, including
+L-BFGS, L-BFGS-B, accelerated proximal gradient, Levenberg–Marquardt, CMA-ES,
+an augmented Lagrangian, and a box quasi-Newton method. Only `LBFGS` and
+`LBFGSB` are checked against `breeze.optimize`; see
+[Replace Breeze L-BFGS and L-BFGS-B](#replace-breeze-l-bfgs-and-l-bfgs-b).
+Use this guide to check the supported linear
 algebra operations and to see how migrated code changes.
 
 ## Construct and inspect dense values
@@ -475,6 +478,10 @@ libraries stop for different reasons, so default settings in Breeze and in
 Gale do not return points of the same accuracy. Configure the stopping rule
 explicitly when results must match.
 
+These are the only `gale.optim` solvers with Breeze parity tests. The other
+solvers in `gale.optim` (`AcceleratedProximal`, `LevenbergMarquardt`, `CMAES`,
+`AugmentedLagrangian`, `BoxQuasiNewton`) have no counterpart checked here.
+
 ### Option mapping
 
 | Breeze | Gale | Notes |
@@ -580,11 +587,13 @@ records these differences:
   libraries.
 - **Roundoff limit.** A strong-Wolfe line search must detect a decrease in
   `f` of about `‖∇f‖² / L`. When `|f*|` is large, such as 1e2, that decrease
-  falls below `eps · |f|` before `‖∇f‖∞` reaches 1e-8. Both libraries then
-  stop near `sqrt(eps · |f*| · L)`. Gale reports `LineSearchFailed`, and
-  Breeze reports `line search failed!`. Neither claims convergence. Subtract
-  a known constant from the objective, or loosen the tolerance, when this
-  happens.
+  can fall below `eps · |f|` before `‖∇f‖∞` reaches 1e-8. Either library may
+  then stop on a failed line search: Gale reports `LineSearchFailed`, and
+  Breeze reports `line search failed!`. Whether a given problem stalls
+  differs between the libraries. In the suite, Gale reached `τ` on one of
+  three such problems and Breeze on another. Neither reports `Converged` with
+  a residual above `τ`. Subtract a known constant from the objective, or
+  loosen the tolerance, when this happens.
 
 ## What Gale does not replace
 
@@ -592,8 +601,9 @@ Gale does not provide:
 
 - Breeze collections, generic scalar operators, broadcasting, or compatible
   `::` slicing syntax;
-- probability distributions, optimizers other than L-BFGS and L-BFGS-B,
-  statistics, signal processing,
+- probability distributions, Breeze's other `breeze.optimize` solvers (for
+  example OWLQN, SGD variants, and projected quasi-Newton), statistics,
+  signal processing,
   plotting, machine learning, tensors, or other non-linear-algebra modules;
 - general complex matrix storage and arithmetic;
 - sparse direct factorization;

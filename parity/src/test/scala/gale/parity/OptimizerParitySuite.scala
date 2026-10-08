@@ -40,8 +40,11 @@ import scala.collection.mutable.ArrayBuffer
   *   - unconstrained, μ-strongly convex: `‖x − x*‖₂ ≤ √n τ / μ` per solver, so
   *     the two solvers agree within `2 √n τ / μ`;
   *   - box-constrained, μ-strongly convex, L-smooth: with `G` the unit
-  *     projected-gradient step, `μ e² ≤ (1 + L) e ‖G‖ + ‖G‖²`, hence
-  *     `e ≤ (2 + L) / μ · ‖G‖₂`;
+  *     projected-gradient step, the variational inequality gives
+  *     `μ e² ≤ (1 + L) e ‖G‖ − ‖G‖²`, hence `e ≤ (1 + L) / μ · ‖G‖₂`. That
+  *     bound is loose by about `κ`, so it also sets the active-set distance;
+  *     once the known active set matches, the free coordinates are held to
+  *     `(√|F| τ + L ‖d_A‖₂) / λmin(H_FF)` from the restricted Hessian;
   *   - values: `|f(a) − f(b)| ≤ ‖∇f(b)‖₂ d + L d² / 2` with `d = ‖a − b‖₂`,
   *     plus a rounding allowance;
   *   - Rosenbrock (nonconvex): the known optimum `1`, with the local strong
@@ -69,6 +72,8 @@ class OptimizerParitySuite extends munit.FunSuite:
     *   finite or infinite box bounds; `None` runs the unconstrained solvers.
     * @param known
     *   an analytic minimizer, when one exists.
+    * @param hessian
+    *   the constant Hessian of a quadratic, used for the free-coordinate bound.
     */
   private final case class Problem(
       name: String,
@@ -80,7 +85,9 @@ class OptimizerParitySuite extends munit.FunSuite:
       convex: Boolean = true,
       bounds: Option[(Array[Double], Array[Double])] = None,
       known: Option[Array[Double]] = None,
-      knownActive: Option[Set[Int]] = None
+      knownActive: Option[Set[Int]] = None,
+      hessian: Option[Array[Array[Double]]] = None,
+      tolerance: FirstOrderTolerance = sharedTolerance
   )
 
   /** Product of three Householder reflections: an exactly specified orthogonal matrix. */
@@ -164,7 +171,8 @@ class OptimizerParitySuite extends munit.FunSuite:
       Array.fill(n)(0.0),
       mu = 1.0,
       lipschitz = kappa,
-      known = Some(xStar)
+      known = Some(xStar),
+      hessian = Some(a)
     )
 
   /** Bound-constrained quadratic whose minimizer is fixed by construction through KKT.
@@ -204,7 +212,8 @@ class OptimizerParitySuite extends munit.FunSuite:
       lipschitz = kappa,
       bounds = Some((lower, upper)),
       known = Some(xStar),
-      knownActive = Some((0 until n).filter(role(_) != 0).toSet)
+      knownActive = Some((0 until n).filter(role(_) != 0).toSet),
+      hessian = Some(a)
     )
 
   /** Chained Rosenbrock `Σ 100 (x_{i+1} − x_i²)² + (1 − x_i)²`. */
@@ -311,7 +320,7 @@ class OptimizerParitySuite extends munit.FunSuite:
   private val relativeTolerance = 0.0
   private val history = 10
   private val iterationLimit = 20000
-  private val tolerance = FirstOrderTolerance.from(absoluteTolerance, relativeTolerance).toOption.get
+  private val sharedTolerance = FirstOrderTolerance.from(absoluteTolerance, relativeTolerance).toOption.get
 
   /** `‖∇f‖∞` unconstrained, `‖x − clamp(x − ∇f)‖∞` boxed. */
   private def residual(p: Problem, x: Array[Double], g: Array[Double]): Double =
@@ -323,7 +332,7 @@ class OptimizerParitySuite extends munit.FunSuite:
   /** Gale's threshold, computed from the start exactly as `LBFGS` / `LBFGSB` do. */
   private def threshold(p: Problem): Double =
     val (_, g0) = p.oracle(p.start)
-    tolerance.threshold(math.max(1.0, residual(p, p.start, g0)))
+    p.tolerance.threshold(math.max(1.0, residual(p, p.start, g0)))
 
   // ---------------------------------------------------------------------------
   // Drivers
@@ -358,7 +367,7 @@ class OptimizerParitySuite extends munit.FunSuite:
         LBFGS.minimize(
           objective,
           column(p.start),
-          LBFGSConfig(maxIterations = iterationLimit, tolerance = tolerance, historySize = history)
+          LBFGSConfig(maxIterations = iterationLimit, tolerance = p.tolerance, historySize = history)
         )
       case Some((lower, upper)) =>
         val box = MatrixBoxBounds.from(column(lower), column(upper)).toOption.get
@@ -366,7 +375,7 @@ class OptimizerParitySuite extends munit.FunSuite:
           objective,
           box,
           column(p.start),
-          LBFGSBConfig(maxIterations = iterationLimit, tolerance = tolerance, historySize = history)
+          LBFGSBConfig(maxIterations = iterationLimit, tolerance = p.tolerance, historySize = history)
         )
     val millis = (System.nanoTime() - started) / 1e6
     solved match
@@ -447,10 +456,12 @@ class OptimizerParitySuite extends munit.FunSuite:
   private def norm2(v: Array[Double]): Double = math.sqrt(v.map(x => x * x).sum)
   private def distance(a: Array[Double], b: Array[Double]): Double = norm2(Array.tabulate(a.length)(i => a(i) - b(i)))
 
-  /** Error bound implied by a residual of at most `tau` per solver. */
+  /** Error bound implied by a residual of at most `tau` per solver: `‖r‖₂ / μ` unconstrained, `(1 + L) / μ · ‖G‖₂`
+    * boxed. The box bound is loose by about `κ`; [[assertFreeCoordinates]] tightens it once the active set is known.
+    */
   private def singleSolverBound(p: Problem, tau: Double): Double =
     val gNorm = math.sqrt(p.n.toDouble) * tau
-    val base = if p.bounds.isEmpty then gNorm / p.mu else (2.0 + p.lipschitz) / p.mu * gNorm
+    val base = if p.bounds.isEmpty then gNorm / p.mu else (1.0 + p.lipschitz) / p.mu * gNorm
     if p.convex then base else 10.0 * base
 
   private def valueBound(p: Problem, at: Array[Double], other: Array[Double], value: Double): Double =
@@ -458,16 +469,38 @@ class OptimizerParitySuite extends munit.FunSuite:
     val (_, g) = p.oracle(at)
     norm2(g) * d + 0.5 * p.lipschitz * d * d + 1e-13 * math.max(1.0, math.abs(value))
 
-  private def active(p: Problem, x: Array[Double]): Set[Int] =
+  /** Coordinates within `delta` of a bound. With `delta` the per-solver error bound, every coordinate active at `x*`
+    * qualifies, and a coordinate free at `x*` qualifies only if `x*` lies within `2 delta` of a bound.
+    */
+  private def active(p: Problem, x: Array[Double], delta: Double): Set[Int] =
     p.bounds match
       case None                 => Set.empty
       case Some((lower, upper)) =>
-        x.indices
-          .filter(i =>
-            math.abs(x(i) - lower(i)) <= 1e-9 * math.max(1.0, math.abs(lower(i))) ||
-              math.abs(x(i) - upper(i)) <= 1e-9 * math.max(1.0, math.abs(upper(i)))
-          )
-          .toSet
+        x.indices.filter(i => x(i) - lower(i) <= delta || upper(i) - x(i) <= delta).toSet
+
+  /** Tight check on the free coordinates of a box quadratic with a known active set `A` and free set `F`.
+    *
+    * Free coordinates sit more than `τ` inside the box, so a unit projected-gradient residual `≤ τ` gives
+    * `‖g_F‖∞ ≤ τ`. With `g*_F = 0`, `g_F = H_FF d_F + H_FA d_A`, hence `‖d_F‖₂ ≤ (√|F| τ + L ‖d_A‖₂) / λmin(H_FF)`.
+    */
+  private def assertFreeCoordinates(p: Problem, tau: Double, label: String, x: Array[Double]): Unit =
+    for
+      h <- p.hessian
+      activeSet <- p.knownActive
+      xStar <- p.known
+      if p.bounds.isDefined
+    do
+      val free = (0 until p.n).filterNot(activeSet).toArray
+      if free.nonEmpty then
+        val restricted = BDM.tabulate(free.length, free.length)((i, j) => h(free(i))(free(j)))
+        val muFree = eigSym.justEigenvalues(restricted).toArray.min
+        val g = p.oracle(x)._2
+        val freeGradient = free.map(i => math.abs(g(i))).max
+        assert(freeGradient <= tau, s"${p.name}: $label free gradient $freeGradient > $tau")
+        val activeOffset = math.sqrt(activeSet.toSeq.map(i => (x(i) - xStar(i)) * (x(i) - xStar(i))).sum)
+        val freeError = math.sqrt(free.map(i => (x(i) - xStar(i)) * (x(i) - xStar(i))).sum)
+        val bound = (math.sqrt(free.length.toDouble) * tau + p.lipschitz * activeOffset) / muFree
+        assert(freeError <= bound, s"${p.name}: $label ‖x_F − x*_F‖ = $freeError > $bound")
 
   private def compare(p: Problem): Unit =
     val tau = threshold(p)
@@ -500,10 +533,12 @@ class OptimizerParitySuite extends munit.FunSuite:
     val fBound = valueBound(p, breeze.x, gale.x, breeze.value)
     assert(df <= fBound, s"${p.name}: |f_gale − f_breeze| = $df > $fBound")
 
-    val galeActive = active(p, gale.x)
+    val galeActive = active(p, gale.x, single)
     if p.bounds.isDefined then
-      assertEquals(galeActive, active(p, breeze.x), s"${p.name}: active sets differ")
+      assertEquals(galeActive, active(p, breeze.x, single), s"${p.name}: active sets differ")
       p.knownActive.foreach(expected => assertEquals(galeActive, expected, s"${p.name}: wrong active set"))
+      assertFreeCoordinates(p, tau, "gale", gale.x)
+      assertFreeCoordinates(p, tau, "breeze", breeze.x)
 
     report += f"| ${p.name} | ${if p.bounds.isDefined then s"B (${galeActive.size} active)" else "U"} | $tau%.1e | $dx%.1e | ${2.0 * single}%.1e " +
       f"| $df%.1e | ${gale.callbacks} | ${breeze.callbacks} | ${gale.millis}%.1f | ${breeze.millis}%.1f |"
@@ -552,6 +587,19 @@ class OptimizerParitySuite extends munit.FunSuite:
     compare(boxQuadratic(1, 1.0, 55L, _ => 1).copy(name = "box n=1, upper active"))
   }
 
+  test("relative tolerance: the threshold scales with max(1, ‖r(x₀)‖∞) in both libraries") {
+    val relative = FirstOrderTolerance.from(1e-10, 1e-11).toOption.get
+    val cases = Seq(
+      unconstrainedQuadratic(50, 1e3, 12L).copy(name = "quadratic n=50 κ=1e3, rel 1e-11", tolerance = relative),
+      // The unit projected step is capped by the distance to the far bound, so start at a corner where it can exceed 1.
+      boxQuadratic(30, 1e2, 31L, i => Seq(-1, 0, 1)(i % 3), lower => lower.clone())
+        .copy(name = "box n=30 κ=1e2, start = l, rel 1e-11", tolerance = relative)
+    )
+    for p <- cases do
+      assert(threshold(p) > relative.threshold(1.0), s"${p.name}: ‖r(x₀)‖∞ ≤ 1, scaled branch not exercised")
+      compare(p)
+  }
+
   /** The same problem evaluated as `½ xᵀAx − bᵀx`, so `|f*|` is O(100) instead of 0. */
   private def unshifted(p: Problem, kappa: Double, seed: Long): Problem =
     val a = spdWithCondition(p.n, kappa, seed)
@@ -563,9 +611,11 @@ class OptimizerParitySuite extends munit.FunSuite:
       oracle = unshiftedQuadraticOracle(a, Array.tabulate(p.n)(i => ax(i) - gStar(i)))
     )
 
-  test("roundoff floor: with |f*| ≈ 1e2 both libraries may stop on a failed line search just above τ") {
-    // Strict sufficient decrease must resolve f differences near eps·|f|, so the reachable residual is about
-    // sqrt(eps·|f*|·L). Both libraries report the stall instead of claiming convergence; neither is asserted to reach τ.
+  test("roundoff floor: with |f*| ≈ 1e2 either library may stop on a failed line search; neither claims τ falsely") {
+    // Strict sufficient decrease must resolve f differences near eps·|f|. Contract asserted for each library: it either
+    // reports convergence with residual ≤ τ, or reports a failed line search. Whether a given case reaches τ is not
+    // asserted. The 10·sqrt(eps·|f*|·L) limit below is a heuristic guard against a stall far from the minimizer, not a
+    // derived bound.
     val mixed = (i: Int) => Seq(-1, 0, 1)(i % 3)
     val cases = Seq(
       unshifted(unconstrainedQuadratic(10, 10.0, 11L), 10.0, 11L),
@@ -578,15 +628,13 @@ class OptimizerParitySuite extends munit.FunSuite:
       val breeze = runBreeze(p)
       val galeResidual = residual(p, gale.x, p.oracle(gale.x)._2)
       val breezeResidual = residual(p, breeze.x, p.oracle(breeze.x)._2)
-      assert(!gale.converged || galeResidual <= tau, s"${p.name}: gale claimed convergence at $galeResidual")
-      assert(gale.converged || gale.status == "LineSearchFailed", s"${p.name}: gale stopped with ${gale.status}")
-      assert(
-        breeze.converged || breeze.status == FirstOrderMinimizer.SearchFailed.reason,
-        s"${p.name}: breeze stopped with ${breeze.status}"
-      )
+      if gale.converged then assert(galeResidual <= tau, s"${p.name}: gale claimed convergence at $galeResidual")
+      else assertEquals(gale.status, "LineSearchFailed", s"${p.name}: gale stop")
+      if breeze.converged then assert(breezeResidual <= tau, s"${p.name}: breeze stopped at $breezeResidual")
+      else assertEquals(breeze.status, FirstOrderMinimizer.SearchFailed.reason, s"${p.name}: breeze stop")
       val floor = 10.0 * math.sqrt(2.2e-16 * math.max(1.0, math.abs(gale.value)) * p.lipschitz)
-      assert(galeResidual <= floor, s"${p.name}: gale residual $galeResidual above floor $floor")
-      assert(breezeResidual <= floor, s"${p.name}: breeze residual $breezeResidual above floor $floor")
+      assert(galeResidual <= floor, s"${p.name}: gale residual $galeResidual above heuristic guard $floor")
+      assert(breezeResidual <= floor, s"${p.name}: breeze residual $breezeResidual above heuristic guard $floor")
       floorReport += f"| ${p.name} | ${gale.value}%.2f | $floor%.1e | ${gale.status} | $galeResidual%.1e " +
         f"| ${breeze.status} | $breezeResidual%.1e |"
   }
@@ -600,7 +648,7 @@ class OptimizerParitySuite extends munit.FunSuite:
       Right(ObjectiveEvaluation(v, column(g)))
     ).toOption.get
     val box = MatrixBoxBounds.from(column(lower), column(upper)).toOption.get
-    LBFGSB.minimize(objective, box, column(infeasible), LBFGSBConfig(tolerance = tolerance)) match
+    LBFGSB.minimize(objective, box, column(infeasible), LBFGSBConfig(tolerance = sharedTolerance)) match
       case Left(FirstOrderError.InvalidConfiguration(_)) => ()
       case other                                         => fail(s"gale accepted an infeasible start: $other")
     intercept[IllegalArgumentException]:
@@ -614,7 +662,8 @@ class OptimizerParitySuite extends munit.FunSuite:
     val quad = unconstrainedQuadratic(100, 1e4, 13L)
     val defaultLbfgs = new BreezeLBFGS[BDV[Double]]()
     val lbfgsCounted = Counted(quad.oracle)
-    val lbfgsX = defaultLbfgs.minimize(diffFunction(lbfgsCounted), BDV(quad.start.clone())).toArray
+    val lbfgsState = defaultLbfgs.minimizeAndReturnState(diffFunction(lbfgsCounted), BDV(quad.start.clone()))
+    val lbfgsX = lbfgsState.x.toArray
     val box = boxQuadratic(100, 1e4, 32L, i => if i % 4 == 0 then -1 else if i % 4 == 1 then 1 else 0)
     val (lower, upper) = box.bounds.get
     val boxCounted = Counted(box.oracle)
@@ -629,7 +678,8 @@ class OptimizerParitySuite extends munit.FunSuite:
     report += "| Problem | Breeze call | ‖x − x*‖₂ | exit residual | stop reason | callbacks |"
     report += "| --- | --- | ---: | ---: | --- | ---: |"
     report += f"| ${quad.name} | `LBFGS()` (maxIter −1, m 7, tol 1e-9) | $lbfgsError%.1e | " +
-      f"${residual(quad, lbfgsX, quad.oracle(lbfgsX)._2)}%.1e | — | ${lbfgsCounted.calls} |"
+      f"${residual(quad, lbfgsX, quad.oracle(lbfgsX)._2)}%.1e | " +
+      s"${lbfgsState.convergenceReason.map(_.reason).getOrElse("none")} | ${lbfgsCounted.calls} |"
     report += f"| ${box.name} | `LBFGSB(l, u)` (maxIter 100, m 5, tol 1e-8) | $boxError%.1e | $boxResidual%.1e | " +
       s"${boxState.convergenceReason.map(_.reason).getOrElse("none")} | ${boxCounted.calls} |"
     assert(lbfgsError.isFinite && boxError.isFinite)
@@ -639,7 +689,8 @@ class OptimizerParitySuite extends munit.FunSuite:
     val header = Seq(
       "# Optimizer parity: Gale vs Breeze 2.1 (informational timings)",
       "",
-      s"Shared rule: ‖r‖∞ ≤ $absoluteTolerance + $relativeTolerance · max(1, ‖r(x₀)‖∞); history m = $history. " +
+      s"Shared rule: ‖r‖∞ ≤ $absoluteTolerance + $relativeTolerance · max(1, ‖r(x₀)‖∞); history m = $history " +
+        "(rows marked rel use 1e-10 + 1e-11 · max(1, ‖r(x₀)‖∞)). " +
         "U = LBFGS, B = LBFGSB. Times are single cold runs in one forked JVM; do not read them as benchmarks.",
       "",
       "| Problem | Kind | τ | ‖Δx‖₂ | Δx bound | \\|Δf\\| | Gale callbacks | Breeze callbacks | Gale ms | Breeze ms |",
@@ -649,7 +700,7 @@ class OptimizerParitySuite extends munit.FunSuite:
       "",
       "Roundoff floor with unshifted quadratics (|f*| ≈ 1e2; τ = 1e-8):",
       "",
-      "| Problem | f* | 10·sqrt(eps·\\|f*\\|·L) | Gale status | Gale residual | Breeze status | Breeze residual |",
+      "| Problem | f* | 10·sqrt(eps·\\|f*\\|·L) (heuristic guard) | Gale status | Gale residual | Breeze status | Breeze residual |",
       "| --- | ---: | ---: | --- | ---: | --- | ---: |"
     )
     val text = (header ++ report ++ floor ++ floorReport).mkString("\n") + "\n"
