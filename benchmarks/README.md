@@ -194,7 +194,7 @@ Pairing convention: a paired benchmark is `<Class>.gale<Op>` / `<Class>.breeze<O
 (`<Op>` upper-case first); rows pair on class, op, and params with gale's
 `backend` removed. New Breeze benches must follow it. The ratio is gale speed over
 Breeze speed (>1 means gale is faster; time modes are inverted), and the verdict
-is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. The
+is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. Known asymmetries live in the scoreboard's `CAVEATS` table and appear in a `note` column; a pair that is not like-for-like (gale CSR vs Breeze CSC, L-BFGS to each library's own tolerance) is reported as `withheld`, with no verdict. The
 header records the lane, JDK, fork JVM args, netlib BLAS/LAPACK classes, and
 commit. Any receipt is rejected when the sidecar and results disagree (JDK, a
 result without a sidecar record, or a stale record without a result) or a score

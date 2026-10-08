@@ -21,7 +21,9 @@ import org.openjdk.jmh.infra.Blackhole
   *
   *   - `sum`, `max`, `argmax`: gale `x.sum` (fast, reassociating), `x.max`, `x.argmax`
   *     vs `breeze.linalg.sum`/`max`/`argmax`.
-  *   - `mean`: gale `x.mean` vs `breeze.stats.mean`.
+  *   - `mean`: gale `x.mean` (`sum / n`) vs `breeze.stats.mean`, the call Breeze users
+  *     make; it is a running mean with a division per element, which the scoreboard
+  *     notes.
   *   - `norm1`, `normInf`: gale `x.norm1`, `x.normInf` vs breeze `norm(x, 1.0)`,
   *     `norm(x, Double.PositiveInfinity)`.
   *   - `exp`, `sigmoid`: gale `Numerics.exp`/`sigmoid` vs `breeze.numerics.exp`/`sigmoid`
@@ -91,9 +93,15 @@ class ReductionBreezeJmh:
   * `Axis.Rows` gives one value per row (Breeze `A(*, ::)`), `Axis.Cols` one value
   * per column (Breeze `A(::, *)`, whose result Breeze returns transposed).
   *
+  * '''Storage order differs.''' gale stores dense matrices row-major and Breeze
+  * column-major, so each row of `A` is contiguous for gale and strided (stride `n`)
+  * for Breeze, and each column is the reverse. The `*Rows` ops therefore walk gale's
+  * contiguous axis and the `*Cols` ops Breeze's; the scoreboard notes this on every
+  * per-axis row.
+  *
   *   - `sumRows` / `sumCols`: `A.sum(Axis.Rows|Cols)` vs `sum(A(*, ::))` / `sum(A(::, *))`.
   *   - `maxRows` / `maxCols`: `A.max(Axis.Rows|Cols)` vs `max(A(*, ::))` / `max(A(::, *))`.
-  *   - `sum`: whole-matrix `A.sum` vs `sum(A)`.
+  *   - `sum`: whole-matrix `A.sum` (multi-accumulator) vs `sum(A)` (Breeze's loop).
   *   - `normFrobenius`: gale `A.normFrobenius` (overflow-safe scaled recurrence) vs
   *     breeze `norm(A.flatten())` (a zero-copy view of the contiguous column-major
   *     data; plain sum of squares, no scaling).

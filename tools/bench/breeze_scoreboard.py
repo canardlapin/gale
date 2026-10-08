@@ -47,6 +47,15 @@ modes (``avgt``, ``sample``, ``ss``). The verdict compares JMH's 99.9% confidenc
 intervals: disjoint intervals give ``ahead`` or ``behind``; overlapping intervals
 give ``tie``; a missing interval (a single measurement iteration) gives ``n/a``.
 
+Caveats
+-------
+``CAVEATS`` maps ``(class, op)`` or ``(class, op, params)`` to a note shown in the
+``note`` column. A caveat marked ``withhold`` replaces the verdict with
+``withheld``: the two benchmarks do not measure the same work (for example a gale
+CSR product against Breeze's CSC product), so no ahead/behind claim is made. Other
+caveats keep their verdict and name a known asymmetry (allocation count, flop
+count, storage order) that a reader must weigh.
+
 Receipt checks (errors, exit status 2)
 --------------------------------------
 * Lane A (out-of-box scalar): any forked JVM run with ``jdk.incubator.vector`` in
@@ -101,6 +110,61 @@ GEMM_ROUTED = {
     ("SmallDenseBreezeJmh", "Det"),
 }
 INSENSITIVE = "backend-insensitive"
+WITHHELD = "withheld"
+
+
+@dataclass(frozen=True)
+class Caveat:
+    """A known asymmetry in a pairing. ``withhold`` suppresses the verdict
+    because the two benchmarks do not measure the same work."""
+
+    note: str
+    withhold: bool = False
+
+
+_NO_CSR = Caveat(
+    "not like-for-like: Breeze has no CSR, its twin runs the CSC product", withhold=True
+)
+_OWN_TOLERANCE = Caveat(
+    "not like-for-like: each library stops on its own convergence test", withhold=True
+)
+_SOFTMAX = "Breeze idiom `exp(x - softmax(x))` makes 2 allocations and an extra pass"
+_INV = Caveat(
+    "gale `solve(I)` is ~8/3 n^3 flops vs Breeze `dgetri` ~2 n^3 (disfavours gale)"
+)
+_SUM = Caveat("gale multi-accumulator sum vs Breeze's single-accumulator loop")
+_ROWS = "gale row-major: rows contiguous for gale, strided for Breeze (column-major)"
+_COLS = "gale row-major: columns strided for gale, contiguous for Breeze (column-major)"
+
+# Keyed by (class, op) or (class, op, ((param, value), ...)); a param-qualified key
+# applies when its params are a subset of the pair's params and wins over (class, op).
+CAVEATS: dict[tuple, Caveat] = {
+    ("SparseMatrixBreezeJmh", "CsrMatvec"): _NO_CSR,
+    ("SparseMatrixBreezeJmh", "CsrMatmul"): _NO_CSR,
+    ("LbfgsBreezeJmh", "Rosenbrock", (("budget", "tolerance"),)): _OWN_TOLERANCE,
+    ("LbfgsBreezeJmh", "Logistic", (("budget", "tolerance"),)): _OWN_TOLERANCE,
+    ("ReductionBreezeJmh", "Softmax"): Caveat(_SOFTMAX),
+    ("MatrixReductionBreezeJmh", "SoftmaxRows"): Caveat(f"{_SOFTMAX}; {_ROWS}"),
+    ("DenseDecompositionBreezeJmh", "Inv"): _INV,
+    ("SmallDenseBreezeJmh", "Inv"): _INV,
+    ("ReductionBreezeJmh", "Mean"): Caveat(
+        "Breeze `stats.mean` is a running mean (a division per element); gale is sum/n"
+    ),
+    ("ReductionBreezeJmh", "Sum"): _SUM,
+    ("MatrixReductionBreezeJmh", "Sum"): _SUM,
+    ("MatrixReductionBreezeJmh", "SumRows"): Caveat(_ROWS),
+    ("MatrixReductionBreezeJmh", "MaxRows"): Caveat(_ROWS),
+    ("MatrixReductionBreezeJmh", "LogSumExpRows"): Caveat(_ROWS),
+    ("MatrixReductionBreezeJmh", "SumCols"): Caveat(_COLS),
+    ("MatrixReductionBreezeJmh", "MaxCols"): Caveat(_COLS),
+}
+
+
+def caveat(cls: str, op: str, params: tuple) -> Caveat | None:
+    for key, value in CAVEATS.items():
+        if len(key) == 3 and key[:2] == (cls, op) and set(key[2]) <= set(params):
+            return value
+    return CAVEATS.get((cls, op))
 
 
 class ReceiptError(Exception):
@@ -390,15 +454,18 @@ def render(
     )
     jdks = sorted({f"{r.jdk} ({r.vm})" for r in rows})
     jvm_args = sorted({" ".join(r.jvm_args) or "(none)" for r in rows})
-    counts = {"ahead": 0, "tie": 0, "behind": 0, "n/a": 0}
+    counts = {"ahead": 0, "tie": 0, "behind": 0, "n/a": 0, WITHHELD: 0}
     body = []
     for g, b in pairs:
         ratio, v = verdict(g, b)
+        note = caveat(g.cls, g.op, g.pair_params)
+        if note is not None and note.withhold:
+            v = WITHHELD
         counts[v] += 1
         params = ", ".join(f"{k}={val}" for k, val in g.pair_params) or "-"
         body.append(
             f"| {g.cls} | {g.op} | {params} | {g.backend_label} | {g.mode} | {_fmt(g.score, g.error)} | "
-            f"{_fmt(b.score, b.error)} | {g.unit} | {ratio:.2f}x | {v} |"
+            f"{_fmt(b.score, b.error)} | {g.unit} | {ratio:.2f}x | {v} | {note.note if note else ''} |"
         )
     title = "out-of-box scalar" if lane == "A" else "SIMD"
     out = [
@@ -415,12 +482,14 @@ def render(
         out.append(f"- Machine: {machine}")
     out += [
         "",
-        f"**{counts['ahead']} ahead, {counts['tie']} tie, {counts['behind']} behind, {counts['n/a']} n/a** "
-        f"of {len(pairs)} pairs; {len(unpaired)} unpaired. Ratio > 1 means gale is faster; verdicts use "
-        "non-overlapping 99.9% CIs. `backend-insensitive` rows run pure gale in every lane.",
+        f"**{counts['ahead']} ahead, {counts['tie']} tie, {counts['behind']} behind, {counts['n/a']} n/a, "
+        f"{counts[WITHHELD]} withheld** of {len(pairs)} pairs; {len(unpaired)} unpaired. Ratio > 1 means gale "
+        "is faster; verdicts use non-overlapping 99.9% CIs. `backend-insensitive` rows run pure gale in every "
+        "lane. A `withheld` pair is not like-for-like (see its note) and carries no verdict; other notes name "
+        "a known asymmetry behind a verdict.",
         "",
-        "| class | op | params | gale backend | mode | gale | breeze | unit | gale speedup | verdict |",
-        "|---|---|---|---|---|---:|---:|---|---:|---|",
+        "| class | op | params | gale backend | mode | gale | breeze | unit | gale speedup | verdict | note |",
+        "|---|---|---|---|---|---:|---:|---|---:|---|---|",
         *body,
     ]
     if unpaired:

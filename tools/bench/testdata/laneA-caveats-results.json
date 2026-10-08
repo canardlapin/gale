@@ -1,0 +1,327 @@
+[
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.SparseMatrixBreezeJmh.galeCsrMatvec",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "density": "0.01",
+   "n": "1000"
+  },
+  "primaryMetric": {
+   "score": 2000,
+   "scoreError": 10.0,
+   "scoreConfidence": [
+    1990,
+    2010
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     2000
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.SparseMatrixBreezeJmh.breezeCsrMatvec",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "density": "0.01",
+   "n": "1000"
+  },
+  "primaryMetric": {
+   "score": 1000,
+   "scoreError": 10.0,
+   "scoreConfidence": [
+    990,
+    1010
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     1000
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.SparseMatrixBreezeJmh.galeCscMatvec",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "density": "0.01",
+   "n": "1000"
+  },
+  "primaryMetric": {
+   "score": 2000,
+   "scoreError": 10.0,
+   "scoreConfidence": [
+    1990,
+    2010
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     2000
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.SparseMatrixBreezeJmh.breezeCscMatvec",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "density": "0.01",
+   "n": "1000"
+  },
+  "primaryMetric": {
+   "score": 1000,
+   "scoreError": 10.0,
+   "scoreConfidence": [
+    990,
+    1010
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     1000
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.LbfgsBreezeJmh.galeRosenbrock",
+  "mode": "avgt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "budget": "tolerance"
+  },
+  "primaryMetric": {
+   "score": 100,
+   "scoreError": 1.0,
+   "scoreConfidence": [
+    99,
+    101
+   ],
+   "scoreUnit": "us/op",
+   "rawData": [
+    [
+     100
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.LbfgsBreezeJmh.breezeRosenbrock",
+  "mode": "avgt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "budget": "tolerance"
+  },
+  "primaryMetric": {
+   "score": 200,
+   "scoreError": 1.0,
+   "scoreConfidence": [
+    199,
+    201
+   ],
+   "scoreUnit": "us/op",
+   "rawData": [
+    [
+     200
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.LbfgsBreezeJmh.galeRosenbrock",
+  "mode": "avgt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "budget": "fixed"
+  },
+  "primaryMetric": {
+   "score": 100,
+   "scoreError": 1.0,
+   "scoreConfidence": [
+    99,
+    101
+   ],
+   "scoreUnit": "us/op",
+   "rawData": [
+    [
+     100
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.LbfgsBreezeJmh.breezeRosenbrock",
+  "mode": "avgt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "budget": "fixed"
+  },
+  "primaryMetric": {
+   "score": 200,
+   "scoreError": 1.0,
+   "scoreConfidence": [
+    199,
+    201
+   ],
+   "scoreUnit": "us/op",
+   "rawData": [
+    [
+     200
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.DenseDecompositionBreezeJmh.galeInv",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "backend": "pure",
+   "n": "64"
+  },
+  "primaryMetric": {
+   "score": 500,
+   "scoreError": 5.0,
+   "scoreConfidence": [
+    495,
+    505
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     500
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ },
+ {
+  "jmhVersion": "1.37",
+  "benchmark": "gale.bench.DenseDecompositionBreezeJmh.breezeInv",
+  "mode": "thrpt",
+  "threads": 1,
+  "forks": 2,
+  "jvm": "/opt/jdk/bin/java",
+  "jvmArgs": [
+   "-Dgale.bench.lane=A"
+  ],
+  "jdkVersion": "25.0.1",
+  "vmName": "OpenJDK 64-Bit Server VM",
+  "vmVersion": "25.0.1",
+  "params": {
+   "n": "64"
+  },
+  "primaryMetric": {
+   "score": 1000,
+   "scoreError": 10.0,
+   "scoreConfidence": [
+    990,
+    1010
+   ],
+   "scoreUnit": "ops/s",
+   "rawData": [
+    [
+     1000
+    ]
+   ]
+  },
+  "secondaryMetrics": {}
+ }
+]
