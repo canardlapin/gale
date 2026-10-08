@@ -1,0 +1,19 @@
+# CMA-ES multi-seed comparison
+
+20 seeds, 3 timed repetitions per seed; 5 warmup solves per case.
+
+Success is independently checked clean objective error at most 1e-8, including the noisy fixture. Bounds must hold exactly.
+Times and evaluation counts below condition on success; differing success sets prevent treating their ratios as paired speedups.
+
+| Case | JVM successes | Node successes | Python successes | JVM evals | Node evals | Python evals | JVM ms | Node ms | Python ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sphere-8 | 20/20 | 20/20 | 20/20 | 1210.000 | 1175.000 | 1180.000 | 2.968 | 2.857 | 28.181 |
+| rotated-ellipsoid-8 | 20/20 | 20/20 | 20/20 | 2915.000 | 2875.000 | 2735.000 | 4.038 | 7.163 | 72.126 |
+| rosenbrock-4 | 18/20 | 18/20 | 19/20 | 1572.000 | 1580.000 | 1592.000 | 0.784 | 2.039 | 49.090 |
+| nonsmooth-8 | 20/20 | 20/20 | 20/20 | 3330.000 | 3145.000 | 3305.000 | 3.599 | 7.186 | 92.137 |
+| rastrigin-4 | 2/20 | 2/20 | 0/20 | 1448.000 | 1448.000 | — | 1.097 | 1.966 | — |
+| noisy-sphere-8 | 20/20 | 20/20 | 20/20 | 1360.000 | 1365.000 | 1325.000 | 1.648 | 3.238 | 33.137 |
+| box-sphere-8 | 20/20 | 20/20 | 20/20 | 1050.000 | 1065.000 | 990.000 | 1.658 | 2.464 | 31.549 |
+| box-boundary-4 | 20/20 | 20/20 | 20/20 | 1504.000 | 1504.000 | 1392.000 | 1.205 | 2.763 | 65.531 |
+
+All endpoint validity, budget, repeatability and external update checks passed. Failures to reach a target remain in the raw tables.

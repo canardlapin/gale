@@ -1,0 +1,36 @@
+{
+  "accurate_endpoints": 960,
+  "ratios": [
+    {
+      "runtime": "JVM",
+      "reference": "SLSQP",
+      "wins": 14,
+      "geomean": 2.5812038500933716
+    },
+    {
+      "runtime": "JVM",
+      "reference": "trust-constr",
+      "wins": 16,
+      "geomean": 30.619233163951353
+    },
+    {
+      "runtime": "Node",
+      "reference": "SLSQP",
+      "wins": 13,
+      "geomean": 1.9091199851285479
+    },
+    {
+      "runtime": "Node",
+      "reference": "trust-constr",
+      "wins": 16,
+      "geomean": 22.646715779730364
+    }
+  ],
+  "old_objective_calls": 2417,
+  "new_objective_calls": 1187,
+  "callback_reduction": 0.5088953247827885,
+  "allocation_before": 169659.96,
+  "allocation_after": 20195.08,
+  "allocation_reduction": 0.8809673183938037,
+  "standalone_status_and_work_matches": 38
+}

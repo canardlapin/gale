@@ -1,0 +1,173 @@
+{
+  "accurate_endpoints": 960,
+  "standalone_status_work_matches": 38,
+  "ratios": [
+    {
+      "runtime": "JVM",
+      "reference": "SLSQP",
+      "wins": 14,
+      "geomean": 3.0543442405293257
+    },
+    {
+      "runtime": "JVM",
+      "reference": "trust-constr",
+      "wins": 16,
+      "geomean": 36.396743643843344
+    },
+    {
+      "runtime": "Node",
+      "reference": "SLSQP",
+      "wins": 11,
+      "geomean": 1.7888493346733412
+    },
+    {
+      "runtime": "Node",
+      "reference": "trust-constr",
+      "wins": 16,
+      "geomean": 21.31661840457181
+    }
+  ],
+  "policies": {
+    "jvm": {
+      "converged": {
+        "fixed": 16,
+        "adaptive": 16,
+        "scale": 16,
+        "combined": 16
+      },
+      "totals": {
+        "fixed": {
+          "objective_calls": 1806,
+          "constraint_calls": 1806,
+          "inner_iterations": 1450,
+          "iterations": 177
+        },
+        "adaptive": {
+          "objective_calls": 1273,
+          "constraint_calls": 1273,
+          "inner_iterations": 939,
+          "iterations": 175
+        },
+        "scale": {
+          "objective_calls": 1749,
+          "constraint_calls": 1749,
+          "inner_iterations": 1507,
+          "iterations": 170
+        },
+        "combined": {
+          "objective_calls": 1187,
+          "constraint_calls": 1187,
+          "inner_iterations": 969,
+          "iterations": 173
+        }
+      },
+      "approximate_steps": {
+        "fixed": 5,
+        "adaptive": 1,
+        "scale": 2,
+        "combined": 0
+      },
+      "case_approximate_steps": [
+        {
+          "policy": "fixed",
+          "case": "equality-dense-32-s0",
+          "steps": 1
+        },
+        {
+          "policy": "fixed",
+          "case": "ball-64-s0",
+          "steps": 2
+        },
+        {
+          "policy": "fixed",
+          "case": "ball-64-s1",
+          "steps": 2
+        },
+        {
+          "policy": "adaptive",
+          "case": "ball-64-s0",
+          "steps": 1
+        },
+        {
+          "policy": "scale",
+          "case": "ball-64-s1",
+          "steps": 1
+        },
+        {
+          "policy": "scale",
+          "case": "parabola-2-s0",
+          "steps": 1
+        }
+      ]
+    },
+    "node": {
+      "converged": {
+        "fixed": 16,
+        "adaptive": 16,
+        "scale": 16,
+        "combined": 16
+      },
+      "totals": {
+        "fixed": {
+          "objective_calls": 1806,
+          "constraint_calls": 1806,
+          "inner_iterations": 1450,
+          "iterations": 177
+        },
+        "adaptive": {
+          "objective_calls": 1273,
+          "constraint_calls": 1273,
+          "inner_iterations": 939,
+          "iterations": 175
+        },
+        "scale": {
+          "objective_calls": 1754,
+          "constraint_calls": 1754,
+          "inner_iterations": 1508,
+          "iterations": 170
+        },
+        "combined": {
+          "objective_calls": 1187,
+          "constraint_calls": 1187,
+          "inner_iterations": 969,
+          "iterations": 173
+        }
+      },
+      "approximate_steps": {
+        "fixed": 4,
+        "adaptive": 1,
+        "scale": 2,
+        "combined": 0
+      },
+      "case_approximate_steps": [
+        {
+          "policy": "fixed",
+          "case": "ball-64-s0",
+          "steps": 2
+        },
+        {
+          "policy": "fixed",
+          "case": "ball-64-s1",
+          "steps": 2
+        },
+        {
+          "policy": "adaptive",
+          "case": "ball-64-s0",
+          "steps": 1
+        },
+        {
+          "policy": "scale",
+          "case": "ball-64-s1",
+          "steps": 1
+        },
+        {
+          "policy": "scale",
+          "case": "parabola-2-s0",
+          "steps": 1
+        }
+      ]
+    }
+  },
+  "old_default_objective_calls": 1187,
+  "default_objective_calls": 1187
+}

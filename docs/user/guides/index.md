@@ -15,6 +15,10 @@ Start from the problem you need to solve:
   proximal, projected, primal-dual, or exact-reduction capabilities.
 - [Nonlinear fitting and bounded optimization](nonlinear-and-bounded-optimization.md) —
   fit residual models with LM or minimize smooth objectives with L-BFGS-B.
+- [Derivative-free optimization with CMA-ES](cma-es.md) — evaluate continuous
+  black-box objectives with seeded populations, work limits, and optional bounds.
+- [General constrained optimization](augmented-lagrangian.md) — minimize smooth
+  objectives with nonlinear equalities, inequalities, and optional box bounds.
 - [Moving a Breeze workload to Gale](breeze-equivalence.md) — migrate the
   supported real-`Double` linear algebra slice without assuming source
   compatibility.

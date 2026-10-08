@@ -1,0 +1,35 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] scalafmt: Formatting 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/js)...
+[info] scalafmt: Formatting 1 Scala sources (/Users/bbuchsbaum/code/scala/gale/core/jvm)...
+[info] scalafmt: Reformatted 1 Scala sources
+[info] scalafmt: Reformatted 1 Scala sources
+[success] Total time: 2 s, completed Oct 7, 2026, 9:15:37 p.m.
+[info] compiling 1 Scala source to /Users/bbuchsbaum/code/scala/gale/core/jvm/target/scala-3.7.4/test-classes ...
+[error] -- [E172] Type Error: /Users/bbuchsbaum/code/scala/gale/core/shared/src/test/scala/gale/optim/CMAESSuite.scala:17:113 
+[error] 17 |    assertNotEquals(batch(start(CMAESConfig(seed = 43))).points.map(_.toSeq), a.snapshot.distribution.mean.toSeq)
+[error]    |                                                                                                                 ^
+[error]    |Can't compare these two types:
+[error]    |  First type:  Vector[Seq[Double]]
+[error]    |  Second type: Seq[Double]
+[error]    |Possible ways to fix this error:
+[error]    |  Alternative 1: provide an implicit instance for Compare[Vector[Seq[Double]], Seq[Double]]
+[error]    |  Alternative 2: upcast either type into `Any` or a shared supertype.
+[error]    |I found:
+[error]    |
+[error]    |    munit.Compare.compareSubtypeWithSupertype[Vector[Seq[Double]], Seq[Double]](
+[error]    |      /* missing */summon[Vector[Seq[Double]] <:< Seq[Double]])
+[error]    |
+[error]    |But no implicit values were found that match type Vector[Seq[Double]] <:< Seq[Double].
+[error] one error found
+[error] (coreJVM / Test / compileIncremental) Compilation failed
+[error] Total time: 3 s, completed Oct 7, 2026, 9:15:40 p.m.

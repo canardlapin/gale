@@ -1,0 +1,65 @@
+RUN ['/private/tmp/gale-optim-python-venv/bin/python', 'tools/optim-alm/run_comparison.py', '--python', '/private/tmp/gale-optim-python-venv/bin/python', '--output', 'docs/verification/optim-alm-review', '--warmups', '50', '--repeats', '15']
+# Augmented Lagrangian comparison
+
+Median full-solve milliseconds. **FAIL** means at least one endpoint failed the common accuracy gate; its time is not a qualified speed result.
+
+| Case | JVM | Node | SciPy SLSQP | SciPy trust-constr |
+|---|---:|---:|---:|---:|
+| equality-diagonal-8-s0 | 0.101 | 0.115 | 0.396 | 6.904 |
+| equality-diagonal-8-s1 | 0.102 | 0.108 | 0.410 | 8.095 |
+| equality-dense-32-s0 | 0.794 | 1.612 | 1.964 | 30.719 |
+| equality-dense-32-s1 | 0.755 | 1.538 | 2.012 | 31.299 |
+| equality-dense-128-s0 | 1.694 | 2.533 | 8.495 | 16.518 |
+| equality-dense-128-s1 | 1.435 | 2.185 | 13.979 | 15.220 |
+| mixed-box-3-s0 | 0.424 | 0.382 | 0.106 | 3.754 |
+| mixed-box-3-s1 | 0.318 | 0.280 | 0.131 | 12.790 |
+| ball-8-s0 | 0.049 | 0.045 | 0.183 | 2.635 |
+| ball-8-s1 | 0.078 | 0.061 | 0.170 | 3.446 |
+| ball-64-s0 | 0.252 | 0.312 | 0.313 | 3.145 |
+| ball-64-s1 | 0.265 | 0.415 | 0.291 | 5.043 |
+| parabola-2-s0 | 0.023 | 0.043 | 0.271 | 2.288 |
+| parabola-2-s1 | 0.032 | 0.057 | 0.198 | 1.658 |
+| parabola-16-s0 | 0.084 | 0.149 | 0.308 | 2.216 |
+| parabola-16-s1 | 0.138 | 0.236 | 0.351 | 3.411 |
+
+RUN ['/private/tmp/gale-optim-python-venv/bin/python', 'tools/optim-alm/check_verifier.py', 'docs/verification/optim-alm-review']
+PASS rejected nan_point
+PASS rejected wrong_value
+PASS rejected wrong_diagnostic
+PASS rejected wrong_budget
+PASS rejected wrong_status
+PASS rejected duplicate
+PASS rejected inconsistent_convergence
+PASS rejected inconsistent_failure
+RUN ['/private/tmp/gale-optim-python-venv/bin/python', 'tools/optim-python/run_comparison.py', '--python', '/private/tmp/gale-optim-python-venv/bin/python', '--output', 'docs/verification/optim-alm-review/regressions/first-order']
+Both nine-case comparisons pass; reports in /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-alm-review/regressions/first-order
+RUN ['/private/tmp/gale-optim-python-venv/bin/python', 'tools/optim-extensions/run_comparison.py', '--python', '/private/tmp/gale-optim-python-venv/bin/python', '--output', 'docs/verification/optim-alm-review/regressions/extensions']
+Both ten-case Gale comparisons pass independent endpoint/certificate checks: /Users/bbuchsbaum/code/scala/gale/docs/verification/optim-alm-review/regressions/extensions
+RUN ['sbt', 'set benchmarksJVM / Compile / unmanagedSources ++= Seq(file(".agent-work/optim-alm-speed/AllocationProbe.scala"), file(".agent-work/optim-alm/fresh-review/Probe.scala"))', 'benchmarksJVM/runMain gale.bench.AllocationProbe', 'benchmarksJVM/runMain Probe']
+WARNING: Using incubator modules: jdk.incubator.vector
+WARNING: Using incubator modules: jdk.incubator.vector
+[info] welcome to sbt 1.11.7 (Eclipse Adoptium Java 21.0.12.1)
+[info] loading settings for project gale-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/code/scala/gale/project
+[info] loading settings for project root from build.sbt...
+[info] loading settings for project ravel-build from plugins.sbt...
+[info] loading project definition from /Users/bbuchsbaum/.sbt/1.0/staging/6c77ef03ad5f6b5be136/ravel/project
+[info] loading settings for project root from build.sbt...
+[info] resolving key references (31739 settings) ...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] Defining benchmarksJVM / Compile / unmanagedSources
+[info] The new value will be used by benchmarksJVM / Compile / bspBuildTargetSourcesItem, benchmarksJVM / Compile / scalafmt and 2 others.
+[info] 	Run `last` for details.
+[info] Reapplying settings...
+[info] set current project to gale (in build file:/Users/bbuchsbaum/code/scala/gale/)
+[info] compiling 2 Scala sources to /Users/bbuchsbaum/code/scala/gale/benchmarks/jvm/target/scala-3.7.4/classes ...
+[info] done compiling
+[info] running gale.bench.AllocationProbe 
+ALLOCATION bytes_per_zero_solve=20195.08 callbacks=2 n=128
+[success] Total time: 4 s, completed Oct 8, 2026, 7:36:25 a.m.
+[info] running Probe 
+rho=10.0 calls=3 inner=1 status=IterationLimit x=0.09090909090909091 stationarity=1.1102230246251565E-16
+rho=1000.0 calls=3 inner=1 status=IterationLimit x=9.990009990009992E-4 stationarity=2.220446049250313E-16
+rho=1000000.0 calls=3 inner=1 status=IterationLimit x=9.99999000001E-7 stationarity=1.1102230246251565E-16
+rho=1.0E9 calls=3 inner=1 status=Converged x=9.99999999E-10 stationarity=1.1102230246251565E-16
+[success] Total time: 0 s, completed Oct 8, 2026, 7:36:25 a.m.

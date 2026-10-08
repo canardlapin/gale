@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T11:34:35.667616+00:00",
+  "finished_utc": "2026-10-08T11:36:25.924189+00:00",
+  "duration_seconds": 110.256094,
+  "command": [
+    "/private/tmp/gale-optim-python-venv/bin/python",
+    ".agent-work/optim-alm-speed/qualify_final.py"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-alm-speed/final-comparisons.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 1200.0,
+  "log_bytes": 4656
+}

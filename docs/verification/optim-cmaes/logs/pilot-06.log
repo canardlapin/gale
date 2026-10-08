@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/Users/bbuchsbaum/code/scala/gale/tools/optim-cmaes/run_comparison.py", line 45, in <module>
+    main()
+    ~~~~^^
+  File "/Users/bbuchsbaum/code/scala/gale/tools/optim-cmaes/run_comparison.py", line 32, in main
+    run(['sbt', f'benchmarksJVM/runMain gale.bench.CMAESBench {counts}',
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         'set benchmarksJS / Compile / mainClass := Some("gale.bench.CMAESBench")',
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         'set benchmarksJS / scalaJSStage := FullOptStage', f'benchmarksJS/run {counts}'], out/'gale-run.log', env)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/bbuchsbaum/code/scala/gale/tools/optim-cmaes/run_comparison.py", line 16, in run
+    raise RuntimeError(f'exit {result.returncode}; see {log}')
+RuntimeError: exit 1; see /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-cmaes/pilot/gale-run.log

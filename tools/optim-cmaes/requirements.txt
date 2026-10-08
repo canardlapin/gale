@@ -1,0 +1,4 @@
+numpy==2.4.3
+cma==4.4.4
+cmaes==0.12.0
+threadpoolctl==3.6.0

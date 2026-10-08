@@ -1,0 +1,11 @@
+lm-exp-64 valid= True ms= 0.1537 metric= 0.0
+lm-exp-offset-256 valid= True ms= 0.2771 metric= 4.7034443709042216e-11
+lm-rosenbrock valid= True ms= 0.255 metric= 0.0
+lm-scaled-linear-8 valid= True ms= 0.0833 metric= 0.0
+lm-rank-deficient-3 valid= True ms= 0.0724 metric= 2.961410142717641e-13
+box-diagonal-16 valid= True ms= 0.3397 metric= 3.3323344084124074e-10
+box-diagonal-512 valid= False ms= 12.4141 metric= 2.5234307286668334e-06
+box-rotated-32 valid= False ms= 1.0355 metric= 1.0362065817892674e-06
+box-rosenbrock-2 valid= True ms= 0.7135 metric= 0.0
+box-logistic-1024-16 valid= True ms= 0.358 metric= 4.488804513855249e-09
+Timed Python qualification failures: ['box-diagonal-512', 'box-rotated-32']

@@ -14,6 +14,13 @@ final case class LBFGSConfig(
     control: SolverControl = SolverControl()
 )
 
+/** Positive scalar inverse curvature shared only between related solves; correction pairs are never shared. */
+private[optim] final class CurvatureScale:
+  var value: Double = 1.0
+  def update(sy: Double, yy: Double): Unit =
+    val next = sy / yy
+    if next.isFinite && next > 0.0 && (1.0 / next).isFinite then value = next
+
 object LBFGS:
   private final case class Pair(s: Array[Double], y: Array[Double], rho: Double)
 
@@ -22,12 +29,39 @@ object LBFGS:
       initial: DMat,
       config: LBFGSConfig = LBFGSConfig()
   ): Either[FirstOrderError, FirstOrderSolution] =
+    minimizeWithScale(
+      objective,
+      initial,
+      config,
+      None,
+      interpolate = false,
+      approximateWolfe = false,
+      onApproximateAcceptance = StrongWolfe.ignoreApproximateAcceptance
+    )
+
+  private[optim] def minimizeWithScale(
+      objective: DifferentiableObjective,
+      initial: DMat,
+      config: LBFGSConfig,
+      curvatureScale: Option[CurvatureScale],
+      interpolate: Boolean,
+      approximateWolfe: Boolean,
+      onApproximateAcceptance: () => Unit
+  ): Either[FirstOrderError, FirstOrderSolution] =
     import OptimNumerics.*
     validateConfig(config).flatMap: _ =>
       for
         _ <- validate(initial, objective.variableRows)
         _ <- config.control.validate
-        result <- solve(objective, initial, config)
+        result <- solve(
+          objective,
+          initial,
+          config,
+          curvatureScale,
+          interpolate,
+          approximateWolfe,
+          onApproximateAcceptance
+        )
       yield result
 
   def minimize(
@@ -53,7 +87,11 @@ object LBFGS:
   private def solve(
       objective: DifferentiableObjective,
       initial: DMat,
-      config: LBFGSConfig
+      config: LBFGSConfig,
+      curvatureScale: Option[CurvatureScale],
+      interpolate: Boolean,
+      approximateWolfe: Boolean,
+      onApproximateAcceptance: () => Unit
   ): Either[FirstOrderError, FirstOrderSolution] =
     import OptimNumerics.*
     val execution = new OptimizationExecution(config.control)
@@ -121,12 +159,13 @@ object LBFGS:
         )
         return execution.finish(Right(converged))
       if iteration >= config.maxIterations then return execution.finish(Right(latest))
-      val directionArray = twoLoop(array(currentEvaluation.gradient), history)
+      val directionArray = twoLoop(array(currentEvaluation.gradient), history, curvatureScale.fold(1.0)(_.value))
       var direction = matrix(directionArray, current.rows, current.cols)
       val directionalDerivative = dot(currentEvaluation.gradient, direction)
       if !finiteMatrix(direction).isRight || !directionalDerivative.isFinite || directionalDerivative >= 0.0 then
         direction = matrix(array(currentEvaluation.gradient).map(-_), current.rows, current.cols)
         history = Vector.empty
+        curvatureScale.foreach(_.value = 1.0)
       StrongWolfe.search(
         objective,
         current,
@@ -136,7 +175,10 @@ object LBFGS:
         config.c1,
         config.c2,
         config.maxLineSearch,
-        config.maximumStep
+        config.maximumStep,
+        interpolate = interpolate,
+        approximateWolfe = approximateWolfe,
+        onApproximateAcceptance = onApproximateAcceptance
       ) match
         case Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.LineSearchFailed)) =>
           val failed = latest.copy(status = FirstOrderStoppingStatus.LineSearchFailed)
@@ -150,6 +192,7 @@ object LBFGS:
           val scale = Math.sqrt(Math.max(0.0, dot(s, s))) * Math.sqrt(Math.max(0.0, dot(y, y)))
           if curvature.isFinite && (1.0 / curvature).isFinite && scale.isFinite && curvature > 1e-12 * scale then
             history = (history :+ Pair(s, y, 1.0 / curvature)).takeRight(config.historySize)
+            curvatureScale.foreach(_.update(curvature, dot(y, y)))
           current = found.point
           currentEvaluation = found.evaluation
           acceptedStep = found.step
@@ -166,7 +209,7 @@ object LBFGS:
     execution.finish(Right(latest))
 
   /** Standard O(mn) two-loop recursion for an inverse-Hessian times gradient. */
-  private def twoLoop(gradient: Array[Double], history: Vector[Pair]): Array[Double] =
+  private def twoLoop(gradient: Array[Double], history: Vector[Pair], initialCurvature: Double): Array[Double] =
     val q = gradient.clone()
     val alpha = new Array[Double](history.size)
     var i = history.size - 1
@@ -178,7 +221,7 @@ object LBFGS:
         q(j) -= alpha(i) * pair.y(j)
         j += 1
       i -= 1
-    var gamma = 1.0
+    var gamma = initialCurvature
     history.lastOption.foreach: pair =>
       val yy = OptimNumerics.dot(pair.y, pair.y)
       val sy = OptimNumerics.dot(pair.s, pair.y)

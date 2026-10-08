@@ -1,0 +1,18 @@
+START docs/verification/optim-alm-robust/checks/gates.log
+END docs/verification/optim-alm-robust/checks/gates.log exit 0
+START docs/verification/optim-alm-robust/checks/comparison-driver.log
+END docs/verification/optim-alm-robust/checks/comparison-driver.log exit 0
+START docs/verification/optim-alm-robust/checks/verifier-probes.log
+END docs/verification/optim-alm-robust/checks/verifier-probes.log exit 0
+START docs/verification/optim-alm-robust/jvm-ablations.log
+END docs/verification/optim-alm-robust/jvm-ablations.log exit 0
+START docs/verification/optim-alm-robust/node-ablations.log
+END docs/verification/optim-alm-robust/node-ablations.log exit 0
+START docs/verification/optim-alm-robust/checks/jvm-ablations-verify.log
+END docs/verification/optim-alm-robust/checks/jvm-ablations-verify.log exit 0
+START docs/verification/optim-alm-robust/checks/node-ablations-verify.log
+END docs/verification/optim-alm-robust/checks/node-ablations-verify.log exit 0
+START docs/verification/optim-alm-robust/checks/first-order-driver.log
+END docs/verification/optim-alm-robust/checks/first-order-driver.log exit 0
+START docs/verification/optim-alm-robust/checks/extensions-driver.log
+END docs/verification/optim-alm-robust/checks/extensions-driver.log exit 0

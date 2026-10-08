@@ -1,0 +1,6 @@
+PASS rejected nan_point
+PASS rejected wrong_value
+PASS rejected wrong_diagnostic
+PASS rejected wrong_budget
+PASS rejected wrong_status
+PASS rejected duplicate

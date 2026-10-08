@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T11:36:51.306002+00:00",
+  "finished_utc": "2026-10-08T11:36:59.233596+00:00",
+  "duration_seconds": 7.927389,
+  "command": [
+    "sbt",
+    "benchmarksJVM/runMain gale.bench.OptimizationALMBench 5 1 docs/verification/optim-alm-review/fixtures.tsv fixed fixed trace",
+    "benchmarksJVM/runMain gale.bench.OptimizationALMBench 5 1 docs/verification/optim-alm-review/fixtures.tsv adaptive adaptive trace",
+    "benchmarksJVM/runMain gale.bench.OptimizationALMBench 5 1 docs/verification/optim-alm-review/fixtures.tsv scale scale trace",
+    "benchmarksJVM/runMain gale.bench.OptimizationALMBench 5 1 docs/verification/optim-alm-review/fixtures.tsv combined combined trace"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-alm-speed/final-ablations.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 300.0,
+  "log_bytes": 149291
+}

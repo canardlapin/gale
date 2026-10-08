@@ -1,0 +1,10 @@
+case_id	solver	available	median_ms	metric	target	timed_endpoint_valid
+diag-quadratic-n16-k1e3	SciPy minimize L-BFGS-B unbounded	True	3.909	5.8819704662482764e-08	1e-06	True
+diag-quadratic-n512-k1e3	SciPy minimize L-BFGS-B unbounded	True	18.76025	7.663158996251695e-08	1e-06	True
+box-diag-quadratic-n16-k1e3	SciPy minimize L-BFGS-B bounded	True	0.287084	3.3323344084124074e-10	1e-06	True
+rotated-quadratic-n32-k1e3	SciPy minimize L-BFGS-B unbounded	True	5.549291	5.25611671827789e-08	1e-06	True
+rosenbrock-n2	SciPy minimize L-BFGS-B unbounded	True	1.159333	3.245967866265849e-08	1e-06	True
+rosenbrock-n32	SciPy minimize L-BFGS-B unbounded	True	6.573459	6.229452108929562e-08	1e-06	True
+logistic-l2-m1024-n16	SciPy minimize L-BFGS-B unbounded	True	0.337125	8.017029623497152e-09	1e-06	True
+lasso-m256-n32	scikit-learn Lasso coordinate descent	True	0.301542	2.217366637524698e-10	1e-06	True
+lasso-m1024-n128	scikit-learn Lasso coordinate descent	True	1.432125	3.7640854322340545e-10	1e-06	True

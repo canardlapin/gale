@@ -63,8 +63,8 @@ object LBFGSB:
           j += 1
         k += 1
 
-  private[optim] def model(history: Vector[Pair]): Model =
-    val theta = history.lastOption.map(p => dot(p.y, p.y) / dot(p.s, p.y)).getOrElse(1.0)
+  private[optim] def model(history: Vector[Pair], initialTheta: Double = 1.0): Model =
+    val theta = history.lastOption.map(p => dot(p.y, p.y) / dot(p.s, p.y)).getOrElse(initialTheta)
     if !theta.isFinite || theta <= 0.0 then return Model(1.0, Vector.empty)
     var result = Model(theta, Vector.empty)
     history.foreach: pair =>
@@ -253,6 +253,27 @@ object LBFGSB:
       initial: DMat,
       config: LBFGSBConfig = LBFGSBConfig()
   ): Either[FirstOrderError, FirstOrderSolution] =
+    minimizeWithScale(
+      objective,
+      bounds,
+      initial,
+      config,
+      None,
+      interpolate = false,
+      approximateWolfe = false,
+      onApproximateAcceptance = StrongWolfe.ignoreApproximateAcceptance
+    )
+
+  private[optim] def minimizeWithScale(
+      objective: DifferentiableObjective,
+      bounds: MatrixBoxBounds,
+      initial: DMat,
+      config: LBFGSBConfig,
+      curvatureScale: Option[CurvatureScale],
+      interpolate: Boolean,
+      approximateWolfe: Boolean,
+      onApproximateAcceptance: () => Unit
+  ): Either[FirstOrderError, FirstOrderSolution] =
     if config.maxIterations < 0 || config.historySize <= 0 || config.maxLineSearch <= 0 ||
       !config.c1.isFinite || !config.c2.isFinite || config.c1 <= 0.0 || config.c1 >= config.c2 || config.c2 >= 1.0
     then Left(FirstOrderError.InvalidConfiguration("L-BFGS-B needs valid limits and 0 < c1 < c2 < 1"))
@@ -263,14 +284,27 @@ object LBFGSB:
           if bounds.contains(initial) then Right(())
           else Left(FirstOrderError.InvalidConfiguration("initial point must satisfy the box bounds"))
         _ <- config.control.validate
-        solution <- solve(objective, bounds, initial, config)
+        solution <- solve(
+          objective,
+          bounds,
+          initial,
+          config,
+          curvatureScale,
+          interpolate,
+          approximateWolfe,
+          onApproximateAcceptance
+        )
       yield solution
 
   private def solve(
       objective: DifferentiableObjective,
       bounds: MatrixBoxBounds,
       initial: DMat,
-      config: LBFGSBConfig
+      config: LBFGSBConfig,
+      curvatureScale: Option[CurvatureScale],
+      interpolate: Boolean,
+      approximateWolfe: Boolean,
+      onApproximateAcceptance: () => Unit
   ): Either[FirstOrderError, FirstOrderSolution] =
     val execution = new OptimizationExecution(config.control)
     val lower = array(bounds.lower)
@@ -310,13 +344,14 @@ object LBFGSB:
         return execution.finish(Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.Cancelled)))
       if status == FirstOrderStoppingStatus.Converged || iteration >= config.maxIterations then
         return execution.finish(Right(latest))
-      val b = model(history)
+      val b = model(history, curvatureScale.fold(1.0)(s => 1.0 / s.value))
       val c = cauchy(x, gradient, lower, upper, b)
       val candidate = subspace(x, gradient, c, lower, upper, b)
       var direction = tabulate(x.length)(i => candidate(i) - x(i))
       var slope = dot(gradient, direction)
       if !allFinite(direction) || !slope.isFinite || slope >= 0.0 then
         history = Vector.empty
+        curvatureScale.foreach(_.value = 1.0)
         direction = tabulate(pg.length)(i => -pg(i))
         slope = dot(gradient, direction)
       if infinity(direction) == 0.0 || !slope.isFinite || slope >= 0.0 then
@@ -341,7 +376,10 @@ object LBFGSB:
         config.maxLineSearch,
         maximum,
         feasibleBoundary = feasibleStep.isFinite && feasibleStep <= 1e20,
-        bounds = Some(bounds)
+        bounds = Some(bounds),
+        interpolate = interpolate,
+        approximateWolfe = approximateWolfe,
+        onApproximateAcceptance = onApproximateAcceptance
       ) match
         case Left(error)  => return execution.finish(Left(error))
         case Right(found) =>
@@ -351,6 +389,7 @@ object LBFGSB:
           val lengths = norm(s) * norm(y)
           if sy.isFinite && lengths.isFinite && sy > 1e-12 * lengths && sy > 0.0 then
             history = (history :+ Pair(s, y)).takeRight(config.historySize)
+            curvatureScale.foreach(_.update(sy, dot(y, y)))
           point = found.point
           evaluation = found.evaluation
           x = array(point)

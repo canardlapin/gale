@@ -1,0 +1,34 @@
+{
+  "totals": {
+    "fixed": {
+      "objective_calls": 1806,
+      "constraint_calls": 1806,
+      "inner_iterations": 1450,
+      "iterations": 177
+    },
+    "adaptive": {
+      "objective_calls": 1273,
+      "constraint_calls": 1273,
+      "inner_iterations": 939,
+      "iterations": 175
+    },
+    "scale": {
+      "objective_calls": 1754,
+      "constraint_calls": 1754,
+      "inner_iterations": 1508,
+      "iterations": 170
+    },
+    "combined": {
+      "objective_calls": 1187,
+      "constraint_calls": 1187,
+      "inner_iterations": 969,
+      "iterations": 173
+    }
+  },
+  "converged": {
+    "fixed": 16,
+    "adaptive": 16,
+    "scale": 16,
+    "combined": 16
+  }
+}

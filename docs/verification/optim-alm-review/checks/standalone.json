@@ -1,0 +1,344 @@
+[
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 239,
+    "iterations": 206,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "diag-quadratic-n512-k1e3",
+    "status": "Converged",
+    "callbacks": 364,
+    "iterations": 338,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "box-diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 2133,
+    "iterations": 426,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "rotated-quadratic-n32-k1e3",
+    "status": "Converged",
+    "callbacks": 278,
+    "iterations": 255,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "rosenbrock-n2",
+    "status": "Converged",
+    "callbacks": 64,
+    "iterations": 34,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "rosenbrock-n32",
+    "status": "Converged",
+    "callbacks": 235,
+    "iterations": 193,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "logistic-l2-m1024-n16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "lasso-m256-n32",
+    "status": "Converged",
+    "callbacks": 107,
+    "iterations": 22,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "first-order",
+    "case": "lasso-m1024-n128",
+    "status": "Converged",
+    "callbacks": 94,
+    "iterations": 21,
+    "baseline": "docs/verification/optim-python/followup/gale-jvm-v1.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "lm-exp-64",
+    "status": "Converged",
+    "callbacks": 12,
+    "iterations": 5,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "lm-exp-offset-256",
+    "status": "Converged",
+    "callbacks": 15,
+    "iterations": 7,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "lm-rosenbrock",
+    "status": "Converged",
+    "callbacks": 37,
+    "iterations": 19,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "lm-scaled-linear-8",
+    "status": "Converged",
+    "callbacks": 10,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "lm-rank-deficient-3",
+    "status": "Converged",
+    "callbacks": 8,
+    "iterations": 3,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "box-diagonal-16",
+    "status": "Converged",
+    "callbacks": 14,
+    "iterations": 6,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "box-diagonal-512",
+    "status": "Converged",
+    "callbacks": 317,
+    "iterations": 300,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "box-rotated-32",
+    "status": "Converged",
+    "callbacks": 57,
+    "iterations": 45,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "box-rosenbrock-2",
+    "status": "Converged",
+    "callbacks": 45,
+    "iterations": 30,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "jvm",
+    "lane": "extensions",
+    "case": "box-logistic-1024-16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-extensions/jvm.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 239,
+    "iterations": 206,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "diag-quadratic-n512-k1e3",
+    "status": "Converged",
+    "callbacks": 364,
+    "iterations": 338,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "box-diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 2133,
+    "iterations": 426,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "rotated-quadratic-n32-k1e3",
+    "status": "Converged",
+    "callbacks": 278,
+    "iterations": 255,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "rosenbrock-n2",
+    "status": "Converged",
+    "callbacks": 64,
+    "iterations": 34,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "rosenbrock-n32",
+    "status": "Converged",
+    "callbacks": 235,
+    "iterations": 193,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "logistic-l2-m1024-n16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "lasso-m256-n32",
+    "status": "Converged",
+    "callbacks": 107,
+    "iterations": 22,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "first-order",
+    "case": "lasso-m1024-n128",
+    "status": "Converged",
+    "callbacks": 94,
+    "iterations": 21,
+    "baseline": "docs/verification/optim-python/followup/gale-node-v1.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "lm-exp-64",
+    "status": "Converged",
+    "callbacks": 12,
+    "iterations": 5,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "lm-exp-offset-256",
+    "status": "Converged",
+    "callbacks": 15,
+    "iterations": 7,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "lm-rosenbrock",
+    "status": "Converged",
+    "callbacks": 37,
+    "iterations": 19,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "lm-scaled-linear-8",
+    "status": "Converged",
+    "callbacks": 10,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "lm-rank-deficient-3",
+    "status": "Converged",
+    "callbacks": 8,
+    "iterations": 3,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "box-diagonal-16",
+    "status": "Converged",
+    "callbacks": 14,
+    "iterations": 6,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "box-diagonal-512",
+    "status": "Converged",
+    "callbacks": 317,
+    "iterations": 300,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "box-rotated-32",
+    "status": "Converged",
+    "callbacks": 57,
+    "iterations": 45,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "box-rosenbrock-2",
+    "status": "Converged",
+    "callbacks": 45,
+    "iterations": 30,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  },
+  {
+    "runtime": "node",
+    "lane": "extensions",
+    "case": "box-logistic-1024-16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4,
+    "baseline": "docs/verification/optim-extensions/node.tsv"
+  }
+]

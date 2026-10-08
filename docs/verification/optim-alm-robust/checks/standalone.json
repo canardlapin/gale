@@ -1,0 +1,268 @@
+[
+  {
+    "runtime": "jvm",
+    "case": "diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 239,
+    "iterations": 206
+  },
+  {
+    "runtime": "jvm",
+    "case": "diag-quadratic-n512-k1e3",
+    "status": "Converged",
+    "callbacks": 364,
+    "iterations": 338
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 2133,
+    "iterations": 426
+  },
+  {
+    "runtime": "jvm",
+    "case": "rotated-quadratic-n32-k1e3",
+    "status": "Converged",
+    "callbacks": 278,
+    "iterations": 255
+  },
+  {
+    "runtime": "jvm",
+    "case": "rosenbrock-n2",
+    "status": "Converged",
+    "callbacks": 64,
+    "iterations": 34
+  },
+  {
+    "runtime": "jvm",
+    "case": "rosenbrock-n32",
+    "status": "Converged",
+    "callbacks": 235,
+    "iterations": 193
+  },
+  {
+    "runtime": "jvm",
+    "case": "logistic-l2-m1024-n16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4
+  },
+  {
+    "runtime": "jvm",
+    "case": "lasso-m256-n32",
+    "status": "Converged",
+    "callbacks": 107,
+    "iterations": 22
+  },
+  {
+    "runtime": "jvm",
+    "case": "lasso-m1024-n128",
+    "status": "Converged",
+    "callbacks": 94,
+    "iterations": 21
+  },
+  {
+    "runtime": "jvm",
+    "case": "lm-exp-64",
+    "status": "Converged",
+    "callbacks": 12,
+    "iterations": 5
+  },
+  {
+    "runtime": "jvm",
+    "case": "lm-exp-offset-256",
+    "status": "Converged",
+    "callbacks": 15,
+    "iterations": 7
+  },
+  {
+    "runtime": "jvm",
+    "case": "lm-rosenbrock",
+    "status": "Converged",
+    "callbacks": 37,
+    "iterations": 19
+  },
+  {
+    "runtime": "jvm",
+    "case": "lm-scaled-linear-8",
+    "status": "Converged",
+    "callbacks": 10,
+    "iterations": 4
+  },
+  {
+    "runtime": "jvm",
+    "case": "lm-rank-deficient-3",
+    "status": "Converged",
+    "callbacks": 8,
+    "iterations": 3
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-diagonal-16",
+    "status": "Converged",
+    "callbacks": 14,
+    "iterations": 6
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-diagonal-512",
+    "status": "Converged",
+    "callbacks": 317,
+    "iterations": 300
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-rotated-32",
+    "status": "Converged",
+    "callbacks": 57,
+    "iterations": 45
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-rosenbrock-2",
+    "status": "Converged",
+    "callbacks": 45,
+    "iterations": 30
+  },
+  {
+    "runtime": "jvm",
+    "case": "box-logistic-1024-16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4
+  },
+  {
+    "runtime": "node",
+    "case": "diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 239,
+    "iterations": 206
+  },
+  {
+    "runtime": "node",
+    "case": "diag-quadratic-n512-k1e3",
+    "status": "Converged",
+    "callbacks": 364,
+    "iterations": 338
+  },
+  {
+    "runtime": "node",
+    "case": "box-diag-quadratic-n16-k1e3",
+    "status": "Converged",
+    "callbacks": 2133,
+    "iterations": 426
+  },
+  {
+    "runtime": "node",
+    "case": "rotated-quadratic-n32-k1e3",
+    "status": "Converged",
+    "callbacks": 278,
+    "iterations": 255
+  },
+  {
+    "runtime": "node",
+    "case": "rosenbrock-n2",
+    "status": "Converged",
+    "callbacks": 64,
+    "iterations": 34
+  },
+  {
+    "runtime": "node",
+    "case": "rosenbrock-n32",
+    "status": "Converged",
+    "callbacks": 235,
+    "iterations": 193
+  },
+  {
+    "runtime": "node",
+    "case": "logistic-l2-m1024-n16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4
+  },
+  {
+    "runtime": "node",
+    "case": "lasso-m256-n32",
+    "status": "Converged",
+    "callbacks": 107,
+    "iterations": 22
+  },
+  {
+    "runtime": "node",
+    "case": "lasso-m1024-n128",
+    "status": "Converged",
+    "callbacks": 94,
+    "iterations": 21
+  },
+  {
+    "runtime": "node",
+    "case": "lm-exp-64",
+    "status": "Converged",
+    "callbacks": 12,
+    "iterations": 5
+  },
+  {
+    "runtime": "node",
+    "case": "lm-exp-offset-256",
+    "status": "Converged",
+    "callbacks": 15,
+    "iterations": 7
+  },
+  {
+    "runtime": "node",
+    "case": "lm-rosenbrock",
+    "status": "Converged",
+    "callbacks": 37,
+    "iterations": 19
+  },
+  {
+    "runtime": "node",
+    "case": "lm-scaled-linear-8",
+    "status": "Converged",
+    "callbacks": 10,
+    "iterations": 4
+  },
+  {
+    "runtime": "node",
+    "case": "lm-rank-deficient-3",
+    "status": "Converged",
+    "callbacks": 8,
+    "iterations": 3
+  },
+  {
+    "runtime": "node",
+    "case": "box-diagonal-16",
+    "status": "Converged",
+    "callbacks": 14,
+    "iterations": 6
+  },
+  {
+    "runtime": "node",
+    "case": "box-diagonal-512",
+    "status": "Converged",
+    "callbacks": 317,
+    "iterations": 300
+  },
+  {
+    "runtime": "node",
+    "case": "box-rotated-32",
+    "status": "Converged",
+    "callbacks": 57,
+    "iterations": 45
+  },
+  {
+    "runtime": "node",
+    "case": "box-rosenbrock-2",
+    "status": "Converged",
+    "callbacks": 45,
+    "iterations": 30
+  },
+  {
+    "runtime": "node",
+    "case": "box-logistic-1024-16",
+    "status": "Converged",
+    "callbacks": 5,
+    "iterations": 4
+  }
+]

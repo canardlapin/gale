@@ -93,3 +93,20 @@ and residual/Jacobian callback counters to `EvaluationCounts`. Consumers that
 pattern-match these enums or case-class products must review the additions.
 The LM result uses raw gradient stationarity; L-BFGS-B uses a unit projected
 gradient. Neither changes the meaning of existing fixed-step residuals.
+
+CMA-ES adds separate `CMAES`, `CMAESSession`, `CMAESBatch`, configuration, control,
+distribution, receipt, and result types. It reuses `MatrixBoxBounds` for vector
+bounds but does not extend first-order method or stopping enums. Its stopping
+reasons are sampling diagnostics, not stationarity certificates. Ask/tell has
+one outstanding owned batch and rejects invalid receipts without consuming it.
+Seeded reproducibility is runtime/version specific, not a cross-platform bitwise
+compatibility promise.
+
+Augmented Lagrangian adds `NonlinearConstraints`, `ConstraintEvaluation`,
+`AugmentedLagrangian`, its configuration/result/status types, and
+`ConstrainedDiagnostics`. It accepts a single-column `DMat` with analytic
+derivatives, reuses `MatrixBoxBounds` and `SolverControl`, and does not extend
+existing method/stopping enums. Diagnostics require raw and scaled feasibility,
+box-projected Lagrangian stationarity, and complementarity. Fused constraint
+callbacks use the existing `jacobians` work counter. These are first-order
+conditions, not a certificate of a minimum or of infeasibility.

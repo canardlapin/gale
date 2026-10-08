@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T15:49:31.784136+00:00",
+  "finished_utc": "2026-10-08T15:56:01.096470+00:00",
+  "duration_seconds": 389.310806,
+  "command": [
+    "/private/tmp/gale-optim-python-venv/bin/python",
+    ".agent-work/optim-alm-robust/qualify.py"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-alm-robust/qualification.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 1500.0,
+  "log_bytes": 1251
+}

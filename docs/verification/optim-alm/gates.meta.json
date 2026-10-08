@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T02:45:44.737107+00:00",
+  "finished_utc": "2026-10-08T02:46:57.902448+00:00",
+  "duration_seconds": 73.164877,
+  "command": [
+    "sbt",
+    "scalafmtAll",
+    "scalafmtCheckAll",
+    "compileAll",
+    "testAllFull",
+    "parityTest",
+    "interopBreezeTest",
+    "docsCheck",
+    "benchCompile",
+    "set coreJS / scalaJSStage := FullOptStage",
+    "coreJS/testOnly gale.optim.AugmentedLagrangianSuite"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-alm/gates-09.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 900.0,
+  "log_bytes": 63715
+}

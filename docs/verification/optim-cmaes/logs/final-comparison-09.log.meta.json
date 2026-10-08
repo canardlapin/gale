@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T01:32:40.847877+00:00",
+  "finished_utc": "2026-10-08T01:34:06.548127+00:00",
+  "duration_seconds": 85.700432,
+  "command": [
+    "env",
+    "JAVA_HOME=/private/tmp/gale-optim-jdk21/jdk-21.0.12.1+1/Contents/Home",
+    "PATH=/Users/bbuchsbaum/.nvm/versions/node/v22.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin",
+    "python3",
+    "tools/optim-cmaes/run_comparison.py",
+    "--python",
+    "/private/tmp/gale-cma-python/bin/python",
+    "--output",
+    ".agent-work/optim-cmaes/final",
+    "--warmups",
+    "5",
+    "--seeds",
+    "20",
+    "--repeats",
+    "3"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-cmaes/final-comparison-09.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 1800.0,
+  "log_bytes": 1617
+}

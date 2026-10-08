@@ -1,0 +1,21 @@
+All endpoint validity, work, repeatability and update-reference checks pass: /Users/bbuchsbaum/code/scala/gale/.agent-work/optim-cmaes/pilot-2
+# CMA-ES multi-seed comparison
+
+3 seeds, 1 timed repetitions per seed; 1 warmup solves per case.
+
+Success is independently checked clean objective error at most 1e-8, including the noisy fixture. Bounds must hold exactly.
+Times and evaluation counts below condition on success; differing success sets prevent treating their ratios as paired speedups.
+
+| Case | JVM successes | Node successes | Python successes | JVM evals | Node evals | Python evals | JVM ms | Node ms | Python ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| sphere-8 | 3/3 | 3/3 | 3/3 | 1140.000 | 1140.000 | 1160.000 | 8.167 | 9.841 | 28.633 |
+| rotated-ellipsoid-8 | 3/3 | 3/3 | 3/3 | 3070.000 | 2750.000 | 2710.000 | 18.124 | 10.003 | 71.957 |
+| rosenbrock-4 | 2/3 | 2/3 | 3/3 | 1604.000 | 1604.000 | 1928.000 | 3.782 | 3.893 | 59.994 |
+| nonsmooth-8 | 3/3 | 3/3 | 3/3 | 3410.000 | 3410.000 | 3340.000 | 10.111 | 8.488 | 86.022 |
+| rastrigin-4 | 0/3 | 0/3 | 0/3 | — | — | — | — | — | — |
+| noisy-sphere-8 | 3/3 | 3/3 | 3/3 | 1390.000 | 1390.000 | 1350.000 | 6.170 | 4.524 | 32.657 |
+| box-sphere-8 | 3/3 | 3/3 | 3/3 | 1060.000 | 1070.000 | 1000.000 | 2.320 | 6.206 | 30.656 |
+| box-boundary-4 | 3/3 | 3/3 | 3/3 | 1448.000 | 1448.000 | 1376.000 | 2.410 | 5.720 | 62.420 |
+
+All endpoint validity, budget, repeatability and external update checks passed. Failures to reach a target remain in the raw tables.
+

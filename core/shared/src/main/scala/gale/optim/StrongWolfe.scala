@@ -4,10 +4,14 @@ import gale.linalg.DMat
 
 /** Bounded strong-Wolfe search used internally by smooth solvers.
   *
-  * Bracketing doubles an effective step; zoom uses bisection. Bisection is deliberately conservative: it avoids
-  * interpolation arithmetic becoming a second source of non-finite trial points on portable runtimes.
+  * Bracketing doubles an effective step. Zoom uses bisection by default. ALM inner solves opt into cached
+  * derivative/value interpolation with interior guards and a forced midpoint after poor contraction; nonfinite
+  * endpoints use bisection. ALM may also opt into a roundoff-bounded approximate-decrease test while retaining strong
+  * curvature. Public smooth solvers use strict sufficient decrease.
   */
 private[optim] object StrongWolfe:
+  val ignoreApproximateAcceptance: () => Unit = () => ()
+
   final case class Accepted(point: DMat, evaluation: ObjectiveEvaluation, step: Double, directionalDerivative: Double)
 
   def search(
@@ -21,7 +25,10 @@ private[optim] object StrongWolfe:
       maxTrials: Int,
       maximumStep: Double,
       feasibleBoundary: Boolean = false,
-      bounds: Option[MatrixBoxBounds] = None
+      bounds: Option[MatrixBoxBounds] = None,
+      interpolate: Boolean = false,
+      approximateWolfe: Boolean = false,
+      onApproximateAcceptance: () => Unit = ignoreApproximateAcceptance
   ): Either[FirstOrderError, Accepted] =
     import OptimNumerics.*
     val initialDerivative = dot(originEvaluation.gradient, direction)
@@ -58,26 +65,76 @@ private[optim] object StrongWolfe:
       def curvature(candidate: Accepted): Boolean =
         Math.abs(candidate.directionalDerivative) <= -c2 * initialDerivative
 
-      def zoom(low: Accepted, initialHigh: Double, used: Int): Either[FirstOrderError, Accepted] =
+      // Hager-Zhang approximate Wolfe near value resolution, with the existing strong-curvature test retained.
+      // Restrict both observed and predicted changes to a few ulps; no unit-sized floor or relative 1e-6 allowance.
+      val valueResolution = 8.0 * Math.ulp(originEvaluation.value)
+      def acceptApproximate(candidate: Accepted): Boolean =
+        val acceptable = approximateWolfe && c1 < 0.5 &&
+          Math.abs(candidate.evaluation.value - originEvaluation.value) <= valueResolution &&
+          Math.abs(candidate.step * initialDerivative) <= valueResolution &&
+          candidate.directionalDerivative >= c2 * initialDerivative &&
+          candidate.directionalDerivative <= (2.0 * c1 - 1.0) * initialDerivative && curvature(candidate)
+        if acceptable then onApproximateAcceptance()
+        acceptable
+
+      def zoom(
+          low: Accepted,
+          initialHigh: Double,
+          highValue: Option[Accepted],
+          used: Int
+      ): Either[FirstOrderError, Accepted] =
         var lower = low
         var upper = initialHigh
+        var upperValue = highValue
         var attempts = used
+        var bisect = false
         while attempts < maxTrials do
           val width = upper - lower.step
-          val step = lower.step + 0.5 * width
+          val midpoint = lower.step + 0.5 * width
+          val interpolated =
+            if !interpolate || bisect then midpoint
+            else
+              upperValue.fold(midpoint): high =>
+                // Normalize derivatives so a finite secant does not overflow their difference.
+                val scale = Math.max(Math.abs(lower.directionalDerivative), Math.abs(high.directionalDerivative))
+                val a = lower.directionalDerivative / scale
+                val b = high.directionalDerivative / scale
+                val secant = -a / (b - a)
+                val fraction =
+                  if secant.isFinite && secant > 0.0 && secant < 1.0 then secant
+                  else
+                    val slope = (high.evaluation.value - lower.evaluation.value) / width
+                    -lower.directionalDerivative / (2.0 * (slope - lower.directionalDerivative))
+                val candidate = lower.step + fraction * width
+                // A proposal near the high endpoint can waste the budget when constraint activity changes.
+                // Keep tiny proposals near low (needed by stiff quadratics), but bisect the high half.
+                if fraction.isFinite && fraction > 0.0 && fraction <= 0.5 && candidate.isFinite &&
+                  candidate > Math.min(lower.step, upper) && candidate < Math.max(lower.step, upper)
+                then candidate
+                else midpoint
+          val step = interpolated
           if !width.isFinite || Math.abs(width) <= Math.ulp(
               Math.max(1.0, Math.abs(lower.step))
             ) || step == lower.step || step == upper
           then return Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.LineSearchFailed))
           trial(step) match
-            case Left(error)            => return Left(error)
-            case Right(None)            => upper = step
+            case Left(error) => return Left(error)
+            case Right(None) =>
+              upper = step
+              upperValue = None
             case Right(Some(candidate)) =>
-              if sufficient(candidate) && curvature(candidate) then return Right(candidate)
-              else if !sufficient(candidate) || candidate.evaluation.value > lower.evaluation.value then upper = step
+              if (sufficient(candidate) && curvature(candidate)) || acceptApproximate(candidate) then
+                return Right(candidate)
+              else if !sufficient(candidate) || candidate.evaluation.value > lower.evaluation.value then
+                upper = step
+                upperValue = Some(candidate)
               else
-                if candidate.directionalDerivative * (upper - lower.step) >= 0.0 then upper = lower.step
+                if candidate.directionalDerivative * (upper - lower.step) >= 0.0 then
+                  upper = lower.step
+                  upperValue = Some(lower)
                 lower = candidate
+          // Permit very small useful interpolants, but never let repeated endpoint-hugging trials stall zoom.
+          bisect = Math.abs(upper - lower.step) > 0.66 * Math.abs(width)
           attempts += 1
         Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.LineSearchFailed))
 
@@ -87,13 +144,16 @@ private[optim] object StrongWolfe:
       while attempt < maxTrials do
         trial(step) match
           case Left(error)            => return Left(error)
-          case Right(None)            => return zoom(previous, step, attempt + 1)
+          case Right(None)            => return zoom(previous, step, None, attempt + 1)
           case Right(Some(candidate)) =>
-            if sufficient(candidate) && (curvature(candidate) || (feasibleBoundary && step == maximumStep)) then
-              return Right(candidate)
+            if (sufficient(candidate) && (curvature(
+                candidate
+              ) || (feasibleBoundary && step == maximumStep))) || acceptApproximate(candidate)
+            then return Right(candidate)
             else if !sufficient(candidate) || (attempt > 0 && candidate.evaluation.value > previous.evaluation.value)
-            then return zoom(previous, step, attempt + 1)
-            else if candidate.directionalDerivative >= 0.0 then return zoom(candidate, previous.step, attempt + 1)
+            then return zoom(previous, step, Some(candidate), attempt + 1)
+            else if candidate.directionalDerivative >= 0.0 then
+              return zoom(candidate, previous.step, Some(previous), attempt + 1)
             else
               previous = candidate
               val next = Math.min(maximumStep, step * 2.0)

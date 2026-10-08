@@ -1,0 +1,8 @@
+Python sphere-8: 3 seeds x 1 runs
+Python rotated-ellipsoid-8: 3 seeds x 1 runs
+Python rosenbrock-4: 3 seeds x 1 runs
+Python nonsmooth-8: 3 seeds x 1 runs
+Python rastrigin-4: 3 seeds x 1 runs
+Python noisy-sphere-8: 3 seeds x 1 runs
+Python box-sphere-8: 3 seeds x 1 runs
+Python box-boundary-4: 3 seeds x 1 runs

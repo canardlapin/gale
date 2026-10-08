@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "started_utc": "2026-10-08T01:35:00.196253+00:00",
+  "finished_utc": "2026-10-08T01:35:00.452541+00:00",
+  "duration_seconds": 0.256228,
+  "command": [
+    "/private/tmp/gale-cma-python/bin/python",
+    "tools/optim-cmaes/check_verifier.py",
+    ".agent-work/optim-cmaes/final"
+  ],
+  "cwd": "/Users/bbuchsbaum/code/scala/gale",
+  "log": "/Users/bbuchsbaum/code/scala/gale/.agent-work/optim-cmaes/verifier-10.log",
+  "exit_code": 0,
+  "child_returncode": 0,
+  "reason": "exited",
+  "detail": null,
+  "timeout_seconds": 120.0,
+  "log_bytes": 67
+}
