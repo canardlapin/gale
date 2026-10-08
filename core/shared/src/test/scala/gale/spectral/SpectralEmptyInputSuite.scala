@@ -43,6 +43,17 @@ class SpectralEmptyInputSuite extends munit.FunSuite:
     )
   }
 
+  test("workspace ValueInterval on 0x0 is empty; an inverted interval is Left") {
+    assertEmpty(
+      Eigen.eigSymmetricWith(empty, EigenSelection.ValueInterval(-1.0, 1.0), DenseWorkspace.empty),
+      "workspace ValueInterval"
+    )
+    val inverted = Eigen.eigSymmetricWith(empty, EigenSelection.ValueInterval(1.0, -1.0), DenseWorkspace.empty)
+    assert(inverted.left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]), s"workspace inverted: $inverted")
+    val invertedOrdinary = Eigen.eigSymmetric(empty, EigenSelection.ValueInterval(1.0, -1.0), EigenVectors.Right)
+    assert(invertedOrdinary.left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]), s"inverted: $invertedOrdinary")
+  }
+
   test("generalized symmetric-definite eigen on a 0x0 pencil is empty") {
     assertEmpty(Eigen.eigSymmetricGeneralized(empty, empty, EigenSelection.All), "generalized")
   }

@@ -3,6 +3,7 @@ package gale.spectral
 import gale.linalg.DMat
 import gale.linalg.DenseWorkspace
 import gale.linalg.Matrix
+import gale.linalg.Vec
 
 /** Regression for the tridiagonal QL deflation test (mote
   * bd-01M4EKP8CWDHZ2W1WFBRQ64Z9X). A purely local criterion
@@ -89,4 +90,59 @@ class SymmetricEigenRepeatedZeroSuite extends munit.FunSuite:
         ordinary.map(_.eigenvalues.toSeq),
         s"$clue: workspace and ordinary routes share one kernel"
       )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Non-finite and overflowing scales: the norm-scaled test must not misfire
+  // ---------------------------------------------------------------------------
+
+  private val bLow = 2.5 - math.sqrt(1.25) // eigenvalues of [[2, 1], [1, 3]]
+  private val bHigh = 2.5 + math.sqrt(1.25)
+
+  test("an infinite entry disables the norm-scaled test: the finite block is still iterated") {
+    // A = [[B, 0], [0, +Inf]]. With a scale of ‖T‖ = Inf every finite e(m)
+    // would deflate at once and return diag(B) unrotated.
+    val a = Matrix.dense(3, 3)(
+      2.0, 1.0, 0.0,
+      1.0, 3.0, 0.0,
+      0.0, 0.0, Double.PositiveInfinity
+    )
+    for vectors <- List(EigenVectors.ValuesOnly, EigenVectors.Right) do
+      val d = Eigen.eigSymmetric(a, EigenSelection.All, vectors) match
+        case Right(value) => value
+        case Left(error)  => fail(s"$vectors: $error")
+      assert(math.abs(d.eigenvalues(0) - bLow) <= 4 * eps * bHigh, s"$vectors λ0=${d.eigenvalues(0)}")
+      assert(math.abs(d.eigenvalues(1) - bHigh) <= 4 * eps * bHigh, s"$vectors λ1=${d.eigenvalues(1)}")
+      assert(d.eigenvalues(2).isPosInfinity, s"$vectors λ2=${d.eigenvalues(2)}")
+      if vectors == EigenVectors.Right then
+        // The B block was rotated, not returned as the identity basis.
+        assert(math.abs(d.eigenvectors(0, 0)) < 0.99, s"unrotated eigenvector ${d.eigenvectors(0, 0)}")
+    val t = DenseSpectralKernels.symmetricTridiagonalEigen(
+      Vec(2.0, 3.0, Double.PositiveInfinity),
+      Vec(1.0, 0.0),
+      wantVectors = false
+    )
+    assertEquals(t.map(_.values.length), Right(3))
+    val values = t.toOption.get.values
+    assert(math.abs(values(0) - bLow) <= 4 * eps * bHigh && math.abs(values(1) - bHigh) <= 4 * eps * bHigh, s"tridiagonal $values")
+  }
+
+  test("finite tridiagonals whose row sums overflow: finite norm scale and safe-range rescaling") {
+    // ‖T‖∞ overflows to +Inf for both although every entry is finite; a row-sum
+    // scale would deflate everything and return the unrotated diagonal. The
+    // unscaled QL recurrences also overflowed on these (DidNotConverge, or a
+    // wrong eigenvalue a(1 - √3)/2 for the second) before the 2^-600 rescaling.
+    val e = 9e307
+    val a = 6e307
+    val cases = List(
+      ("zero diagonal", Vec(0.0, 0.0, 0.0), Vec(e, e), Seq(-math.sqrt(2.0) * e, 0.0, math.sqrt(2.0) * e), e),
+      ("constant", Vec(a, a, a), Vec(a, a), Seq(a * (1.0 - math.sqrt(2.0)), a, a * (1.0 + math.sqrt(2.0))), a)
+    )
+    for (label, diagonal, off, expected, scale) <- cases do
+      val t = DenseSpectralKernels.symmetricTridiagonalEigen(diagonal, off, wantVectors = true) match
+        case Right(value) => value
+        case Left(error)  => fail(s"$label: $error")
+      for i <- 0 until 3 do
+        assert(t.values(i).isFinite, s"$label λ[$i]=${t.values(i)}")
+        assert(math.abs(t.values(i) - expected(i)) <= 32 * eps * scale, s"$label λ[$i]=${t.values(i)} expected ${expected(i)}")
   }

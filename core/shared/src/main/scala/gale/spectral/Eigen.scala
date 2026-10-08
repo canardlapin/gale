@@ -114,10 +114,14 @@ object Eigen:
     * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
     * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or
     * kernel non-convergence (`DidNotConverge`) when some eigenvalue needs more than
-    * 30 implicit QL sweeps. The tridiagonal solver deflates an off-diagonal once it
-    * is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖∞)`, so finite input converges in a few
-    * sweeps per eigenvalue (at most 10 observed, including clusters of repeated
-    * eigenvalues at zero); non-finite entries never deflate and return this `Left`.
+    * 30 implicit QL sweeps. For finite input the tridiagonal solver deflates an
+    * off-diagonal once it is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖_max)`, so it
+    * converges in a few sweeps per eigenvalue (at most 10 observed, including
+    * clusters of repeated eigenvalues at zero). The result is normwise
+    * backward-stable only: eigenvalues carry absolute error `O(ε ‖A‖)`, so tiny
+    * eigenvalues of graded matrices get no relative accuracy. NaN entries never
+    * deflate and return this `Left`; with an infinite entry only the local
+    * neighbour test applies, which may yield non-finite values or this `Left`.
     */
   def eigSymmetric(
       a: DMat,
