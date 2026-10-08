@@ -18,15 +18,18 @@ import org.scalacheck.Prop.forAllNoShrink
   *
   * Each property draws a size in `1..64` and a data seed; the data come from the
   * same deterministic [[ParitySupport]] builders, so a failure is replayed from
-  * the `n=… seed=…` clue alone. Shrinking is disabled (`forAllNoShrink`) so the
+  * the `n=… seed=…` clue alone (or the whole run from `-Dgale.parity.seed`). Shrinking is disabled (`forAllNoShrink`) so the
   * reported seed is exactly the failing one, and the suite's initial ScalaCheck
   * seed is pinned for reproducible runs. Tolerances follow
   * [[FactorizationHardeningParitySuite]]: `c · n · ε · κ` with `c = 32`
   * (`κ²` for least squares) and the Weyl / Davis–Kahan bounds for `eigSym`.
   */
 class FactorizationPropertyParitySuite extends ScalaCheckSuite:
+  /** Pinned for reproducible CI; override with `-Dgale.parity.seed=<seed>`
+    * (e.g. the seed munit prints on failure) to replay or explore.
+    */
   override def scalaCheckInitialSeed =
-    "Hk3Lr6mXq0dQ2s4V8yTz1bWc7nPf5gJ9aE-uR_xKoMN="
+    sys.props.getOrElse("gale.parity.seed", "Hk3Lr6mXq0dQ2s4V8yTz1bWc7nPf5gJ9aE-uR_xKoMN=")
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(30).withWorkers(1)

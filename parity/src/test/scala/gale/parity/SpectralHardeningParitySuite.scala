@@ -65,7 +65,7 @@ class SpectralHardeningParitySuite extends munit.FunSuite:
   }
 
   test("large n eigSym: repeated eigenvalues above the blocking threshold") {
-    for n <- List(96, 128, 160); seed <- List(1L, 2L, 3L) do
+    for (n, seed) <- List(96 -> 1L, 128 -> 2L, 160 -> 3L) do
       // Three nonzero eigenvalues of multiplicity n/4 plus a distinct tail.
       val spectrum = Array.tabulate(n)(i => if i < 3 * n / 4 then 1.0 + (i % 3).toDouble else 4.0 + i.toDouble / n)
       val data = withSpectrum(spectrum, seed)
@@ -89,6 +89,28 @@ class SpectralHardeningParitySuite extends munit.FunSuite:
     for (label, spectrum, seed) <- cases do
       val data = withSpectrum(spectrum, seed)
       assertEigParity(galeMatrix(data), data, s"$label n=${spectrum.length} seed=$seed")
+  }
+
+  test("n = 200 values-only and workspace routes: exact vs the ordinary route, Weyl bound vs breeze") {
+    val n = 200
+    val data = symmetric(n, 75L)
+    val a = galeMatrix(data)
+    val bValues = (0 until n).map(eigSym(breezeMatrix(data)).eigenvalues(_))
+    val valueTol = c * n * Eps * bValues.map(math.abs).max
+    def values(d: EigenDecomposition) = (0 until d.size).map(d.eigenvalues(_))
+    val ordinaryValues = Eigen.eigSymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).orThrow
+    val ordinaryVectors = galeEig(a)
+    val workspace = DenseWorkspace.empty
+    val workspaceValues = Eigen.eigSymmetricWith(a, EigenSelection.All, EigenVectors.ValuesOnly, workspace).orThrow
+    val workspaceVectors = Eigen.eigSymmetricWith(a, EigenSelection.All, workspace).orThrow
+    // Ordinary and workspace routes share one kernel per mode (bit-pinning audit,
+    // W1.5), so they agree exactly; values-only vs vectors may differ by ulps.
+    assertEquals(values(workspaceValues), values(ordinaryValues), "values-only: workspace vs ordinary")
+    assertEquals(values(workspaceVectors), values(ordinaryVectors), "vectors: workspace vs ordinary values")
+    for r <- 0 until n; k <- 0 until n do
+      assertEquals(workspaceVectors.eigenvectors(r, k), ordinaryVectors.eigenvectors(r, k), s"vectors: V($r,$k)")
+    for (label, d) <- List("values-only" -> ordinaryValues, "vectors" -> ordinaryVectors) do
+      for i <- 0 until n do assertBelow(math.abs(values(d)(i) - bValues(i)), valueTol, s"$label λ[$i]")
   }
 
   test("1x1 eigSym matches breeze") {

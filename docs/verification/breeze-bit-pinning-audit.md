@@ -50,7 +50,7 @@
 | File:line | Op | What is pinned | Broken by | Handling | Justification |
 |---|---|---|---|---|---|
 | `core/shared/.../linalg/LUSuite.scala:28` | LU pivots | Integer pivots `Seq(1,0)`, n=2 | none (n < 96) | KEEP | Integer pivot result below the W1.3 threshold. W1.3 also requires the `pivots(i)` = original-row convention to survive. |
-| `LUSuite.scala:49` | LU | `Left(SingularMatrix(1))`, 2×2 IEEE-exact rank-1 | none | KEEP | An exact zero pivot in any order (`4-2·2=0`). The index is an integer below threshold. |
+| `LUSuite.scala:49` | LU | `Left(SingularMatrix(1))`, 2×2 IEEE-exact rank-1 | none | KEEP | An exact zero pivot in any order: partial pivoting picks row `(2, 4)`, the multiplier is `0.5`, and `2 - 0.5·4 = 0` exactly. The index is an integer below threshold. |
 | `linalg/NumericalPolicySuite.scala:52-54, 58, 62-65` | LU | Error class on the 3×3 `exactRank1` input, `SingularMatrix(0)` for `zeros(2,2)`, and the exact-zero-row case | none | KEEP | IEEE-exact plants (`:20-22` documents this). Small n. |
 | `NumericalPolicySuite.scala:68-75` | LU | A 2×2 input with `4+1e-12` must factor (`Right`) | none | KEEP | A structural decision with a large margin. Small n. |
 | `NumericalPolicySuite.scala:82`, `linalg/GaleNumericalContractSuite.scala:178` | LU → conditionEstimate | `+∞` for the 3×3 exact outer product | none | KEEP | Depends on an exact-zero pivot (contract `:43`). 3×3 is below threshold. |
@@ -100,6 +100,9 @@
   mirror the triangle.
 - `linalg/PerfDoctrineSuite.scala:18-19` pins exact elementwise add/sub against a reference
   loop. Those operations are correctly rounded single operations with no W1 route. KEEP.
+- The plan (`docs/breeze-competitiveness-plan.md`, W1.5 and W1.7) cites
+  `DenseSymmetricWorkspaceSuite:52`; that line is the test name. The exact-agreement
+  assertion is at `:61`.
 - `GaleNumericalContractSuite.scala:172`, the line the plan cites, is a comment. The
   assertion it introduces is at `:178` (see the table).
 
