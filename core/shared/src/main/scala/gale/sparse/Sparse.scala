@@ -495,6 +495,14 @@ final class CSR private[gale] (
       p += 1
     out
 
+  /** Row `index` as a [[SparseVector]] of length `cols`, without a dense
+    * intermediate. Stored explicit zeros stay active; duplicate columns of a
+    * non-canonical matrix are summed.
+    */
+  def rowSparse(index: Int): SparseVector =
+    checkRow(index)
+    SparseVector.fromCompressedSlice(cols, colIdx, values, rowPtr(index), rowPtr(index + 1))
+
   def col(index: Int): DVec =
     checkCol(index)
     // Single pass over the row ranges: for each row scan its (sorted) column
@@ -591,6 +599,17 @@ final class CSR private[gale] (
         yData(yOff + c * yStep) = yData(yOff + c * yStep) + vData(p) * scale
         p += 1
       row += 1
+
+  /** `A * x` for a sparse right-hand side. The result is dense and agrees
+    * exactly with `A * x.toDense`: `x` is scattered once and every stored entry
+    * of `A` takes part, so `O(cols + nnz)` work.
+    */
+  def *(x: SparseVector): DVec =
+    if x.length != cols then
+      throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
+    val out = MutableDVec.zeros(rows)
+    mulInto(x.toDense, out)
+    out.asVec
 
   def *(B: DMat): DMat =
     if cols != B.rows then
@@ -1000,6 +1019,14 @@ final class CSC private[gale] (
       out.data(rowIdx(p)) = values(p)
       p += 1
     out
+
+  /** Column `index` as a [[SparseVector]] of length `rows`, without a dense
+    * intermediate. Stored explicit zeros stay active; duplicate rows of a
+    * non-canonical matrix are summed.
+    */
+  def colSparse(index: Int): SparseVector =
+    if index < 0 || index >= cols then throw LinAlgError.IndexOutOfBounds(index, cols)
+    SparseVector.fromCompressedSlice(rows, rowIdx, values, colPtr(index), colPtr(index + 1))
 
   def t: CSR =
     // Zero-copy transpose: an m x n CSC reinterpreted with colPtr as row

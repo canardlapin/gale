@@ -10,7 +10,7 @@ generated from the published M1 artifacts after that immutable version exists.
 | Package | Compatible contract from M1 |
 | --- | --- |
 | `gale.linalg` | dense values and views, builders, shapes, operators, factorizations, solve and least-squares entry points, typed errors, destinations, and workspaces |
-| `gale.sparse` | COO/CSR/CSC and structured matrices, canonicalization, Matrix Market IO, compressed patterns, and symbolic replay plans |
+| `gale.sparse` | COO/CSR/CSC and structured matrices, `SparseVector`, canonicalization, Matrix Market IO, compressed patterns, and symbolic replay plans |
 | `gale.solvers` | iterative solver options, results, diagnostics, preconditioners, convergence semantics, and reusable workspaces |
 | `gale.spectral` | dense and partial decompositions, typed selection, result ordering, convergence and extremality diagnostics, generalized operators, and explicit metric-solve contracts |
 | `gale.optim` | optimization contracts, L-BFGS/L-BFGS-B, dense nonlinear least squares/LM, accelerated proximal gradient, standard terms/sets, work controls, diagnostics, and constrained-Rayleigh helpers |
@@ -110,3 +110,17 @@ existing method/stopping enums. Diagnostics require raw and scaled feasibility,
 box-projected Lagrangian stationarity, and complementarity. Fused constraint
 callbacks use the existing `jacobians` work counter. These are first-order
 conditions, not a certificate of a minimum or of infeasibility.
+
+## Sparse vector additions before M1
+
+`gale.sparse` adds `SparseVector`, its `SparseVectorEntryConsumer` callback,
+`CSR.rowSparse`, `CSC.colSparse`, and `CSR * SparseVector`. The existing dense
+`row`/`col` accessors and matrix products are unchanged. `gale.linalg` adds
+`LinAlgError.EmptyInput`, raised by `SparseVector.max`/`min` on a length-0
+vector; consumers that match `LinAlgError` exhaustively must handle it.
+
+The stored-zero rule is part of the contract: construction from entries,
+scaling, `mapActive`, `+` and `-` keep explicit zeros and cancellations, and
+only `compact` (or `fromDense`) drops them. Products visit active entries
+only, so a non-finite value facing an implicit zero is not propagated, while
+`max`/`min` include the implicit zero whenever one exists.
