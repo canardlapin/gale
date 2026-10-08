@@ -19,6 +19,19 @@ class NumericsSuite extends ScalaCheckSuite:
   private def assertBits(actual: Seq[Double], expected: Seq[Double], clue: String)(using munit.Location): Unit =
     assertEquals(actual.map(java.lang.Double.doubleToLongBits), expected.map(java.lang.Double.doubleToLongBits), clue)
 
+  /** Bit-identical to the per-line vector kernel unless the axis is streamed
+    * slice by slice, which reassociates the shifted sum; then within a few ulps.
+    */
+  private def assertLine(actual: Seq[Double], expected: Seq[Double], streamed: Boolean, clue: String)(using
+      munit.Location
+  ): Unit =
+    if streamed then
+      assertEquals(actual.length, expected.length, clue)
+      actual.zip(expected).foreach { (x, y) =>
+        assert((x.isNaN && y.isNaN) || x == y || math.abs(x - y) <= 1e-14 * math.max(1.0, math.abs(y)), s"$clue: $x vs $y")
+      }
+    else assertBits(actual, expected, clue)
+
   private def matrixLayouts(rows: Int, cols: Int, f: (Int, Int) => Double): Seq[(String, DMat)] =
     val rowMajor = Matrix.tabulate(rows, cols)(f)
     val colMajor = Matrix.tabulate(cols, rows)((j, i) => f(i, j)).t
@@ -132,19 +145,21 @@ class NumericsSuite extends ScalaCheckSuite:
       val colsLse = Numerics.logSumExp(a, Axis.Cols).toSeq
       assertEquals(rowsLse.length, 4)
       assertEquals(colsLse.length, 5)
-      for i <- 0 until 4 do assertEquals(rowsLse(i), Numerics.logSumExp(Vec(cells(i)*)), layout)
-      for j <- 0 until 5 do assertEquals(colsLse(j), Numerics.logSumExp(Vec(cells.map(_(j))*)), layout)
+      val streamRows = a.streamsAxis(Axis.Rows)
+      val streamCols = a.streamsAxis(Axis.Cols)
+      assertLine(rowsLse, (0 until 4).map(i => Numerics.logSumExp(Vec(cells(i)*))), streamRows, layout)
+      assertLine(colsLse, (0 until 5).map(j => Numerics.logSumExp(Vec(cells.map(_(j))*))), streamCols, layout)
       val sRows = Numerics.softmax(a, Axis.Rows)
       val sCols = Numerics.softmax(a, Axis.Cols)
       val lsRows = Numerics.logSoftmax(a, Axis.Rows)
       val lsCols = Numerics.logSoftmax(a, Axis.Cols)
       for i <- 0 until 4 do
-        assertBits(sRows.row(i).toSeq, Numerics.softmax(Vec(cells(i)*)).toSeq, s"$layout row $i")
-        assertBits(lsRows.row(i).toSeq, Numerics.logSoftmax(Vec(cells(i)*)).toSeq, s"$layout row $i")
+        assertLine(sRows.row(i).toSeq, Numerics.softmax(Vec(cells(i)*)).toSeq, streamRows, s"$layout row $i")
+        assertLine(lsRows.row(i).toSeq, Numerics.logSoftmax(Vec(cells(i)*)).toSeq, streamRows, s"$layout row $i")
       for j <- 0 until 5 do
         val column = Vec(cells.map(_(j))*)
-        assertBits(sCols.col(j).toSeq, Numerics.softmax(column).toSeq, s"$layout col $j")
-        assertBits(lsCols.col(j).toSeq, Numerics.logSoftmax(column).toSeq, s"$layout col $j")
+        assertLine(sCols.col(j).toSeq, Numerics.softmax(column).toSeq, streamCols, s"$layout col $j")
+        assertLine(lsCols.col(j).toSeq, Numerics.logSoftmax(column).toSeq, streamCols, s"$layout col $j")
       assertClose(Numerics.logSoftmax(a).valuesRowMajor.head, cells(0)(0) - Numerics.logSumExp(flat), 1e-13)
   }
 
@@ -156,6 +171,44 @@ class NumericsSuite extends ScalaCheckSuite:
     assertEquals(Numerics.logSumExp(noRows, Axis.Rows).length, 0)
     assertEquals(Numerics.logSumExp(noRows, Axis.Cols).toSeq, Seq(NInf, NInf, NInf))
     assertEquals(Numerics.softmax(Matrix.zeros(2, 0), Axis.Rows).shape, Matrix.zeros(2, 0).shape)
+  }
+
+  test("per-axis log-domain forms keep the special-value rules on streamed and per-line layouts") {
+    // Line 0: ordinary at +-1000; line 1: has NaN; line 2: has +Inf; line 3: all -Inf; line 4: -Inf and finite.
+    val lines = IndexedSeq(
+      IndexedSeq(1000.0, -1000.0, 999.0),
+      IndexedSeq(1.0, Nan, 2.0),
+      IndexedSeq(PInf, 1.0, PInf),
+      IndexedSeq(NInf, NInf, NInf),
+      IndexedSeq(NInf, 3.0, NInf)
+    )
+    // Lines as columns of a 3x5 matrix (Axis.Cols), and as rows of its transpose (Axis.Rows).
+    val asColumns = matrixLayouts(3, 5, (i, j) => lines(j)(i))
+    val asRows = matrixLayouts(5, 3, (i, j) => lines(i)(j))
+    assert(asColumns.exists(_._2.streamsAxis(Axis.Cols)) && asRows.exists(_._2.streamsAxis(Axis.Rows)))
+    for ((layout, a), axis) <- asColumns.map(_ -> Axis.Cols) ++ asRows.map(_ -> Axis.Rows) do
+      val streamed = a.streamsAxis(axis)
+      val expectedLse = lines.map(l => Numerics.logSumExp(Vec(l*)))
+      assertLine(Numerics.logSumExp(a, axis).toSeq, expectedLse, streamed, s"$layout lse")
+      val soft = Numerics.softmax(a, axis)
+      val logSoft = Numerics.logSoftmax(a, axis)
+      for (line, index) <- lines.zipWithIndex do
+        def extract(m: DMat) = if axis == Axis.Cols then m.col(index).toSeq else m.row(index).toSeq
+        assertLine(extract(soft), Numerics.softmax(Vec(line*)).toSeq, streamed, s"$layout softmax $index")
+        assertLine(extract(logSoft), Numerics.logSoftmax(Vec(line*)).toSeq, streamed, s"$layout logSoftmax $index")
+  }
+
+  test("whole-matrix logSumExp on a strided view applies the special-value rules without copying") {
+    for (cells, expected) <- Seq(
+        ((i: Int, j: Int) => if (i, j) == (1, 2) then Nan else 1.0, Nan),
+        ((i: Int, j: Int) => if (i, j) == (2, 0) then PInf else 1.0, PInf),
+        ((_: Int, _: Int) => NInf, NInf),
+        ((i: Int, j: Int) => if (i, j) == (0, 1) then 1000.0 else NInf, 1000.0)
+      )
+    do
+      for (layout, a) <- matrixLayouts(3, 4, cells) do
+        val got = Numerics.logSumExp(a)
+        assert((got.isNaN && expected.isNaN) || got == expected, s"$layout: $got vs $expected")
   }
 
   property("softmax is a probability vector and argmax-preserving") {

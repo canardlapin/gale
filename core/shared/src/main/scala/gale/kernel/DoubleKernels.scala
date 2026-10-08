@@ -95,7 +95,8 @@ private[gale] object DoubleKernels:
       if norm.isNaN && !containsNaN(n, x, xOffset, xStride) then Double.PositiveInfinity
       else norm
 
-  private def containsNaN(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Boolean =
+  /** True when any of the `n` strided elements is NaN. */
+  def containsNaN(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Boolean =
     var i = 0
     var xi = xOffset
     while i < n do
@@ -1055,19 +1056,21 @@ private[gale] object DoubleKernels:
       i += 1
     acc
 
-  // `n * m^2` stays below Double.MaxValue for any Int `n` when `m <= 1e145`, and a
-  // largest square of at least 1e-260 makes subnormal truncation of the smaller
-  // squares negligible; outside this band the scaled pass is used instead.
-  private val FrobeniusUnscaledMax = 1e145
-  private val FrobeniusUnscaledMin = 1e-130
+  // The optimistic unscaled sum of squares is trusted when it is finite and at
+  // least this large. Each square that underflows loses at most 2^-1075, so even
+  // Int.MaxValue such losses stay ~1e-35 relative to the total: negligible.
+  // Smaller totals (tiny entries, or exactly zero) and overflow rescan scaled.
+  private val FrobeniusTrustedMin = 1e-280
 
   /** Frobenius norm of a `rows×cols` strided block, overflow- and underflow-safe.
     *
-    * Two passes: the largest magnitude `m`, then either a plain fma sum of
-    * squares (when `m` is in a safe band) or the sum of `(a/m)^2`, giving
+    * One optimistic pass forms the plain fma sum of squares. Only when that
+    * total is non-finite, zero, or below a safe floor does a second pair of
+    * passes find the largest magnitude `m` and sum `(a/m)^2`, giving
     * `m * sqrt(...)`. NaN anywhere gives NaN; otherwise an infinite entry gives
     * `+Inf`; an empty block gives `0.0`. A block whose storage is one
-    * contiguous run (row- or column-major) is reduced in a single call.
+    * contiguous run (row- or column-major), or a single row or column, is
+    * reduced line by line in one kernel call.
     */
   def dnrmFrobenius(
       rows: Int,
@@ -1080,28 +1083,31 @@ private[gale] object DoubleKernels:
     if rows == 0 || cols == 0 then 0.0
     else
       val contiguous = (colStride == 1 && rowStride == cols) || (rowStride == 1 && colStride == rows)
-      val lines = if contiguous then 1 else if colStride <= rowStride then rows else cols
-      val lineLength = if contiguous then rows * cols else if colStride <= rowStride then cols else rows
-      val lineStep = if colStride <= rowStride then rowStride else colStride
-      val elementStep = if contiguous then 1 else if colStride <= rowStride then colStride else rowStride
-      var m = 0.0
+      val byRows = if rows == 1 then true else if cols == 1 then false else colStride <= rowStride
+      val lines = if contiguous then 1 else if byRows then rows else cols
+      val lineLength = if contiguous then rows * cols else if byRows then cols else rows
+      val lineStep = if byRows then rowStride else colStride
+      val elementStep = if contiguous then 1 else if byRows then colStride else rowStride
+      var ssq = 0.0
       var line = 0
       while line < lines do
-        m = math.max(m, damax(lineLength, x, xOffset + line * lineStep, elementStep))
+        ssq += dsumsq(lineLength, x, xOffset + line * lineStep, elementStep)
         line += 1
-      if m == 0.0 || m.isNaN || m.isInfinite then m
+      if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
       else
-        val unscaled = m <= FrobeniusUnscaledMax && m >= FrobeniusUnscaledMin
-        var ssq = 0.0
+        var m = 0.0
         line = 0
         while line < lines do
-          val start = xOffset + line * lineStep
-          val part =
-            if unscaled then dsumsq(lineLength, x, start, elementStep)
-            else dsumsqScaled(lineLength, x, start, elementStep, m)
-          ssq += part
+          m = math.max(m, damax(lineLength, x, xOffset + line * lineStep, elementStep))
           line += 1
-        if unscaled then math.sqrt(ssq) else m * math.sqrt(ssq)
+        if m == 0.0 || m.isNaN || m.isInfinite then m
+        else
+          var scaled = 0.0
+          line = 0
+          while line < lines do
+            scaled += dsumsqScaled(lineLength, x, xOffset + line * lineStep, elementStep, m)
+            line += 1
+          m * math.sqrt(scaled)
 
   /** `y_i := f(x_i)`; `y` may be `x` itself (same offset and stride). */
   inline def dmapInto(
@@ -1222,9 +1228,70 @@ private[gale] object DoubleKernels:
       val m = maxValue(n, x, xOffset, xStride)
       if m.isNaN || m.isInfinite then fillStrided(n, Double.NaN, y, yOffset, yStride)
       else
-        dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(v => math.exp(v - m))
-        val total = dsum(n, y, yOffset, yStride)
+        val total = dexpShiftedSumInto(n, x, xOffset, xStride, m, y, yOffset, yStride)
+        // Divide rather than multiply by `1 / total`: one rounding per entry.
         dmapInto(n, y, yOffset, yStride, y, yOffset, yStride)(v => v / total)
+
+  /** `y_i := exp(x_i - shift)`, returning `sum y_i` from the same pass (four
+    * accumulators when both operands are contiguous).
+    */
+  def dexpShiftedSumInto(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      shift: Double,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int
+  ): Double =
+    if xStride == 1 && yStride == 1 then
+      var acc0 = 0.0
+      var acc1 = 0.0
+      var acc2 = 0.0
+      var acc3 = 0.0
+      val limit = n - (n & 3)
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < limit do
+        val e0 = math.exp(x(xi) - shift)
+        val e1 = math.exp(x(xi + 1) - shift)
+        val e2 = math.exp(x(xi + 2) - shift)
+        val e3 = math.exp(x(xi + 3) - shift)
+        y(yi) = e0
+        y(yi + 1) = e1
+        y(yi + 2) = e2
+        y(yi + 3) = e3
+        acc0 += e0
+        acc1 += e1
+        acc2 += e2
+        acc3 += e3
+        xi += 4
+        yi += 4
+        i += 4
+      var acc = (acc0 + acc1) + (acc2 + acc3)
+      while i < n do
+        val e = math.exp(x(xi) - shift)
+        y(yi) = e
+        acc += e
+        xi += 1
+        yi += 1
+        i += 1
+      acc
+    else
+      var acc = 0.0
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      while i < n do
+        val e = math.exp(x(xi) - shift)
+        y(yi) = e
+        acc += e
+        xi += xStride
+        yi += yStride
+        i += 1
+      acc
 
   /** `y := x - logSumExp(x)`, evaluated as `(x - m) - log(sum exp(x - m))`.
     * Non-finite maxima give an all-NaN result, as in [[dsoftmaxInto]].

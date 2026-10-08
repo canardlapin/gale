@@ -214,7 +214,10 @@ final class DVec private[gale] (
   def sumExact: Double =
     DVec.exactSum(data, offset.value, length, stride.value, 1, 0)
 
-  /** Arithmetic mean, `sum / length`. Throws [[LinAlgError.EmptyInput]] when empty. */
+  /** Arithmetic mean, `sum / length`. As in NumPy, the intermediate sum can
+    * overflow to `±Inf` even when the mean is representable (entries near
+    * `Double.MaxValue`). Throws [[LinAlgError.EmptyInput]] when empty.
+    */
   def mean: Double =
     requireNonEmpty("mean")
     sum / length
@@ -361,7 +364,7 @@ object DVec:
         // `ExactSum.MaxTerms` (2^60), so this refusal is unreachable; it is
         // still mapped to a typed error rather than discarded.
         accumulator.add(data(xi)) match
-          case Left(error) => throw LinAlgError.UnsupportedOperation(error.message)
+          case Left(error) => throw LinAlgError.InvalidArgument(error.message)
           case Right(())   => ()
         xi += elementStride
         i += 1

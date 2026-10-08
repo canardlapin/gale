@@ -124,6 +124,13 @@ on both JVM and Scala.js:
   between a matrix and its transpose view, and between JVM and Scala.js.
   `sumExact` is the exact sum rounded once to the nearest `Double`; it is
   identical on every platform, layout, and permutation of the entries.
+  Per-axis reductions and the per-axis log-domain functions likewise
+  accumulate in layout order (a row-major matrix reduced per column is read
+  row by row), so they can differ in the last bits from the same line reduced
+  as a vector.
+- **Means.** `mean` is `sum / n`, as in NumPy, so the intermediate sum can
+  overflow to `±Inf` for entries near `Double.MaxValue` even when the mean
+  itself is representable.
 - **Overflow.** `normFrobenius` and `norm2` are scaled, so entries near `1e300`
   give a finite norm and tiny entries are not lost to underflow. An infinite
   entry gives `+Inf` unless a NaN is also present.

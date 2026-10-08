@@ -900,8 +900,10 @@ final class DMat private[gale] (
   def sumExact: Double =
     DVec.exactSum(data, offset.value, traversalLength, traversalElementStep, traversalLines, traversalLineStep)
 
-  /** Arithmetic mean of all entries. Throws [[LinAlgError.EmptyInput]] when the
-    * matrix has no entries.
+  /** Arithmetic mean of all entries, `sum / (rows * cols)`. Like NumPy's mean,
+    * the intermediate sum can overflow to `±Inf` even when the mean itself would
+    * be representable (for example entries near `Double.MaxValue`). Throws
+    * [[LinAlgError.EmptyInput]] when the matrix has no entries.
     */
   def mean: Double =
     requireNonEmpty("mean")
@@ -949,7 +951,7 @@ final class DMat private[gale] (
     val elementStep = axisElementStep(axis)
     val out = DVec.zeros(lines)
     val outData = out.data
-    if lineStep == 1 && elementStep > 1 then
+    if streamsAxis(axis) then
       // The kept axis is unit-stride: accumulate whole slices into `out` so the
       // reduction streams through storage instead of striding down each line.
       var k = 0
@@ -1011,12 +1013,14 @@ final class DMat private[gale] (
   private def isContiguousBlock: Boolean =
     isContiguousRowMajor || isContiguousColMajor
 
-  // Whole-matrix traversal: lines along the smaller stride.
-  private def traverseRows: Boolean = colStride.value <= rowStride.value
-  private def traversalLines: Int = if traverseRows then rows else cols
-  private def traversalLength: Int = if traverseRows then cols else rows
-  private def traversalLineStep: Int = if traverseRows then rowStride.value else colStride.value
-  private def traversalElementStep: Int = if traverseRows then colStride.value else rowStride.value
+  // Whole-matrix traversal: lines along the smaller stride, except that a
+  // single row or column is always one line (one kernel call).
+  private def traverseRows: Boolean =
+    if rows == 1 then true else if cols == 1 then false else colStride.value <= rowStride.value
+  private[gale] def traversalLines: Int = if traverseRows then rows else cols
+  private[gale] def traversalLength: Int = if traverseRows then cols else rows
+  private[gale] def traversalLineStep: Int = if traverseRows then rowStride.value else colStride.value
+  private[gale] def traversalElementStep: Int = if traverseRows then colStride.value else rowStride.value
 
   // Per-axis geometry: `axisLines(axis)` results, each reducing `axisLength(axis)` entries.
   private[gale] def axisLines(axis: Axis): Int = if axis == Axis.Rows then rows else cols
@@ -1026,6 +1030,41 @@ final class DMat private[gale] (
   private[gale] def axisElementStep(axis: Axis): Int =
     if axis == Axis.Rows then colStride.value else rowStride.value
 
+  /** True when a per-axis reduction should stream whole slices into per-line
+    * accumulators: the kept axis is unit-stride while each line is strided (for
+    * example `Axis.Cols` on a row-major matrix), so reading slice by slice is
+    * sequential in memory. Requires at least one entry per line.
+    */
+  private[gale] def streamsAxis(axis: Axis): Boolean =
+    axisLines(axis) > 1 && axisLength(axis) > 0 && axisLineStep(axis) == 1 && axisElementStep(axis) > 1
+
+  /** Streamed per-line extremes for [[streamsAxis]] geometry, written to
+    * `out(0 until lines)`. Equivalent to the per-line `dmaxIndex`/`dminIndex`
+    * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
+    */
+  private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
+    if largest then streamExtremes(axis, out)(_ > _) else streamExtremes(axis, out)(_ < _)
+
+  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline better: (Double, Double) => Boolean): Unit =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val elementStep = axisElementStep(axis)
+    val base = offset.value
+    var line = 0
+    while line < lines do
+      out(line) = data(base + line)
+      line += 1
+    var k = 1
+    while k < length do
+      val start = base + k * elementStep
+      line = 0
+      while line < lines do
+        val current = out(line)
+        val value = data(start + line)
+        if better(value, current) || (value != value && current == current) then out(line) = value
+        line += 1
+      k += 1
+
   private def extremePosition(largest: Boolean): (Int, Int) =
     if isContiguousRowMajor then
       val n = rows * cols
@@ -1033,6 +1072,11 @@ final class DMat private[gale] (
         if largest then DoubleKernels.dmaxIndex(n, data, offset.value, 1)
         else DoubleKernels.dminIndex(n, data, offset.value, 1)
       (k / cols, k % cols)
+    else if cols == 1 then
+      val k =
+        if largest then DoubleKernels.dmaxIndex(rows, data, offset.value, rowStride.value)
+        else DoubleKernels.dminIndex(rows, data, offset.value, rowStride.value)
+      (k, 0)
     else
       val colStep = colStride.value
       var bestRow = -1
@@ -1059,14 +1103,16 @@ final class DMat private[gale] (
     val lineStep = axisLineStep(axis)
     val elementStep = axisElementStep(axis)
     val out = DVec.zeros(lines)
-    var line = 0
-    while line < lines do
-      val start = offset.value + line * lineStep
-      val k =
-        if largest then DoubleKernels.dmaxIndex(length, data, start, elementStep)
-        else DoubleKernels.dminIndex(length, data, start, elementStep)
-      out.data(line) = data(start + k * elementStep)
-      line += 1
+    if streamsAxis(axis) then streamedExtremes(axis, largest, out.data)
+    else
+      var line = 0
+      while line < lines do
+        val start = offset.value + line * lineStep
+        val k =
+          if largest then DoubleKernels.dmaxIndex(length, data, start, elementStep)
+          else DoubleKernels.dminIndex(length, data, start, elementStep)
+        out.data(line) = data(start + k * elementStep)
+        line += 1
     out
 
   /** Largest absolute line sum, the lines being given by `axis`. */
@@ -1076,7 +1122,7 @@ final class DMat private[gale] (
     val lineStep = axisLineStep(axis)
     val elementStep = axisElementStep(axis)
     var out = 0.0
-    if lineStep == 1 && elementStep > 1 && lines > 1 then
+    if streamsAxis(axis) then
       // Accumulate |slice| into per-line sums so storage is read sequentially.
       val sums = DoubleArray.alloc(lines)
       var k = 0

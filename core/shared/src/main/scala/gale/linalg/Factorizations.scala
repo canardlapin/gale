@@ -669,6 +669,18 @@ object DenseDecompositions:
     if width > 7 then
       scratch(k + 7) = scale7
       scratch(n + k + 7) = ssq7
+    // Mirror `DoubleKernels.dnrm2`'s non-finite repair so this compact path and
+    // the screened wide path rank an all-infinite column identically: the
+    // recurrence forms `Inf / Inf` once two infinities meet, so a NaN norm with
+    // no NaN entry is `+Inf`. Finite columns never reach the rescan.
+    var col = k
+    while col < n do
+      if (scratch(col) * math.sqrt(scratch(n + col))).isNaN &&
+        !DoubleKernels.containsNaN(m - k, r, k * n + col, n)
+      then
+        scratch(col) = Double.PositiveInfinity
+        scratch(n + col) = 1.0
+      col += 1
 
   /** Small-shape QR: scalar Householder generation with row-major rank-1 updates. Keeping this path avoids compact-WY
     * setup overhead where Gale is already ahead of Breeze.

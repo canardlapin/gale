@@ -341,3 +341,62 @@ class ReductionsSuite extends ScalaCheckSuite:
     assertEquals(a.t.norm1, 25.0)
     assertEquals(a.t.normInf, 19.0)
   }
+
+  test("streamed per-axis max/min match per-line vector semantics: sticky NaN, first-occurrence ties") {
+    // Each line is one column of a 6x5 matrix; Axis.Cols streams on the row-major layout.
+    val lines = IndexedSeq(
+      IndexedSeq(1.0, 3.0, 3.0, -2.0, 0.5, 3.0),
+      IndexedSeq(Nan, 1.0, 9.0, -9.0, 0.0, 2.0),
+      IndexedSeq(1.0, 2.0, 5.0, 4.0, 3.0, Nan),
+      IndexedSeq(-0.0, 0.0, -0.0, 0.0, -0.0, 0.0),
+      IndexedSeq(NInf, NInf, PInf, NInf, 1.0, PInf)
+    )
+    val asColumns = matrixLayouts(6, 5, (i, j) => lines(j)(i))
+    val asRows = matrixLayouts(5, 6, (i, j) => lines(i)(j))
+    assert(asColumns.exists(_._2.streamsAxis(Axis.Cols)) && asRows.exists(_._2.streamsAxis(Axis.Rows)))
+    def bits(xs: Seq[Double]) = xs.map(java.lang.Double.doubleToLongBits)
+    for ((name, a), axis) <- asColumns.map(_ -> Axis.Cols) ++ asRows.map(_ -> Axis.Rows) do
+      assertEquals(bits(a.max(axis).toSeq), bits(lines.map(l => Vec(l*).max)), s"$name max")
+      assertEquals(bits(a.min(axis).toSeq), bits(lines.map(l => Vec(l*).min)), s"$name min")
+    // The signed-zero line keeps its first entry for both max and min.
+    assertEquals(java.lang.Double.doubleToLongBits(asColumns.head._2.max(Axis.Cols)(3)), java.lang.Double.doubleToLongBits(-0.0))
+  }
+
+  test("single-row and single-column views reduce as one strided line") {
+    val base = Matrix.tabulate(5, 4)((i, j) => (i * 4 + j).toDouble - 7.5)
+    val column = base.slice(0, 5, 2, 3) // 5x1, row stride 4
+    val row = base.t.slice(1, 2, 0, 5) // 1x5, column stride 4
+    for (name, a, values) <- Seq(
+        ("column", column, (0 until 5).map(i => base(i, 2))),
+        ("row", row, (0 until 5).map(i => base(i, 1)))
+      )
+    do
+      assert(!a.isContiguousRowMajor && !a.isContiguousColMajor, name)
+      assertEquals(a.sum, Vec(values*).sum, name)
+      assertEquals(a.sumExact, Vec(values*).sumExact, name)
+      assertClose(a.normFrobenius, Vec(values*).norm2)
+      val k = values.indexOf(values.max)
+      assertEquals(a.argmax, if name == "column" then (k, 0) else (0, k), name)
+  }
+
+  test("normFrobenius at the edges of the trusted unscaled range") {
+    def check(rows: Int, cols: Int, f: (Int, Int) => Double, expected: Double)(using munit.Location): Unit =
+      for (name, a) <- matrixLayouts(rows, cols, f) do
+        val got = a.normFrobenius
+        assert(math.abs(got - expected) <= 4e-16 * expected, s"$name: $got vs $expected")
+    // Large but unscaled: 12 * (1e145)^2 = 1.2e291 is finite.
+    check(3, 4, (_, _) => 1e145, math.sqrt(12.0) * 1e145)
+    // Just past overflow of the unscaled total: (1e155)^2 overflows, so the scaled rescan runs.
+    check(2, 2, (_, _) => 1e155, 2e155)
+    check(2, 2, (_, _) => Double.MaxValue / 4, Double.MaxValue / 2)
+    // Small but trusted: 6 * (1e-130)^2 = 6e-260.
+    check(2, 3, (_, _) => 1e-130, math.sqrt(6.0) * 1e-130)
+    // Below the trusted floor: (1e-145)^2 = 1e-290, and (1e-160)^2 underflows to zero.
+    check(2, 2, (_, _) => 1e-145, 2e-145)
+    check(2, 2, (_, _) => 1e-160, 2e-160)
+    check(2, 2, (_, _) => Double.MinPositiveValue, 2 * Double.MinPositiveValue)
+    // An in-band maximum with sub-band entries: the tiny squares are negligible.
+    check(3, 3, (i, j) => if i == 1 && j == 1 then 3.0 else 1e-170, 3.0)
+    // Mixed scales that only the rescan can resolve: 1e200 and 1e-200.
+    check(2, 2, (i, j) => if i == j then 1e200 else 1e-200, math.sqrt(2.0) * 1e200)
+  }

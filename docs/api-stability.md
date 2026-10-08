@@ -130,5 +130,9 @@ inputs throw it; sums and norms of empty inputs return `0.0`.
 infinite entries and no NaN. The private dense 1-norm used by
 `conditionEstimate` and the Frobenius norm used by the nonsymmetric
 left-eigenvector residual guard now share the public implementations; the
-Frobenius guard is now overflow-safe. These are numerical-contract repairs, not
+Frobenius guard is now overflow-safe. For a row-major input the shared 1-norm
+sums each column in the same order as before; for column-major or other strided
+inputs it uses the unrolled kernel, so `conditionEstimate` can change in the
+last ulp. Compact pivoted QR (width 8 or less) applies the same infinite-entry
+repair as `norm2`, so its pivot choice matches the wider screened path. These are numerical-contract repairs, not
 binary-compatibility claims against a published baseline.
