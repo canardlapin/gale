@@ -66,12 +66,29 @@ class SpectralHardeningParitySuite extends munit.FunSuite:
 
   test("large n eigSym: repeated eigenvalues above the blocking threshold") {
     for n <- List(96, 128, 160); seed <- List(1L, 2L, 3L) do
-      // Three nonzero eigenvalues of multiplicity n/4 plus a distinct tail. (A
-      // multiple eigenvalue AT ZERO currently makes gale's QL kernel exhaust its
-      // sweep cap for n ≳ 96 — a reported kernel bug, not covered here yet.)
+      // Three nonzero eigenvalues of multiplicity n/4 plus a distinct tail.
       val spectrum = Array.tabulate(n)(i => if i < 3 * n / 4 then 1.0 + (i % 3).toDouble else 4.0 + i.toDouble / n)
       val data = withSpectrum(spectrum, seed)
       assertEigParity(galeMatrix(data), data, s"repeated n=$n seed=$seed")
+  }
+
+  test("repeated eigenvalues AT ZERO above the threshold (QL deflation regression)") {
+    // Each case exhausted the 30-sweep cap (Left(DidNotConverge)) while the QL
+    // deflation test was purely local (bd-01M4EKP8CWDHZ2W1WFBRQ64Z9X).
+    def twoLevel(n: Int) = Array.tabulate(n)(i => if i < n / 2 then 0.0 else 1.0)
+    def threeLevel(n: Int) = Array.tabulate(n)(i => (i % 3).toDouble)
+    def withTail(n: Int) = Array.tabulate(n)(i => if i < 3 * n / 4 then (i % 3).toDouble else 3.0 + i.toDouble / n)
+    val cases = List(
+      ("two-level", twoLevel(96), 5L),
+      ("three-level", threeLevel(96), 5L),
+      ("three-level+tail", withTail(128), 128L),
+      ("three-level+tail", withTail(128), 2L),
+      ("three-level+tail", withTail(160), 160L),
+      ("three-level+tail", withTail(160), 3L)
+    )
+    for (label, spectrum, seed) <- cases do
+      val data = withSpectrum(spectrum, seed)
+      assertEigParity(galeMatrix(data), data, s"$label n=${spectrum.length} seed=$seed")
   }
 
   test("1x1 eigSym matches breeze") {

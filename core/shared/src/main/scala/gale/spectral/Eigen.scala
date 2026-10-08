@@ -112,8 +112,12 @@ object Eigen:
     *
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a symmetric problem
     * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
-    * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or (in
-    * practice unreachable) kernel non-convergence.
+    * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or
+    * kernel non-convergence (`DidNotConverge`) when some eigenvalue needs more than
+    * 30 implicit QL sweeps. The tridiagonal solver deflates an off-diagonal once it
+    * is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖∞)`, so finite input converges in a few
+    * sweeps per eigenvalue (at most 10 observed, including clusters of repeated
+    * eigenvalues at zero); non-finite entries never deflate and return this `Left`.
     */
   def eigSymmetric(
       a: DMat,
@@ -586,7 +590,8 @@ object Eigen:
     * same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal for a
     * symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an
     * inverted `ValueInterval`; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]];
-    * or (in practice unreachable) kernel non-convergence.
+    * or tridiagonal-solver non-convergence, under the same 30-sweeps-per-eigenvalue
+    * bound as [[eigSymmetric]].
     */
   def eigSymmetricGeneralized(
       a: DMat,

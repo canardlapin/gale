@@ -333,8 +333,12 @@ private[gale] object DenseSpectralKernels:
     * When `z` is `Some(zData)` (an `n x n` row-major basis) its columns are
     * rotated in lockstep so that, starting from `Q` or the identity, they end as
     * the eigenvectors. Eigenvalues are sorted ascending afterwards with `z`'s
-    * columns permuted to match. Returns `Left(DidNotConverge)` if any eigenvalue
-    * needs more than `maxSweeps` QL sweeps.
+    * columns permuted to match. An off-diagonal is deflated once it is at most
+    * `ε · max(|d(m)| + |d(m+1)|, ‖T‖∞)`, so every eigenvalue carries an absolute
+    * error of order `ε ‖T‖`. Returns `Left(DidNotConverge)` if any eigenvalue
+    * needs more than `maxSweeps` QL sweeps; with finite input and the Wilkinson
+    * shift this is not expected (a few sweeps per eigenvalue), while non-finite
+    * input never deflates and does exhaust the cap.
     */
   private def solveTridiagonal(
       n: Int,
@@ -353,16 +357,29 @@ private[gale] object DenseSpectralKernels:
       i += 1
     e(eOffset + n - 1) = 0.0
 
+    // ‖T‖∞ of the input tridiagonal. Orthogonal QL sweeps preserve ‖T‖₂, so it
+    // stays a valid scale for the whole solve.
+    var tNorm = 0.0
+    i = 0
+    while i < n do
+      val below = if i > 0 then math.abs(e(eOffset + i - 1)) else 0.0
+      tNorm = math.max(tNorm, below + math.abs(d(i)) + math.abs(e(eOffset + i)))
+      i += 1
+
     var l = 0
     while l < n do
       var iter = 0
       var continue = true
       while continue do
-        // Find a small off-diagonal e(m) to split the problem at.
+        // Find a negligible off-diagonal e(m) to split the problem at: small
+        // relative to its diagonal neighbours (EISPACK's local test) OR to ‖T‖.
+        // The norm-scaled test is the backward-stable one (dropping e(m) is an
+        // O(ε‖T‖) perturbation); without it a cluster of eigenvalues near 0
+        // can never satisfy the local test and the sweep cap is exhausted.
         var m = l
         var found = false
         while m < n - 1 && !found do
-          val dd = math.abs(d(m)) + math.abs(d(m + 1))
+          val dd = math.max(math.abs(d(m)) + math.abs(d(m + 1)), tNorm)
           if math.abs(e(eOffset + m)) <= Epsilon * dd then found = true
           else m += 1
         if m == l then
