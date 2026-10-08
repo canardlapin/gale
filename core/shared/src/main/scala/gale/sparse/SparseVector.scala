@@ -253,12 +253,23 @@ final class SparseVector private[gale] (
     val bVal = that.values
     val aEnd = aVal.length
     val bEnd = bVal.length
-    val outIdx = new Array[Int](aEnd + bEnd)
-    val outVal = new Array[Double](aEnd + bEnd)
+    // First pass sizes the union exactly, so the output is written once.
     var pa = 0
     var pb = 0
+    var union = 0
+    while pa < aEnd && pb < bEnd do
+      val ia = aIdx(pa)
+      val ib = bIdx(pb)
+      if ia <= ib then pa += 1
+      if ib <= ia then pb += 1
+      union += 1
+    union += (aEnd - pa) + (bEnd - pb)
+    val outIdx = IndexArray.alloc(union)
+    val outVal = DoubleArray.alloc(union)
+    pa = 0
+    pb = 0
     var write = 0
-    while pa < aEnd || pb < bEnd do
+    while write < union do
       val ia = if pa < aEnd then aIdx(pa) else Int.MaxValue
       val ib = if pb < bEnd then bIdx(pb) else Int.MaxValue
       if ia < ib then
@@ -275,10 +286,10 @@ final class SparseVector private[gale] (
         pa += 1
         pb += 1
       write += 1
-    new SparseVector(length, toIndexArray(outIdx, write), toDoubleArray(outVal, write))
+    new SparseVector(length, outIdx, outVal)
 
   /** Position of `index` among the active entries, or `-1`. */
-  private def find(index: Int): Int =
+  private[sparse] def find(index: Int): Int =
     var lo = 0
     var hi = values.length - 1
     while lo <= hi do
@@ -302,23 +313,31 @@ object SparseVector:
     * values are stored verbatim.
     */
   def fromDense(x: DVec): SparseVector =
+    val n = x.length
+    val xData = x.data
+    val xOff = x.offset.value
+    val xStep = x.stride.value
     var nonzero = 0
     var i = 0
-    while i < x.length do
-      if x(i) != 0.0 then nonzero += 1
+    var at = xOff
+    while i < n do
+      if xData(at) != 0.0 then nonzero += 1
+      at += xStep
       i += 1
     val outIdx = IndexArray.alloc(nonzero)
     val outVal = DoubleArray.alloc(nonzero)
     var write = 0
     i = 0
-    while i < x.length do
-      val v = x(i)
+    at = xOff
+    while i < n do
+      val v = xData(at)
       if v != 0.0 then
         outIdx(write) = i
         outVal(write) = v
         write += 1
+      at += xStep
       i += 1
-    new SparseVector(x.length, outIdx, outVal)
+    new SparseVector(n, outIdx, outVal)
 
   /** Throwing convenience over [[tryFromEntries]]. */
   def fromEntries(
@@ -394,50 +413,65 @@ object SparseVector:
         return Left(LinAlgError.InvalidArgument(s"non-finite sparse value ${vals(i)} at index $index"))
       i += 1
     val order = stableIndexOrder(idx)
-    val outIdx = new Array[Int](n)
-    val outVal = new Array[Double](n)
+    // First pass validates the duplicate policy and counts distinct indices,
+    // so the second pass writes exact-size storage once.
+    var distinct = 0
     var read = 0
+    while read < n do
+      val index = idx(order(read))
+      var next = read + 1
+      while next < n && idx(order(next)) == index do
+        if duplicates == DuplicatePolicy.Error then
+          return Left(LinAlgError.InvalidArgument(s"duplicate sparse entry at index $index"))
+        next += 1
+      distinct += 1
+      read = next
+    val outIdx = IndexArray.alloc(distinct)
+    val outVal = DoubleArray.alloc(distinct)
+    read = 0
     var write = 0
     while read < n do
       val index = idx(order(read))
       var value = vals(order(read))
       var next = read + 1
       while next < n && idx(order(next)) == index do
-        duplicates match
-          case DuplicatePolicy.Sum  => value += vals(order(next))
-          case DuplicatePolicy.Last => value = vals(order(next))
-          case DuplicatePolicy.Error =>
-            return Left(LinAlgError.InvalidArgument(s"duplicate sparse entry at index $index"))
+        if duplicates == DuplicatePolicy.Sum then value += vals(order(next))
+        else value = vals(order(next))
         next += 1
       outIdx(write) = index
       outVal(write) = value
       write += 1
       read = next
-    Right(new SparseVector(length, toIndexArray(outIdx, write), toDoubleArray(outVal, write)))
+    Right(new SparseVector(length, outIdx, outVal))
 
-  /** Stable ascending order of positions in `keys` (primitive mergesort), so
-    * `Last` keeps input-order semantics. Already-sorted input is detected in
-    * one pass.
+  /** Stable ascending order of positions in `keys` by bottom-up primitive
+    * mergesort, so `Last` keeps input-order semantics. Already-sorted input is
+    * detected in one pass.
     */
   private def stableIndexOrder(keys: Array[Int]): Array[Int] =
     val n = keys.length
-    val order = Array.tabulate(n)(identity)
+    var order = new Array[Int](n)
+    var i = 0
+    while i < n do
+      order(i) = i
+      i += 1
     var sorted = true
-    var i = 1
+    i = 1
     while i < n && sorted do
       if keys(i) < keys(i - 1) then sorted = false
       i += 1
     if !sorted then
-      val scratch = new Array[Int](n)
-      def sort(from: Int, until: Int): Unit =
-        if until - from > 1 then
-          val middle = from + (until - from) / 2
-          sort(from, middle)
-          sort(middle, until)
+      var scratch = new Array[Int](n)
+      var width = 1
+      while width < n do
+        var from = 0
+        while from < n do
+          val middle = math.min(from + width, n)
+          val until = math.min(from + 2 * width, n)
           var left = from
           var right = middle
           var out = from
-          while left < middle || right < until do
+          while out < until do
             if right >= until || (left < middle && keys(order(left)) <= keys(order(right))) then
               scratch(out) = order(left)
               left += 1
@@ -445,17 +479,18 @@ object SparseVector:
               scratch(out) = order(right)
               right += 1
             out += 1
-          var k = from
-          while k < until do
-            order(k) = scratch(k)
-            k += 1
-      sort(0, n)
+          from = until
+        val swap = order
+        order = scratch
+        scratch = swap
+        width *= 2
     order
 
   /** Sorted, duplicate-summed sparse vector from one compressed slice
     * `[start, end)` of a CSR row or CSC column. Explicit stored zeros are kept;
     * duplicates (possible only in a non-canonical matrix) are summed, matching
-    * the matrix-vector sum semantics.
+    * the matrix-vector sum semantics. A strictly increasing slice, the
+    * canonical case, is copied once into exact-size storage.
     */
   private[sparse] def fromCompressedSlice(
       length: Int,
@@ -465,25 +500,43 @@ object SparseVector:
       end: Int
   ): SparseVector =
     val width = end - start
-    val keys = new Array[Int](width)
-    val vals = new Array[Double](width)
-    var k = 0
-    while k < width do
-      keys(k) = minor(start + k)
-      vals(k) = data(start + k)
-      k += 1
-    insertionSortRange(keys, vals, 0, width)
-    var write = 0
-    var p = 0
-    while p < width do
-      val c = keys(p)
-      var acc = vals(p)
-      var q = p + 1
-      while q < width && keys(q) == c do
-        acc += vals(q)
-        q += 1
-      keys(write) = c
-      vals(write) = acc
-      write += 1
-      p = q
-    new SparseVector(length, toIndexArray(keys, write), toDoubleArray(vals, write))
+    var increasing = true
+    var p = start + 1
+    while p < end && increasing do
+      if minor(p) <= minor(p - 1) then increasing = false
+      p += 1
+    if increasing then
+      val outIdx = IndexArray.alloc(width)
+      val outVal = DoubleArray.alloc(width)
+      var k = 0
+      while k < width do
+        outIdx(k) = minor(start + k)
+        outVal(k) = data(start + k)
+        k += 1
+      new SparseVector(length, outIdx, outVal)
+    else
+      val keys = new Array[Int](width)
+      val vals = new Array[Double](width)
+      var k = 0
+      while k < width do
+        keys(k) = minor(start + k)
+        vals(k) = data(start + k)
+        k += 1
+      insertionSortRange(keys, vals, 0, width)
+      var distinct = 0
+      k = 0
+      while k < width do
+        if k == 0 || keys(k) != keys(k - 1) then distinct += 1
+        k += 1
+      val outIdx = IndexArray.alloc(distinct)
+      val outVal = DoubleArray.alloc(distinct)
+      var write = -1
+      k = 0
+      while k < width do
+        if k == 0 || keys(k) != keys(k - 1) then
+          write += 1
+          outIdx(write) = keys(k)
+          outVal(write) = vals(k)
+        else outVal(write) = outVal(write) + vals(k)
+        k += 1
+      new SparseVector(length, outIdx, outVal)

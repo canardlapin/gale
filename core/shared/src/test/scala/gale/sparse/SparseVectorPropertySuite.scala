@@ -1,6 +1,8 @@
 package gale.sparse
 
 import gale.linalg.*
+import gale.platform.DoubleArray
+import gale.platform.IndexArray
 import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
@@ -11,8 +13,13 @@ import org.scalacheck.Prop.forAll
   * tolerance.
   */
 class SparseVectorPropertySuite extends ScalaCheckSuite:
+  // Fixed for reproducibility; override with -Dgale.scalacheck.seed=... or
+  // GALE_SCALACHECK_SEED. munit reports the failing seed on any failure.
   override def scalaCheckInitialSeed =
-    "6xYHq0dE2pTQyQd3pLqZr1yW8Hk7m1vB9cG2nJ5sT0D="
+    sys.props
+      .get("gale.scalacheck.seed")
+      .orElse(sys.env.get("GALE_SCALACHECK_SEED"))
+      .getOrElse("6xYHq0dE2pTQyQd3pLqZr1yW8Hk7m1vB9cG2nJ5sT0D=")
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(200).withWorkers(1)
@@ -170,17 +177,44 @@ class SparseVectorPropertySuite extends ScalaCheckSuite:
     }
   }
 
-  property("CSR rows, CSC columns and CSR * SparseVector agree with dense") {
+  private val matrixShape: Gen[(Int, Int)] =
+    Gen.zip(Gen.choose(1, 8), Gen.choose(1, 8))
+
+  private def tripletsGen(rows: Int, cols: Int): Gen[List[(Int, Int, Double)]] =
+    Gen.listOf(Gen.zip(Gen.choose(0, rows - 1), Gen.choose(0, cols - 1), exactValue))
+
+  /** Dense sum-semantics reference: duplicate coordinates add. */
+  private def denseSum(rows: Int, cols: Int, triplets: Seq[(Int, Int, Double)]): Array[Array[Double]] =
+    val out = Array.fill(rows, cols)(0.0)
+    triplets.foreach { case (r, c, v) => out(r)(c) += v }
+    out
+
+  /** Raw compressed storage in insertion order: unsorted, with duplicates. */
+  private def compressed(major: Int, triplets: Seq[(Int, Int, Double)]): (IndexArray, IndexArray, DoubleArray) =
+    val byMajor = triplets.groupBy(_._1)
+    val ptr = new Array[Int](major + 1)
+    val minor = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val data = scala.collection.mutable.ArrayBuffer.empty[Double]
+    (0 until major).foreach { m =>
+      ptr(m) = minor.length
+      byMajor.getOrElse(m, Nil).foreach { case (_, c, v) =>
+        minor += c
+        data += v
+      }
+    }
+    ptr(major) = minor.length
+    (IndexArray.fromArray(ptr), IndexArray.fromArray(minor.toArray), DoubleArray.fromArray(data.toArray))
+
+  property("canonical CSR/CSC slices and CSR * SparseVector agree with the dense product") {
     val gen =
       for
-        rows <- Gen.choose(1, 8)
-        cols <- Gen.choose(1, 8)
-        entries <- Gen.listOf(Gen.zip(Gen.choose(0, rows - 1), Gen.choose(0, cols - 1), exactValue))
+        (rows, cols) <- matrixShape
+        triplets <- tripletsGen(rows, cols)
         x <- sparseGen(cols)
-      yield (rows, cols, entries, x)
-    forAll(gen) { case (rows, cols, entries, x) =>
+      yield (rows, cols, triplets, x)
+    forAll(gen) { case (rows, cols, triplets, x) =>
       val builder = Sparse.coo(rows, cols)
-      entries.foreach { case (r, c, v) => builder.add(r, c, v) }
+      triplets.foreach { case (r, c, v) => builder.add(r, c, v) }
       val csr = builder.toCSR()
       val csc = builder.toCSC()
       (0 until rows).foreach { r =>
@@ -188,6 +222,7 @@ class SparseVectorPropertySuite extends ScalaCheckSuite:
         assertCanonical(row)
         assertEquals(row.length, cols)
         assertEquals(row.toDense.toSeq, csr.row(r).toSeq)
+        assertEquals((csr * x)(r), row.dot(x))
       }
       (0 until cols).foreach { c =>
         val col = csc.colSparse(c)
@@ -195,8 +230,38 @@ class SparseVectorPropertySuite extends ScalaCheckSuite:
         assertEquals(col.length, rows)
         assertEquals(col.toDense.toSeq, csc.col(c).toSeq)
       }
-      val y = MutableDVec.zeros(rows)
-      csr.mulInto(x.toDense, y)
-      assertEquals((csr * x).toSeq, y.toVec.toSeq)
+      assertEquals((csr * x).toSeq, (csr.toDense() * x.toDense).toSeq)
+    }
+  }
+
+  property("non-canonical CSR rows and CSC columns sum duplicates and sort indices") {
+    val gen =
+      for
+        (rows, cols) <- matrixShape
+        triplets <- tripletsGen(rows, cols)
+        x <- sparseGen(cols)
+      yield (rows, cols, triplets, x)
+    forAll(gen) { case (rows, cols, triplets, x) =>
+      val reference = denseSum(rows, cols, triplets)
+      val (rowPtr, colIdx, rowValues) = compressed(rows, triplets)
+      val csr = new CSR(rows, cols, rowPtr, colIdx, rowValues)
+      val transposed = triplets.map { case (r, c, v) => (c, r, v) }
+      val (colPtr, rowIdx, colValues) = compressed(cols, transposed)
+      val csc = new CSC(rows, cols, colPtr, rowIdx, colValues)
+      val product = csr * x
+      (0 until rows).foreach { r =>
+        val row = csr.rowSparse(r)
+        assertCanonical(row)
+        assertEquals(row.toDense.toSeq, reference(r).toSeq)
+        assertEquals(row.activeIndices, triplets.filter(_._1 == r).map(_._2).distinct.sorted.toIndexedSeq)
+        val expected = (0 until cols).map(c => reference(r)(c) * x(c)).sum
+        assertEquals(product(r), expected)
+        assertEquals(product(r), row.dot(x))
+      }
+      (0 until cols).foreach { c =>
+        val col = csc.colSparse(c)
+        assertCanonical(col)
+        assertEquals(col.toDense.toSeq, (0 until rows).map(r => reference(r)(c)))
+      }
     }
   }

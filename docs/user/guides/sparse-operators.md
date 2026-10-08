@@ -74,7 +74,9 @@ out-of-range indices, a rejected duplicate, or a non-finite value under
 `SparseValuePolicy.RequireFinite`.
 
 CSR rows and CSC columns convert without a dense intermediate, and a CSR
-matrix multiplies a sparse vector into a dense result:
+matrix multiplies a sparse vector into a dense result. That product follows
+the `dot` rule, so implicit zeros of `x` never multiply stored values of the
+matrix:
 
 ```scala mdoc
 val firstRow = stiffness.rowSparse(0)

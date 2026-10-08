@@ -124,3 +124,12 @@ scaling, `mapActive`, `+` and `-` keep explicit zeros and cancellations, and
 only `compact` (or `fromDense`) drops them. Products visit active entries
 only, so a non-finite value facing an implicit zero is not propagated, while
 `max`/`min` include the implicit zero whenever one exists.
+
+Vector names follow the matrix vocabulary where the concept is shared:
+`activeSize` is the vector counterpart of `nnz`, `compact` of `pruneZeros`,
+`mapActive` of `mapValues`, `foreachActive` of `foreachStoredEntry`, and
+`fromEntries`/`tryFromEntries` reuse `DuplicatePolicy` and `SparseValuePolicy`
+from COO assembly. Unlike Breeze's in-place `compact()`, `compact` returns a
+new immutable vector. `CSR * SparseVector` follows the `dot` rule: implicit
+zeros never multiply stored values, so it can differ from
+`A * x.toDense` when `A` stores a non-finite value.

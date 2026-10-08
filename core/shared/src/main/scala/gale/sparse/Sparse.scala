@@ -600,16 +600,39 @@ final class CSR private[gale] (
         p += 1
       row += 1
 
-  /** `A * x` for a sparse right-hand side. The result is dense and agrees
-    * exactly with `A * x.toDense`: `x` is scattered once and every stored entry
-    * of `A` takes part, so `O(cols + nnz)` work.
+  /** `A * x` for a sparse right-hand side, into a dense result.
+    *
+    * Each stored entry of a row is paired with the active entry of `x` at its
+    * column, found by binary search, so the cost is `O(rows + nnz log
+    * x.activeSize)`, independent of `cols`. As in [[SparseVector.dot]],
+    * implicit zeros never multiply stored values: a `NaN` or infinity in `A`
+    * facing an implicit zero of `x` (or the reverse) contributes nothing, and
+    * `(A * x)(i)` equals `A.rowSparse(i).dot(x)`: bit for bit when every row
+    * stores sorted, unique columns, and up to summation order where a
+    * non-canonical row stores unsorted or duplicate columns. A dense product
+    * `A * x.toDense` would instead propagate those non-finite values.
     */
   def *(x: SparseVector): DVec =
     if x.length != cols then
       throw LinAlgError.DimensionMismatch(Shape(Rows(cols), Cols(1)), Shape(Rows(x.length), Cols(1)))
-    val out = MutableDVec.zeros(rows)
-    mulInto(x.toDense, out)
-    out.asVec
+    val out = DoubleArray.alloc(rows)
+    if x.activeSize > 0 then
+      val rPtr = rowPtr
+      val cIdx = colIdx
+      val vData = values
+      val xValues = x.values
+      var row = 0
+      while row < rows do
+        var acc = 0.0
+        var p = rPtr(row)
+        val end = rPtr(row + 1)
+        while p < end do
+          val at = x.find(cIdx(p))
+          if at >= 0 then acc += vData(p) * xValues(at)
+          p += 1
+        out(row) = acc
+        row += 1
+    DVec.fromDoubleArrayOwned(out)
 
   def *(B: DMat): DMat =
     if cols != B.rows then

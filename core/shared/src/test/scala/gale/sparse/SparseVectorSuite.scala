@@ -235,6 +235,38 @@ class SparseVectorSuite extends munit.FunSuite:
     assertEquals((raw * sv(4, 3 -> 1.0)).toSeq, Seq(5.0))
   }
 
+  test("axpyInto writes through a strided column destination") {
+    val builder = DMatBuilder.zeros(3, 2)
+    builder.mutableColumn(0) := Vec(9.0, 9.0, 9.0)
+    val column = builder.mutableColumn(1)
+    assertEquals(column.stride.value, 2)
+    sv(3, 0 -> 2.0, 2 -> -1.0).axpyInto(0.5, column)
+    assertEquals(builder.result().valuesRowMajor, Seq(9.0, 1.0, 9.0, 0.0, 9.0, -0.5))
+  }
+
+  test("CSR * SparseVector never multiplies a stored value by an implicit zero") {
+    val csr = Sparse
+      .coo(3, 3)
+      .add(0, 0, Double.NaN)
+      .add(0, 1, 2.0)
+      .add(1, 2, Double.PositiveInfinity)
+      .add(2, 0, 1.0)
+      .add(2, 2, Double.NegativeInfinity)
+      .toCSR()
+    val x = sv(3, 1 -> 3.0, 2 -> 0.0)
+    val product = csr * x
+    assertEquals(product(0), 6.0)
+    assert(product(1).isNaN) // Inf * stored 0.0 is formed: the zero is explicit
+    assert(product(2).isNaN)
+    (0 until 3).foreach { r =>
+      assertEquals(product(r).isNaN, csr.rowSparse(r).dot(x).isNaN)
+      if !product(r).isNaN then assertEquals(product(r), csr.rowSparse(r).dot(x))
+    }
+    val implicitOnly = sv(3, 1 -> 3.0)
+    assertEquals((csr * implicitOnly).toSeq, Seq(6.0, 0.0, 0.0))
+    assert((csr.toDense() * implicitOnly.toDense)(0).isNaN) // the dense product differs
+  }
+
   test("CSR * SparseVector equals the dense product and checks its shape") {
     val csr = Sparse.coo(2, 3).add(0, 0, 1.0).add(0, 2, 2.0).add(1, 1, 3.0).toCSR()
     val x = sv(3, 2 -> 4.0, 1 -> -1.0)
