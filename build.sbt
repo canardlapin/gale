@@ -403,6 +403,9 @@ lazy val benchmarkSettings = Seq(
   publish / skip := true
 )
 
+lazy val breezeNetlibReset =
+  taskKey[Unit]("Delete the Breeze netlib sidecar so the next lane run writes a fresh one.")
+
 lazy val benchmarksJVM =
   project
     .in(file("benchmarks/jvm"))
@@ -423,7 +426,10 @@ lazy val benchmarksJVM =
       // not a scalar fallback. Use the breezeLaneA (scalar, out-of-box) and
       // breezeLaneB (SIMD) aliases below; every Breeze bench logs the resolved
       // netlib class to target/breeze-netlib.jsonl.
-      libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion
+      libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion,
+      // JMH forks run in this module's directory, so the default sidecar
+      // (BreezeBenchData.DefaultNetlibSidecar) lands here.
+      breezeNetlibReset := IO.delete(baseDirectory.value / "target" / "breeze-netlib.jsonl")
     )
 
 // JDK 22+ copy-inclusive native crossover harness. Separate from benchmarksJVM
@@ -566,17 +572,21 @@ addCommandAlias("blasFfmBackendTest", ";blasFfmBackend/test")
 addCommandAlias("benchFfmCompile", ";benchmarksFfm/Jmh/compile")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
 // Paired gale-vs-Breeze lanes (append JMH options and a benchmark regex, e.g.
-// `sbt "breezeLaneA -rff target/laneA.json .*BreezeJmh.*"`). Lane A replaces the
-// forks' inherited JVM args (dropping --add-modules=jdk.incubator.vector) so Breeze
-// gets scalar Java BLAS and gale runs pure. Lane B keeps the module: Breeze gets
+// `sbt "breezeLaneA -rff target/laneA.json .*BreezeJmh.*"`). Each lane first deletes
+// the netlib sidecar (benchmarks/jvm/target/breeze-netlib.jsonl), so every run
+// writes a fresh one; copy it next to the JSON receipt before the next run.
+// Lane A passes -jvmArgs, which REPLACES ALL inherited fork JVM args (not only
+// --add-modules=jdk.incubator.vector): Breeze gets scalar Java BLAS and gale runs
+// pure. Lane B appends to the inherited args, so it keeps the module: Breeze gets
 // VectorBLAS and gale runs both its pure and Vector backends.
 addCommandAlias(
   "breezeLaneA",
-  "benchmarksJVM/Jmh/run -jvmArgs -Dgale.bench.lane=A -p backend=pure -rf json"
+  ";benchmarksJVM/breezeNetlibReset;benchmarksJVM/Jmh/run -jvmArgs -Dgale.bench.lane=A -p backend=pure -rf json"
 )
 addCommandAlias(
   "breezeLaneB",
-  "benchmarksJVM/Jmh/run -jvmArgsAppend -Dgale.bench.lane=B -p backend=pure,vector -rf json"
+  ";benchmarksJVM/breezeNetlibReset" +
+    ";benchmarksJVM/Jmh/run -jvmArgsAppend -Dgale.bench.lane=B -p backend=pure,vector -rf json"
 )
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.

@@ -15,6 +15,9 @@ import org.openjdk.jmh.infra.Blackhole
 /** BLAS-1 (`O(n)`) paired benchmarks: dot, in-place axpy, and 2-norm, gale vs
   * Breeze on identical length-`n` vectors. Both axpy variants mutate a preallocated
   * work vector reset each iteration, so neither allocates in the timed method.
+  *
+  * Backend-insensitive: gale's `dot`, `norm2` and `axpyInPlace` take no `Backend`,
+  * so these gale methods have no `GaleBackendState` and run once per size.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -50,25 +53,17 @@ class BlasL1BreezeJmh:
     gWork = gy.mutableCopy
     bWork = by.copy
 
-  @Benchmark def galeDot(g: GaleBackendState): Double =
-    val backend = g.selected
-    given Backend = backend
-    gx.dot(gy)
+  @Benchmark def galeDot(): Double       = gx.dot(gy)
   @Benchmark def breezeDot(): Double      = bx.dot(by)
 
-  @Benchmark def galeAxpy(g: GaleBackendState): Double =
-    val backend = g.selected
-    given Backend = backend
+  @Benchmark def galeAxpy(): Double =
     gWork.axpyInPlace(alpha, gx)
     gWork(0)
   @Benchmark def breezeAxpy(): Double =
     breeze.linalg.axpy(alpha, bx, bWork)
     bWork(0)
 
-  @Benchmark def galeNorm(g: GaleBackendState): Double =
-    val backend = g.selected
-    given Backend = backend
-    gy.norm2
+  @Benchmark def galeNorm(): Double      = gy.norm2
   @Benchmark def breezeNorm(): Double     = breeze.linalg.norm(by)
 
 /** BLAS-2 (`O(n²)`) paired benchmarks: matrix–vector product `A·x` and its

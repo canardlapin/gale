@@ -4,7 +4,6 @@ import scala.compiletime.uninitialized
 
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.eigSym
-import gale.backend.Backend
 import gale.bench.BreezeBenchData.*
 import gale.linalg.*
 import gale.spectral.*
@@ -16,6 +15,9 @@ import org.openjdk.jmh.infra.Blackhole
 /** Dense symmetric eigendecomposition (values + vectors) paired benchmark:
   * gale `Eigen.eigSymmetric(A, All)` (tridiagonal QL/QR) vs breeze `eigSym(A)`
   * (LAPACK `dsyev`). Both compute the full spectrum with eigenvectors.
+  *
+  * Backend-insensitive: the eigen path resolves a `SpectralBackend`, which the
+  * Vector backend does not supply, so the gale method takes no `GaleBackendState`.
   *
   * Sizes stay modest because dense eigen has a larger constant than the pure BLAS-3
   * kernels above.
@@ -40,9 +42,7 @@ class SymEigenBreezeJmh:
     gA = galeMatrix(data)
     bA = breezeMatrix(data)
 
-  @Benchmark def galeEigSym(g: GaleBackendState, bh: Blackhole): Unit =
-    val backend = g.selected
-    given Backend = backend
+  @Benchmark def galeEigSym(bh: Blackhole): Unit =
     bh.consume(Eigen.eigSymmetric(gA, EigenSelection.All, EigenVectors.Right))
 
   @Benchmark def breezeEigSym(bh: Blackhole): Unit =

@@ -7,7 +7,6 @@
   "forks": 2,
   "jvm": "/opt/jdk/bin/java",
   "jvmArgs": [
-   "--add-modules=jdk.incubator.vector",
    "-Dgale.bench.lane=A"
   ],
   "jdkVersion": "25.0.1",
@@ -18,16 +17,16 @@
    "n": "16"
   },
   "primaryMetric": {
-   "score": 1000.0,
-   "scoreError": 10.0,
+   "score": 0.0,
+   "scoreError": 0.0,
    "scoreConfidence": [
-    990.0,
-    1010.0
+    0.0,
+    0.0
    ],
    "scoreUnit": "ops/s",
    "rawData": [
     [
-     1000.0
+     0.0
     ]
    ]
   },

@@ -23,6 +23,10 @@ import org.openjdk.jmh.infra.Blackhole
   *   - `chol`: gale `S.cholesky` vs breeze `cholesky(S)` on an SPD matrix.
   *   - `qr`: the reflector factorization without materialising `Q` — gale `A.qr`
   *     (Q is lazy) vs breeze `qr.justR(A)`.
+  *
+  * `backend=vector` reaches these factorizations (and least squares below) only
+  * where they route a product through the backend's gemm; everything else stays
+  * on the pure kernels.
   */
 @BenchmarkMode(Array(Mode.Throughput))
 @OutputTimeUnit(TimeUnit.SECONDS)

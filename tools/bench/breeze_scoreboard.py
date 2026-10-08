@@ -5,7 +5,7 @@ Usage::
 
     python3 tools/bench/breeze_scoreboard.py --lane A \\
         --netlib benchmarks/jvm/target/breeze-netlib.jsonl \\
-        target/laneA.json [more.json ...] [-o scoreboard.md]
+        target/laneA.json [more.json ...] [--strict] [-o scoreboard.md]
 
 Inputs
 ------
@@ -13,9 +13,10 @@ Inputs
   ``breezeLaneB`` sbt aliases set ``-rf json``; pass ``-rff <path>``).
 * One or more netlib sidecars (JSON Lines). Every paired Breeze bench appends one
   record per trial from ``BreezeBenchData.recordNetlib``: lane, benchmark, params,
-  JDK, and the ``dev.ludovic.netlib`` BLAS/LAPACK classes Breeze resolved. The
-  default path is ``target/breeze-netlib.jsonl`` relative to the JMH fork's working
-  directory, i.e. ``benchmarks/jvm/target/breeze-netlib.jsonl``.
+  JDK, whether ``jdk.incubator.vector`` was resolved, and the ``dev.ludovic.netlib``
+  BLAS/LAPACK classes Breeze resolved. The default path is
+  ``benchmarks/jvm/target/breeze-netlib.jsonl``; both lane aliases delete it first,
+  so each run writes a fresh sidecar. Keep it with the JSON receipt.
 
 Pairing convention
 ------------------
@@ -26,7 +27,17 @@ with the Breeze row that has the same class, the same ``<Op>``, and the same JMH
 params once the gale-only ``backend`` param is removed. Each gale backend variant
 (``pure``/``vector``) therefore gets its own row against the one Breeze twin.
 Benchmarks whose method name does not follow the convention are ignored and
-counted; a gale or Breeze row without a twin is listed as unpaired.
+counted; a gale or Breeze row without a twin is unpaired (an error with
+``--strict``).
+
+The gale backend column reads:
+
+* ``pure`` / ``vector`` — the ``GaleBackendState`` the gale method ran with;
+* ``vector (gemm-routed only)`` — factorizations and least squares, which reach
+  the Vector backend only where they route a product through its gemm;
+* ``backend-insensitive`` — gale methods without a ``backend`` param, because the
+  operation takes no ``Backend`` (L1 ``dot``/``norm2``/``axpyInPlace``, symmetric
+  eigen). These rows measure pure gale in both lanes.
 
 Ratio and verdict
 -----------------
@@ -38,13 +49,19 @@ give ``tie``; a missing interval (a single measurement iteration) gives ``n/a``.
 
 Receipt checks (errors, exit status 2)
 --------------------------------------
-* Lane A (out-of-box scalar): any forked JVM run with ``jdk.incubator.vector``, a
-  Breeze BLAS class that is ``VectorBLAS`` or native (``JNIBLAS``/``NativeBLAS``),
-  a native LAPACK class, or a gale row whose backend is not ``pure``.
-* Lane B (SIMD): a Breeze BLAS class other than ``VectorBLAS``.
-* Either lane: an empty sidecar, a sidecar record from another lane, more than one
-  BLAS or LAPACK class, a paired Breeze row with no sidecar record, or one
-  benchmark/params combination reported twice.
+* Lane A (out-of-box scalar): any forked JVM run with ``jdk.incubator.vector`` in
+  its JMH args, any sidecar record with ``vectorModule`` true (this also catches the
+  module arriving through ``JDK_JAVA_OPTIONS``), a Breeze BLAS class that is
+  ``VectorBLAS`` or native (``JNIBLAS``/``NativeBLAS``), a native LAPACK class, or a
+  gale row whose backend is not ``pure``.
+* Lane B (SIMD): a sidecar record without the Vector module, or a Breeze BLAS class
+  other than ``VectorBLAS``.
+* Either lane: an empty sidecar; a sidecar record from another lane; more than one
+  BLAS or LAPACK class; sidecar JDK versions that differ from the results'; a paired
+  result with no sidecar record, or a sidecar record with no result (a stale or
+  foreign sidecar); one benchmark/params combination reported twice; a score that
+  is zero, negative or not a number; mismatched modes or units within a pair; and,
+  with ``--strict``, any unpaired row.
 """
 
 from __future__ import annotations
@@ -64,6 +81,14 @@ NAME_RE = re.compile(
 TIME_MODES = {"avgt", "sample", "ss"}
 VECTOR_BLAS = "dev.ludovic.netlib.blas.VectorBLAS"
 NATIVE_MARKERS = ("JNIBLAS", "NativeBLAS", "JNILAPACK", "NativeLAPACK")
+GEMM_ROUTED = {
+    ("FactorizationBreezeJmh", "Lu"),
+    ("FactorizationBreezeJmh", "Chol"),
+    ("FactorizationBreezeJmh", "Solve"),
+    ("FactorizationBreezeJmh", "Qr"),
+    ("LeastSquaresBreezeJmh", "Lstsq"),
+}
+INSENSITIVE = "backend-insensitive"
 
 
 class ReceiptError(Exception):
@@ -95,12 +120,24 @@ class Row:
     def backend(self) -> str:
         return self.params.get("backend", "-")
 
+    @property
+    def backend_label(self) -> str:
+        if "backend" not in self.params:
+            return INSENSITIVE
+        if self.backend == "vector" and (self.cls, self.op) in GEMM_ROUTED:
+            return "vector (gemm-routed only)"
+        return self.backend
+
 
 def _num(value) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return math.nan
+
+
+def _params_key(benchmark: str, params: dict) -> tuple:
+    return (benchmark, tuple(sorted(params.items())))
 
 
 def load_results(paths: list[Path]) -> tuple[list[Row], int]:
@@ -118,13 +155,18 @@ def load_results(paths: list[Path]) -> tuple[list[Row], int]:
                 ignored += 1
                 continue
             params = {str(k): str(v) for k, v in (entry.get("params") or {}).items()}
-            key = (name, tuple(sorted(params.items())))
+            key = _params_key(name, params)
             if key in seen:
                 raise ReceiptError(
                     f"{name} {params} appears more than once across the result files"
                 )
             seen.add(key)
             metric = entry["primaryMetric"]
+            score = _num(metric["score"])
+            if not score > 0 or math.isinf(score):
+                raise ReceiptError(
+                    f"{name} {params}: score {metric['score']!r} is not a positive finite number"
+                )
             lo, hi = (_num(x) for x in metric.get("scoreConfidence", ["NaN", "NaN"]))
             rows.append(
                 Row(
@@ -135,7 +177,7 @@ def load_results(paths: list[Path]) -> tuple[list[Row], int]:
                     params=params,
                     mode=entry["mode"],
                     unit=metric["scoreUnit"],
-                    score=_num(metric["score"]),
+                    score=score,
                     error=_num(metric.get("scoreError")),
                     lo=lo,
                     hi=hi,
@@ -161,6 +203,12 @@ def load_sidecars(paths: list[Path]) -> list[dict]:
     return records
 
 
+def _sidecar_params(text: str) -> dict:
+    return dict(
+        part.split("=", 1) for part in str(text or "").split(",") if "=" in part
+    )
+
+
 def validate(lane: str, rows: list[Row], sidecar: list[dict]) -> tuple[str, str]:
     if not sidecar:
         raise ReceiptError(
@@ -179,14 +227,33 @@ def validate(lane: str, rows: list[Row], sidecar: list[dict]) -> tuple[str, str]
         )
     blas_cls, lapack_cls = blas.pop(), lapack.pop()
 
-    recorded = {r.get("benchmark") for r in sidecar}
-    missing = sorted({row.benchmark for row in rows if row.lib == "breeze"} - recorded)
-    if missing:
+    sidecar_jdks = {str(r.get("jdk")) for r in sidecar}
+    result_jdks = {r.jdk for r in rows}
+    if sidecar_jdks != result_jdks:
         raise ReceiptError(
-            f"no netlib sidecar record for Breeze benchmarks: {', '.join(missing)}"
+            f"sidecar JDK {sorted(sidecar_jdks)} does not match results JDK {sorted(result_jdks)}"
         )
 
+    recorded = {
+        _params_key(str(r.get("benchmark")), _sidecar_params(r.get("params")))
+        for r in sidecar
+    }
+    measured = {_params_key(r.benchmark, r.params) for r in rows}
+    missing = sorted(f"{b} {dict(p)}" for b, p in measured - recorded)
+    if missing:
+        raise ReceiptError(f"no netlib sidecar record for: {', '.join(missing)}")
+    stale = sorted(f"{b} {dict(p)}" for b, p in recorded - measured)
+    if stale:
+        raise ReceiptError(
+            f"sidecar records with no matching result (stale or foreign sidecar): {', '.join(stale)}"
+        )
+
+    vector_modules = {r.get("vectorModule") for r in sidecar}
     if lane == "A":
+        if True in vector_modules:
+            raise ReceiptError(
+                "lane A receipt rejected: a fork resolved jdk.incubator.vector (sidecar vectorModule=true)"
+            )
         if blas_cls == VECTOR_BLAS or any(m in blas_cls for m in NATIVE_MARKERS):
             raise ReceiptError(
                 f"lane A receipt rejected: Breeze BLAS is {blas_cls} (must be scalar Java BLAS)"
@@ -217,10 +284,15 @@ def validate(lane: str, rows: list[Row], sidecar: list[dict]) -> tuple[str, str]
             raise ReceiptError(
                 f"lane A receipt rejected: gale must run pure: {', '.join(non_pure)}"
             )
-    elif blas_cls != VECTOR_BLAS:
-        raise ReceiptError(
-            f"lane B receipt rejected: Breeze BLAS is {blas_cls}, expected {VECTOR_BLAS}"
-        )
+    else:
+        if vector_modules != {True}:
+            raise ReceiptError(
+                "lane B receipt rejected: a fork ran without jdk.incubator.vector (sidecar vectorModule)"
+            )
+        if blas_cls != VECTOR_BLAS:
+            raise ReceiptError(
+                f"lane B receipt rejected: Breeze BLAS is {blas_cls}, expected {VECTOR_BLAS}"
+            )
     return blas_cls, lapack_cls
 
 
@@ -293,8 +365,14 @@ def render(
     commit: str,
     machine: str | None,
     ignored: int,
+    strict: bool = False,
 ) -> str:
     pairs, unpaired = pair(rows)
+    if strict and unpaired:
+        raise ReceiptError(
+            "--strict: unpaired benchmarks: "
+            + ", ".join(sorted(f"{r.benchmark} {r.params}" for r in unpaired))
+        )
     pairs.sort(
         key=lambda p: (p[0].cls, p[0].op, _size_key(p[0].pair_params), p[0].backend)
     )
@@ -307,7 +385,7 @@ def render(
         counts[v] += 1
         params = ", ".join(f"{k}={val}" for k, val in g.pair_params) or "-"
         body.append(
-            f"| {g.cls} | {g.op} | {params} | {g.backend} | {g.mode} | {_fmt(g.score, g.error)} | "
+            f"| {g.cls} | {g.op} | {params} | {g.backend_label} | {g.mode} | {_fmt(g.score, g.error)} | "
             f"{_fmt(b.score, b.error)} | {g.unit} | {ratio:.2f}x | {v} |"
         )
     title = "out-of-box scalar" if lane == "A" else "SIMD"
@@ -326,7 +404,8 @@ def render(
     out += [
         "",
         f"**{counts['ahead']} ahead, {counts['tie']} tie, {counts['behind']} behind, {counts['n/a']} n/a** "
-        f"of {len(pairs)} pairs. Ratio > 1 means gale is faster; verdicts use non-overlapping 99.9% CIs.",
+        f"of {len(pairs)} pairs; {len(unpaired)} unpaired. Ratio > 1 means gale is faster; verdicts use "
+        "non-overlapping 99.9% CIs. `backend-insensitive` rows run pure gale in every lane.",
         "",
         "| class | op | params | gale backend | mode | gale | breeze | unit | gale speedup | verdict |",
         "|---|---|---|---|---|---:|---:|---|---:|---|",
@@ -366,6 +445,11 @@ def main(argv: list[str] | None = None) -> int:
         "--machine", help="free-text machine description for the header"
     )
     parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="fail when any gale or Breeze row is unpaired",
+    )
+    parser.add_argument(
         "-o", "--output", type=Path, help="write markdown here instead of stdout"
     )
     args = parser.parse_args(argv)
@@ -373,7 +457,9 @@ def main(argv: list[str] | None = None) -> int:
         rows, ignored = load_results(args.results)
         blas, lapack = validate(args.lane, rows, load_sidecars(args.netlib))
         commit = args.commit or git_commit(Path(__file__).resolve().parent)
-        text = render(args.lane, rows, blas, lapack, commit, args.machine, ignored)
+        text = render(
+            args.lane, rows, blas, lapack, commit, args.machine, ignored, args.strict
+        )
     except ReceiptError as exc:
         print(f"breeze_scoreboard: error: {exc}", file=sys.stderr)
         return 2

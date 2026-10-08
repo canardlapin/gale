@@ -118,9 +118,15 @@ identical seeded `@Setup` data at matching `@Param` sizes:
 - `LeastSquaresBreezeJmh` — overdetermined `m = 4n` least-squares: gale `leastSquares` vs breeze backslash (`n` in {16, 64, 256}).
 - `SymEigenBreezeJmh` — symmetric eigen with vectors: gale `Eigen.eigSymmetric(All)` vs breeze `eigSym` (`n` in {16, 64, 128}).
 
-Every `gale*` method also takes a `GaleBackendState` whose `@Param backend` is
-`pure` or `vector` (the `backend-jvm-vector` SIMD backend); the Breeze twins do
-not, so each Breeze row runs once per size.
+Backend-sensitive `gale*` methods also take a `GaleBackendState` whose
+`@Param backend` is `pure` or `vector` (the `backend-jvm-vector` SIMD backend);
+the Breeze twins do not, so each Breeze row runs once per size. Coverage:
+
+| gale methods | backend param | scoreboard label |
+|---|---|---|
+| `gemv`, `gemvT`, `gemm`, `gemmTall`, `AtA` | `pure`, `vector` | `pure` / `vector` |
+| `lu`, `chol`, `solve`, `qr`, `lstsq` | `pure`, `vector` | `vector (gemm-routed only)`: the backend is reached only where a product routes through its gemm |
+| `dot`, `axpy`, `norm`, `eigSym` | none | `backend-insensitive`: the operation takes no `Backend` (eigen resolves a `SpectralBackend` the Vector backend does not supply), so these always run pure gale; W2 brings them back when L1 routing lands |
 
 ### Two lanes
 
@@ -132,7 +138,7 @@ adds `--add-modules=jdk.incubator.vector`, and forks inherit it, so a plain
 
 | Lane | sbt alias | Fork JVM args | Breeze BLAS | gale backend |
 |---|---|---|---|---|
-| A, out-of-box | `breezeLaneA` | `-jvmArgs -Dgale.bench.lane=A` (replaces the inherited args) | scalar Java BLAS | `pure` |
+| A, out-of-box | `breezeLaneA` | `-jvmArgs -Dgale.bench.lane=A` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
 | B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
 
 Both aliases set `-rf json`; append a result file, JMH options and a benchmark
@@ -151,13 +157,16 @@ still run. Run single pairs with the same aliases, for example
 Each Breeze bench records the netlib classes it resolved, once per trial, to
 stderr (`[breeze-netlib] ...`) and as one JSON line appended to the sidecar
 `benchmarks/jvm/target/breeze-netlib.jsonl` (the fork's working directory is
-`benchmarks/jvm`; override with `-Dgale.bench.netlibSidecar=<path>`). Empty or move
-the sidecar between lanes: it is append-only and a receipt must hold one lane.
+`benchmarks/jvm`; override with `-Dgale.bench.netlibSidecar=<path>`). Each record
+also carries the JDK version and whether `jdk.incubator.vector` was resolved. Both
+lane aliases delete the sidecar first (`benchmarksJVM/breezeNetlibReset`), so every
+run writes a fresh one: copy it next to the JSON receipt before the next run.
 
 ### Scoreboard
 
 `tools/bench/breeze_scoreboard.py` turns a lane's JMH JSON and sidecar into the
-markdown scoreboard, replacing hand-written tables:
+markdown scoreboard, replacing hand-written tables (`--strict` fails on unpaired
+rows):
 
 ```bash
 python3 tools/bench/breeze_scoreboard.py --lane A \
@@ -172,10 +181,13 @@ Pairing convention: a paired benchmark is `<Class>.gale<Op>` / `<Class>.breeze<O
 Breeze speed (>1 means gale is faster; time modes are inverted), and the verdict
 is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. The
 header records the lane, JDK, fork JVM args, netlib BLAS/LAPACK classes, and
-commit. A lane-A receipt is **rejected** if Breeze resolved `VectorBLAS` or a
-native BLAS/LAPACK (a Linux host with `libblas.so.3` would otherwise quietly get
-native BLAS), if a fork ran with the Vector module, or if gale ran a non-`pure`
-backend; a lane-B receipt is rejected unless Breeze resolved `VectorBLAS`.
+commit. Any receipt is rejected when the sidecar and results disagree (JDK, a
+result without a sidecar record, or a stale record without a result) or a score
+is not positive. A lane-A receipt is **rejected** if Breeze resolved `VectorBLAS`
+or a native BLAS/LAPACK (a Linux host with `libblas.so.3` would otherwise quietly
+get native BLAS), if any fork resolved the Vector module (via the JMH args or, for
+example, `JDK_JAVA_OPTIONS`), or if gale ran a non-`pure` backend; a lane-B receipt
+is rejected unless every fork had the module and Breeze resolved `VectorBLAS`.
 
 ### What each lane measures
 

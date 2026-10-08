@@ -145,9 +145,10 @@ object BreezeBenchData:
       StandardOpenOption.APPEND
     )
 
-/** The gale-side backend switch for the paired Breeze benchmarks. Only the `gale*`
-  * methods take this state, so JMH expands `backend` for gale benchmarks alone and each
-  * Breeze twin runs once per size.
+/** The gale-side backend switch for the paired Breeze benchmarks. Only the
+  * backend-sensitive `gale*` methods take this state, so JMH expands `backend` for them
+  * alone and each Breeze twin runs once per size. Gale methods whose operation takes no
+  * `Backend` (L1 `dot`/`norm2`/`axpyInPlace`, symmetric eigen) omit it and run once.
   *
   *   - `pure` — [[gale.backend.PureBackend]]: lane A (out-of-box) and the lane-B control.
   *   - `vector` — the `backend-jvm-vector` SIMD backend: lane B only. It needs
