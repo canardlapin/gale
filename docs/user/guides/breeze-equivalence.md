@@ -276,6 +276,111 @@ sparse LU or QR. Those, plus C Wasm, each need their own spec in a
 [future version](../../sparse-direct-future.md); see
 [Scala.js sparse-direct](../../sparse-direct-js.md).
 
+## Reduce, normalize, and use sparse vectors
+
+Breeze spells reductions as functions (`sum(v)`, `argmax(v)`) and per-axis
+reductions with broadcasting (`sum(a(::, *))`). Gale spells them as methods and
+names the result axis with `Axis`. `Axis.Rows` gives one value per row, and
+`Axis.Cols` one value per column.
+
+| Breeze | Gale | Note |
+| --- | --- | --- |
+| `sum(v)`, `sum(a)` | `v.sum`, `a.sum` | `sumExact` is correctly rounded and the same on every platform. |
+| `breeze.stats.mean(v)` | `v.mean` | `sum / n`, as in NumPy. |
+| `max(v)`, `min(v)` | `v.max`, `v.min` | |
+| `argmax(v)`, `argmin(v)` | `v.argmax`, `v.argmin` | A matrix returns `(row, col)`. |
+| `sum(a(::, *)).t` | `a.sum(Axis.Cols)` | Breeze returns a transposed row vector; Gale returns a `DVec`. |
+| `sum(a(*, ::))` | `a.sum(Axis.Rows)` | The same holds for `mean`, `max`, and `min`. |
+| `norm(v, 1)`, `norm(v)`, `norm(v, Double.PositiveInfinity)` | `v.norm1`, `v.norm2`, `v.normInf` | |
+| `norm(a.toDenseVector)` | `a.normFrobenius` | |
+| max column / row absolute sum | `a.norm1`, `a.normInf` | The induced matrix norms; Breeze has no direct call. |
+| `breeze.numerics.exp(v)`, `log`, `log1p`, `expm1` | `Numerics.exp(v)`, `log`, `log1p`, `expm1` | Same `java.lang.Math` results on the JVM. |
+| `breeze.numerics.sigmoid(v)` | `Numerics.sigmoid(v)` | Overflow-free form; agrees within 4 ulps. |
+| `softmax(v)` | `Numerics.logSumExp(v)` | **Naming trap:** Breeze's `softmax` is the scalar log-sum-exp. |
+| `exp(v - softmax(v))` | `Numerics.softmax(v)` | Gale's `softmax` is the normalized probability vector. |
+| `v - softmax(v)` | `Numerics.logSoftmax(v)` | |
+| `softmax(a(*, ::))` | `Numerics.logSumExp(a, Axis.Rows)` | `softmax(a, Axis.Rows)` normalizes each row. |
+
+```scala mdoc
+val logits = Vec(1000.0, 1000.0, -1000.0)
+Numerics.logSumExp(logits)
+Numerics.softmax(logits).toSeq
+
+val scores = Matrix(2, 3)(
+  1.0, 5.0, 2.0,
+  4.0, 0.0, 4.0
+)
+scores.sum(Axis.Cols).toSeq
+scores.max(Axis.Rows).toSeq
+scores.argmax
+(scores.norm1, scores.normInf, scores.normFrobenius)
+```
+
+`gale.sparse.SparseVector` covers the everyday use of Breeze's
+`SparseVector`. Build it from unsorted `(index, value)` pairs. Repeated indices
+are summed by default, as in Breeze's `VectorBuilder`, and explicit zeros stay
+stored until `compact`.
+
+| Breeze | Gale |
+| --- | --- |
+| `VectorBuilder` + `toSparseVector`, `SparseVector(n)(pairs*)` | `SparseVector.fromEntries(n, pairs)` (or `tryFromEntries`) |
+| `SparseVector.zeros[Double](n)` | `SparseVector.zeros(n)` |
+| `v.activeSize`, `v(i)` | `v.activeSize`, `v(i)` |
+| `v.activeKeysIterator`, `v.activeValuesIterator` | `v.activeIndices`, `v.activeValues`, `v.foreachActive` |
+| `v.compact()` (in place) | `v.compact` (returns a new vector) |
+| `v.toDenseVector` | `v.toDense` |
+| `x dot y`, `x dot dense` | `x.dot(y)`, `x.dot(dense)` |
+| `x + y`, `x - y`, `x * alpha` | the same |
+| `sum(v)`, `max(v)`, `min(v)`, `norm(v, p)` | `v.sum`, `v.max`, `v.min`, `v.norm1`, `v.norm2`, `v.normInf` |
+| `csc * sparseVector` | `csr * sparseVector` (dense result) |
+| a stored column of a `CSCMatrix` | `csc.colSparse(j)`, `csr.rowSparse(i)` |
+
+```scala mdoc
+val sv = SparseVector.fromEntries(5, Seq(3 -> 2.0, 1 -> 1.0, 3 -> 0.5, 4 -> 0.0))
+(sv.activeSize, sv.activeIndices, sv.compact.activeSize)
+(sv.max, sv.min, sv.dot(Vec(1.0, 1.0, 1.0, 1.0, 1.0)))
+val x3 = SparseVector.fromEntries(3, Seq(0 -> 1.0, 2 -> 1.0))
+(sparseA * x3).toSeq
+```
+
+Both libraries agree on several sparse rules that a port could easily get
+wrong. Cancellations from `+` and `-` stay stored, and so do entries scaled by
+`0.0`. `max` and `min` include the implicit zero. A product skips a `NaN` or
+infinity that faces an implicit zero, so `x.dot(y)` can differ from
+`x.toDense.dot(y.toDense)`.
+
+### Where Gale and Breeze 2.1 disagree
+
+These are deliberate. `sbt parityTest` pins each one: it checks Gale's
+documented result and Breeze's observed result
+(`ReductionsNumericsParitySuite` and `SparseVectorParitySuite`). The
+[numerical contract](../advanced/numerical-contract.md#reductions-and-elementwise-numerics)
+states the Gale rules.
+
+| Case | Gale | Breeze 2.1 |
+| --- | --- | --- |
+| `argmax`/`argmin` with a NaN | index of the first NaN | skips the NaN unless it comes first |
+| `argmin` ties | first minimum | last minimum |
+| Matrix `argmax`/`argmin` ties and NaN | row-major order, first NaN | column-major order, NaN skipped |
+| `max`/`min` of `0.0` and `-0.0` | the first one | `max` is `0.0`, `min` is `-0.0` |
+| Empty `max`, `mean`, per-axis `max` | throw `LinAlgError.EmptyInput` | `-Inf`, `0.0`, `-Inf` per line |
+| Empty `min`, `argmax` | throw `LinAlgError.EmptyInput` | throw `IllegalArgumentException` |
+| `mean` near `Double.MaxValue` | `sum / n`, so it can overflow to `+Inf` | running mean, finite |
+| `norm2`, Frobenius with entries near `1e300` or `1e-300` | scaled; finite and nonzero | overflows to `+Inf`, underflows to `0.0` |
+| Log-sum-exp with a `+Inf` entry | `+Inf` | `softmax` returns `-Inf` |
+| `sigmoid(x)` for `-745 < x < -709.78` | subnormal `≈ exp(x)` | exactly `0.0` |
+| Sparse `max`/`min` of a length-0 vector | throw `LinAlgError.EmptyInput` | `max` is `-Inf`; `min` throws |
+| Sparse duplicate indices | `DuplicatePolicy.Sum` (default), `Last`, or `Error` | always summed |
+| Sparse `compact` | returns a new vector | mutates in place |
+| Sparse matrix × sparse vector | `CSR * SparseVector` returns a dense `DVec` | `CSCMatrix * SparseVector` returns a `SparseVector` |
+| Explicit zeros added to a sparse matrix builder | kept by `toCSR()` / `toCSC()` | dropped by `CSCMatrix.Builder` |
+| Out-of-range sparse `apply` | `LinAlgError.IndexOutOfBounds` | `IndexOutOfBoundsException` |
+
+Summation results agree within the forward error bound of two differently
+associated sums, `2·n·ε·Σ|x|`. They are not bit-identical, because both
+libraries may reassociate. When a result must not depend on the summation
+order, use `sumExact`.
+
 ## Solve with an iterative method
 
 Dense matrices, sparse matrices, and custom operators all implement

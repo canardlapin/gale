@@ -274,6 +274,8 @@ lazy val parity =
       name := "gale-parity",
       publish / skip := true,
       Test / fork := true,
+      // Replay a failing property run: `sbt -Dgale.parity.seed=<seed> parityTest`.
+      Test / javaOptions ++= sys.props.get("gale.parity.seed").map(seed => s"-Dgale.parity.seed=$seed").toSeq,
       scalacOptions ++= commonScalacOptions,
       libraryDependencies ++= Seq(
         "org.scalameta" %% "munit" % munitVersion % Test,
