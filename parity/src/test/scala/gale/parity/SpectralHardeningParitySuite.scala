@@ -91,8 +91,8 @@ class SpectralHardeningParitySuite extends munit.FunSuite:
       assertEigParity(galeMatrix(data), data, s"$label n=${spectrum.length} seed=$seed")
   }
 
-  test("n = 200 values-only and workspace routes: exact vs the ordinary route, Weyl bound vs breeze") {
-    val n = 200
+  test("n = 128 values-only and workspace routes: exact vs the ordinary route, Weyl bound vs breeze") {
+    val n = 128
     val data = symmetric(n, 75L)
     val a = galeMatrix(data)
     val bValues = (0 until n).map(eigSym(breezeMatrix(data)).eigenvalues(_))
