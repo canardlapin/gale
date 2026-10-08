@@ -187,7 +187,7 @@ Order by expected gain against risk:
 
 - `docs/user/advanced/numerical-contract.md`: the NaN policy for reductions, the empty-input policy, the determinism of `sum` (per-platform, reassociation allowed) vs `sumExact` (correctly rounded), and the SIMD `exp` accuracy bound if W2 lands.
 - New guide `docs/user/guides/reductions-and-numerics.md` (mdoc), a SparseVector section in the sparse guide, and `directory.conf` and `index.md` entries.
-- `docs/breeze-migration.md`: a Breeze → gale table covering names, semantics and divergences, including the softmax naming trap and the empty-input behaviour.
+- Extend the existing `docs/user/guides/breeze-equivalence.md` (do not create a parallel migration doc): a Breeze → gale table covering names, semantics and divergences, including the softmax naming trap and the empty-input behaviour.
 - `docs/api-stability.md`: an "Everyday-ops additions before M1" section, and an ADR note if W2 lands.
 - `benchmarks/dashboard.md`: generated from the scoreboard tool.
 - Final receipt `benchmarks/results/2026-1x-xx-breeze-two-lane-final.{json,md}`.
