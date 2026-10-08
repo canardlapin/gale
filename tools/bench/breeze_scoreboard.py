@@ -87,6 +87,18 @@ GEMM_ROUTED = {
     ("FactorizationBreezeJmh", "Solve"),
     ("FactorizationBreezeJmh", "Qr"),
     ("LeastSquaresBreezeJmh", "Lstsq"),
+    ("FactorizationLargeBreezeJmh", "Lu"),
+    ("FactorizationLargeBreezeJmh", "Chol"),
+    ("FactorizationLargeBreezeJmh", "Solve"),
+    ("FactorizationLargeBreezeJmh", "Qr"),
+    ("FactorizationLargeBreezeJmh", "Lstsq"),
+    ("MultiRhsBreezeJmh", "LuSolve"),
+    ("MultiRhsBreezeJmh", "CholSolve"),
+    ("DenseDecompositionBreezeJmh", "Inv"),
+    ("DenseDecompositionBreezeJmh", "Det"),
+    ("SmallDenseBreezeJmh", "Solve"),
+    ("SmallDenseBreezeJmh", "Inv"),
+    ("SmallDenseBreezeJmh", "Det"),
 }
 INSENSITIVE = "backend-insensitive"
 
