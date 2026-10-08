@@ -900,14 +900,27 @@ final class DMat private[gale] (
   def sumExact: Double =
     DVec.exactSum(data, offset.value, traversalLength, traversalElementStep, traversalLines, traversalLineStep)
 
-  /** Arithmetic mean of all entries, `sum / (rows * cols)`. Like NumPy's mean,
-    * the intermediate sum can overflow to `±Inf` even when the mean itself would
-    * be representable (for example entries near `Double.MaxValue`). Throws
+  /** Arithmetic mean of all entries, `sum / (rows * cols)`, with the same
+    * overflow repair as [[DVec.mean]]: a non-finite sum is recomputed as
+    * `sum(a_ij / (rows * cols))`, so entries near `Double.MaxValue` give a finite
+    * mean while infinite and NaN entries keep their IEEE results. Throws
     * [[LinAlgError.EmptyInput]] when the matrix has no entries.
     */
   def mean: Double =
     requireNonEmpty("mean")
-    sum / (rows.toDouble * cols.toDouble)
+    val count = rows.toDouble * cols.toDouble
+    val total = sum
+    if total.isFinite then total / count
+    else
+      var acc = 0.0
+      var hasInfinity = false
+      var line = 0
+      while line < traversalLines do
+        val start = offset.value + line * traversalLineStep
+        acc += DoubleKernels.dsumDivided(traversalLength, data, start, traversalElementStep, count)
+        hasInfinity ||= DoubleKernels.dcontainsInfinity(traversalLength, data, start, traversalElementStep)
+        line += 1
+      DoubleKernels.clampMeanOverflow(acc, hasInfinity)
 
   /** Largest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
     * when the matrix has no entries.
@@ -965,15 +978,27 @@ final class DMat private[gale] (
         line += 1
     out
 
-  /** Per-axis means: the per-axis sum divided by the line length. Throws
-    * [[LinAlgError.EmptyInput]] when the result is non-empty but each reduced
-    * line is empty (for example `Axis.Rows` on an `n×0` matrix, `n > 0`).
+  /** Per-axis means: the per-axis sum divided by the line length. A line whose
+    * sum is not finite is recomputed as in [[DVec.mean]], so it overflows only
+    * when its mean does. Throws [[LinAlgError.EmptyInput]] when the result is
+    * non-empty but each reduced line is empty (for example `Axis.Rows` on an
+    * `n×0` matrix, `n > 0`).
     */
   def mean(axis: Axis): DVec =
     requireNonEmptyLines(axis, "mean")
     val out = sum(axis)
-    val length = axisLength(axis).toDouble
-    DoubleKernels.dmapInto(out.length, out.data, 0, 1, out.data, 0, 1)(v => v / length)
+    val count = axisLength(axis)
+    val length = count.toDouble
+    val outData = out.data
+    val lineStep = axisLineStep(axis)
+    val elementStep = axisElementStep(axis)
+    var line = 0
+    while line < out.length do
+      val total = outData(line)
+      outData(line) =
+        if total.isFinite then total / length
+        else DoubleKernels.dmeanOfNonFiniteSum(count, data, offset.value + line * lineStep, elementStep)
+      line += 1
     out
 
   /** Per-axis maxima, each with the semantics of [[DVec.max]] (NaN propagates).

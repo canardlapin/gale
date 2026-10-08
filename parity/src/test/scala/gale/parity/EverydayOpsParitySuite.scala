@@ -20,7 +20,7 @@ import org.scalacheck.Prop.forAll
   */
 class EverydayOpsParitySuite extends ScalaCheckSuite:
   override def scalaCheckInitialSeed =
-    "_Xa8Y-7Jwvj_jHt0GpX-fggSVAD0CKUbGaCwwWQsCzN="
+    ParitySeed.initial("_Xa8Y-7Jwvj_jHt0GpX-fggSVAD0CKUbGaCwwWQsCzN=")
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(40).withWorkers(1)

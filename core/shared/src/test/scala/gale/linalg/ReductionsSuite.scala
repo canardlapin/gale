@@ -400,3 +400,48 @@ class ReductionsSuite extends ScalaCheckSuite:
     // Mixed scales that only the rescan can resolve: 1e200 and 1e-200.
     check(2, 2, (i, j) => if i == j then 1e200 else 1e-200, math.sqrt(2.0) * 1e200)
   }
+
+  test("mean recomputes an overflowed sum as sum(x_i / n) and keeps IEEE results for infinities and NaN") {
+    val max = Double.MaxValue
+    for n <- 2 to 9 do
+      for (name, x) <- layouts(Seq.fill(n)(max)) do assertClose(x.mean, max, 4e-16)
+      for (name, x) <- layouts(Seq.fill(n)(-max)) do assertClose(x.mean, -max, 4e-16)
+    for (name, x) <- layouts(Seq(max, max, NInf)) do assertEquals(x.mean, NInf, name)
+    for (name, x) <- layouts(Seq(max, max, PInf)) do assertEquals(x.mean, PInf, name)
+    for (name, x) <- layouts(Seq(max, max, -max)) do assertClose(x.mean, max / 3.0, 4e-16)
+    for (name, x) <- layouts(Seq(PInf, NInf, 1.0)) do assert(x.mean.isNaN, name)
+    for (name, x) <- layouts(Seq(max, max, Nan)) do assert(x.mean.isNaN, name)
+  }
+
+  test("mean of finite-sum inputs is exactly sum / n on every layout") {
+    for n <- Seq(1, 3, 4, 7, 64, 1023) do
+      for (name, x) <- layouts(values(n, n.toLong)) do assertEquals(x.mean, x.sum / n, s"$name n=$n")
+    for rows <- 1 to 5; cols <- 1 to 5 do
+      for (name, a) <- matrixLayouts(rows, cols, (i, j) => math.sin(7.0 * i + j) * 1e3) do
+        assertEquals(a.mean, a.sum / (rows * cols), s"$name ${rows}x$cols")
+        assertEquals(a.mean(Axis.Rows).toSeq, a.sum(Axis.Rows).toSeq.map(_ / cols), s"$name rows")
+        assertEquals(a.mean(Axis.Cols).toSeq, a.sum(Axis.Cols).toSeq.map(_ / rows), s"$name cols")
+  }
+
+  test("matrix mean and per-axis means are overflow-safe per line on every layout") {
+    val max = Double.MaxValue
+    // Row 0 overflows, row 1 is ordinary, row 2 mixes MaxValue with -Inf.
+    val f: (Int, Int) => Double = (i, j) =>
+      i match
+        case 0 => max
+        case 1 => j + 1.0
+        case _ => if j == 2 then NInf else max
+    for (name, a) <- matrixLayouts(3, 3, f) do
+      val rowMeans = a.mean(Axis.Rows)
+      assertClose(rowMeans(0), max, 4e-16)
+      assertEquals(rowMeans(1), 2.0, name)
+      assertEquals(rowMeans(2), NInf, name)
+      val colMeans = a.mean(Axis.Cols)
+      assertClose(colMeans(0), 2.0 * (max / 3.0), 4e-16)
+      assertEquals(colMeans(2), NInf, name)
+      assertEquals(a.mean, NInf, name)
+    for (name, a) <- matrixLayouts(2, 3, (_, _) => max) do
+      assertClose(a.mean, max, 4e-16)
+      a.mean(Axis.Cols).toSeq.foreach(assertClose(_, max, 4e-16))
+    for (name, a) <- matrixLayouts(2, 2, (i, j) => if i == j then PInf else NInf) do assert(a.mean.isNaN, name)
+  }

@@ -25,11 +25,12 @@ import org.scalacheck.Prop.forAllNoShrink
   * (`κ²` for least squares) and the Weyl / Davis–Kahan bounds for `eigSym`.
   */
 class FactorizationPropertyParitySuite extends ScalaCheckSuite:
-  /** Pinned for reproducible CI; override with `-Dgale.parity.seed=<seed>`
-    * (e.g. the seed munit prints on failure) to replay or explore.
+  /** Pinned for reproducible CI; replay or explore through [[ParitySeed]]
+    * (`-Dgale.parity.seed=<seed>` with `testOnly`, e.g. the seed munit prints on
+    * failure).
     */
   override def scalaCheckInitialSeed =
-    sys.props.getOrElse("gale.parity.seed", "Hk3Lr6mXq0dQ2s4V8yTz1bWc7nPf5gJ9aE-uR_xKoMN=")
+    ParitySeed.initial("Hk3Lr6mXq0dQ2s4V8yTz1bWc7nPf5gJ9aE-uR_xKoMN=")
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(30).withWorkers(1)

@@ -879,6 +879,43 @@ private[gale] object DoubleKernels:
         i += 1
       acc
 
+  /** `sum x_i / divisor`, each term divided before it is added: the
+    * overflow-safe fallback for a mean whose plain sum is not finite. With
+    * `divisor = n` every term is at most `max|x_i| / n`, so infinities and NaN
+    * keep their IEEE results while finite entries cannot overflow except by
+    * rounding at `±Double.MaxValue` (see [[clampMeanOverflow]]).
+    */
+  def dsumDivided(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, divisor: Double): Double =
+    var acc = 0.0
+    var i = 0
+    var xi = xOffset
+    while i < n do
+      acc += x(xi) / divisor
+      xi += xStride
+      i += 1
+    acc
+
+  /** Whether any of the `n` entries is `±Infinity`. */
+  def dcontainsInfinity(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Boolean =
+    var i = 0
+    var xi = xOffset
+    while i < n do
+      if x(xi).isInfinite then return true
+      xi += xStride
+      i += 1
+    false
+
+  /** A mean lies between the smallest and largest entry, so a `±Inf` from
+    * [[dsumDivided]] over finite entries is rounding at the edge of the range
+    * (for example `n` copies of `Double.MaxValue`): return `±Double.MaxValue`.
+    */
+  inline def clampMeanOverflow(mean: Double, hasInfiniteEntry: => Boolean): Double =
+    if mean.isInfinite && !hasInfiniteEntry then math.copySign(Double.MaxValue, mean) else mean
+
+  /** Overflow-safe mean of one strided line whose plain sum was not finite. */
+  def dmeanOfNonFiniteSum(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    clampMeanOverflow(dsumDivided(n, x, xOffset, xStride, n.toDouble), dcontainsInfinity(n, x, xOffset, xStride))
+
   /** Sum of absolute values (the vector 1-norm); `0.0` when `n == 0`. */
   def dasum(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
     if xStride == 1 then

@@ -128,9 +128,13 @@ on both JVM and Scala.js:
   accumulate in layout order (a row-major matrix reduced per column is read
   row by row), so they can differ in the last bits from the same line reduced
   as a vector.
-- **Means.** `mean` is `sum / n`, as in NumPy, so the intermediate sum can
-  overflow to `±Inf` for entries near `Double.MaxValue` even when the mean
-  itself is representable.
+- **Means.** `mean` is `sum / n` whenever that sum is finite, so ordinary
+  inputs give exactly `sum / n`. When the sum overflows or is NaN, the mean is
+  recomputed as `Σ(x_i / n)`. Entries near `Double.MaxValue` therefore give a
+  finite mean (clamped to `±Double.MaxValue` if rounding at the edge of the
+  range overflows), while infinite and NaN entries keep their IEEE results:
+  `mean(MaxValue, MaxValue, -Inf)` is `-Inf`, not NaN. Per-axis means apply
+  the same rule to each line.
 - **Overflow.** `normFrobenius` and `norm2` are scaled, so entries near `1e300`
   give a finite norm and tiny entries are not lost to underflow. An infinite
   entry gives `+Inf` unless a NaN is also present.
