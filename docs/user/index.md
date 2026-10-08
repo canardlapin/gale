@@ -27,6 +27,8 @@ the live `gale-core` API.
 
 - [Dense systems and least squares](guides/dense-systems.md) — square solves,
   pivoted QR, matrix right-hand sides, row scaling, and reusable scratch.
+- [Reductions, norms, and elementwise numerics](guides/reductions-and-numerics.md) —
+  sums, extrema, per-axis reductions, norms, and stable softmax.
 - [Sparse matrices and operator solves](guides/sparse-operators.md) — CSR,
   iterative methods, and matrix-free application.
 - [Spectral analysis](guides/spectral-analysis.md) — dense eigenproblems, SVD,

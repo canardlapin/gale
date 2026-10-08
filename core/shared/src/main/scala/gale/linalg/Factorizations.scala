@@ -1107,7 +1107,7 @@ object DenseDecompositions:
             case Right(luAt) =>
               hagerInverseOneNorm(A.rows, luA, luAt) match
                 case Left(error)        => Left(error)
-                case Right(inverseNorm) => Right(norm1(A) * inverseNorm)
+                case Right(inverseNorm) => Right(A.norm1 * inverseNorm)
 
   /** Hager/Higham estimate of `||A^{-1}||_1` given LU factors of `A` and `Aᵀ`.
     *
@@ -1952,23 +1952,3 @@ object DenseDecompositions:
     // reductions that can leave an exactly dependent column a few ulps above the
     // textbook `max(m,n)*eps` cutoff.
     2.0 * math.max(rows, cols).toDouble * 2.220446049250313e-16 * maxDiag
-
-  /** Matrix 1-norm: the maximum absolute column sum. */
-  private def norm1(A: DMat): Double =
-    val data = A.data
-    val base = A.offset.value
-    val rowStep = A.rowStride.value
-    val colStep = A.colStride.value
-    var out = 0.0
-    var j = 0
-    while j < A.cols do
-      var sum = 0.0
-      var i = 0
-      var idx = base + j * colStep
-      while i < A.rows do
-        sum += math.abs(data(idx))
-        idx += rowStep
-        i += 1
-      out = math.max(out, sum)
-      j += 1
-    out

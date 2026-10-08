@@ -187,6 +187,69 @@ final class DVec private[gale] (
   def norm2: Double =
     DoubleKernels.dnrm2(length, data, offset.value, stride.value)
 
+  /** Sum of absolute values; `0.0` for an empty vector. */
+  def norm1: Double =
+    DoubleKernels.dasum(length, data, offset.value, stride.value)
+
+  /** Largest absolute value; `0.0` for an empty vector, NaN if any entry is NaN. */
+  def normInf: Double =
+    DoubleKernels.damax(length, data, offset.value, stride.value)
+
+  /** Fast sum; `0.0` for an empty vector.
+    *
+    * The kernel may reassociate (it keeps several partial sums), so the result
+    * is deterministic for one build and platform but can differ from a
+    * left-to-right loop, and between JVM and Scala.js, in the final bits. NaN
+    * and infinities follow IEEE addition. Use [[sumExact]] when the result must
+    * be correctly rounded and independent of order and platform.
+    */
+  def sum: Double =
+    DoubleKernels.dsum(length, data, offset.value, stride.value)
+
+  /** The exact sum of the entries, rounded once to the nearest `Double`
+    * (ties to even), via [[gale.numeric.ExactSum]]. Identical on every platform
+    * and for every permutation of the entries; NaN and infinities follow IEEE
+    * addition. Slower than [[sum]].
+    */
+  def sumExact: Double =
+    DVec.exactSum(data, offset.value, length, stride.value, 1, 0)
+
+  /** Arithmetic mean, `sum / length`. Throws [[LinAlgError.EmptyInput]] when empty. */
+  def mean: Double =
+    requireNonEmpty("mean")
+    sum / length
+
+  /** Largest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
+    * when empty.
+    */
+  def max: Double =
+    requireNonEmpty("max")
+    data(offset.value + DoubleKernels.dmaxIndex(length, data, offset.value, stride.value) * stride.value)
+
+  /** Smallest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
+    * when empty.
+    */
+  def min: Double =
+    requireNonEmpty("min")
+    data(offset.value + DoubleKernels.dminIndex(length, data, offset.value, stride.value) * stride.value)
+
+  /** Index of the first largest entry, or of the first NaN if any entry is NaN.
+    * Throws [[LinAlgError.EmptyInput]] when empty.
+    */
+  def argmax: Int =
+    requireNonEmpty("argmax")
+    DoubleKernels.dmaxIndex(length, data, offset.value, stride.value)
+
+  /** Index of the first smallest entry, or of the first NaN if any entry is NaN.
+    * Throws [[LinAlgError.EmptyInput]] when empty.
+    */
+  def argmin: Int =
+    requireNonEmpty("argmin")
+    DoubleKernels.dminIndex(length, data, offset.value, stride.value)
+
+  private def requireNonEmpty(operation: String): Unit =
+    if length == 0 then throw LinAlgError.EmptyInput(s"DVec.$operation")
+
   /** Mutable copy of this vector; writes to it never affect this value. */
   def mutableCopy: MutableDVec =
     MutableDVec.from(this)
@@ -278,6 +341,32 @@ object DVec:
 
   def builderFrom(vector: DVec): DVecBuilder =
     DVecBuilder.from(vector)
+
+  /** Correctly rounded sum of `lines` strided runs of `lineLength` elements. */
+  private[gale] def exactSum(
+      data: DoubleArray,
+      offset: Int,
+      lineLength: Int,
+      elementStride: Int,
+      lines: Int,
+      lineStride: Int
+  ): Double =
+    val accumulator = gale.numeric.ExactSum.zero()
+    var line = 0
+    while line < lines do
+      var i = 0
+      var xi = offset + line * lineStride
+      while i < lineLength do
+        // Gale storage holds at most Int.MaxValue entries, far below
+        // `ExactSum.MaxTerms` (2^60), so this refusal is unreachable; it is
+        // still mapped to a typed error rather than discarded.
+        accumulator.add(data(xi)) match
+          case Left(error) => throw LinAlgError.UnsupportedOperation(error.message)
+          case Right(())   => ()
+        xi += elementStride
+        i += 1
+      line += 1
+    accumulator.value
 
   def fromSeq(values: Seq[Double]): DVec =
     val out = zeros(values.length)

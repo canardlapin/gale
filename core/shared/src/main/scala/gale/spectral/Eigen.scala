@@ -1444,22 +1444,9 @@ object Eigen:
               while i < residuals.length do
                 if residuals(i) > worst then worst = residuals(i)
                 i += 1
-              if worst > LeftVectorResidualTolerance * math.max(1.0, frobeniusNorm(a)) then
+              if worst > LeftVectorResidualTolerance * math.max(1.0, a.normFrobenius) then
                 Left(LinAlgError.SingularMatrix(0))
               else Right(packed)
-
-  /** The Frobenius norm `‖A‖_F`. */
-  private def frobeniusNorm(a: DMat): Double =
-    var sum = 0.0
-    var i = 0
-    while i < a.rows do
-      var j = 0
-      while j < a.cols do
-        val v = a(i, j)
-        sum += v * v
-        j += 1
-      i += 1
-    math.sqrt(sum)
 
   /** Pack the left eigenvectors (conjugated rows of `V⁻¹ = Xr + i·Xi`) into the
     * real-Schur convention, unit 2-norm. Left vector `i` is `conj(row i of V⁻¹)`, so

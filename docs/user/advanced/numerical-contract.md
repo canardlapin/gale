@@ -100,6 +100,42 @@ it never constructs `B^-1` or silently factorizes the metric. The
 [operator eigensolver guide](generalized-operator-eigen.md) gives the complete
 selection, metric-solve, backend, and work-accounting contract.
 
+### Reductions and elementwise numerics
+
+`DVec`/`DMat` reductions (`sum`, `mean`, `max`, `min`, `argmax`, `argmin`,
+per-axis forms, and the norms) and the `Numerics` functions follow these rules
+on both JVM and Scala.js:
+
+- **NaN.** Sums, means, and norms follow IEEE arithmetic, so a NaN entry gives
+  NaN (and `+Inf + -Inf` gives NaN). `max`/`min` return NaN when any entry is
+  NaN; `argmax`/`argmin` return the index of the **first** NaN. A matrix
+  `argmax` reports the first NaN in row-major order, independent of layout.
+- **Ties.** `argmax`/`argmin` return the first occurrence (row-major for a
+  matrix). `-0.0` and `0.0` compare equal.
+- **Empty input.** `sum` and `sumExact` of an empty vector or matrix are `0.0`;
+  `norm1`, `norm2`, `normInf`, and `normFrobenius` are `0.0`. `mean`, `max`,
+  `min`, `argmax`, and `argmin` throw `LinAlgError.EmptyInput`. A per-axis
+  reduction throws only when it has a result entry to produce from an empty
+  line (for example `max(Axis.Rows)` on a `3×0` matrix); a per-axis `sum` of
+  empty lines is `0.0`. `logSumExp` of an empty input is `-Inf`.
+- **Determinism of `sum`.** `sum` may reassociate (it keeps several partial
+  sums and walks storage in layout order), so it is deterministic for one
+  build and platform, but the final bits can differ from a left-to-right loop,
+  between a matrix and its transpose view, and between JVM and Scala.js.
+  `sumExact` is the exact sum rounded once to the nearest `Double`; it is
+  identical on every platform, layout, and permutation of the entries.
+- **Overflow.** `normFrobenius` and `norm2` are scaled, so entries near `1e300`
+  give a finite norm and tiny entries are not lost to underflow. An infinite
+  entry gives `+Inf` unless a NaN is also present.
+- **Log domain.** `logSumExp` shifts by the maximum, so finite inputs never
+  overflow. NaN anywhere gives NaN; otherwise any `+Inf` gives `+Inf`; all
+  `-Inf` gives `-Inf`. `softmax` and `logSoftmax` return all-NaN for an input
+  or line whose maximum is not finite (NaN, `+Inf`, or all `-Inf`).
+- **Elementwise functions.** `Numerics.exp`, `log`, `log1p`, and `expm1` apply
+  the platform `Math` function to each entry, so they agree bit for bit with
+  `a.pointwise.map(math.exp)` on the same platform. `sigmoid` uses the
+  overflow-free form `1/(1+t)` or `t/(1+t)` with `t = exp(-|x|)`.
+
 ## Storage and allocation boundary
 
 `DVec` and `DMat` are immutable-facing values and views. Their owned platform

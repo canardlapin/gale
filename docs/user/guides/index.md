@@ -5,6 +5,9 @@ Start from the problem you need to solve:
 - [Dense systems and least squares](dense-systems.md) — solve square systems,
   fit one or many responses, inspect pivoted QR, apply row scales, and reuse
   scratch.
+- [Reductions, norms, and elementwise numerics](reductions-and-numerics.md) —
+  sum, mean, extrema, per-axis reductions, norms, and stable log-sum-exp and
+  softmax.
 - [Sparse matrices and operator solves](sparse-operators.md) — construct CSR,
   run iterative methods, and define a matrix-free operator.
 - [Spectral analysis](spectral-analysis.md) — compute dense eigenvalues or SVD

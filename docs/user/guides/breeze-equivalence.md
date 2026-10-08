@@ -122,6 +122,10 @@ The main dense operations are:
 | Add a scalar to the diagonal | `a.addToDiagonal(value)` |
 | Average a matrix with its transpose | `a.symmetrizedAverage` |
 | Kronecker product | `a.kron(b)` |
+| Sums, means, extrema | `x.sum`, `x.mean`, `x.max`, `x.argmax`, `a.sum(Axis.Cols)` |
+| Vector and matrix norms | `x.norm1`, `x.normInf`, `a.norm1`, `a.normInf`, `a.normFrobenius` |
+| Named elementwise functions | `Numerics.exp(a)`, `Numerics.log(x)`, `Numerics.sigmoid(x)` |
+| Log-sum-exp (Breeze `softmax(v)`) | `Numerics.logSumExp(x)` |
 
 ## Solve systems and least-squares problems
 
@@ -397,6 +401,9 @@ are cross-checked.
 | --- | --- | --- |
 | Dense vectors and matrices | `DVec`, `DMat`, `Vec`, `Matrix` | Real `Double` values; ordinary results are immutable. |
 | Dense arithmetic | `+`, `-`, `*`, `dot`, `norm2`, `pointwise` | Pointwise matrix operations require `gale.syntax.all.*`. |
+| Reductions | `sum`, `mean`, `max`, `min`, `argmax`, `argmin`, per-axis `sum(Axis.Rows)` | Empty `mean`/`max`/`min`/`argmax` throw `LinAlgError.EmptyInput`; `Axis.Rows` gives one value per row, like `sum(A(*, ::))`. |
+| Norms | `norm1`, `norm2`, `normInf`, `normFrobenius` | Matrix `norm1`/`normInf` are the induced column/row-sum norms. |
+| Log-sum-exp and softmax | `Numerics.logSumExp`, `Numerics.softmax` | Breeze's `softmax(v)` is the scalar log-sum-exp; Gale's `softmax` is the normalized vector. |
 | Square solve with vector or matrix RHS | `A.solve(b)`, `A.solve(B)` | Returns `Either`; matrix RHS is factored once. |
 | Least squares | `A.leastSquares(b)` or `A.leastSquares(B)` | Tall, full-column-rank systems; rank deficiency is reported. |
 | LU, Cholesky, QR, determinant | `A.lu`, `A.cholesky`, `A.qr`, `A.det` | Typed factors and failures; legal signs and pivots may differ. |
