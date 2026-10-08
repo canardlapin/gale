@@ -7,8 +7,13 @@ and selected eigenvalue and singular-value routines. The shared API runs on the
 JVM and Scala.js.
 
 Gale is not source-compatible with Breeze, and it does not replace Breeze's
-probability, optimization, statistics, signal-processing, plotting, machine
-learning, or tensor modules. Use this guide to check the supported linear
+probability, statistics, signal-processing, plotting, machine
+learning, or tensor modules. `gale.optim` has its own optimizers, including
+L-BFGS, L-BFGS-B, accelerated proximal gradient, Levenberg–Marquardt, CMA-ES,
+an augmented Lagrangian, and a box quasi-Newton method. Only `LBFGS` and
+`LBFGSB` are checked against `breeze.optimize`; see
+[Replace Breeze L-BFGS and L-BFGS-B](#replace-breeze-l-bfgs-and-l-bfgs-b).
+Use this guide to check the supported linear
 algebra operations and to see how migrated code changes.
 
 ## Construct and inspect dense values
@@ -464,13 +469,141 @@ operation may still use the portable implementation. See the
 and [Numerical contract](../advanced/numerical-contract.md) before choosing a
 backend.
 
+## Replace Breeze L-BFGS and L-BFGS-B
+
+Gale's `LBFGS.minimize` and `LBFGSB.minimize` solve the same problems as
+Breeze's `breeze.optimize.LBFGS` and `breeze.optimize.LBFGSB`: a smooth
+objective with an analytic gradient, unconstrained or inside a box. The two
+libraries stop for different reasons, so default settings in Breeze and in
+Gale do not return points of the same accuracy. Configure the stopping rule
+explicitly when results must match.
+
+These are the only `gale.optim` solvers with Breeze parity tests. The other
+solvers in `gale.optim` (`AcceleratedProximal`, `LevenbergMarquardt`, `CMAES`,
+`AugmentedLagrangian`, `BoxQuasiNewton`) have no counterpart checked here.
+
+### Option mapping
+
+| Breeze | Gale | Notes |
+| --- | --- | --- |
+| `DiffFunction[DenseVector[Double]]` | `DifferentiableObjective` | Gale callbacks receive an `n × 1` `DMat` and return `Either`. |
+| `new LBFGS(maxIter, m, tolerance)` | `LBFGSConfig(maxIterations, tolerance, historySize)` | Breeze defaults: `maxIter = -1` (no limit), `m = 7`, `tolerance = 1e-9`. Gale defaults: 1000, 10, `FirstOrderTolerance.strict`. |
+| `new LBFGSB(l, u, maxIter, m, tolerance)` | `LBFGSBConfig(...)` with `MatrixBoxBounds.from(l, u)` | Breeze defaults: `maxIter = 100`, `m = 5`, `tolerance = 1e-8`. |
+| `StrongWolfeLineSearch` with `c1 = 1e-4`, `c2 = 0.9` (fixed) | `c1`, `c2` in the config | Same defaults; Gale lets them be changed. |
+| `maxZoomIter`, `maxLineSearchIter` (10 each in `LBFGS`, 64 in `LBFGSB`) | `maxLineSearch` (default 40) | One trial budget per line search. `LBFGSConfig.maximumStep` caps the step. |
+| evaluation count (wrap the `DiffFunction`) | `solution.evaluations.callbacks` | Gale counts every callback, including rejected trials. |
+| `minimizeAndReturnState(f, x0).convergenceReason` | `solution.status` | `Converged`, `IterationLimit`, `LineSearchFailed`, `EvaluationLimit`, `Cancelled`, `NumericalStagnation`. |
+
+### Stopping rules
+
+Gale stops when the residual satisfies
+`‖r(x)‖∞ ≤ absolute + relative · max(1, ‖r(x₀)‖∞)`, with the tolerances from
+`FirstOrderTolerance.from(absolute, relative)`. For `LBFGS`, `r` is the
+gradient. For `LBFGSB`, `r` is the unit projected-gradient step
+`x − clamp(x − ∇f(x), l, u)`. `Converged` therefore certifies the returned
+point.
+
+Breeze's default check stops at the first of these conditions:
+
+- the iteration limit;
+- the current value is within `tolerance · |f(x₀)|` of the largest of the
+  last 20 values;
+- `‖∇f‖₂ ≤ max(tolerance · |f(x)|, 1e-8)`;
+- the line search failed twice in a row.
+
+`LBFGSB` also stops as soon as `‖r(x)‖∞ < 1e-5`. That limit is hard-coded,
+so the `tolerance` argument cannot make Breeze `LBFGSB` stop at a smaller
+residual.
+
+To reproduce Gale's rule in Breeze `LBFGS`, pass a custom check:
+
+```scala
+import breeze.optimize.FirstOrderMinimizer.*
+
+val tau = 1e-8 // absolute + relative * max(1, ‖∇f(x₀)‖∞)
+val check = ConvergenceCheck.fromPartialFunction[DenseVector[Double]] {
+  case s if breeze.linalg.max(breeze.numerics.abs(s.grad)) <= tau => GradientConverged
+} || maxIterationsReached[DenseVector[Double]](20000) || searchFailed[DenseVector[Double]]
+val breezeLbfgs = new LBFGS[DenseVector[Double]](check, m = 10)
+```
+
+Breeze `LBFGSB` does not take a check. A subclass can drive the inherited
+`infiniteIterations` iterator and stop on the projected-gradient residual.
+The parity suite does this.
+
+The equivalent Gale configuration:
+
+```scala mdoc
+import gale.optim.*
+
+val optTolerance = FirstOrderTolerance.from(absolute = 1e-8, relative = 0.0).toOption.get
+val optObjective = DifferentiableObjective(2): x =>
+  val (a, b) = (x(0, 0), x(1, 0))
+  val value = (1 - a) * (1 - a) + 100 * (b - a * a) * (b - a * a)
+  val gradient = DMat.tabulate(2, 1): (row, _) =>
+    if row == 0 then -2 * (1 - a) - 400 * a * (b - a * a) else 200 * (b - a * a)
+  Right(ObjectiveEvaluation(value, gradient))
+.toOption.get
+
+val optStart = DMat.tabulate(2, 1)((row, _) => if row == 0 then -1.2 else 1.0)
+val optUnconstrained = LBFGS
+  .minimize(optObjective, optStart, LBFGSConfig(tolerance = optTolerance, historySize = 10))
+  .toOption.get
+(optUnconstrained.status, optUnconstrained.primal(0, 0), optUnconstrained.primal(1, 0))
+
+val optBox = MatrixBoxBounds.uniform(2, -2.0, 0.8).toOption.get
+val optBounded = LBFGSB
+  .minimize(optObjective, optBox, DMat.zeros(2, 1), LBFGSBConfig(tolerance = optTolerance))
+  .toOption.get
+(optBounded.status, optBounded.primal(0, 0), optBounded.primal(1, 0))
+```
+
+### Recorded differences
+
+`OptimizerParitySuite` in the [`parity/` module](../../../parity/README.md)
+runs both libraries with this shared rule (`τ = 1e-8`, history 10) on
+quadratics with condition numbers up to 1e6, chained Rosenbrock up to
+n = 100, L2-regularized logistic regression, and box-constrained quadratics
+and logistic regression. On every problem, both libraries reach `τ`. The
+returned points agree within the bound implied by `τ` and the strong
+convexity constant, and the values and active sets also agree. The suite
+records these differences:
+
+- **Default accuracy.** Default-configured Breeze can stop far from the
+  minimizer. On a quadratic with n = 100 and κ = 1e4, `new LBFGS()` stopped
+  with `‖x − x*‖₂ ≈ 9e-3`. On a box quadratic of the same size,
+  `new LBFGSB(l, u)` reached its 100-iteration limit with
+  `‖x − x*‖₂ ≈ 1.8`. Under the shared rule, both libraries returned points
+  within `4e-9` of each other.
+- **Evaluation counts.** These are informational, not a benchmark. In the
+  unconstrained cases, the two libraries used similar numbers of callbacks.
+  In the box-constrained cases, Breeze `LBFGSB` used about three times as
+  many callbacks as Gale.
+- **Infeasible starts.** Both libraries reject them. Gale returns
+  `Left(FirstOrderError.InvalidConfiguration(...))`. Breeze throws
+  `IllegalArgumentException`. Project the start onto the box before calling
+  either solver.
+- **A start at the minimizer** returns after one evaluation in both
+  libraries.
+- **Roundoff limit.** A strong-Wolfe line search must detect a decrease in
+  `f` of about `‖∇f‖² / L`. When `|f*|` is large, such as 1e2, that decrease
+  can fall below `eps · |f|` before `‖∇f‖∞` reaches 1e-8. Either library may
+  then stop on a failed line search: Gale reports `LineSearchFailed`, and
+  Breeze reports `line search failed!`. Whether a given problem stalls
+  differs between the libraries. In the suite, Gale reached `τ` on one of
+  three such problems and Breeze on another. Neither reports `Converged` with
+  a residual above `τ`. Subtract a known constant from the objective, or
+  loosen the tolerance, when this happens.
+
 ## What Gale does not replace
 
 Gale does not provide:
 
 - Breeze collections, generic scalar operators, broadcasting, or compatible
   `::` slicing syntax;
-- probability distributions, optimization, statistics, signal processing,
+- probability distributions, Breeze's other `breeze.optimize` solvers (for
+  example OWLQN, SGD variants, and projected quasi-Newton), statistics,
+  signal processing,
   plotting, machine learning, tensors, or other non-linear-algebra modules;
 - general complex matrix storage and arithmetic;
 - sparse direct factorization;
