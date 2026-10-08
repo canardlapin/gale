@@ -232,6 +232,8 @@ private[gale] object DenseSpectralKernels:
       eOffset: Int,
       accumulate: Boolean
   ): Unit =
+    // The empty matrix is already tridiagonal; `d`/`e` have no slot to clear.
+    if n == 0 then return
     // Reduce from the last row inward; row i is eliminated against columns 0..i-1.
     var i = n - 1
     while i >= 1 do

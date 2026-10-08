@@ -86,6 +86,12 @@ object Eigen:
     * [[EigenSelection.ValueInterval]] every eigenvalue in `(lower, upper]`. Output
     * is ascending regardless.
     *
+    * The empty `0 × 0` matrix has an empty decomposition: `All` (and any
+    * `ValueInterval`) returns `Right` with no eigenvalues and `0 × 0` eigenvectors,
+    * like `lu`/`qr`/`cholesky` on empty input; `Count`/`IndexRange` are `Left`
+    * because no `k ≥ 1` or index is in range. (Breeze's `eigSym` throws
+    * `MatrixEmptyException` here instead.)
+    *
     * '''Backend routing (seam S8 of `docs/spectral-backend-boundary.md`).''' A
     * [[SpectralCapability.DenseSymmetricEigen]]-capable `given SpectralBackend`
     * whose [[SpectralBackend.denseSymmetricEigenMinSize]] the matrix order clears
@@ -156,6 +162,7 @@ object Eigen:
     * deliberately bypasses optional providers: reuse of the caller's workspace
     * is part of the method contract, whereas provider scratch ownership is not.
     * The ordinary [[eigSymmetric]] facade retains backend routing unchanged.
+    * Empty input follows [[eigSymmetric]]: `All` on `0 × 0` is an empty `Right`.
     */
   def eigSymmetricWith(
       a: DMat,
@@ -567,7 +574,8 @@ object Eigen:
     * ([[EigenSelection.Count]] with an algebraic/magnitude order,
     * [[EigenSelection.IndexRange]], [[EigenSelection.ValueInterval]] all legal;
     * real-part orders rejected). `vectors` selects [[EigenVectors.ValuesOnly]] vs
-    * [[EigenVectors.Right]].
+    * [[EigenVectors.Right]]. An empty `0 × 0` pencil has an empty decomposition
+    * under `All`, as in [[eigSymmetric]].
     *
     * '''Scope.''' This overload is the dense path. The separate typed operator
     * overload runs matrix-free LOBPCG; the generalized '''nonsymmetric''' pencil

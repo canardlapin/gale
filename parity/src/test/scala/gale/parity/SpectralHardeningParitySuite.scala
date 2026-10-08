@@ -1,6 +1,7 @@
 package gale.parity
 
 import breeze.linalg.DenseMatrix as BDM
+import breeze.linalg.MatrixEmptyException
 import breeze.linalg.eigSym
 import gale.linalg.*
 import gale.parity.ParitySupport.*
@@ -20,10 +21,9 @@ import gale.spectral.*
   * cluster's invariant subspace is compared with
   * `‖G − B Bᵀ G‖_F ≤ √k · c · n · ε · ‖A‖₂ / sep` (`k` the cluster size) — sign- and rotation-invariant.
   *
-  * '''Divergence.''' Breeze's `eigSym` throws `MatrixEmptyException` on `0 × 0`.
-  * gale's behaviour on `0 × 0` is not asserted here: `Eigen.eigSymmetric` currently
-  * throws `ArrayIndexOutOfBoundsException` instead of a typed result (reported to
-  * the coordinator; not covered until its intended semantics are decided).
+  * '''Divergence.''' On `0 × 0` gale returns an empty decomposition (the
+  * `lu`/`qr`/`cholesky` precedent) while Breeze's `eigSym` throws
+  * `MatrixEmptyException`.
   */
 class SpectralHardeningParitySuite extends munit.FunSuite:
 
@@ -81,6 +81,12 @@ class SpectralHardeningParitySuite extends munit.FunSuite:
       val es = eigSym(breezeMatrix(data))
       assertEquals(gd.eigenvalues(0), es.eigenvalues(0), s"λ [$value]")
       assertEquals(math.abs(gd.eigenvectors(0, 0)), 1.0, s"v [$value]")
+  }
+
+  test("empty 0x0: gale returns an empty decomposition, breeze throws MatrixEmptyException") {
+    val gd = galeEig(Matrix.zeros(0, 0))
+    assertEquals((gd.size, gd.eigenvectors.rows, gd.eigenvectors.cols), (0, 0, 0))
+    intercept[MatrixEmptyException](eigSym(BDM.zeros[Double](0, 0)))
   }
 
   test("ill-conditioned spectra: κ = 1e12 SPD, indefinite, and Hilbert 6..12") {
