@@ -416,9 +416,13 @@ lazy val benchmarksJVM =
       // Breeze in COMPILE scope here (not test) so the paired gale-vs-Breeze JMH
       // benchmarks can call it. This module is publish-skipped and is never a
       // dependency of core/laws, so gale-core stays 100% Breeze-free. Same native
-      // Scala 3 artifact (breeze_3) as the parity module — its netlib backend runs
-      // the pure-Java F2J fallback here, which is deliberately the baseline the
-      // benchmarks target (native-BLAS Breeze is a separate, deferred comparison).
+      // Scala 3 artifact (breeze_3) as the parity module. Breeze's dev.ludovic
+      // netlib picks native JNI BLAS first, then VectorBLAS whenever
+      // jdk.incubator.vector is resolvable, then scalar Java BLAS. JMH forks inherit
+      // the --add-modules above, so a plain Jmh/run gives Breeze SIMD VectorBLAS,
+      // not a scalar fallback. Use the breezeLaneA (scalar, out-of-box) and
+      // breezeLaneB (SIMD) aliases below; every Breeze bench logs the resolved
+      // netlib class to target/breeze-netlib.jsonl.
       libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion
     )
 
@@ -561,6 +565,19 @@ addCommandAlias("nativeBackendTest", ";nativeBackend/test")
 addCommandAlias("blasFfmBackendTest", ";blasFfmBackend/test")
 addCommandAlias("benchFfmCompile", ";benchmarksFfm/Jmh/compile")
 addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile")
+// Paired gale-vs-Breeze lanes (append JMH options and a benchmark regex, e.g.
+// `sbt "breezeLaneA -rff target/laneA.json .*BreezeJmh.*"`). Lane A replaces the
+// forks' inherited JVM args (dropping --add-modules=jdk.incubator.vector) so Breeze
+// gets scalar Java BLAS and gale runs pure. Lane B keeps the module: Breeze gets
+// VectorBLAS and gale runs both its pure and Vector backends.
+addCommandAlias(
+  "breezeLaneA",
+  "benchmarksJVM/Jmh/run -jvmArgs -Dgale.bench.lane=A -p backend=pure -rf json"
+)
+addCommandAlias(
+  "breezeLaneB",
+  "benchmarksJVM/Jmh/run -jvmArgsAppend -Dgale.bench.lane=B -p backend=pure,vector -rf json"
+)
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.
 addCommandAlias("demoBuild", ";demo/fastLinkJS")

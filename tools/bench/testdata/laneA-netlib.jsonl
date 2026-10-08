@@ -1,0 +1,3 @@
+{"lane": "A", "benchmark": "gale.bench.BlasL3BreezeJmh.breezeGemm", "params": "n=16", "jdk": "25.0.1", "vectorModule": false, "blas": "dev.ludovic.netlib.blas.Java11BLAS", "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"}
+{"lane": "A", "benchmark": "gale.bench.BlasL1BreezeJmh.breezeDot", "params": "n=16", "jdk": "25.0.1", "vectorModule": false, "blas": "dev.ludovic.netlib.blas.Java11BLAS", "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"}
+{"lane": "A", "benchmark": "gale.bench.TimedBreezeJmh.breezeSolve", "params": "n=16", "jdk": "25.0.1", "vectorModule": false, "blas": "dev.ludovic.netlib.blas.Java11BLAS", "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"}

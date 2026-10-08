@@ -1,0 +1,1 @@
+{"lane": "B", "benchmark": "gale.bench.BlasL3BreezeJmh.breezeGemm", "params": "n=16", "jdk": "25.0.1", "vectorModule": true, "blas": "dev.ludovic.netlib.blas.VectorBLAS", "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"}

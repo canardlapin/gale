@@ -1,5 +1,21 @@
 # Breeze comparison — release-grade sweep (2026-07-11)
 
+> **Correction (2026-10-08).** This receipt did not record which
+> `dev.ludovic.netlib` BLAS class Breeze used, so the "pure-Java netlib fallback"
+> label below is unverified. The build it was committed with (80611e3) passed no
+> `--add-modules=jdk.incubator.vector` to JMH: `.jvmopts` arrived on 2026-07-13
+> (d3aecae) and the `Jmh / javaOptions` flag on 2026-07-17 (df62a78). Without the
+> module netlib cannot load VectorBLAS, so this sweep most likely ran scalar
+> `Java11BLAS` (netlib's pure-Java BLAS; "F2J" is a misnomer, `F2jBLAS` is a
+> different class) with `F2jLAPACK`, unless the sweep was launched with the module
+> from outside the build, which nothing recorded. **Every Breeze run on a tree since
+> 2026-07-17 is different:** forks inherit the flag and Breeze gets SIMD
+> **VectorBLAS** (as `2026-07-17-breeze-jdk22-vector-enabled.md` records), so later
+> default-config Breeze numbers are not comparable with this table. The two-lane
+> harness (`breezeLaneA`/`breezeLaneB`) and `tools/bench/breeze_scoreboard.py` now
+> record and check the class; this table is superseded by the W0 two-lane
+> baseline once it lands.
+
 Quiet machine, two forks, 5x500ms warmup + 5x500ms measurement, OpenJDK 25.0.1,
 Breeze 2.1.0 pure-Java netlib fallback. Includes all prior tuning: unrolled+FMA
 L1/L2 kernels, 4x4 register-tiled gemm (GemmBlock=128), tiled assign-only syrk,

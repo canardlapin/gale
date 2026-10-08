@@ -7,10 +7,12 @@ import breeze.linalg.DenseVector as BDV
 import breeze.linalg.LU as BreezeLU
 import breeze.linalg.cholesky
 import breeze.linalg.qr
+import gale.backend.Backend
 import gale.bench.BreezeBenchData.*
 import gale.linalg.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.BenchmarkParams
 import org.openjdk.jmh.infra.Blackhole
 
 /** Dense factorization / solve paired benchmarks (`O(n³)`), gale vs Breeze.
@@ -40,7 +42,8 @@ class FactorizationBreezeJmh:
   private var bb: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val aData = diagonallyDominant(n, 100L)
     val sData = spd(n, 200L)
     val bData = vectorData(n, 300L)
@@ -51,16 +54,28 @@ class FactorizationBreezeJmh:
     bS = breezeMatrix(sData)
     bb = breezeVector(bData)
 
-  @Benchmark def galeSolve(bh: Blackhole): Unit   = bh.consume(gA.solve(gb))
+  @Benchmark def galeSolve(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gA.solve(gb))
   @Benchmark def breezeSolve(bh: Blackhole): Unit = bh.consume(bA \ bb)
 
-  @Benchmark def galeLu(bh: Blackhole): Unit   = bh.consume(gA.lu)
+  @Benchmark def galeLu(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gA.lu)
   @Benchmark def breezeLu(bh: Blackhole): Unit = bh.consume(BreezeLU.primitive(bA))
 
-  @Benchmark def galeChol(bh: Blackhole): Unit   = bh.consume(gS.cholesky)
+  @Benchmark def galeChol(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gS.cholesky)
   @Benchmark def breezeChol(bh: Blackhole): Unit = bh.consume(cholesky(bS))
 
-  @Benchmark def galeQr(bh: Blackhole): Unit   = bh.consume(gA.qr)
+  @Benchmark def galeQr(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gA.qr)
   @Benchmark def breezeQr(bh: Blackhole): Unit = bh.consume(qr.justR(bA))
 
 /** Tall least-squares paired benchmark: an overdetermined `m × n` system with
@@ -83,7 +98,8 @@ class LeastSquaresBreezeJmh:
   private var bb: BDV[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val m     = 4 * n
     val aData = matrixData(m, n, 400L)
     val bData = vectorData(m, 500L)
@@ -92,7 +108,10 @@ class LeastSquaresBreezeJmh:
     bA = breezeMatrix(aData)
     bb = breezeVector(bData)
 
-  @Benchmark def galeLstsq(bh: Blackhole): Unit   = bh.consume(gA.leastSquares(gb))
+  @Benchmark def galeLstsq(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
+    bh.consume(gA.leastSquares(gb))
   @Benchmark def breezeLstsq(bh: Blackhole): Unit = bh.consume(bA \ bb)
 
 /** Representative Scalafim migration workloads. The shapes model a modest fMRI

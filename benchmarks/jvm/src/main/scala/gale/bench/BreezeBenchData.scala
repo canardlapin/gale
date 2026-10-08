@@ -2,10 +2,18 @@ package gale.bench
 
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.DenseVector as BDV
+import gale.backend.Backend
+import gale.backend.PureBackend
 import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.Matrix
 import gale.linalg.Vec
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.BenchmarkParams
 
 /** Seeded input generators shared by the paired gale-vs-Breeze JMH benchmarks.
   *
@@ -99,3 +107,75 @@ object BreezeBenchData:
 
   def breezeVector(data: Array[Double]): BDV[Double] =
     BDV(data.clone())
+
+  /** System property naming the netlib sidecar file (JSON Lines, appended). */
+  final val NetlibSidecarProperty = "gale.bench.netlibSidecar"
+
+  /** Default sidecar path, relative to the forked JVM's working directory. */
+  final val DefaultNetlibSidecar = "target/breeze-netlib.jsonl"
+
+  /** Records which `dev.ludovic.netlib` BLAS/LAPACK implementation Breeze resolved in
+    * this fork. Called from every Breeze bench's trial setup: one line to stderr and one
+    * JSON object appended to the sidecar (`-Dgale.bench.netlibSidecar=...`, default
+    * [[DefaultNetlibSidecar]]), which `tools/bench/breeze_scoreboard.py` reads to
+    * label — and, for lane A, reject — a receipt. Netlib picks native JNI first, then
+    * VectorBLAS when `jdk.incubator.vector` is resolvable, then the scalar Java BLAS.
+    */
+  def recordNetlib(params: BenchmarkParams): Unit =
+    val blas   = dev.ludovic.netlib.blas.BLAS.getInstance().getClass.getName
+    val lapack = dev.ludovic.netlib.lapack.LAPACK.getInstance().getClass.getName
+    val lane   = System.getProperty("gale.bench.lane", "unset")
+    val vectorModule = ModuleLayer.boot().findModule("jdk.incubator.vector").isPresent
+    val paramText =
+      params.getParamsKeys.toArray.map(k => s"$k=${params.getParam(k.toString)}").mkString(",")
+    System.err.println(
+      s"[breeze-netlib] lane=$lane benchmark=${params.getBenchmark} params=$paramText blas=$blas lapack=$lapack"
+    )
+    def q(v: String): String = "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+    val line =
+      s"""{"lane":${q(lane)},"benchmark":${q(params.getBenchmark)},"params":${q(paramText)},""" +
+        s""""jdk":${q(System.getProperty("java.version"))},"vectorModule":$vectorModule,""" +
+        s""""blas":${q(blas)},"lapack":${q(lapack)}}\n"""
+    val path = Paths.get(System.getProperty(NetlibSidecarProperty, DefaultNetlibSidecar))
+    Option(path.toAbsolutePath.getParent).foreach(Files.createDirectories(_))
+    Files.write(
+      path,
+      line.getBytes(StandardCharsets.UTF_8),
+      StandardOpenOption.CREATE,
+      StandardOpenOption.APPEND
+    )
+
+/** The gale-side backend switch for the paired Breeze benchmarks. Only the `gale*`
+  * methods take this state, so JMH expands `backend` for gale benchmarks alone and each
+  * Breeze twin runs once per size.
+  *
+  *   - `pure` — [[gale.backend.PureBackend]]: lane A (out-of-box) and the lane-B control.
+  *   - `vector` — the `backend-jvm-vector` SIMD backend: lane B only. It needs
+  *     `--add-modules=jdk.incubator.vector`; without the module the trial fails fast with
+  *     an explicit message instead of a `NoClassDefFoundError` (run lane A with
+  *     `-p backend=pure`, which the `breezeLaneA` alias does).
+  */
+@State(Scope.Thread)
+class GaleBackendState:
+  @Param(Array("pure", "vector"))
+  var backend: String = "pure"
+
+  var selected: Backend = PureBackend
+
+  @Setup(Level.Trial)
+  def selectBackend(): Unit =
+    selected = backend match
+      case "pure"   => PureBackend
+      case "vector" =>
+        if !ModuleLayer.boot().findModule("jdk.incubator.vector").isPresent then
+          throw new IllegalStateException(
+            "backend=vector needs --add-modules=jdk.incubator.vector (lane B); lane A must run with -p backend=pure"
+          )
+        VectorBackendLoader.load()
+      case other    => throw new IllegalArgumentException(s"unknown gale backend '$other' (expected pure|vector)")
+
+/** Isolates the only reference to the Vector API backend so that loading
+  * [[GaleBackendState]] never resolves `jdk.incubator.vector` classes.
+  */
+private object VectorBackendLoader:
+  def load(): Backend = gale.backend.jvm.vector.VectorBackend

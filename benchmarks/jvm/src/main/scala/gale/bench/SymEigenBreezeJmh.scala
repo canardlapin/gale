@@ -4,11 +4,13 @@ import scala.compiletime.uninitialized
 
 import breeze.linalg.DenseMatrix as BDM
 import breeze.linalg.eigSym
+import gale.backend.Backend
 import gale.bench.BreezeBenchData.*
 import gale.linalg.*
 import gale.spectral.*
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.BenchmarkParams
 import org.openjdk.jmh.infra.Blackhole
 
 /** Dense symmetric eigendecomposition (values + vectors) paired benchmark:
@@ -32,12 +34,15 @@ class SymEigenBreezeJmh:
   private var bA: BDM[Double] = uninitialized
 
   @Setup(Level.Trial)
-  def setupTrial(): Unit =
+  def setupTrial(params: BenchmarkParams): Unit =
+    recordNetlib(params)
     val data = symmetric(n, 600L)
     gA = galeMatrix(data)
     bA = breezeMatrix(data)
 
-  @Benchmark def galeEigSym(bh: Blackhole): Unit =
+  @Benchmark def galeEigSym(g: GaleBackendState, bh: Blackhole): Unit =
+    val backend = g.selected
+    given Backend = backend
     bh.consume(Eigen.eigSymmetric(gA, EigenSelection.All, EigenVectors.Right))
 
   @Benchmark def breezeEigSym(bh: Blackhole): Unit =
