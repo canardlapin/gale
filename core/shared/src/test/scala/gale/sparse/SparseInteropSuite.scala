@@ -15,6 +15,10 @@ class SparseInteropSuite extends munit.FunSuite:
     matrix.foreachStoredEntry((row, col, value) => out += ((row, col, value)))
     out.result()
 
+  /** Column-major storage order; CSC has no public stored-entry traversal. */
+  private def storedEntries(matrix: CSC): Vector[(Int, Int, Double)] =
+    Vector.tabulate(matrix.cols)(col => (matrix.colPtr(col) until matrix.colPtr(col + 1)).map(k => (matrix.rowIdx(k), col, matrix.values(k)))).flatten
+
   test("COO primitive traversal preserves physical order, duplicates, zeros, and non-finite values") {
     val coo = TestAccess.coo(
       rows = 3,
@@ -55,11 +59,60 @@ class SparseInteropSuite extends munit.FunSuite:
     assert(builder.tryAdd(2, 0, -2.0).isRight)
 
     val csr = builder.tryToCSR(DuplicatePolicy.Sum).toOption.get
-    assert(csr.hasCanonicalFormat)
+    assert(!csr.hasCanonicalFormat, "the explicit zero at (1, 0) stays stored")
     assertEquals(
       storedEntries(csr),
+      Vector((0, 2, 4.0), (1, 0, 0.0), (2, 0, -2.0), (2, 1, 4.0))
+    )
+    assertEquals(
+      storedEntries(csr.pruneZeros),
       Vector((0, 2, 4.0), (2, 0, -2.0), (2, 1, 4.0))
     )
+  }
+
+  test("checked and total CSR/CSC finalization agree on explicit zeros") {
+    def build(): COOBuilder =
+      Sparse
+        .coo(3, 3)
+        .add(1, 0, 0.0) // explicit zero
+        .add(1, 1, 2.0)
+        .add(0, 2, 3.0)
+        .add(0, 2, -3.0) // duplicates that sum to zero
+        .add(2, 1, -0.0) // explicit negative zero
+
+    val expected = Vector((0, 2, 0.0), (1, 0, 0.0), (1, 1, 2.0), (2, 1, -0.0))
+
+    val total = build().toCSR()
+    val checked = build().tryToCSR().toOption.get
+    assertEquals(total.nnz, 4)
+    assertEquals(checked.nnz, total.nnz)
+    assertEquals(storedEntries(checked), storedEntries(total))
+    assertEquals(storedEntries(checked), expected)
+    assertEquals(checked.pruneZeros.nnz, 1)
+
+    val totalCsc = build().toCSC()
+    val checkedCsc = build().tryToCSC().toOption.get
+    assertEquals(totalCsc.nnz, 4)
+    assertEquals(checkedCsc.nnz, totalCsc.nnz)
+    assertEquals(storedEntries(checkedCsc), storedEntries(totalCsc))
+    assertEquals(storedEntries(checkedCsc).sortBy(e => (e._1, e._2)), expected)
+    assertEquals(checkedCsc.pruneZeros.nnz, 1)
+
+    // Tuple equality treats -0.0 == 0.0, so check the stored signs directly.
+    def signs(entries: Vector[(Int, Int, Double)]): Vector[Boolean] =
+      entries.sortBy(e => (e._1, e._2)).map(e => 1.0 / e._3 < 0.0)
+    val expectedSigns = Vector(false, false, false, true)
+    assertEquals(signs(storedEntries(checked)), expectedSigns)
+    assertEquals(signs(storedEntries(total)), expectedSigns)
+    assertEquals(signs(storedEntries(checkedCsc)), expectedSigns)
+    assertEquals(signs(storedEntries(totalCsc)), expectedSigns)
+
+    // The issue's reproducer.
+    val small = Sparse.coo(2, 2).add(1, 0, 0.0).add(1, 1, 2.0)
+    assertEquals(small.toCSR().nnz, 2)
+    assertEquals(small.tryToCSR().map(_.nnz), Right(2))
+    assertEquals(small.toCSC().nnz, 2)
+    assertEquals(small.tryToCSC().map(_.nnz), Right(2))
   }
 
   test("checked builder factory and tryAdd make shape and index failures total") {
@@ -155,7 +208,10 @@ class SparseInteropSuite extends munit.FunSuite:
       _ <- builder.tryAdd(1, 2, 7.0)
       csr <- builder.tryToCSR(DuplicatePolicy.Sum)
     yield csr
-    val csr = result.toOption.get
+    val stored = result.toOption.get
+    assertEquals(stored.nnz, 4, "the duplicates summed to zero at (0, 1) stay stored")
+    assertEquals(stored(0, 1), 0.0)
+    val csr = stored.pruneZeros
     assert(csr.hasCanonicalFormat)
     assertEquals(storedEntries(csr), Vector((1, 2, 7.0), (2, 0, 4.0), (2, 3, 5.0)))
 

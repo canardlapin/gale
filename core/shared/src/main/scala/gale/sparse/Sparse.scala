@@ -340,7 +340,12 @@ final class COOBuilder private[gale] (
   def toCSR(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): CSR =
     toCOO(duplicates).toCSR
 
-  /** Total canonical CSR finalization under the existing duplicate policy. */
+  /** Total CSR finalization under the existing duplicate policy.
+    *
+    * Agrees with [[toCSR]]: indices are sorted and duplicates combined, but
+    * explicit zeros (including duplicates that sum to zero) stay stored. Call
+    * `pruneZeros` on the result to drop them.
+    */
   def tryToCSR(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, CSR] =
     if rows == Int.MaxValue then
       Left(
@@ -348,11 +353,12 @@ final class COOBuilder private[gale] (
           s"CSR row-pointer length ${rows.toLong + 1L} exceeds ${Int.MaxValue}"
         )
       )
-    else tryToCOO(duplicates).map(_.toCSR.pruneZeros)
+    else tryToCOO(duplicates).map(_.toCSR)
 
   def toCSC(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): CSC =
     toCOO(duplicates).toCSC
 
+  /** Total CSC finalization; keeps explicit zeros exactly as [[toCSC]] does. */
   def tryToCSC(duplicates: DuplicatePolicy = DuplicatePolicy.Sum): Either[LinAlgError, CSC] =
     if cols == Int.MaxValue then
       Left(
@@ -364,7 +370,7 @@ final class COOBuilder private[gale] (
       // Compress the transpose by original column, then reinterpret it back as
       // CSC. This avoids allocating an original-row-sized CSR pointer and makes
       // the checked CSC path total even when rows == Int.MaxValue.
-      tryToCOO(duplicates).map(coo => coo.t.toCSR.pruneZeros.t)
+      tryToCOO(duplicates).map(coo => coo.t.toCSR.t)
 
   /** Stable row-major ordering of insertion indices, implemented over primitive
     * arrays so canonicalization does not construct a boxed triplet collection.

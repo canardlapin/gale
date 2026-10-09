@@ -265,9 +265,10 @@ val sparseA = Sparse
 ```
 
 The builder sorts coordinates, handles duplicates according to a
-`DuplicatePolicy`, and removes explicit zeros when it creates a canonical
-compressed matrix. Use `Sparse.cooChecked` when malformed input or non-finite
-values should be returned as `LinAlgError` rather than thrown.
+`DuplicatePolicy`, and keeps explicit zeros (including duplicates that sum to
+zero) in the compressed matrix; call `pruneZeros` to drop them. Use
+`Sparse.cooChecked` when malformed input or non-finite values should be
+returned as `LinAlgError` rather than thrown.
 
 `Sparse.diagonal`, `Sparse.identity`, `Sparse.zero`, and `Sparse.permutation`
 construct common structures without passing through a coordinate builder.

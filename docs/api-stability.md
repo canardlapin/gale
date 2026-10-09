@@ -111,6 +111,14 @@ box-projected Lagrangian stationarity, and complementarity. Fused constraint
 callbacks use the existing `jacobians` work counter. These are first-order
 conditions, not a certificate of a minimum or of infeasibility.
 
+## Checked sparse builder finalization
+
+`COOBuilder.tryToCSR` and `tryToCSC` now keep explicit stored zeros, including
+duplicates that sum to zero, exactly as the total `toCSR` and `toCSC` always
+have. Earlier releases pruned them on the checked path only, so the two paths
+could disagree on `nnz` and on `hasCanonicalFormat`. Callers that relied on
+the pruning should call `pruneZeros` on the result.
+
 ## Sparse vector additions before M1
 
 `gale.sparse` adds `SparseVector`, its `SparseVectorEntryConsumer` callback,
