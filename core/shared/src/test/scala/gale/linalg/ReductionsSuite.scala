@@ -474,6 +474,41 @@ class ReductionsSuite extends ScalaCheckSuite:
         assertEquals(bits(gale.kernel.DoubleKernels.dminReduce(len, data, off, stride)), expectedMin, s"reduce min $where")
   }
 
+  test("both streamed per-axis passes (scan and reduce) return the bits at each line's argmax/argmin") {
+    // As above: drive both passes on every host, not only the platform default.
+    def bits(x: Double) = java.lang.Double.doubleToLongBits(x)
+    val random = new scala.util.Random(20261011L)
+    val pool = IndexedSeq(-0.0, 0.0, 1.0, -1.0, PInf, NInf)
+    def entry(nanRate: Double): Double =
+      val u = random.nextDouble()
+      if u < nanRate then Nan
+      else if u < 0.7 then pool(random.nextInt(pool.length))
+      else random.nextGaussian()
+    for
+      (rows, cols) <- Seq((2, 2), (3, 7), (9, 4), (13, 5))
+      trial <- 0 until 6
+    do
+      val nanRate = if trial % 2 == 0 then 0.08 else 0.0
+      val entries = IndexedSeq.fill(rows, cols)(entry(nanRate))
+      for
+        (name, a) <- matrixLayouts(rows, cols, (i, j) => entries(i)(j))
+        axis <- Seq(Axis.Rows, Axis.Cols)
+        if a.streamsAxis(axis)
+      do
+        val lines =
+          if axis == Axis.Rows then entries.map(r => Vec(r*))
+          else IndexedSeq.tabulate(cols)(j => Vec(entries.map(_(j))*))
+        val expectedMax = lines.map(l => bits(l(l.argmax)))
+        val expectedMin = lines.map(l => bits(l(l.argmin)))
+        for scan <- Seq(true, false) do
+          val out = gale.platform.DoubleArray.alloc(lines.length)
+          val where = s"$name $axis ${rows}x$cols trial=$trial scan=$scan"
+          a.streamedExtremes(axis, largest = true, out, scan)
+          assertEquals(lines.indices.map(i => bits(out(i))), expectedMax, s"max $where")
+          a.streamedExtremes(axis, largest = false, out, scan)
+          assertEquals(lines.indices.map(i => bits(out(i))), expectedMin, s"min $where")
+  }
+
   test("ReLU-like lines with exact signed zeros keep the first-occurrence max/min value") {
     // Every entry <= 0 (for max) with many exact zeros of both signs, so the
     // value pass ends at zero and the first-zero resolution decides the bits.
