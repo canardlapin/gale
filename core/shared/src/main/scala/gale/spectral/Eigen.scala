@@ -1027,7 +1027,7 @@ object Eigen:
         // a non-mirror strict upper triangle yields spurious residuals against a
         // correct decomposition.
         val sym = DMat.tabulate(n, n)((i, j) => if i >= j then a(i, j) else a(j, i))
-        (sel, perPairResiduals(v => sym * v, selValues, sel), orthogonalityError(sel))
+        (sel, densePairResiduals(sym * sel, selValues, sel), orthogonalityError(sel))
       else (DMat.zeros(n, 0), DVec.zeros(indices.length), 0.0)
     val diagnostics =
       SpectralDiagnostics(
@@ -1047,11 +1047,13 @@ object Eigen:
   // Shared numeric helpers
   // ===========================================================================
 
-  /** Per-column residual `‖A v_i − λ_i v_i‖` for eigenvector columns. */
-  private def perPairResiduals(applyOp: DVec => DVec, values: DVec, vectors: DMat): DVec =
+  /** Per-column residual `‖A v_i − λ_i v_i‖` for eigenvector columns, given the
+    * product `A V` (one matrix product rather than a matrix-vector product per
+    * column).
+    */
+  private def densePairResiduals(av: DMat, values: DVec, vectors: DMat): DVec =
     DVec.tabulate(vectors.cols): c =>
-      val v = vectors.col(c)
-      val diff = applyOp(v) - v * values(c)
+      val diff = av.col(c) - vectors.col(c) * values(c)
       diff.norm2
 
   /** `‖VᵀV − I‖_F` of the eigenvector columns. */
