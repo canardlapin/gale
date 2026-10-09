@@ -153,6 +153,9 @@ jobs:
       - name: Run Breeze differential parity
         timeout-minutes: 10
         run: sbt parityTest
+      - name: Check the cross-platform Breeze goldens are fresh
+        timeout-minutes: 5
+        run: sbt breezeGoldensCheck
       - name: Run Breeze conversion and migration suites
         timeout-minutes: 8
         run: sbt interopBreezeTest

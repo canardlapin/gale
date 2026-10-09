@@ -542,6 +542,10 @@ addCommandAlias("testAll", ";coreJVM/test;coreJS/test;lawsJVM/test;lawsJS/test")
 addCommandAlias("testAllFull", ";testAll;coreJS/Test/fullLinkJS;lawsJS/Test/fullLinkJS")
 // Breeze parity harness (JVM-only correctness parity vs Scala Breeze 2.1.0).
 addCommandAlias("parityTest", ";parity/test")
+// Cross-platform Breeze goldens: regenerate core/shared/src/test/scala/gale/golden/BreezeGoldens.scala
+// from Breeze, or regenerate in memory and fail if the checked-in corpus is stale (see parity/README.md).
+addCommandAlias("breezeGoldens", "parity/Test/runMain gale.parity.GenerateBreezeGoldens --write")
+addCommandAlias("breezeGoldensCheck", "parity/Test/runMain gale.parity.GenerateBreezeGoldens --check")
 // Breeze interop module (conversions + migration aids).
 addCommandAlias("interopBreezeTest", ";interopBreeze/test")
 // Ravel interop module (copy-only dense vector/matrix conversions).
