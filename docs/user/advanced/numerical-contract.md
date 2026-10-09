@@ -21,6 +21,14 @@ bit-for-bit agreement between legal algorithms.
   product (and the sums of squares built on it) is the exception: it uses
   separately rounded multiply-adds on every platform, because the fused form
   was measurably slower there, so it gives the same bits on JVM and Scala.js.
+  The accuracy cost is small: on 1000-term cancelling sums with condition
+  numbers from about 1e4 to 1e18, the median error relative to `Σ|x_i y_i|`
+  was 2–6e-17 for both forms, the unfused one at most about 20% larger, and
+  both are far inside the classical bound `γ_n Σ|x_i y_i|` (about 1e-13 here).
+  Relative to the result, either form loses about `κ` times that; neither is
+  a compensated dot product, so evaluate a cancelling dot product that must be
+  accurate with exact summation (for example `gale.numeric.ExactSum` over the
+  error-free product terms). `DotAccuracySuite` prints the current figures.
 - Vector and vendor BLAS/LAPACK backends may reassociate operations. Their
   answers must satisfy conformance tolerances but need not match pure Gale bits.
 - Solves and decompositions use scale-aware tests. There is no single absolute
