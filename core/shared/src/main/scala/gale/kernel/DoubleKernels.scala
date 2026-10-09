@@ -52,9 +52,10 @@ private[gale] object DoubleKernels:
 
   /** Euclidean norm, overflow- and underflow-safe.
     *
-    * One optimistic pass forms the plain fma sum of squares (four accumulators
-    * when contiguous); only when that total overflows, is zero, or falls below
-    * a safe floor does [[dnrmFrobenius]] rescan with max scaling, so large
+    * One optimistic pass forms the plain sum of squares through [[dsumsq]]
+    * (unfused when contiguous, fma when strided); only when that total
+    * overflows, is zero, or falls below a safe floor does a max-scaled rescan
+    * run (the second half of [[dnrmFrobenius]]), so large
     * elements (e.g. 1e155) never overflow and tiny ones (e.g. 1e-170) never
     * underflow to zero. NaN anywhere gives NaN; otherwise an infinite element
     * gives `+Inf`. Ordinary inputs agree with `sqrt(dot(x, x))` exactly.
@@ -70,7 +71,7 @@ private[gale] object DoubleKernels:
     else
       val ssq = dsumsq(n, x, xOffset, xStride)
       if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
-      else dnrmFrobenius(1, n, x, xOffset, n * xStride, xStride)
+      else dnrmScaledLines(1, n, x, xOffset, 0, xStride)
 
   /** Euclidean norm by the LAPACK `dnrm2` scaled recurrence, in one pass.
     *
@@ -1187,7 +1188,9 @@ private[gale] object DoubleKernels:
           i += 1
         if nan >= 0 then nan else bestIndex
 
-  /** Sum of squares, `sum x_i^2` (four fma accumulators when contiguous). */
+  /** Sum of squares, `sum x_i^2`, via [[ddot]]: four unfused accumulators when
+    * contiguous, an fma chain when strided.
+    */
   def dsumsq(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
     ddot(n, x, xOffset, xStride, x, xOffset, xStride)
 
@@ -1211,7 +1214,8 @@ private[gale] object DoubleKernels:
 
   /** Frobenius norm of a `rows×cols` strided block, overflow- and underflow-safe.
     *
-    * One optimistic pass forms the plain fma sum of squares. Only when that
+    * One optimistic pass forms the plain sum of squares through [[dsumsq]]
+    * (unfused when contiguous, fma when strided). Only when that
     * total is non-finite, zero, or below a safe floor does a second pair of
     * passes find the largest magnitude `m` and sum `(a/m)^2`, giving
     * `m * sqrt(...)`. NaN anywhere gives NaN; otherwise an infinite entry gives
@@ -1241,20 +1245,34 @@ private[gale] object DoubleKernels:
         ssq += dsumsq(lineLength, x, xOffset + line * lineStep, elementStep)
         line += 1
       if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
-      else
-        var m = 0.0
-        line = 0
-        while line < lines do
-          m = math.max(m, damax(lineLength, x, xOffset + line * lineStep, elementStep))
-          line += 1
-        if m == 0.0 || m.isNaN || m.isInfinite then m
-        else
-          var scaled = 0.0
-          line = 0
-          while line < lines do
-            scaled += dsumsqScaled(lineLength, x, xOffset + line * lineStep, elementStep, m)
-            line += 1
-          m * math.sqrt(scaled)
+      else dnrmScaledLines(lines, lineLength, x, xOffset, lineStep, elementStep)
+
+  /** The max-scaled slow path of [[dnrm2]] and [[dnrmFrobenius]] over `lines`
+    * strided lines of `lineLength` entries: find the largest magnitude `m`,
+    * then return `m * sqrt(sum (a/m)^2)`. NaN anywhere gives NaN, otherwise
+    * an infinite entry gives `+Inf`, and an all-zero block gives `0.0`.
+    */
+  private def dnrmScaledLines(
+      lines: Int,
+      lineLength: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      lineStep: Int,
+      elementStep: Int
+  ): Double =
+    var m = 0.0
+    var line = 0
+    while line < lines do
+      m = math.max(m, damax(lineLength, x, xOffset + line * lineStep, elementStep))
+      line += 1
+    if m == 0.0 || m.isNaN || m.isInfinite then m
+    else
+      var scaled = 0.0
+      line = 0
+      while line < lines do
+        scaled += dsumsqScaled(lineLength, x, xOffset + line * lineStep, elementStep, m)
+        line += 1
+      m * math.sqrt(scaled)
 
   /** `y_i := f(x_i)`; `y` may be `x` itself (same offset and stride). */
   inline def dmapInto(

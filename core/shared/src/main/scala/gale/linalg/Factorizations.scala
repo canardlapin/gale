@@ -745,7 +745,7 @@ object DenseDecompositions:
         )
       panelStart = panelEnd
 
-  /** Build one normalized Householder reflector with a scaled `dnrm2` norm. The stored vector has `v(k)=1`;
+  /** Build one normalized Householder reflector with an overflow-safe `dnrm2` norm. The stored vector has `v(k)=1`;
     * `tau=2/(vᵀv)` and the transformed diagonal is written directly to `R`. This is the stable `dlarfg` convention.
     */
   private def factorHouseholder(
