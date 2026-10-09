@@ -33,13 +33,15 @@ import org.openjdk.jmh.infra.Blackhole
   *   - `eigSym`: values and vectors — gale `Eigen.eigSymmetric(All, Right)` vs
   *     breeze `eigSym` (`dsyev`); backend-insensitive (no `GaleBackendState`).
   *
-  * A single operation takes from tens of milliseconds to seconds here, so the class
-  * reports average time with one-second iterations.
+  * A single operation takes from tens of milliseconds to seconds here (eigen and
+  * least squares at `n = 1024` the longest), so the class reports average time with
+  * five warmup iterations of 3 s and five measured iterations of 5 s, so each
+  * measured iteration covers several operations even at `n = 1024`.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 5, time = 3, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 5, time = 5, timeUnit = TimeUnit.SECONDS)
 @Fork(2)
 @State(Scope.Thread)
 class FactorizationLargeBreezeJmh:

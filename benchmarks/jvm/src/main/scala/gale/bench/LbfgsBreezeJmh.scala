@@ -21,7 +21,7 @@ import org.openjdk.jmh.infra.Blackhole
   *   - `rosenbrock`: the chained Rosenbrock function in 100 variables,
   *     `Σ 100(x_{i+1} − x_i²)² + (1 − x_i)²`, from `(−1.2, 1, −1.2, 1, …)`.
   *   - `logistic`: L2-regularized logistic regression,
-  *     `Σ log(1 + exp(−y_i x_iᵀw)) + (λ/2)‖w‖²` with `λ = 1`, on fixed synthetic data
+  *     `Σ log(1 + exp(−y_i x_iᵀw)) + (λ/2)‖w‖²` with `λ = 0.01`, on fixed synthetic data
   *     (`1000 × 50` design, labels `±1` from a seeded linear model plus noise). The
   *     objective uses each library's own matrix-vector products (`X w`, `Xᵀ r`), so
   *     only this gale method takes the backend.
@@ -244,7 +244,7 @@ object LbfgsBreezeJmh:
   final val RosenbrockSize  = 100
   final val LogisticRows    = 1000
   final val LogisticCols    = 50
-  final val Lambda          = 1.0
+  final val Lambda          = 0.01
   final val History         = 10
   final val FixedIterations = 20
 

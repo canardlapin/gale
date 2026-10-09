@@ -104,26 +104,35 @@ object BreezeBenchData:
 
   /** Seeded `n × n` sparse matrix: each entry is stored independently with
     * probability `density` (row indices ascending within a column), values in `[-1, 1)`.
+    * Runs in `O(nnz)`: the gap to the next stored entry, in column-major order, is
+    * drawn from the geometric distribution `floor(log(U) / log(1 - density))`.
     */
   def sparseCsc(n: Int, density: Double, seed: Long): CscData =
+    require(density > 0.0 && density < 1.0, s"density $density must lie in (0, 1)")
     val rng      = new java.util.SplittableRandom(seed)
-    val capacity = math.max(16L, (n.toLong * n.toLong * density * 1.1).toLong).toInt
+    val total    = n.toLong * n.toLong
+    val logSkip  = math.log1p(-density)
+    val capacity = math.max(16L, (total.toDouble * density * 1.1).toLong).toInt
     var rowIdx   = new Array[Int](capacity)
     var values   = new Array[Double](capacity)
     val colPtr   = new Array[Int](n + 1)
     var nnz      = 0
     var col      = 0
+    // 1 - nextDouble() lies in (0, 1], so the log is finite.
+    var pos = (math.log(1.0 - rng.nextDouble()) / logSkip).toLong
+    while pos < total do
+      val c = (pos / n).toInt
+      while col < c do
+        col += 1
+        colPtr(col) = nnz
+      if nnz == rowIdx.length then
+        rowIdx = java.util.Arrays.copyOf(rowIdx, rowIdx.length * 2)
+        values = java.util.Arrays.copyOf(values, values.length * 2)
+      rowIdx(nnz) = (pos % n).toInt
+      values(nnz) = rng.nextDouble() * 2.0 - 1.0
+      nnz += 1
+      pos += 1L + (math.log(1.0 - rng.nextDouble()) / logSkip).toLong
     while col < n do
-      var row = 0
-      while row < n do
-        if rng.nextDouble() < density then
-          if nnz == rowIdx.length then
-            rowIdx = java.util.Arrays.copyOf(rowIdx, rowIdx.length * 2)
-            values = java.util.Arrays.copyOf(values, values.length * 2)
-          rowIdx(nnz) = row
-          values(nnz) = rng.nextDouble() * 2.0 - 1.0
-          nnz += 1
-        row += 1
       col += 1
       colPtr(col) = nnz
     CscData(n, colPtr, java.util.Arrays.copyOf(rowIdx, nnz), java.util.Arrays.copyOf(values, nnz))

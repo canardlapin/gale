@@ -30,11 +30,15 @@ import org.openjdk.jmh.infra.Blackhole
   *
   * Backend-insensitive: gale's sparse products take no `Backend`. The gale CSR is
   * converted from the CSC once in setup; neither side converts in a timed method.
+  *
+  * At `n = 10000`, density 0.1 (about 10M nonzeros) a product takes up to seconds
+  * (Breeze's `CSC * B` measured about 2.7 s on the development machine), so the class
+  * reports average time with 2 s warmup and 4 s measured iterations.
   */
-@BenchmarkMode(Array(Mode.Throughput))
-@OutputTimeUnit(TimeUnit.SECONDS)
-@Warmup(iterations = 5, time = 500, timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(iterations = 5, time = 500, timeUnit = TimeUnit.MILLISECONDS)
+@BenchmarkMode(Array(Mode.AverageTime))
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 5, time = 4, timeUnit = TimeUnit.SECONDS)
 @Fork(2)
 @State(Scope.Thread)
 class SparseMatrixBreezeJmh:

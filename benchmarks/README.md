@@ -150,10 +150,13 @@ adds `--add-modules=jdk.incubator.vector`, and forks inherit it, so a plain
 
 | Lane | sbt alias | Fork JVM args | Breeze BLAS | gale backend |
 |---|---|---|---|---|
-| A, out-of-box | `breezeLaneA` | `-jvmArgs -Dgale.bench.lane=A` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
-| B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
+| A, out-of-box | `breezeLaneA` | `-jvmArgs "-Xms4g -Xmx4g -Dgale.bench.lane=A"` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
+| B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Xms4g -Xmx4g -Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
 
-Both aliases set `-rf json`; append a result file, JMH options and a benchmark
+Both lanes pin a fixed 4 GB heap (`-Xms4g -Xmx4g`), so the largest inputs
+(`SparseMatrixBreezeJmh` at `n = 10000`, density 0.1: about 10M nonzeros held three
+times) fit regardless of the machine's default heap, and GC sizing is the same in both
+lanes. Both aliases set `-rf json`; append a result file, JMH options and a benchmark
 regex. Use one pinned JDK (25 LTS) for both lanes:
 
 ```bash
