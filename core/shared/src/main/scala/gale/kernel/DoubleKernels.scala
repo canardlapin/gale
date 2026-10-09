@@ -336,6 +336,28 @@ private[gale] object DoubleKernels:
     var col = 0
     var aCol = aOffset
     var xj = xOffset
+    if yStride == 1 then
+      // Four columns per sweep load and store each y element once instead of four
+      // times. The nested FMAs keep the per-element column order of the one-column
+      // sweep, so results are unchanged.
+      val colLimit = cols - (cols & 3)
+      while col < colLimit do
+        val s0 = alpha * x(xj)
+        val s1 = alpha * x(xj + xStride)
+        val s2 = alpha * x(xj + 2 * xStride)
+        val s3 = alpha * x(xj + 3 * xStride)
+        val c1 = aCol + colStride
+        val c2 = c1 + colStride
+        val c3 = c2 + colStride
+        row = 0
+        while row < rows do
+          val yr = yOffset + row
+          y(yr) = fma(s3, a(c3 + row), fma(s2, a(c2 + row), fma(s1, a(c1 + row), fma(s0, a(aCol + row), y(yr)))))
+          row += 1
+        aCol = c3 + colStride
+        xj += 4 * xStride
+        col += 4
+
     while col < cols do
       val scale = alpha * x(xj)
       row = 0
