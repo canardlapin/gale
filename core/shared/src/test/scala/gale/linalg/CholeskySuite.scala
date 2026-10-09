@@ -102,6 +102,34 @@ class CholeskySuite extends munit.FunSuite:
     assert(factor.solve(Matrix(1, 1)(Double.NaN)).left.exists(_.isInstanceOf[LinAlgError.DimensionMismatch]))
   }
 
+  test("blocked matrix solve agrees with per-column vector solves and accepts a transposed RHS") {
+    val (n, k) = (100, 7)
+    val rng = new scala.util.Random(43)
+    val m = Matrix.tabulate(n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+    val a = Matrix.tabulate(n, n) { (i, j) =>
+      var s = if i == j then n.toDouble else 0.0
+      var p = 0
+      while p < n do
+        s += m(i, p) * m(j, p)
+        p += 1
+      s
+    }
+    val b = Matrix.tabulate(n, k)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+    val transposedB = Matrix.tabulate(k, n)((c, i) => b(i, c)).t
+    val factor = a.cholesky.orThrow
+    val lowerBefore = Vector.tabulate(n * n)(i => factor.lower(i / n, i % n))
+    val x = factor.solve(b).orThrow
+    for c <- 0 until k do
+      val column = factor.solve(Vec.tabulate(n)(i => b(i, c))).orThrow
+      for i <- 0 until n do
+        assert(math.abs(x(i, c) - column(i)) <= 1e-13 * (1.0 + math.abs(column(i))), s"x($i, $c)")
+    val fromTransposed = factor.solve(transposedB).orThrow
+    for i <- 0 until n; c <- 0 until k do
+      assertEquals(fromTransposed(i, c), x(i, c))
+      assertEquals(transposedB(i, c), b(i, c))
+    assertEquals(Vector.tabulate(n * n)(i => factor.lower(i / n, i % n)), lowerBefore)
+  }
+
   private def assertMatrixClose(actual: DMat, expected: DMat, tolerance: Double): Unit =
     assertEquals(actual.rows, expected.rows)
     assertEquals(actual.cols, expected.cols)

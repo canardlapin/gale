@@ -1235,11 +1235,6 @@ object DenseDecompositions:
       )
     else
       val rhsCols = b.cols
-      val packed = lu.packed
-      val packedData = packed.data
-      val packedOffset = packed.offset.value
-      val packedRowStride = packed.rowStride.value
-      val packedColStride = packed.colStride.value
       val values = DoubleArray.alloc(n * rhsCols)
       var row = 0
       while row < n do
@@ -1250,36 +1245,40 @@ object DenseDecompositions:
           rhs += 1
         row += 1
 
-      var rhs = 0
-      while rhs < rhsCols do
-        DoubleKernels.dtrsv(
-          n,
-          lower = true,
-          unit = true,
-          0.0,
-          packedData,
-          packedOffset,
-          packedRowStride,
-          packedColStride,
-          values,
-          rhs,
-          rhsCols
-        )
-        val info = DoubleKernels.dtrsv(
-          n,
+      // Both sweeps run on all right-hand sides at once through the blocked
+      // triangular kernel.
+      val pData = lu.packed.data
+      val pOff = lu.packed.offset.value
+      val pRowStep = lu.packed.rowStride.value
+      val pColStep = lu.packed.colStride.value
+      DoubleKernels.dtrsmLeft(
+        lower = true,
+        unit = true,
+        n,
+        rhsCols,
+        pData,
+        pOff,
+        pRowStep,
+        pColStep,
+        values,
+        0,
+        rhsCols
+      )
+      val info =
+        DoubleKernels.dtrsmLeft(
           lower = false,
           unit = false,
-          0.0,
-          packedData,
-          packedOffset,
-          packedRowStride,
-          packedColStride,
+          n,
+          rhsCols,
+          pData,
+          pOff,
+          pRowStep,
+          pColStep,
           values,
-          rhs,
+          0,
           rhsCols
         )
-        if info >= 0 then return Left(LinAlgError.SingularMatrix(info))
-        rhs += 1
+      if info >= 0 then return Left(LinAlgError.SingularMatrix(info))
       Right(DMat.fromDoubleArrayOwned(n, rhsCols, values))
 
   def solve(cholesky: Cholesky, b: DVec): Either[LinAlgError, DVec] =
@@ -1320,33 +1319,18 @@ object DenseDecompositions:
       val rhsCols = b.cols
       val x = b.toDoubleArrayCopyRowMajor
       if !finiteCholeskyValues(x) then return Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side"))
-      val lower = cholesky.lower
-      var row = 0
-      while row < n do
-        val diagonal = lower(row, row)
-        var rhs = 0
-        while rhs < rhsCols do
-          var value = x(row * rhsCols + rhs)
-          var k = 0
-          while k < row do
-            value -= lower(row, k) * x(k * rhsCols + rhs)
-            k += 1
-          x(row * rhsCols + rhs) = value / diagonal
-          rhs += 1
-        row += 1
-      row = n - 1
-      while row >= 0 do
-        val diagonal = lower(row, row)
-        var rhs = 0
-        while rhs < rhsCols do
-          var value = x(row * rhsCols + rhs)
-          var k = row + 1
-          while k < n do
-            value -= lower(k, row) * x(k * rhsCols + rhs)
-            k += 1
-          x(row * rhsCols + rhs) = value / diagonal
-          rhs += 1
-        row -= 1
+      // L Y = B, then Lᵀ X = Y: the transpose is the same storage with row and
+      // column strides swapped, as in the vector solve.
+      val lData = cholesky.lower.data
+      val lOff = cholesky.lower.offset.value
+      val lRowStep = cholesky.lower.rowStride.value
+      val lColStep = cholesky.lower.colStride.value
+      val forward =
+        DoubleKernels.dtrsmLeft(lower = true, unit = false, n, rhsCols, lData, lOff, lRowStep, lColStep, x, 0, rhsCols)
+      if forward >= 0 then return Left(LinAlgError.NotPositiveDefinite(forward))
+      val back =
+        DoubleKernels.dtrsmLeft(lower = false, unit = false, n, rhsCols, lData, lOff, lColStep, lRowStep, x, 0, rhsCols)
+      if back >= 0 then return Left(LinAlgError.NotPositiveDefinite(back))
       if !finiteCholeskyValues(x) then Left(LinAlgError.InvalidArgument("non-finite Cholesky solution"))
       else Right(DMat.fromDoubleArrayOwned(n, rhsCols, x))
 

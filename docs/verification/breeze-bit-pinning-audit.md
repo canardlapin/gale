@@ -175,6 +175,15 @@ should be measured against the post-fix kernel.
     matrix solves, both against the vector solve column by column at a relative residual
     level. Add a strided or transposed RHS non-mutation case at that size.
   - Parity `FactorizationParitySuite:77,157` uses n ≤ 25. Add n ≈ 100.
+  - **As implemented (branch `breeze/hc-solve`):** `DoubleKernels.dtrsmLeft` is a
+    left-looking blocked solve with 8-row diagonal blocks; the off-diagonal update is one
+    `dgemm(-1, 1)` per block. Both the LU and Cholesky matrix solves use it (Cholesky `Lᵀ`
+    through swapped strides, packed row-major above one block). For n ≤ 8 each column is
+    bit-identical to `dtrsv`; above that the matrix-solve bits change for both routes, within
+    contract `:14-15`. The diagonal is scanned before any write, so `SingularMatrix(k)` and
+    `NotPositiveDefinite(k)` report the same index as before. `TrsmKernelSuite` and the
+    n = 100 × 7 tests in `LUSuite` and `CholeskySuite` cover the blocked path. The n = 96 to 300
+    multi-RHS cases in `FactorizationHardeningParitySuite` cover it against Breeze.
 - **W1.3 blocked LU.**
   - `LUSuite:28,49`, `NumericalPolicySuite:51-75` and `GaleNumericalContractSuite:178` stay
     exact because they are below the threshold.
