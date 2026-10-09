@@ -70,17 +70,15 @@ private[gale] object DenseSvdKernel:
     val u = a.toDoubleArrayCopyRowMajor // m×n row-major; becomes economy U in place
     val w = DoubleArray.alloc(n)        // singular values
     val rv1 = DoubleArray.alloc(n)      // superdiagonal workspace
-    val v = if wantVectors then DoubleArray.alloc(n * n) else DoubleArray.alloc(0)
+    val vt = if wantVectors then DoubleArray.alloc(n * n) else DoubleArray.alloc(0)
 
     val anorm = bidiagonalize(m, n, u, w, rv1)
-    if wantVectors then
-      accumulateRight(n, u, v, rv1)
-      accumulateLeft(m, n, u, w)
-    // The QR sweeps rotate pairs of singular-vector columns; they run on the
-    // transposes Uᵀ (n×m) and Vᵀ (n×n) so every rotation updates two
-    // contiguous rows.
+    // The singular vectors are built and rotated as the transposes Vᵀ (n×n)
+    // and Uᵀ (n×m): every reflector application and every QR rotation acts on
+    // singular-vector columns, which are then contiguous rows.
+    if wantVectors then accumulateRight(n, u, vt, rv1)
     val ut = if wantVectors then transposed(m, n, u) else u
-    val vt = if wantVectors then transposed(n, n, v) else v
+    if wantVectors then accumulateLeft(m, n, ut, w)
     diagonalize(m, n, ut, w, rv1, vt, anorm, wantVectors) match
       case Some(failure) => Left(failure)
       case None =>
@@ -132,19 +130,36 @@ private[gale] object DenseSvdKernel:
           g = -sign(math.sqrt(s), f)
           val h = f * g - s
           u(i * n + i) = f - g
+          // Apply the left reflector to columns l..n-1 row by row (contiguous):
+          // rv1(l..n-1) is free until the right reflector below and serves as
+          // the per-column dot accumulator, summed over k ascending exactly as
+          // a column-by-column loop would.
           var j = l
           while j < n do
-            var dot = 0.0
-            k = i
-            while k < m do
-              dot += u(k * n + i) * u(k * n + j)
-              k += 1
-            val fj = dot / h
-            k = i
-            while k < m do
-              u(k * n + j) = u(k * n + j) + fj * u(k * n + i)
-              k += 1
+            rv1(j) = 0.0
             j += 1
+          k = i
+          while k < m do
+            val uki = u(k * n + i)
+            val rowK = k * n
+            j = l
+            while j < n do
+              rv1(j) = rv1(j) + uki * u(rowK + j)
+              j += 1
+            k += 1
+          j = l
+          while j < n do
+            rv1(j) = rv1(j) / h
+            j += 1
+          k = i
+          while k < m do
+            val uki = u(k * n + i)
+            val rowK = k * n
+            j = l
+            while j < n do
+              u(rowK + j) = u(rowK + j) + rv1(j) * uki
+              j += 1
+            k += 1
           k = i
           while k < m do
             u(k * n + i) = u(k * n + i) * scale
@@ -193,11 +208,11 @@ private[gale] object DenseSvdKernel:
     anorm
 
   /** Expand the right-hand Householder reflectors stored in `u`'s rows into the
-    * n×n row-major `v` (columns are right singular vectors of the bidiagonal
-    * reduction), walking i from n−1 down so each reflector is applied to the
-    * already-accumulated trailing block.
+    * n×n row-major '''transpose''' `vt = Vᵀ` (rows are right singular vectors of
+    * the bidiagonal reduction), walking i from n−1 down so each reflector is
+    * applied to the already-accumulated trailing block.
     */
-  private def accumulateRight(n: Int, u: DoubleArray, v: DoubleArray, rv1: DoubleArray): Unit =
+  private def accumulateRight(n: Int, u: DoubleArray, vt: DoubleArray, rv1: DoubleArray): Unit =
     var g = 0.0
     var l = 0
     var i = n - 1
@@ -205,69 +220,74 @@ private[gale] object DenseSvdKernel:
       if i < n - 1 then
         if g != 0.0 then
           // Double division (by u(i,l) then g) avoids underflow, per Golub–Reinsch.
+          val rowI = i * n
           var j = l
           while j < n do
-            v(j * n + i) = (u(i * n + j) / u(i * n + l)) / g
+            vt(rowI + j) = (u(rowI + j) / u(rowI + l)) / g
             j += 1
           j = l
           while j < n do
+            val rowJ = j * n
             var s = 0.0
             var k = l
             while k < n do
-              s += u(i * n + k) * v(k * n + j)
+              s += u(rowI + k) * vt(rowJ + k)
               k += 1
             k = l
             while k < n do
-              v(k * n + j) = v(k * n + j) + s * v(k * n + i)
+              vt(rowJ + k) = vt(rowJ + k) + s * vt(rowI + k)
               k += 1
             j += 1
         var j = l
         while j < n do
-          v(i * n + j) = 0.0
-          v(j * n + i) = 0.0
+          vt(i * n + j) = 0.0
+          vt(j * n + i) = 0.0
           j += 1
-      v(i * n + i) = 1.0
+      vt(i * n + i) = 1.0
       g = rv1(i)
       l = i
       i -= 1
 
-  /** Expand the left-hand Householder reflectors into the economy `U` (m×n, in
-    * place over the reflector storage), walking i from n−1 down.
+  /** Expand the left-hand Householder reflectors into the economy `Uᵀ` (n×m,
+    * in place over the transposed reflector storage `ut`, whose row i is the
+    * reflector column i), walking i from n−1 down.
     */
-  private def accumulateLeft(m: Int, n: Int, u: DoubleArray, w: DoubleArray): Unit =
+  private def accumulateLeft(m: Int, n: Int, ut: DoubleArray, w: DoubleArray): Unit =
     var i = n - 1
     while i >= 0 do
       val l = i + 1
+      val rowI = i * m
       var g = w(i)
       var j = l
       while j < n do
-        u(i * n + j) = 0.0
+        ut(j * m + i) = 0.0
         j += 1
       if g != 0.0 then
         g = 1.0 / g
         j = l
         while j < n do
+          val rowJ = j * m
           var s = 0.0
           var k = l
           while k < m do
-            s += u(k * n + i) * u(k * n + j)
+            s += ut(rowI + k) * ut(rowJ + k)
             k += 1
-          val f = (s / u(i * n + i)) * g
+          val f = (s / ut(rowI + i)) * g
           k = i
           while k < m do
-            u(k * n + j) = u(k * n + j) + f * u(k * n + i)
+            ut(rowJ + k) = ut(rowJ + k) + f * ut(rowI + k)
             k += 1
           j += 1
         var k = i
         while k < m do
-          u(k * n + i) = u(k * n + i) * g
+          ut(rowI + k) = ut(rowI + k) * g
           k += 1
       else
         var k = i
         while k < m do
-          u(k * n + i) = 0.0
+          ut(rowI + k) = 0.0
           k += 1
-      u(i * n + i) = u(i * n + i) + 1.0
+      ut(rowI + i) = ut(rowI + i) + 1.0
       i -= 1
 
   /** Implicit-shift QR on the bidiagonal `(w, rv1)`, rotations accumulated into
