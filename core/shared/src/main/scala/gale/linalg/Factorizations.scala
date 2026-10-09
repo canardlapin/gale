@@ -884,8 +884,21 @@ object DenseDecompositions:
       while j < width do
         scratch(scratchOffset + j) = 0.0
         j += 1
+      // Two rows per sweep load and store each scratch entry once per pair; the
+      // nested FMAs keep the one-row accumulation order exactly.
       var i = k
-      while i < m do
+      while i + 1 < m do
+        val vi = reflectors(i * limit + k)
+        val vi1 = reflectors((i + 1) * limit + k)
+        val rRow = i * n + colFrom
+        val rRow1 = rRow + n
+        j = 0
+        while j < width do
+          val wj = scratchOffset + j
+          scratch(wj) = fma(vi1, r(rRow1 + j), fma(vi, r(rRow + j), scratch(wj)))
+          j += 1
+        i += 2
+      if i < m then
         val vi = reflectors(i * limit + k)
         val rRow = i * n + colFrom
         j = 0
@@ -893,20 +906,30 @@ object DenseDecompositions:
           val wj = scratchOffset + j
           scratch(wj) = fma(vi, r(rRow + j), scratch(wj))
           j += 1
-        i += 1
       j = 0
       while j < width do
         scratch(scratchOffset + j) = tauK * scratch(scratchOffset + j)
         j += 1
       i = k
-      while i < m do
+      while i + 1 < m do
+        val vi = reflectors(i * limit + k)
+        val vi1 = reflectors((i + 1) * limit + k)
+        val rRow = i * n + colFrom
+        val rRow1 = rRow + n
+        j = 0
+        while j < width do
+          val w = scratch(scratchOffset + j)
+          r(rRow + j) = fma(-vi, w, r(rRow + j))
+          r(rRow1 + j) = fma(-vi1, w, r(rRow1 + j))
+          j += 1
+        i += 2
+      if i < m then
         val vi = reflectors(i * limit + k)
         val rRow = i * n + colFrom
         j = 0
         while j < width do
           r(rRow + j) = fma(-vi, scratch(scratchOffset + j), r(rRow + j))
           j += 1
-        i += 1
 
   /** Form the upper-triangular compact-WY factor `T` for one reflector panel. */
   private def formCompactWY(

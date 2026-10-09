@@ -33,6 +33,13 @@ object SolveJsBench:
       pair("lu")(SolveRef.lu(a).packed(0, 0))(lu0(a))
       pair("luSolve")(SolveRef.luSolve(lu, b)(0, 0))(lu.solve(b).toOption.get(0, 0))
       pair("cholSolve")(SolveRef.choleskySolve(ch, b)(0, 0))(ch.solve(b).toOption.get(0, 0))
+      // No in-process reference for QR: compare these absolute times across builds.
+      val tall = Matrix.tabulate(4 * n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+      val y = Vec.tabulate(4 * n)(_ => rng.nextDouble())
+      println(f"qr         n=$n%-4d          cur ${math.min(measure(a.qr.r(0, 0)), measure(a.qr.r(0, 0)))}%11.0f ns")
+      println(
+        f"lstsq      m=${4 * n}%-4d n=$n%-4d   cur ${math.min(measure(tall.leastSquares(y).toOption.get(0)), measure(tall.leastSquares(y).toOption.get(0)))}%11.0f ns"
+      )
 
   private def lu0(a: DMat)(using gale.backend.Backend): Double = a.lu.toOption.get.packed(0, 0)
 
