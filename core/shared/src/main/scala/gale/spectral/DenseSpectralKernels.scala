@@ -270,6 +270,51 @@ private[gale] object DenseSpectralKernels:
           // column-oriented symv, so the result is bit-identical.
           val uRow = aOffset + i * n
           var r = 0
+          // Rows r..r+3 at a time: one pass over the shared prefix k < r feeds
+          // four independent dot chains and adds the four rows' contributions
+          // to e(k) in ascending row order; the in-block triangle is finished
+          // explicitly. Every entry keeps the row-at-a-time operation order.
+          while r + 3 <= l do
+            val r0 = aOffset + r * n
+            val r1 = r0 + n
+            val r2 = r1 + n
+            val r3 = r2 + n
+            val u0 = a(uRow + r)
+            val u1 = a(uRow + r + 1)
+            val u2 = a(uRow + r + 2)
+            val u3 = a(uRow + r + 3)
+            var g0 = 0.0
+            var g1 = 0.0
+            var g2 = 0.0
+            var g3 = 0.0
+            var kk = 0
+            while kk < r do
+              val uk = a(uRow + kk)
+              val x0 = a(r0 + kk)
+              val x1 = a(r1 + kk)
+              val x2 = a(r2 + kk)
+              val x3 = a(r3 + kk)
+              e(eOffset + kk) = e(eOffset + kk) + x0 * u0 + x1 * u1 + x2 * u2 + x3 * u3
+              g0 += x0 * uk
+              g1 += x1 * uk
+              g2 += x2 * uk
+              g3 += x3 * uk
+              kk += 1
+            g0 += a(r0 + r) * u0
+            g1 += a(r1 + r) * u0
+            g1 += a(r1 + r + 1) * u1
+            g2 += a(r2 + r) * u0
+            g2 += a(r2 + r + 1) * u1
+            g2 += a(r2 + r + 2) * u2
+            g3 += a(r3 + r) * u0
+            g3 += a(r3 + r + 1) * u1
+            g3 += a(r3 + r + 2) * u2
+            g3 += a(r3 + r + 3) * u3
+            e(eOffset + r) = g0 + a(r1 + r) * u1 + a(r2 + r) * u2 + a(r3 + r) * u3
+            e(eOffset + r + 1) = g1 + a(r2 + r + 1) * u2 + a(r3 + r + 1) * u3
+            e(eOffset + r + 2) = g2 + a(r3 + r + 2) * u3
+            e(eOffset + r + 3) = g3
+            r += 4
           while r <= l do
             val rowR = aOffset + r * n
             val ur = a(uRow + r)
@@ -317,9 +362,39 @@ private[gale] object DenseSpectralKernels:
           // The reduction stored u (row i) and h (d(i)); u(k)/h is recomputed
           // from that contiguous row instead of being read down a column. The
           // quotient is exactly the one EISPACK stores, so no bit changes.
+          // Rows j..j+3 are updated together: four independent dot chains share
+          // each u(k) load, and each quotient u(k)/h is formed once per four
+          // rows (the divide dominates the update on x86). Each row's dot and
+          // update keep their row-at-a-time operation order, so no bit changes.
           val h = d(i)
           val uRow = aOffset + i * n
           var j = 0
+          while j + 3 <= l do
+            val r0 = aOffset + j * n
+            val r1 = r0 + n
+            val r2 = r1 + n
+            val r3 = r2 + n
+            var g0 = 0.0
+            var g1 = 0.0
+            var g2 = 0.0
+            var g3 = 0.0
+            var k = 0
+            while k <= l do
+              val uk = a(uRow + k)
+              g0 += uk * a(r0 + k)
+              g1 += uk * a(r1 + k)
+              g2 += uk * a(r2 + k)
+              g3 += uk * a(r3 + k)
+              k += 1
+            k = 0
+            while k <= l do
+              val qk = a(uRow + k) / h
+              a(r0 + k) = a(r0 + k) - g0 * qk
+              a(r1 + k) = a(r1 + k) - g1 * qk
+              a(r2 + k) = a(r2 + k) - g2 * qk
+              a(r3 + k) = a(r3 + k) - g3 * qk
+              k += 1
+            j += 4
           while j <= l do
             // Row j of the leading block holds column j of Q (block is Qᵀ).
             val rowJ = aOffset + j * n
