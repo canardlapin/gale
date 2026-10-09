@@ -17,7 +17,10 @@ bit-for-bit agreement between legal algorithms.
 - The pure single-threaded implementation is deterministic for a fixed Gale
   build and runtime.
 - JVM kernels may use `Math.fma`; Scala.js uses the JavaScript number operation.
-  Cross-platform results can differ in their final ulps.
+  Cross-platform results can differ in their final ulps. The contiguous dot
+  product (and the sums of squares built on it) is the exception: it uses
+  separately rounded multiply-adds on every platform, because the fused form
+  was measurably slower there, so it gives the same bits on JVM and Scala.js.
 - Vector and vendor BLAS/LAPACK backends may reassociate operations. Their
   answers must satisfy conformance tolerances but need not match pure Gale bits.
 - Solves and decompositions use scale-aware tests. There is no single absolute

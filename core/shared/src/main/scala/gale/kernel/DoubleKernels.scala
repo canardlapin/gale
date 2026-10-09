@@ -16,30 +16,26 @@ private[gale] object DoubleKernels:
   ): Double =
     if xStride == 1 && yStride == 1 then
       // Contiguous fast path: four independent accumulators break the reduction's
-      // dependency chain so the JIT can pipeline/vectorize the multiply-adds
-      // (the F2J trick). Reassociates the sum versus the scalar loop — fine within
-      // the library's tolerances, and identical on JVM and Scala.js (shared code).
+      // dependency chain (the F2J trick), addressed as `offset + i` so C2 can
+      // pack the lanes. Each term is a separately rounded `x*y + acc`, not an
+      // fma: on JDK 25 the fused form measured ~20% slower here (its latency
+      // sits on the accumulator chain), and the unfused form gives the same
+      // bits on the JVM and Scala.js. Reassociates versus a left-to-right loop.
       var acc0 = 0.0
       var acc1 = 0.0
       var acc2 = 0.0
       var acc3 = 0.0
       val limit = n - (n & 3)
       var i = 0
-      var xi = xOffset
-      var yi = yOffset
       while i < limit do
-        acc0 = fma(x(xi), y(yi), acc0)
-        acc1 = fma(x(xi + 1), y(yi + 1), acc1)
-        acc2 = fma(x(xi + 2), y(yi + 2), acc2)
-        acc3 = fma(x(xi + 3), y(yi + 3), acc3)
-        xi += 4
-        yi += 4
+        acc0 += x(xOffset + i) * y(yOffset + i)
+        acc1 += x(xOffset + i + 1) * y(yOffset + i + 1)
+        acc2 += x(xOffset + i + 2) * y(yOffset + i + 2)
+        acc3 += x(xOffset + i + 3) * y(yOffset + i + 3)
         i += 4
       var acc = (acc0 + acc1) + (acc2 + acc3)
       while i < n do
-        acc = fma(x(xi), y(yi), acc)
-        xi += 1
-        yi += 1
+        acc += x(xOffset + i) * y(yOffset + i)
         i += 1
       acc
     else
