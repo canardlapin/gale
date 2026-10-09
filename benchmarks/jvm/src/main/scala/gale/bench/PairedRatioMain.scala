@@ -54,6 +54,13 @@ object PairedRatioMain:
       out += Case(s"norm gale/breeze n=$n", () => gy.norm2, () => breeze.linalg.norm(by))
       out += Case(s"max gale/breeze n=$n", () => gx.max, () => max(bx))
       out += Case(s"max cur/ref n=$n", () => DoubleKernels.dmax(n, rx, 0, 1), () => rx(L1HillClimbRef.refMaxIndex(n, rx, 0, 1)))
+      // ReLU-like data: every entry <= 0, about half of them exactly 0.0.
+      val reluData = xd.map(v => math.min(v, 0.0))
+      val gRelu = galeVector(reluData)
+      val bRelu = breezeVector(reluData)
+      val rRelu = DoubleArray.adopt(reluData.clone())
+      out += Case(s"reluMax gale/breeze n=$n", () => gRelu.max, () => max(bRelu))
+      out += Case(s"reluMax cur/ref n=$n", () => DoubleKernels.dmax(n, rRelu, 0, 1), () => rRelu(L1HillClimbRef.refMaxIndex(n, rRelu, 0, 1)))
       out += Case(s"exp gale/breeze n=$n", () => Numerics.exp(gx)(0), () => { val r: breeze.linalg.DenseVector[Double] = breeze.numerics.exp(bx); r(0) })
       out += Case(s"sigmoid gale/breeze n=$n", () => Numerics.sigmoid(gx)(0), () => { val r: breeze.linalg.DenseVector[Double] = breeze.numerics.sigmoid(bx); r(0) })
       out += Case(s"sigmoid cur/ref n=$n", () => { DoubleKernels.dsigmoidInto(n, rx, 0, 1, ro, 0, 1); ro(1) }, () => {
@@ -70,6 +77,11 @@ object PairedRatioMain:
       out += Case(s"add gale/breeze n=$n", () => (gA + gB)(0, 0), () => { val r: breeze.linalg.DenseMatrix[Double] = bA + bB; r(0, 0) })
       out += Case(s"sub gale/breeze n=$n", () => (gA - gB)(0, 0), () => { val r: breeze.linalg.DenseMatrix[Double] = bA - bB; r(0, 0) })
       out += Case(s"hadamard gale/breeze n=$n", () => (gA.pointwise * gB)(0, 0), () => { val r: breeze.linalg.DenseMatrix[Double] = bA *:* bB; r(0, 0) })
+      val reluRows = ad.map(_.map(v => math.min(v, 0.0)))
+      val gReluA = galeMatrix(reluRows)
+      val bReluA = breezeMatrix(reluRows)
+      out += Case(s"reluMaxCols gale/breeze n=$n", () => gReluA.max(Axis.Cols)(0), () => { val r: breeze.linalg.Transpose[breeze.linalg.DenseVector[Double]] = max(bReluA(::, breeze.linalg.*)); r.inner(0) })
+      out += Case(s"reluMaxRows gale/breeze n=$n", () => gReluA.max(Axis.Rows)(0), () => { val r: breeze.linalg.DenseVector[Double] = max(bReluA(breeze.linalg.*, ::)); r(0) })
       out += Case(s"maxCols gale/breeze n=$n", () => gA.max(Axis.Cols)(0), () => { val r: breeze.linalg.Transpose[breeze.linalg.DenseVector[Double]] = max(bA(::, breeze.linalg.*)); r.inner(0) })
     for nnz <- Seq(1000, 10000) do
       val (xi, xv) = sparseEntries(100000, nnz, 4100L)

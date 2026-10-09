@@ -1075,16 +1075,13 @@ final class DMat private[gale] (
     * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
     */
   private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
-    if largest then streamExtremes(axis, out)(math.max)(DoubleKernels.dmax)
-    else streamExtremes(axis, out)(math.min)(DoubleKernels.dmin)
+    if largest then streamExtremes(axis, out)(math.max) else streamExtremes(axis, out)(math.min)
 
   // The streamed pass is a branch-free `math.max`/`math.min` per slice, which C2
   // vectorizes. It can differ from the first-occurrence value only in which
   // signed zero or NaN payload it keeps, so lines ending at zero or NaN are
-  // recomputed by the per-line kernel.
-  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline pick: (Double, Double) => Double)(
-      inline exact: (Int, DoubleArray, Int, Int) => Double
-  ): Unit =
+  // resolved by `resolveFirstZeroOrNaN`.
+  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline pick: (Double, Double) => Double): Unit =
     val lines = axisLines(axis)
     val length = axisLength(axis)
     val elementStep = axisElementStep(axis)
@@ -1101,11 +1098,40 @@ final class DMat private[gale] (
         out(line) = pick(out(line), data(start + line))
         line += 1
       k += 1
-    line = 0
+    resolveFirstZeroOrNaN(lines, elementStep, out)
+
+  /** Streamed counterpart of `DoubleKernels.firstZeroOrNaN`: each line whose
+    * extreme is zero (or NaN) takes its first entry equal to zero (or its first
+    * NaN). One pass over the slices in order, stopping as soon as every such
+    * line is resolved, so early zeros cost a few slices.
+    */
+  private def resolveFirstZeroOrNaN(lines: Int, elementStep: Int, out: DoubleArray): Unit =
+    var pending = 0
+    var line = 0
     while line < lines do
-      val value = out(line)
-      if value == 0.0 || value != value then out(line) = exact(length, data, base + line, elementStep)
+      val v = out(line)
+      if v == 0.0 || v != v then pending += 1
       line += 1
+    if pending > 0 then
+      val unresolved = new Array[Boolean](lines)
+      line = 0
+      while line < lines do
+        val v = out(line)
+        unresolved(line) = v == 0.0 || v != v
+        line += 1
+      var start = offset.value
+      while pending > 0 do
+        line = 0
+        while line < lines do
+          if unresolved(line) then
+            val target = out(line)
+            val value = data(start + line)
+            if (target == target && value == 0.0) || (target != target && value != value) then
+              out(line) = value
+              unresolved(line) = false
+              pending -= 1
+          line += 1
+        start += elementStep
 
   private def extremePosition(largest: Boolean): (Int, Int) =
     if isContiguousRowMajor then

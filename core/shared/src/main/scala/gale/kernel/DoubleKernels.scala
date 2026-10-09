@@ -1059,22 +1059,25 @@ private[gale] object DoubleKernels:
         i += 1
       m
 
-  /** The value at [[dmaxIndex]] (`n > 0`): the first NaN if any, else the
-    * first maximum. The contiguous pass is a branch-free `math.max` reduction,
-    * which C2 vectorizes. `math.max` differs from the first-occurrence value
-    * only in which of `0.0`/`-0.0` or of several NaNs it returns, so a zero or
-    * NaN result is recomputed by the index scan.
+  /** The value at [[dmaxIndex]]: the first NaN if any, else the first
+    * maximum. Requires `n > 0` (callers raise `EmptyInput` first). The pass is
+    * a branch-free `math.max` reduction, which C2 vectorizes when contiguous.
+    * `math.max` differs from the first-occurrence value only in which of
+    * `0.0`/`-0.0` or of several NaNs it returns, so a zero or NaN result is
+    * resolved by [[firstZeroOrNaN]].
     */
   def dmax(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    extremeValue(n, x, xOffset, xStride, Double.NegativeInfinity)(math.max)(dmaxIndex)
+    extremeValue(n, x, xOffset, xStride, Double.NegativeInfinity)(math.max)
 
   /** The value at [[dminIndex]] (`n > 0`), as [[dmax]]. */
   def dmin(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    extremeValue(n, x, xOffset, xStride, Double.PositiveInfinity)(math.min)(dminIndex)
+    extremeValue(n, x, xOffset, xStride, Double.PositiveInfinity)(math.min)
 
   private inline def extremeValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
       inline pick: (Double, Double) => Double
-  )(inline index: (Int, DoubleArray, Int, Int) => Int): Double =
+  ): Double =
+    assert(n > 0, "extreme value of an empty line")
+    var m = worst
     if xStride == 1 then
       var m0 = worst
       var m1 = worst
@@ -1088,12 +1091,33 @@ private[gale] object DoubleKernels:
         m2 = pick(m2, x(xOffset + i + 2))
         m3 = pick(m3, x(xOffset + i + 3))
         i += 4
-      var m = pick(pick(m0, m1), pick(m2, m3))
+      m = pick(pick(m0, m1), pick(m2, m3))
       while i < n do
         m = pick(m, x(xOffset + i))
         i += 1
-      if m != 0.0 && m == m then m else x(xOffset + index(n, x, xOffset, 1))
-    else x(xOffset + index(n, x, xOffset, xStride) * xStride)
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        m = pick(m, x(xi))
+        xi += xStride
+        i += 1
+    if m != 0.0 && m == m then m else firstZeroOrNaN(x, xOffset, xStride, m)
+
+  /** Resolve an extreme `m` that is zero or NaN to its first occurrence. A NaN
+    * extreme means some entry is NaN, and the first one wins. A zero extreme
+    * means no entry beats zero, so the first entry equal to zero, of either
+    * sign, is the first extreme. The scan stops there, so lines with early
+    * zeros (ReLU-like data) cost little; it always finds a match.
+    */
+  private[gale] def firstZeroOrNaN(x: DoubleArray, xOffset: Int, xStride: Int, m: Double): Double =
+    var xi = xOffset
+    if m != m then
+      while x(xi) == x(xi) do xi += xStride
+    else
+      while x(xi) != 0.0 do xi += xStride
+    x(xi)
+
 
   /** Index of the first maximum, `-1` when `n == 0`. The first NaN wins: its
     * index is returned as soon as it is seen, so a NaN anywhere propagates to
