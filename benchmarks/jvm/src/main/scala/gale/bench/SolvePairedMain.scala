@@ -90,12 +90,13 @@ object SolvePairedMain:
       val ch = gS.cholesky.fold(e => throw e, identity)
       out += Case(s"cur/ref luSolveOnly n=$n k=$k", () => first(lu.solve(gB)), () => SolveRef.luSolve(lu, gB)(0, 0))
       out += Case(s"cur/ref cholSolveOnly n=$n k=$k", () => first(ch.solve(gB)), () => SolveRef.choleskySolve(ch, gB)(0, 0))
-    for n <- Seq(16, 64, 256, 512) do
+    for n <- Seq(4, 16, 64, 256, 512) do
       val aData = diagonallyDominant(n, 2100L)
       val gA = galeMatrix(aData)
       val bA = breezeMatrix(aData)
       val gEye = Matrix.eye(n)
-      out += Case(s"inv n=$n", () => first(gA.solve(gEye)), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
+      out += Case(s"inv n=$n", () => first(gA.inverse), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
+      out += Case(s"invSolveI n=$n", () => first(gA.solve(gEye)), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
     out.result()
 
   private def time(f: () => Double, calls: Int): Long =

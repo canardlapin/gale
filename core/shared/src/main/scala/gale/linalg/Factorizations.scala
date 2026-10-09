@@ -119,6 +119,12 @@ final case class LU private[gale] (
   def det: Either[LinAlgError, Double] =
     DenseDecompositions.det(this)
 
+  /** The inverse `A⁻¹` of the factored matrix, formed from the factors as LAPACK `dgetri` does (`U⁻¹ L⁻¹ P`, about
+    * `4n³/3` flops) rather than by solving against the identity. Prefer [[solve]] when only `A⁻¹ B` is needed.
+    */
+  def inverse: Either[LinAlgError, DMat] =
+    DenseDecompositions.inverse(this)
+
 /** Cholesky factorization `A = L Lᵀ` of a symmetric positive-definite matrix, holding the lower factor `L`.
   *
   * The factorization reads only the '''lower triangle''' of the input (including the diagonal); the strict upper
@@ -1875,6 +1881,58 @@ object DenseDecompositions:
         out *= lu.packed(i, i)
         i += 1
       Right(out)
+
+  /** Columns of `L⁻¹` formed per triangular solve in [[inverse]]. */
+  private inline val InverseColumnBlock = 16
+
+  def inverse(lu: LU): Either[LinAlgError, DMat] =
+    val n = lu.packed.rows
+    if lu.packed.cols != n then Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    else
+      val packed = lu.packed
+      val (pData, pOff, pRowStep) =
+        if packed.colStride.value == 1 then (packed.data, packed.offset.value, packed.rowStride.value)
+        else (packed.toDoubleArrayCopyRowMajor, 0, n)
+      // W = L⁻¹ in place over the identity. A block of identity columns starting
+      // at c0 is zero above row c0, so only the trailing system L[c0:, c0:] is
+      // solved for it: n³/3 flops in all instead of n³.
+      val w = DoubleArray.alloc(n * n)
+      var i = 0
+      while i < n do
+        w(i * n + i) = 1.0
+        i += 1
+      var c0 = 0
+      while c0 < n do
+        val width = math.min(InverseColumnBlock, n - c0)
+        DoubleKernels.dtrsmLeft(
+          lower = true,
+          unit = true,
+          n - c0,
+          width,
+          pData,
+          pOff + c0 * (pRowStep + 1),
+          pRowStep,
+          1,
+          w,
+          c0 * n + c0,
+          n
+        )
+        c0 += width
+      // Z = U⁻¹ W = U⁻¹ L⁻¹, then A⁻¹ = Z P: column i of Z is column pivots(i) of A⁻¹.
+      val info = DoubleKernels.dtrsmLeft(lower = false, unit = false, n, n, pData, pOff, pRowStep, 1, w, 0, n)
+      if info >= 0 then Left(LinAlgError.SingularMatrix(info))
+      else
+        val pivots = lu.pivots.toArray
+        val out = DoubleArray.alloc(n * n)
+        var row = 0
+        while row < n do
+          val base = row * n
+          var col = 0
+          while col < n do
+            out(base + pivots(col)) = w(base + col)
+            col += 1
+          row += 1
+        Right(DMat.fromDoubleArrayOwned(n, n, out))
 
   private def swapRows(values: DoubleArray, cols: Int, r1: Int, r2: Int): Unit =
     var col = 0

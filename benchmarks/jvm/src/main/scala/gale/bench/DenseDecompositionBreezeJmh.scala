@@ -21,8 +21,8 @@ import org.openjdk.jmh.infra.Blackhole
 /** Dense inverse, determinant, pseudo-inverse, full SVD and nonsymmetric eigen,
   * gale vs Breeze (`n` in {16, 64, 256}):
   *
-  *   - `inv`: gale has no `inv`; its idiom is `A.solve(I)` (one LU, `n` columns, the
-  *     identity built in setup). Breeze `inv(A)` is `dgetrf` + `dgetri`.
+  *   - `inv`: gale `A.inverse` (LU, then `U⁻¹ L⁻¹ P` as `dgetri` forms it) vs
+  *     breeze `inv(A)` (`dgetrf` + `dgetri`).
   *   - `det`: gale `A.det` (LU) vs breeze `det(A)` (LU).
   *   - `pinv`: gale `A.pinv` (economy SVD, cutoff `max(m,n)·ε·σ_max`) vs breeze
   *     `pinv(A)` (also SVD-based; Breeze's cutoff differs, which does not change the
@@ -48,7 +48,6 @@ class DenseDecompositionBreezeJmh:
 
   private var gA: DMat        = uninitialized
   private var gGeneral: DMat  = uninitialized
-  private var gEye: DMat      = uninitialized
   private var bA: BDM[Double] = uninitialized
   private var bGeneral: BDM[Double] = uninitialized
 
@@ -59,14 +58,13 @@ class DenseDecompositionBreezeJmh:
     val generalData = matrixData(n, n, 2200L)
     gA = galeMatrix(aData)
     gGeneral = galeMatrix(generalData)
-    gEye = Matrix.eye(n)
     bA = breezeMatrix(aData)
     bGeneral = breezeMatrix(generalData)
 
   @Benchmark def galeInv(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
     given Backend = backend
-    bh.consume(gA.solve(gEye))
+    bh.consume(gA.inverse)
   @Benchmark def breezeInv(bh: Blackhole): Unit = bh.consume(inv(bA))
 
   @Benchmark def galeDet(g: GaleBackendState, bh: Blackhole): Unit =
@@ -90,7 +88,7 @@ class DenseDecompositionBreezeJmh:
   *
   *   - `gemm`: `A * B` both ways (gale through the selected backend).
   *   - `solve`: gale `A.solve(b)` vs breeze `A \ b`.
-  *   - `inv`: gale `A.solve(I)` (identity built in setup) vs breeze `inv(A)`.
+  *   - `inv`: gale `A.inverse` vs breeze `inv(A)`.
   *   - `det`: gale `A.det` (LU) vs breeze `det(A)` (LU).
   *
   * gale's `Mat3`/`Mat4` value types (`gale.linalg.Tiny`) only offer matrix-vector
@@ -109,7 +107,6 @@ class SmallDenseBreezeJmh:
   private var gA: DMat        = uninitialized
   private var gB: DMat        = uninitialized
   private var gb: DVec        = uninitialized
-  private var gEye: DMat      = uninitialized
   private var bA: BDM[Double] = uninitialized
   private var bB: BDM[Double] = uninitialized
   private var bb: BDV[Double] = uninitialized
@@ -123,7 +120,6 @@ class SmallDenseBreezeJmh:
     gA = galeMatrix(aData)
     gB = galeMatrix(bData)
     gb = galeVector(vData)
-    gEye = Matrix.eye(n)
     bA = breezeMatrix(aData)
     bB = breezeMatrix(bData)
     bb = breezeVector(vData)
@@ -143,7 +139,7 @@ class SmallDenseBreezeJmh:
   @Benchmark def galeInv(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
     given Backend = backend
-    bh.consume(gA.solve(gEye))
+    bh.consume(gA.inverse)
   @Benchmark def breezeInv(bh: Blackhole): Unit = bh.consume(inv(bA))
 
   @Benchmark def galeDet(g: GaleBackendState, bh: Blackhole): Unit =

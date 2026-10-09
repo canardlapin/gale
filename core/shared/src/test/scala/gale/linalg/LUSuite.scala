@@ -69,3 +69,36 @@ class LUSuite extends munit.FunSuite:
       assertEquals(fromTransposed(i, c), x(i, c))
       assertEquals(transposedB(i, c), b(i, c))
   }
+
+  test("inverse matches a hand-computed 2x2 and agrees with solve(I) under row pivoting") {
+    val small = Matrix.dense(2, 2)(4.0, 7.0, 2.0, 6.0).inverse.orThrow
+    val expected = Seq(0.6, -0.7, -0.2, 0.4)
+    for i <- 0 until 2; j <- 0 until 2 do assertEqualsDouble(small(i, j), expected(i * 2 + j), 1e-15)
+
+    // Random entries force genuine row swaps; n = 100 spans several column blocks.
+    for n <- Seq(1, 3, 17, 100) do
+      val rng = new scala.util.Random(53 + n)
+      val a = Matrix.tabulate(n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+      val before = a.valuesRowMajor
+      val lu = a.lu.orThrow
+      if n >= 3 then assert((0 until n).exists(i => lu.pivots(i) != i), s"n=$n should pivot")
+      val x = a.inverse.orThrow
+      val viaSolve = a.solve(Matrix.eye(n)).orThrow
+      // Backward-stable bounds: residual ‖AX − I‖ ≲ c·n·ε·‖A‖·‖X‖, and the two
+      // computed inverses agree to that relative level times the condition number.
+      val bound = 32.0 * n * 2.220446049250313e-16 * a.normInf * x.normInf
+      val residual = a * x - Matrix.eye(n)
+      assert(residual.normInf <= bound, s"n=$n residual ${residual.normInf} > $bound")
+      val diff = (x - viaSolve).normInf
+      assert(diff <= bound * x.normInf, s"n=$n inverse vs solve(I): $diff")
+      assertEquals(a.valuesRowMajor, before)
+      assertEquals(lu.inverse.orThrow.valuesRowMajor, x.valuesRowMajor)
+  }
+
+  test("inverse reports singular, non-square, and empty inputs") {
+    val singular = Matrix.dense(2, 2)(1.0, 2.0, 2.0, 4.0)
+    assertEquals(singular.inverse, Left(LinAlgError.SingularMatrix(1)))
+    assert(Matrix.zeros(2, 3).inverse.left.exists(_.isInstanceOf[LinAlgError.NonSquareMatrix]))
+    val empty = Matrix.zeros(0, 0).inverse.orThrow
+    assertEquals((empty.rows, empty.cols), (0, 0))
+  }
