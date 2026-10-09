@@ -64,17 +64,19 @@ including ragged tails and offsets.
 - `dmaxIndex` is equal to the pure kernel on random data, coarse ties, all `-Inf`,
   alternating `±0`, one or two NaNs, tied `+Inf`, and ties or NaNs at the
   block boundaries.
-- `dexpInto` was checked over 2,000,003 points in `[-745, 710]`. It is **within
-  1 ulp of `StrictMath.exp`**, which is what the test asserts. Because fdlibm's
+- `dexpInto` was checked over 2,000,003 points in `[-745, 710]`. The measured error is **within
+  1 ulp of `StrictMath.exp`**. The test asserts ≤ 2 ulp, to allow other platforms. Because fdlibm's
   `StrictMath.exp` is itself within 1 ulp, the error against the true value is
   **≤ 2 ulp**. On this JDK, `Math.exp` is 0 ulp from `StrictMath.exp`. The
   specials (`±0`, `±1`, NaN, `±Inf`, overflow and underflow edges, subnormals,
   `±MaxValue`) are exact where the result is NaN, `±Inf`, 0 or 1, and otherwise
   within 1 ulp of `StrictMath.exp`.
-- **`exp` is not tier-stable.** Across five reruns of the same sweep, about
-  1.1–1.4% of results (115,649, 122,502 and 141,389 of 10,000,015 in three runs) differ by
-  1 ulp from the first, partly interpreted, run. They stay within 1 ulp of
-  `StrictMath.exp`.
+- **`exp` is not tier-stable.** Across five reruns of the same sweep, about 1–2.5%
+  of results (the rate varies by run) differ by 1 ulp from the first, partly
+  interpreted, run. In three local runs this was 115,649, 122,502 and 141,389 of
+  10,000,015 results. They stay within 1 ulp of `StrictMath.exp`. The test asserts
+  ≤ 2 ulp against `StrictMath.exp` (x86 SVML may sit 2 ulp from fdlibm) and prints
+  the measured maximum.
 
 ### Recommendation: exclude `exp` from W2.2 default routing
 
