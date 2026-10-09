@@ -133,24 +133,21 @@ private[gale] object DoubleKernels:
       yOffset: Int,
       yStride: Int
   ): Unit =
-    if xStride == 1 && yStride == 1 then
-      // Contiguous fast path, unrolled 4x so independent lanes vectorize.
-      val limit = n - (n & 3)
+    if xStride == 1 && yStride == 1 && xOffset == yOffset then
+      // Contiguous, equal offsets (every owned vector): one index expression for
+      // both arrays. C2 cannot rule out that `x` and `y` are one array, so it
+      // vectorizes only when the two accesses provably coincide or never meet
+      // across iterations; a shared index proves that, distinct offset
+      // variables do not (measured 1.5x on JDK 25).
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        y(i) = fma(alpha, x(i), y(i))
+        i += 1
+    else if xStride == 1 && yStride == 1 then
       var i = 0
-      var xi = xOffset
-      var yi = yOffset
-      while i < limit do
-        y(yi) = fma(alpha, x(xi), y(yi))
-        y(yi + 1) = fma(alpha, x(xi + 1), y(yi + 1))
-        y(yi + 2) = fma(alpha, x(xi + 2), y(yi + 2))
-        y(yi + 3) = fma(alpha, x(xi + 3), y(yi + 3))
-        xi += 4
-        yi += 4
-        i += 4
       while i < n do
-        y(yi) = fma(alpha, x(xi), y(yi))
-        xi += 1
-        yi += 1
+        y(yOffset + i) = fma(alpha, x(xOffset + i), y(yOffset + i))
         i += 1
     else
       var i = 0
