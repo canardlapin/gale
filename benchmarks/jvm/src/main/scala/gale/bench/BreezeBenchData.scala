@@ -96,6 +96,68 @@ object BreezeBenchData:
       i += 1
     a
 
+  /** A square sparse matrix in raw compressed-sparse-column arrays, handed to both
+    * libraries (gale through its checked `CSCPattern`, Breeze through `CSCMatrix`).
+    */
+  final case class CscData(n: Int, colPtr: Array[Int], rowIdx: Array[Int], values: Array[Double]):
+    def nnz: Int = values.length
+
+  /** Seeded `n × n` sparse matrix: each entry is stored independently with
+    * probability `density` (row indices ascending within a column), values in `[-1, 1)`.
+    * Runs in `O(nnz)`: the gap to the next stored entry, in column-major order, is
+    * drawn from the geometric distribution `floor(log(U) / log(1 - density))`.
+    */
+  def sparseCsc(n: Int, density: Double, seed: Long): CscData =
+    require(density > 0.0 && density < 1.0, s"density $density must lie in (0, 1)")
+    val rng      = new java.util.SplittableRandom(seed)
+    val total    = n.toLong * n.toLong
+    val logSkip  = math.log1p(-density)
+    val capacity = math.max(16L, (total.toDouble * density * 1.1).toLong).toInt
+    var rowIdx   = new Array[Int](capacity)
+    var values   = new Array[Double](capacity)
+    val colPtr   = new Array[Int](n + 1)
+    var nnz      = 0
+    var col      = 0
+    // 1 - nextDouble() lies in (0, 1], so the log is finite.
+    var pos = (math.log(1.0 - rng.nextDouble()) / logSkip).toLong
+    while pos < total do
+      val c = (pos / n).toInt
+      while col < c do
+        col += 1
+        colPtr(col) = nnz
+      if nnz == rowIdx.length then
+        rowIdx = java.util.Arrays.copyOf(rowIdx, rowIdx.length * 2)
+        values = java.util.Arrays.copyOf(values, values.length * 2)
+      rowIdx(nnz) = (pos % n).toInt
+      values(nnz) = rng.nextDouble() * 2.0 - 1.0
+      nnz += 1
+      pos += 1L + (math.log(1.0 - rng.nextDouble()) / logSkip).toLong
+    while col < n do
+      col += 1
+      colPtr(col) = nnz
+    CscData(n, colPtr, java.util.Arrays.copyOf(rowIdx, nnz), java.util.Arrays.copyOf(values, nnz))
+
+  /** `nnz` distinct, ascending indices in `[0, length)` with values in `[-1, 1)`. */
+  def sparseEntries(length: Int, nnz: Int, seed: Long): (Array[Int], Array[Double]) =
+    require(nnz <= length, s"nnz $nnz exceeds length $length")
+    val rng    = new java.util.SplittableRandom(seed)
+    val chosen = new Array[Boolean](length)
+    var picked = 0
+    while picked < nnz do
+      val i = rng.nextInt(length)
+      if !chosen(i) then
+        chosen(i) = true
+        picked += 1
+    val indices = new Array[Int](nnz)
+    var k       = 0
+    var i       = 0
+    while i < length do
+      if chosen(i) then
+        indices(k) = i
+        k += 1
+      i += 1
+    (indices, Array.fill(nnz)(rng.nextDouble() * 2.0 - 1.0))
+
   def galeMatrix(data: Array[Array[Double]]): DMat =
     Matrix.tabulate(data.length, if data.isEmpty then 0 else data(0).length)((i, j) => data(i)(j))
 

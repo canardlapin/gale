@@ -580,15 +580,18 @@ addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile
 // Lane A passes -jvmArgs, which REPLACES ALL inherited fork JVM args (not only
 // --add-modules=jdk.incubator.vector): Breeze gets scalar Java BLAS and gale runs
 // pure. Lane B appends to the inherited args, so it keeps the module: Breeze gets
-// VectorBLAS and gale runs both its pure and Vector backends.
+// VectorBLAS and gale runs both its pure and Vector backends. Both lanes pin a 4 GB
+// fixed heap so the default (machine-dependent) heap never decides whether the large
+// sparse and factorization inputs fit, and so both lanes run with the same GC sizing.
 addCommandAlias(
   "breezeLaneA",
-  ";benchmarksJVM/breezeNetlibReset;benchmarksJVM/Jmh/run -jvmArgs -Dgale.bench.lane=A -p backend=pure -rf json"
+  ";benchmarksJVM/breezeNetlibReset" +
+    ";benchmarksJVM/Jmh/run -jvmArgs \"-Xms4g -Xmx4g -Dgale.bench.lane=A\" -p backend=pure -rf json"
 )
 addCommandAlias(
   "breezeLaneB",
   ";benchmarksJVM/breezeNetlibReset" +
-    ";benchmarksJVM/Jmh/run -jvmArgsAppend -Dgale.bench.lane=B -p backend=pure,vector -rf json"
+    ";benchmarksJVM/Jmh/run -jvmArgsAppend \"-Xms4g -Xmx4g -Dgale.bench.lane=B\" -p backend=pure,vector -rf json"
 )
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.

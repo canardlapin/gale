@@ -117,6 +117,18 @@ identical seeded `@Setup` data at matching `@Param` sizes:
 - `FactorizationBreezeJmh` — `solve`, `lu` (factorization only: gale `lu` vs breeze `LU.primitive`/`dgetrf`), `chol`, `qr` (no `Q` materialised) (`n` in {16, 64, 256}).
 - `LeastSquaresBreezeJmh` — overdetermined `m = 4n` least-squares: gale `leastSquares` vs breeze backslash (`n` in {16, 64, 256}).
 - `SymEigenBreezeJmh` — symmetric eigen with vectors: gale `Eigen.eigSymmetric(All)` vs breeze `eigSym` (`n` in {16, 64, 128}).
+- `FactorizationLargeBreezeJmh` — `solve`, `lu`, `chol`, `qr`, `lstsq` (`m = 2n`) and `eigSym` at `n` in {512, 1024}; average time, kept apart so the small sweeps stay bounded.
+- `MultiRhsBreezeJmh` — `luSolve` (`A \ B`) and `cholSolve` (Breeze twin: netlib `dpotrf` + `dpotrs`, as Breeze has no Cholesky solve) at `n = 256`, `k = 64`.
+- `DenseDecompositionBreezeJmh` — `inv` (gale `A.solve(I)`), `det`, `pinv`, full `svd`, nonsymmetric `eig` (`n` in {16, 64, 256}).
+- `SmallDenseBreezeJmh` — `gemm`, `solve`, `inv`, `det` at `n` in {3, 4} (report-only).
+- `SparseMatrixBreezeJmh` — CSC/CSR matvec and sparse × dense (`n × 32`) vs Breeze `CSCMatrix` (`n` in {1000, 10000}, `density` in {0.01, 0.1}); Breeze has no CSR, so its CSR twins repeat the CSC product.
+- `SparseVectorBreezeJmh` — `dot`, `dotDense`, in-place `axpy`, `add` (length 100000, `nnz` in {1000, 10000}).
+- `ElementwiseBreezeJmh` — matrix `add`, `sub`, `hadamard` (`n` in {256, 1024}).
+- `ReductionBreezeJmh` — vector `sum`, `max`, `argmax`, `mean`, `norm1`, `normInf`, `exp`, `sigmoid`, `logSumExp` (Breeze `softmax`), normalized `softmax` (Breeze `exp(x - softmax(x))`) at `n` in {1024, 65536, 1048576}.
+- `MatrixReductionBreezeJmh` — per-axis `sum`/`max`, whole `sum`, `normFrobenius`, per-row `softmax` and `logSumExp` on `1024 × 1024`.
+- `LbfgsBreezeJmh` — full L-BFGS solves on Rosenbrock-100 and L2-regularized logistic regression, `budget` in {`fixed` (20 iterations), `tolerance` (each library's own test at 1e-8)}; evaluation counts are logged as `[breeze-lbfgs]` in trial setup.
+
+Each class scaladoc documents its exact pairings and any allocation asymmetry.
 
 Backend-sensitive `gale*` methods also take a `GaleBackendState` whose
 `@Param backend` is `pure` or `vector` (the `backend-jvm-vector` SIMD backend);
@@ -124,8 +136,8 @@ the Breeze twins do not, so each Breeze row runs once per size. Coverage:
 
 | gale methods | backend param | scoreboard label |
 |---|---|---|
-| `gemv`, `gemvT`, `gemm`, `gemmTall`, `AtA` | `pure`, `vector` | `pure` / `vector` |
-| `lu`, `chol`, `solve`, `qr`, `lstsq` | `pure`, `vector` | `vector (gemm-routed only)`: the backend is reached only where a product routes through its gemm |
+| `gemv`, `gemvT`, `gemm`, `gemmTall`, `AtA`, small `gemm`, L-BFGS `logistic` (its objective's gemv) | `pure`, `vector` | `pure` / `vector` |
+| `lu`, `chol`, `solve`, `qr`, `lstsq`, `luSolve`, `cholSolve`, `inv`, `det` (small `solve` too) | `pure`, `vector` | `vector (gemm-routed only)`: the backend is reached only where a product routes through its gemm |
 | `dot`, `axpy`, `norm`, `eigSym` | none | `backend-insensitive`: the operation takes no `Backend` (eigen resolves a `SpectralBackend` the Vector backend does not supply), so these always run pure gale; W2 brings them back when L1 routing lands |
 
 ### Two lanes
@@ -138,10 +150,13 @@ adds `--add-modules=jdk.incubator.vector`, and forks inherit it, so a plain
 
 | Lane | sbt alias | Fork JVM args | Breeze BLAS | gale backend |
 |---|---|---|---|---|
-| A, out-of-box | `breezeLaneA` | `-jvmArgs -Dgale.bench.lane=A` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
-| B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
+| A, out-of-box | `breezeLaneA` | `-jvmArgs "-Xms4g -Xmx4g -Dgale.bench.lane=A"` (replaces **all** inherited fork args) | scalar Java BLAS | `pure` |
+| B, SIMD | `breezeLaneB` | inherited `--add-modules` plus `-Xms4g -Xmx4g -Dgale.bench.lane=B` | `VectorBLAS` | `pure` and `vector` |
 
-Both aliases set `-rf json`; append a result file, JMH options and a benchmark
+Both lanes pin a fixed 4 GB heap (`-Xms4g -Xmx4g`), so the largest inputs
+(`SparseMatrixBreezeJmh` at `n = 10000`, density 0.1: about 10M nonzeros held three
+times) fit regardless of the machine's default heap, and GC sizing is the same in both
+lanes. Both aliases set `-rf json`; append a result file, JMH options and a benchmark
 regex. Use one pinned JDK (25 LTS) for both lanes:
 
 ```bash
@@ -182,7 +197,7 @@ Pairing convention: a paired benchmark is `<Class>.gale<Op>` / `<Class>.breeze<O
 (`<Op>` upper-case first); rows pair on class, op, and params with gale's
 `backend` removed. New Breeze benches must follow it. The ratio is gale speed over
 Breeze speed (>1 means gale is faster; time modes are inverted), and the verdict
-is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. The
+is `ahead`/`behind` only when the 99.9% confidence intervals do not overlap. Known asymmetries live in the scoreboard's `CAVEATS` table and appear in a `note` column; a pair that is not like-for-like (gale CSR vs Breeze CSC, L-BFGS to each library's own tolerance) is reported as `withheld`, with no verdict. The
 header records the lane, JDK, fork JVM args, netlib BLAS/LAPACK classes, and
 commit. Any receipt is rejected when the sidecar and results disagree (JDK, a
 result without a sidecar record, or a stale record without a result) or a score

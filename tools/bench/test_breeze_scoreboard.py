@@ -38,11 +38,14 @@ def lane(name: str, sidecar: str, results: str, *extra: str) -> tuple[int, str, 
     )
 
 
-def table_row(text: str, cls: str, op: str, params: str, backend: str) -> list[str]:
+def table_row(
+    text: str, cls: str, op: str, params: str, backend: str, note: bool = False
+) -> list[str]:
+    """The row's cells; the trailing note column is dropped unless ``note``."""
     for line in text.splitlines():
-        cells = [c.strip() for c in line.strip("|").split("|")]
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if cells[:4] == [cls, op, params, backend]:
-            return cells
+            return cells if note else cells[:-1]
     raise AssertionError(f"no row for {cls}.{op} {params} {backend}:\n{text}")
 
 
@@ -54,7 +57,7 @@ class LaneA(unittest.TestCase):
         self.assertIn("Commit: `0123abc`", out)
         self.assertIn("JDK: 25.0.1 (OpenJDK 64-Bit Server VM)", out)
         self.assertIn(
-            "**2 ahead, 2 tie, 2 behind, 0 n/a** of 6 pairs; 1 unpaired.", out
+            "**2 ahead, 2 tie, 2 behind, 0 n/a, 0 withheld** of 6 pairs; 1 unpaired.", out
         )
         self.assertEqual(
             table_row(out, "BlasL3BreezeJmh", "Gemm", "n=16", "pure")[-2:],
@@ -167,6 +170,48 @@ class LaneA(unittest.TestCase):
         )
         self.assertEqual(code, 2)
         self.assertIn("appears more than once", err)
+
+
+class Caveats(unittest.TestCase):
+    def setUp(self) -> None:
+        code, self.out, err = lane(
+            "A", "laneA-caveats-netlib.jsonl", "laneA-caveats-results.json", "--strict"
+        )
+        self.assertEqual(code, 0, err)
+
+    def test_not_like_for_like_withholds_verdict(self) -> None:
+        csr = table_row(
+            self.out, "SparseMatrixBreezeJmh", "CsrMatvec", "density=0.01, n=1000",
+            "backend-insensitive", note=True,
+        )
+        self.assertEqual(csr[-3:-1], ["2.00x", "withheld"])
+        self.assertIn("not like-for-like", csr[-1])
+        tol = table_row(
+            self.out, "LbfgsBreezeJmh", "Rosenbrock", "budget=tolerance",
+            "backend-insensitive", note=True,
+        )
+        self.assertEqual(tol[-2], "withheld")
+        self.assertIn("own convergence test", tol[-1])
+        self.assertIn("**2 ahead, 0 tie, 1 behind, 0 n/a, 2 withheld** of 5 pairs", self.out)
+
+    def test_caveat_keeps_verdict_and_adds_note(self) -> None:
+        inv = table_row(
+            self.out, "DenseDecompositionBreezeJmh", "Inv", "n=64", "pure", note=True,
+        )
+        self.assertEqual(inv[-3:-1], ["0.50x", "behind"])
+        self.assertIn("dgetri", inv[-1])
+
+    def test_unqualified_pairs_have_no_note(self) -> None:
+        csc = table_row(
+            self.out, "SparseMatrixBreezeJmh", "CscMatvec", "density=0.01, n=1000",
+            "backend-insensitive", note=True,
+        )
+        self.assertEqual(csc[-3:], ["2.00x", "ahead", ""])
+        fixed = table_row(
+            self.out, "LbfgsBreezeJmh", "Rosenbrock", "budget=fixed",
+            "backend-insensitive", note=True,
+        )
+        self.assertEqual(fixed[-3:], ["2.00x", "ahead", ""])
 
 
 class LaneB(unittest.TestCase):
