@@ -525,6 +525,13 @@ private[gale] object DenseSpectralKernels:
           var c = 1.0
           var p = 0.0
           var innerZero = false
+          // A computed rotation waits here until the next one arrives, and the
+          // pair is applied in a single pass over three rows of Zᵀ (see
+          // [[rotatePair]]); a lone rotation left at the end of the sweep is
+          // applied by itself.
+          var pending = false
+          var pendingC = 0.0
+          var pendingS = 0.0
           var iBt = m - 1
           while iBt >= l && !innerZero do
             var f = s * e(eOffset + iBt)
@@ -545,16 +552,16 @@ private[gale] object DenseSpectralKernels:
               d(iBt + 1) = g + p
               g = c * r - b
               if hasZ then
-                // Rotate basis columns iBt and iBt+1: contiguous rows of Zᵀ.
-                val row0 = iBt * n
-                val row1 = row0 + n
-                var k = 0
-                while k < n do
-                  val f2 = zData(row1 + k)
-                  zData(row1 + k) = s * zData(row0 + k) + c * f2
-                  zData(row0 + k) = c * zData(row0 + k) - s * f2
-                  k += 1
+                if pending then
+                  rotatePair(n, zData, iBt, pendingC, pendingS, c, s)
+                  pending = false
+                else
+                  pending = true
+                  pendingC = c
+                  pendingS = s
               iBt -= 1
+          // The last computed rotation acted on basis columns iBt+1 and iBt+2.
+          if pending then rotate(n, zData, iBt + 1, pendingC, pendingS)
           if innerZero && iBt >= l then
             // The inner loop broke early (r == 0); retry without finalizing.
             ()
@@ -574,6 +581,48 @@ private[gale] object DenseSpectralKernels:
     val values = DVec.fromDoubleArrayOwned(d)
     val vectors = z.map(zData => DMat.fromDoubleArrayOwned(n, n, zData))
     Right(SymmetricEigen(values, vectors))
+
+  /** Rotate basis columns `i` and `i+1` (contiguous rows of the row-major
+    * `n x n` `Zᵀ`) by the QL plane rotation `(c, s)`.
+    */
+  private def rotate(n: Int, z: DoubleArray, i: Int, c: Double, s: Double): Unit =
+    val row0 = i * n
+    val row1 = row0 + n
+    var k = 0
+    while k < n do
+      val f2 = z(row1 + k)
+      z(row1 + k) = s * z(row0 + k) + c * f2
+      z(row0 + k) = c * z(row0 + k) - s * f2
+      k += 1
+
+  /** Apply two consecutive QL rotations in one pass: first `(c1, s1)` to basis
+    * columns `i+1, i+2`, then `(c0, s0)` to columns `i, i+1`. Row `i+1`'s
+    * intermediate value stays in a register, so the pass reads and writes three
+    * rows instead of four; every entry sees exactly the arithmetic of two
+    * [[rotate]] calls, so no result bit changes.
+    */
+  private def rotatePair(
+      n: Int,
+      z: DoubleArray,
+      i: Int,
+      c1: Double,
+      s1: Double,
+      c0: Double,
+      s0: Double
+  ): Unit =
+    val row0 = i * n
+    val row1 = row0 + n
+    val row2 = row1 + n
+    var k = 0
+    while k < n do
+      val mid = z(row1 + k)
+      val top = z(row2 + k)
+      z(row2 + k) = s1 * mid + c1 * top
+      val carried = c1 * mid - s1 * top
+      val low = z(row0 + k)
+      z(row1 + k) = s0 * low + c0 * carried
+      z(row0 + k) = c0 * low - s0 * carried
+      k += 1
 
   /** Selection sort of `d` ascending, permuting the rows of the optional
     * `n x n` row-major `zᵀ` (the basis columns) in lockstep. `n` is small (dense spectra), so the
