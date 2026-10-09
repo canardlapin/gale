@@ -1,6 +1,7 @@
 package gale.backend.jvm.vector
 
 import gale.kernel.DoubleKernels
+import gale.numeric.ExactSum
 import gale.platform.DoubleArray
 
 /** W2.1 spike correctness: the SIMD level-1/reduction kernels against the pure
@@ -39,6 +40,64 @@ class VectorL1KernelsSuite extends munit.FunSuite:
       var absSum = 0.0
       for i <- 0 until n do absSum += math.abs(x(offset + i) * y(offset + i))
       assert(math.abs(simd - pure) <= 2 * sumBound(n, absSum), s"n=$n offset=$offset simd=$simd pure=$pure")
+  }
+
+  /** Correctly rounded `Σ x_i y_i` via exact `BigDecimal` products. */
+  private def exactDot(n: Int, x: Array[Double], y: Array[Double], offset: Int): Double =
+    var acc = java.math.BigDecimal.ZERO
+    for i <- 0 until n do
+      acc = acc.add(new java.math.BigDecimal(x(offset + i)).multiply(new java.math.BigDecimal(y(offset + i))))
+    acc.doubleValue()
+
+  private def exactSum(n: Int, x: Array[Double], offset: Int): Double =
+    val acc = ExactSum.zero()
+    for i <- 0 until n do assert(acc.add(x(offset + i)).isRight)
+    acc.value
+
+  test("ddot and dsum stay within the summation bound of an exact reference") {
+    for n <- Lengths; offset <- Seq(0, 3) do
+      val x = lcg(n + offset, 101L + n)
+      val y = lcg(n + offset, 103L + n)
+      val dotExact = exactDot(n, x, y, offset)
+      var absDot = 0.0
+      var absSum = 0.0
+      for i <- 0 until n do
+        absDot += math.abs(x(offset + i) * y(offset + i))
+        absSum += math.abs(x(offset + i))
+      val dot = VectorL1Kernels.ddot(n, da(x), offset, 1, da(y), offset, 1)
+      assert(
+        math.abs(dot - dotExact) <= sumBound(n, absDot) + Eps * math.abs(dotExact),
+        s"dot n=$n simd=$dot exact=$dotExact"
+      )
+      val sumExact = exactSum(n, x, offset)
+      val sum = VectorL1Kernels.dsum(n, da(x), offset, 1)
+      assert(
+        math.abs(sum - sumExact) <= sumBound(n, absSum) + Eps * math.abs(sumExact),
+        s"sum n=$n simd=$sum exact=$sumExact"
+      )
+  }
+
+  test("ddot, dsum and dnrm2 are bit-stable across JIT tiers") {
+    // The first call runs interpreted; 20,000 more push the kernels through C1 and
+    // C2. Every rerun must reproduce the first result's bits (fixed-order combine).
+    val n = 1027 // a full unrolled body, a single-vector remainder and a scalar tail
+    val x = lcg(n, 211L)
+    val y = lcg(n, 223L)
+    val tiny = x.map(_ * 1e-300) // forces the nrm2 rescan path
+    def bits(v: Double): Long = java.lang.Double.doubleToRawLongBits(v)
+    val dot0 = bits(VectorL1Kernels.ddot(n, da(x), 0, 1, da(y), 0, 1))
+    val sum0 = bits(VectorL1Kernels.dsum(n, da(x), 0, 1))
+    val nrm0 = bits(VectorL1Kernels.dnrm2(n, da(y), 0, 1))
+    val tiny0 = bits(VectorL1Kernels.dnrm2(n, da(tiny), 0, 1))
+    var diffs = 0
+    var rep = 0
+    while rep < 20000 do
+      if bits(VectorL1Kernels.ddot(n, da(x), 0, 1, da(y), 0, 1)) != dot0 then diffs += 1
+      if bits(VectorL1Kernels.dsum(n, da(x), 0, 1)) != sum0 then diffs += 1
+      if bits(VectorL1Kernels.dnrm2(n, da(y), 0, 1)) != nrm0 then diffs += 1
+      if bits(VectorL1Kernels.dnrm2(n, da(tiny), 0, 1)) != tiny0 then diffs += 1
+      rep += 1
+    assertEquals(diffs, 0, "results changed bits across reruns")
   }
 
   test("ddot strided input falls back to the pure kernel bitwise") {
@@ -188,7 +247,7 @@ class VectorL1KernelsSuite extends munit.FunSuite:
     else if expected.isInfinite || actual.isInfinite || actual.isNaN then Double.PositiveInfinity
     else math.abs(actual - expected) / Math.ulp(expected)
 
-  test("dexpInto: specials exact; max ulp error over a dense [-745, 710] sweep is bounded") {
+  test("dexpInto: specials exact; within 1 ulp of StrictMath (2 ulp of the true value) over [-745, 710]") {
     val specials = Array(
       0.0, -0.0, 1.0, -1.0, Double.NaN, Double.PositiveInfinity, Double.NegativeInfinity,
       709.782712893384, 709.79, 710.0, -745.1332191019411, -745.14, -746.0, -708.4, -720.0,
@@ -225,7 +284,8 @@ class VectorL1KernelsSuite extends munit.FunSuite:
       f"[w21] dexpInto lanes=${VectorL1Kernels.lanes} max ulp vs StrictMath.exp over $n points " +
         f"in [$lo, $hi]: $maxUlp%.3f at x=$worstAt (Math.exp: $maxUlpMath%.3f)"
     )
-    assert(maxUlp <= 2.0, s"SIMD exp max ulp $maxUlp at $worstAt")
+    // StrictMath.exp (fdlibm) is itself within 1 ulp, so this bounds the true error by 2 ulp.
+    assert(maxUlp <= 1.0, s"SIMD exp max ulp $maxUlp at $worstAt")
 
     // `lanewise(EXP)` is not tier-stable: the interpreter/C1 path and the C2
     // intrinsic stub may round differently. Repeat the sweep (warming the kernel)
@@ -242,7 +302,7 @@ class VectorL1KernelsSuite extends munit.FunSuite:
           rerunDiffs += 1
           val err = ulpError(again(j), StrictMath.exp(x(j)))
           rerunMaxUlp = math.max(rerunMaxUlp, err)
-          assert(err <= 2.0, s"rerun $rep at x=${x(j)}")
+          assert(err <= 1.0, s"rerun $rep at x=${x(j)}")
         j += 1
       rep += 1
     println(f"[w21] dexpInto reruns differing bitwise from the first run: $rerunDiffs of ${5L * n}; max ulp among them $rerunMaxUlp%.3f")

@@ -19,14 +19,19 @@ import jdk.incubator.vector.VectorSpecies
   * Semantics relative to the pure kernels:
   *   - `daxpy` is bit-identical (one fma per element, same operand order).
   *   - `ddot` and `dsum` reassociate (lane order, four vector accumulators), so they
-  *     agree within the usual `n·ε·Σ|terms|` summation bound, not bitwise.
+  *     agree within the usual `n·ε·Σ|terms|` summation bound, not bitwise. The
+  *     horizontal combine has a fixed order, so a result is reproducible for a given
+  *     species width (but differs between, say, 2-lane NEON and 4-lane AVX2).
   *   - `dnrm2` keeps the pure contract (overflow/underflow-safe; NaN iff an entry is
   *     NaN, else `+Inf` iff an entry is infinite) and is accurate to a few ulp.
   *   - `dmaxIndex` is exact: first maximum, first NaN wins, `±0` compare equal.
   *   - `dexpInto` uses `lanewise(EXP)`. Measured (JDK 25, aarch64, 2 lanes) within
-  *     1 ulp of `StrictMath.exp` over `[-745, 710]`, but neither bit-identical to the
+  *     1 ulp of `StrictMath.exp` (so within 2 ulp of the true value) over
+  *     `[-745, 710]`, but neither bit-identical to the
   *     pure `math.exp` nor stable across JIT tiers: about 1% of results change by
-  *     1 ulp once the kernel is C2-compiled.
+  *     1 ulp once the kernel is C2-compiled. The scalar tail uses `Math.exp`, so a
+  *     value's result also depends on its position. Recommendation: keep it out of
+  *     default routing (see `docs/verification/w21-simd-spike/README.md`).
   */
 private[gale] object VectorL1Kernels:
   private final val Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED
@@ -38,6 +43,27 @@ private[gale] object VectorL1Kernels:
   private final val TrustedSumsqMin = 1e-280
 
   def lanes: Int = Lanes
+
+  /** Horizontal sum in a fixed pairwise order. `reduceLanes(ADD)` leaves the lane
+    * order unspecified, so its rounding may differ between the interpreter, C1 and
+    * the C2 intrinsic on wide species. Lane extraction is exact, so this combine is
+    * reproducible for a given species width. The width itself is part of the result:
+    * a 2-lane and an 8-lane machine reassociate differently.
+    */
+  private def sumLanes(v: DoubleVector): Double =
+    Lanes match
+      case 2 => v.lane(0) + v.lane(1)
+      case 4 => (v.lane(0) + v.lane(1)) + (v.lane(2) + v.lane(3))
+      case 8 =>
+        ((v.lane(0) + v.lane(1)) + (v.lane(2) + v.lane(3))) +
+          ((v.lane(4) + v.lane(5)) + (v.lane(6) + v.lane(7)))
+      case _ =>
+        var r = v.lane(0)
+        var i = 1
+        while i < Lanes do
+          r += v.lane(i)
+          i += 1
+        r
 
   def ddot(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Double =
     if Simd && xStride == 1 && yStride == 1 then
@@ -69,7 +95,7 @@ private[gale] object VectorL1Kernels:
     while i < bound do
       s0 = DoubleVector.fromArray(species, x, xOffset + i).fma(DoubleVector.fromArray(species, y, yOffset + i), s0)
       i += step
-    var acc = s0.add(s1).add(s2.add(s3)).reduceLanes(VectorOperators.ADD)
+    var acc = sumLanes(s0.add(s1).add(s2.add(s3)))
     while i < n do
       acc = Math.fma(x(xOffset + i), y(yOffset + i), acc)
       i += 1
@@ -125,7 +151,7 @@ private[gale] object VectorL1Kernels:
       while i < bound do
         s0 = s0.add(DoubleVector.fromArray(species, xs, xOffset + i))
         i += step
-      var acc = s0.add(s1).add(s2.add(s3)).reduceLanes(VectorOperators.ADD)
+      var acc = sumLanes(s0.add(s1).add(s2.add(s3)))
       while i < n do
         acc += xs(xOffset + i)
         i += 1
@@ -177,7 +203,7 @@ private[gale] object VectorL1Kernels:
       val v = DoubleVector.fromArray(species, x, xOffset + i).div(s)
       acc = v.fma(v, acc)
       i += Lanes
-    var r = acc.reduceLanes(VectorOperators.ADD)
+    var r = sumLanes(acc)
     while i < n do
       val v = x(xOffset + i) / scale
       r = Math.fma(v, v, r)
