@@ -84,7 +84,7 @@ class VectorGemmSuite extends munit.FunSuite:
       x.offset.value,
       x.stride.value,
       beta,
-      DoubleArray.fromArray(y),
+      DoubleArray.adopt(y), // no copy: the kernel must write the caller's array
       yOffset,
       yStride
     )
@@ -160,6 +160,79 @@ class VectorGemmSuite extends munit.FunSuite:
     runGemv(VectorDenseDoubleKernel, a, x, -0.75, 0.5, vectorY, yOffset = 1, yStride = 3)
     runGemv(PureDenseDoubleKernel, a, x, -0.75, 0.5, pureY, yOffset = 1, yStride = 3)
     assertArrayClose(vectorY, pureY)
+
+  /** `gemv` on the transpose view of an offset, padded row-major parent: the
+    * column-contiguous SIMD path. Padding is NaN, so a read past a column fails.
+    */
+  private def checkGemvTransposed(
+      rows: Int,
+      cols: Int,
+      alpha: Double,
+      beta: Double,
+      xStride: Int = 1
+  )(using munit.Location): Unit =
+    val parentCols = rows + 3
+    val lead = 5
+    val backing = Array.fill(lead + cols * parentCols)(Double.NaN)
+    var j = 0
+    while j < cols do
+      var i = 0
+      while i < rows do
+        backing(lead + j * parentCols + i) = ((i * 13 + j * 7) % 11 - 5).toDouble / 4.0
+        i += 1
+      j += 1
+    val parent = new DMat(
+      DoubleArray.fromArray(backing),
+      Offset.unsafe(lead),
+      Rows.unsafe(cols),
+      Cols.unsafe(rows),
+      Stride.unsafe(parentCols),
+      Stride.unsafe(1)
+    )
+    val a = parent.t
+    assertEquals(a.rowStride.value, 1)
+    assertEquals(a.colStride.value, parentCols)
+    val xBacking = Array.fill(cols * xStride)(Double.NaN)
+    j = 0
+    while j < cols do
+      xBacking(j * xStride) = ((j * 5) % 9 - 4).toDouble / 3.0
+      j += 1
+    val x = new DVec(
+      DoubleArray.fromArray(xBacking), Offset.unsafe(0), Length.unsafe(cols), Stride.unsafe(xStride)
+    )
+    val vectorY = Array.tabulate(rows)(i => (i % 7).toDouble - 3.0)
+    val pureY = vectorY.clone()
+    runGemv(VectorDenseDoubleKernel, a, x, alpha, beta, vectorY)
+    runGemv(PureDenseDoubleKernel, a, x, alpha, beta, pureY)
+    assertArrayClose(vectorY, pureY)
+
+  // Row counts straddle every lane count (tails of 1..7); column counts straddle
+  // the four-column block (tails of 0..3).
+  test("gemvT parity: 1x1")(checkGemvTransposed(1, 1, 1.0, 0.0))
+  test("gemvT parity: 7x5")(checkGemvTransposed(7, 5, 1.0, 0.0))
+  test("gemvT parity: 17x18, alpha/beta")(checkGemvTransposed(17, 18, -0.75, 0.5))
+  test("gemvT parity: 33x19, beta = 1")(checkGemvTransposed(33, 19, 2.0, 1.0))
+  test("gemvT parity: 64x67, strided x")(checkGemvTransposed(64, 67, 1.0, 0.0, xStride = 3))
+  test("gemvT parity: 131x129, strided x, alpha/beta")(checkGemvTransposed(131, 129, 1.5, -2.0, xStride = 2))
+
+  test("gemvT: beta = 0 ignores a non-finite prior y"):
+    val n = 9
+    val a = mkA(n, n).t
+    val x = Vec.tabulate(n)(j => (j - 4).toDouble)
+    val vectorY = Array.fill(n)(Double.NaN)
+    val pureY = Array.fill(n)(0.0)
+    runGemv(VectorDenseDoubleKernel, a, x, 1.0, 0.0, vectorY)
+    runGemv(PureDenseDoubleKernel, a, x, 1.0, 0.0, pureY)
+    assertArrayClose(vectorY, pureY)
+
+  test("seam: threshold-selected transposed gemv under VectorBackend matches pure"):
+    val n = 160
+    val a = mkA(n, n + 3)
+    val x = Vec.tabulate(n)(i => ((i * 7) % 11 - 5).toDouble)
+    val viaVector = a.t.*(x)(using VectorBackend)
+    val viaPure = a.t.*(x)(using PureBackend)
+    assertEquals(viaVector.length, n + 3)
+    assertArrayClose(viaVector.toSeq.toArray, viaPure.toSeq.toArray)
 
   test("gemm parity: transposed (column-strided) B operand falls back to pure"):
     // A row-major matrix's transpose view has non-unit column stride, so the SIMD gemm
