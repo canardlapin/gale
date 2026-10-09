@@ -231,14 +231,14 @@ final class DVec private[gale] (
     */
   def max: Double =
     requireNonEmpty("max")
-    data(offset.value + DoubleKernels.dmaxIndex(length, data, offset.value, stride.value) * stride.value)
+    DoubleKernels.dmax(length, data, offset.value, stride.value)
 
   /** Smallest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
     * when empty.
     */
   def min: Double =
     requireNonEmpty("min")
-    data(offset.value + DoubleKernels.dminIndex(length, data, offset.value, stride.value) * stride.value)
+    DoubleKernels.dmin(length, data, offset.value, stride.value)
 
   /** Index of the first largest entry, or of the first NaN if any entry is NaN.
     * Throws [[LinAlgError.EmptyInput]] when empty.

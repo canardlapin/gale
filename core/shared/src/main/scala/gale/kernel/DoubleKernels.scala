@@ -1036,6 +1036,42 @@ private[gale] object DoubleKernels:
         i += 1
       m
 
+  /** The value at [[dmaxIndex]] (`n > 0`): the first NaN if any, else the
+    * first maximum. The contiguous pass is a branch-free `math.max` reduction,
+    * which C2 vectorizes. `math.max` differs from the first-occurrence value
+    * only in which of `0.0`/`-0.0` or of several NaNs it returns, so a zero or
+    * NaN result is recomputed by the index scan.
+    */
+  def dmax(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    extremeValue(n, x, xOffset, xStride, Double.NegativeInfinity)(math.max)(dmaxIndex)
+
+  /** The value at [[dminIndex]] (`n > 0`), as [[dmax]]. */
+  def dmin(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    extremeValue(n, x, xOffset, xStride, Double.PositiveInfinity)(math.min)(dminIndex)
+
+  private inline def extremeValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
+      inline pick: (Double, Double) => Double
+  )(inline index: (Int, DoubleArray, Int, Int) => Int): Double =
+    if xStride == 1 then
+      var m0 = worst
+      var m1 = worst
+      var m2 = worst
+      var m3 = worst
+      val limit = n - (n & 3)
+      var i = 0
+      while i < limit do
+        m0 = pick(m0, x(xOffset + i))
+        m1 = pick(m1, x(xOffset + i + 1))
+        m2 = pick(m2, x(xOffset + i + 2))
+        m3 = pick(m3, x(xOffset + i + 3))
+        i += 4
+      var m = pick(pick(m0, m1), pick(m2, m3))
+      while i < n do
+        m = pick(m, x(xOffset + i))
+        i += 1
+      if m != 0.0 && m == m then m else x(xOffset + index(n, x, xOffset, 1))
+    else x(xOffset + index(n, x, xOffset, xStride) * xStride)
+
   /** Index of the first maximum, `-1` when `n == 0`. The first NaN wins: its
     * index is returned as soon as it is seen, so a NaN anywhere propagates to
     * the value read back at the returned index.
@@ -1292,7 +1328,7 @@ private[gale] object DoubleKernels:
 
   /** The value at [[dmaxIndex]]: the first NaN if any, else the maximum. */
   private def maxValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    x(xOffset + dmaxIndex(n, x, xOffset, xStride) * xStride)
+    dmax(n, x, xOffset, xStride)
 
   /** `log(sum exp(x_i))` by the two-pass max shift `m + log(sum exp(x_i - m))`.
     *

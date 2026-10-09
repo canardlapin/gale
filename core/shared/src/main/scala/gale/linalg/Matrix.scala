@@ -1075,9 +1075,16 @@ final class DMat private[gale] (
     * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
     */
   private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
-    if largest then streamExtremes(axis, out)(_ > _) else streamExtremes(axis, out)(_ < _)
+    if largest then streamExtremes(axis, out)(math.max)(DoubleKernels.dmax)
+    else streamExtremes(axis, out)(math.min)(DoubleKernels.dmin)
 
-  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline better: (Double, Double) => Boolean): Unit =
+  // The streamed pass is a branch-free `math.max`/`math.min` per slice, which C2
+  // vectorizes. It can differ from the first-occurrence value only in which
+  // signed zero or NaN payload it keeps, so lines ending at zero or NaN are
+  // recomputed by the per-line kernel.
+  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline pick: (Double, Double) => Double)(
+      inline exact: (Int, DoubleArray, Int, Int) => Double
+  ): Unit =
     val lines = axisLines(axis)
     val length = axisLength(axis)
     val elementStep = axisElementStep(axis)
@@ -1091,11 +1098,14 @@ final class DMat private[gale] (
       val start = base + k * elementStep
       line = 0
       while line < lines do
-        val current = out(line)
-        val value = data(start + line)
-        if better(value, current) || (value != value && current == current) then out(line) = value
+        out(line) = pick(out(line), data(start + line))
         line += 1
       k += 1
+    line = 0
+    while line < lines do
+      val value = out(line)
+      if value == 0.0 || value != value then out(line) = exact(length, data, base + line, elementStep)
+      line += 1
 
   private def extremePosition(largest: Boolean): (Int, Int) =
     if isContiguousRowMajor then
@@ -1140,10 +1150,9 @@ final class DMat private[gale] (
       var line = 0
       while line < lines do
         val start = offset.value + line * lineStep
-        val k =
-          if largest then DoubleKernels.dmaxIndex(length, data, start, elementStep)
-          else DoubleKernels.dminIndex(length, data, start, elementStep)
-        out.data(line) = data(start + k * elementStep)
+        out.data(line) =
+          if largest then DoubleKernels.dmax(length, data, start, elementStep)
+          else DoubleKernels.dmin(length, data, start, elementStep)
         line += 1
     out
 
