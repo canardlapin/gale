@@ -229,6 +229,29 @@ class DenseSpectralKernelsSymmetricSuite extends munit.FunSuite:
     assertEquals(result, Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(0)))
   }
 
+  test("dense symmetric eigen: exhausted sweep budget fails typed with and without vectors") {
+    // Exercises the transposed-basis rotation path's failure exit (and the
+    // workspace route, which shares the kernel).
+    val a = Matrix.tabulate(8, 8)((i, j) => if i == j then 2.0 else if math.abs(i - j) == 1 then -1.0 else 0.0)
+    Seq(true, false).foreach: wantVectors =>
+      assertEquals(
+        symmetricEigen(a, wantVectors, maxSweepsPerValue = 0).map(_.values),
+        Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(0))
+      )
+      assertEquals(
+        symmetricEigenWith(a, wantVectors, gale.linalg.DenseWorkspace.empty, maxSweepsPerValue = 0).map(_.values),
+        Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(0))
+      )
+  }
+
+  test("dense symmetric eigen: NaN input exhausts the budget and fails typed (vectors and values)") {
+    val a = Matrix.tabulate(6, 6)((i, j) => if i == 4 && j == 1 then Double.NaN else 1.0 / (i + j + 1))
+    Seq(true, false).foreach: wantVectors =>
+      symmetricEigen(a, wantVectors) match
+        case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(_)) => ()
+        case other => fail(s"vectors=$wantVectors: expected DidNotConverge, got $other")
+  }
+
   test("symmetric eigen: values-only agrees with full solve") {
     val n = 14
     val a = randomSymmetric(n, 555L)

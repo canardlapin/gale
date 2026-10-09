@@ -99,8 +99,9 @@ object Svds:
     * the same returned-set policy the [[SVD]] result type documents;
     * `diagnostics.iterations` is `0` (a dense one-shot solve).
     *
-    * `Left` on: a non-positive dimension; an illegal vector flag; `k ≤ 0` or
-    * `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
+    * `Left` on: a non-positive dimension; an illegal vector flag; a non-finite
+    * entry (`InvalidArgument`, checked before any backend sees the matrix);
+    * `k ≤ 0` or `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
     * exhaustion, `Left(DidNotConverge)` like the dense eigen paths.
     */
   def svd(a: DMat, selection: SingularSelection, vectors: EigenVectors)(using
@@ -110,7 +111,7 @@ object Svds:
     val n = a.cols
     if m <= 0 || n <= 0 then Left(LinAlgError.InvalidArgument(s"dimensions must be positive, got ${m}x$n"))
     else
-      validateVectors(vectors) match
+      validateVectors(vectors).flatMap(w => FiniteInput.matrix(a).map(_ => w)) match
         case Left(error) => Left(error)
         case Right(wantVectors) =>
           val p = math.min(m, n)
@@ -265,7 +266,7 @@ object Svds:
         // products and a product over a transposed view; the transposes are
         // materialized because a product over a view walks it column-strided.
         val vMat = DMat.tabulate(n, p)((r, c) => vtMat(c, r))
-        val aMat = DMat.tabulate(m, n)((r, c) => a(r, c))
+        val aMat = if a.isContiguousRowMajor then a else DMat.tabulate(m, n)((r, c) => a(r, c))
         val atMat = DMat.tabulate(n, m)((r, c) => a(c, r))
         val av = aMat * vMat
         val atu = atMat * uMat

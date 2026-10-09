@@ -39,6 +39,9 @@ private[gale] object DenseSvdKernel:
   enum SvdKernelFailure:
     case DidNotConverge(iterations: Int)
 
+  /** Zero-length placeholder for the values-only path (never written). */
+  private val NoVectors: DoubleArray = DoubleArray.alloc(0)
+
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
@@ -70,7 +73,7 @@ private[gale] object DenseSvdKernel:
     val u = a.toDoubleArrayCopyRowMajor // m×n row-major; becomes economy U in place
     val w = DoubleArray.alloc(n)        // singular values
     val rv1 = DoubleArray.alloc(n)      // superdiagonal workspace
-    val vt = if wantVectors then DoubleArray.alloc(n * n) else DoubleArray.alloc(0)
+    val vt = if wantVectors then DoubleArray.alloc(n * n) else NoVectors
 
     val anorm = bidiagonalize(m, n, u, w, rv1)
     // The singular vectors are built and rotated as the transposes Vᵀ (n×n)
@@ -295,8 +298,9 @@ private[gale] object DenseSvdKernel:
     * `wantVectors`, so a rotation of singular-vector columns `p`, `q` updates
     * rows `p`, `q`. Deflation and cancellation both test against
     * the scale-aware `ε·anorm`. On success every `w(i) ≥ 0` (a converged
-    * negative value flips sign along with its `v` column). Returns the typed
-    * failure when a value exhausts its sweep budget.
+    * negative value flips sign along with its row of `vt`). Returns the typed
+    * failure when a value exhausts its sweep budget, or immediately (zero
+    * sweeps) when the bidiagonal is not finite.
     */
   private def diagonalize(
       m: Int,
@@ -308,6 +312,10 @@ private[gale] object DenseSvdKernel:
       anorm: Double,
       wantVectors: Boolean
   ): Option[SvdKernelFailure] =
+    // A non-finite entry makes anorm NaN/Inf; no superdiagonal could then pass
+    // the deflation test (not even the exact zero rv1(0)), and the split search
+    // would run off the front of the arrays. Fail typed before any sweep.
+    if !anorm.isFinite then return Some(SvdKernelFailure.DidNotConverge(0))
     val tol = Epsilon * anorm
     var totalSweeps = 0
     var k = n - 1

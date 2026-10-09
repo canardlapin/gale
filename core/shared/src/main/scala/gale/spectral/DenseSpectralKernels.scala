@@ -355,10 +355,12 @@ private[gale] object DenseSpectralKernels:
     * ascending afterwards with the rows permuted to match, and `zData` is then
     * transposed in place so the returned matrix holds the eigenvectors as
     * columns. Each entry sees exactly the arithmetic of the column-oriented
-    * formulation, so the layout does not change any result bit. For finite `T` an off-diagonal is deflated once
-    * it is at most `ε · max(|d(m)| + |d(m+1)|, ‖T‖_max)` (`‖T‖_max` the largest
-    * entry magnitude, which cannot overflow and is within a factor 3 of `‖T‖₂`),
-    * so every eigenvalue carries an absolute error of order `ε ‖T‖`: the solver
+    * formulation, so the layout does not change any result bit.
+    *
+    * For finite `T` an off-diagonal is deflated once it is at most
+    * `ε · max(|d(m)| + |d(m+1)|, ‖T‖_max)` (`‖T‖_max` the largest entry
+    * magnitude, which cannot overflow and is within a factor 3 of `‖T‖₂`), so
+    * every eigenvalue carries an absolute error of order `ε ‖T‖`: the solver
     * is normwise backward-stable only, and tiny eigenvalues of graded matrices
     * get no relative accuracy. If `T` has an infinite entry the norm-scaled test
     * is disabled and only the local test applies, exactly as before it was
@@ -416,7 +418,7 @@ private[gale] object DenseSpectralKernels:
     val normScale = if tMax.isFinite then tMax else 0.0
 
     val hasZ = z.isDefined
-    val zData = z.getOrElse(DoubleArray.alloc(0))
+    val zData = z.getOrElse(NoVectors)
     var l = 0
     while l < n do
       var iter = 0
@@ -1140,6 +1142,9 @@ private[gale] object DenseSpectralKernels:
   // Shared helpers
   // ---------------------------------------------------------------------------
 
+  /** Zero-length placeholder for the values-only paths (never written). */
+  private val NoVectors: DoubleArray = DoubleArray.alloc(0)
+
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
@@ -1190,7 +1195,6 @@ private[gale] object DenseSpectralKernels:
         j += 1
       i += 1
 
-  /** A fresh `n x n` row-major identity array. */
   /** Transpose the `n x n` row-major `a` in place. */
   private def transposeSquareInPlace(n: Int, a: DoubleArray): Unit =
     var r = 0
@@ -1203,6 +1207,7 @@ private[gale] object DenseSpectralKernels:
         c += 1
       r += 1
 
+  /** A fresh `n x n` row-major identity array. */
   private def identityRowMajor(n: Int): DoubleArray =
     val out = DoubleArray.alloc(n * n)
     var i = 0

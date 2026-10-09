@@ -793,7 +793,8 @@ final class DMat private[gale] (
     * computes the raw factors, and with no import the pure bidiagonal kernel runs —
     * unlike the kernel-`Backend` factorization gates there is no size threshold, and
     * canonical order, residuals, and rank are always the facade's. `Left` on an
-    * empty dimension or (in practice unreachable) kernel non-convergence.
+    * empty dimension, a non-finite (NaN or infinite) entry, or (in practice
+    * unreachable) kernel non-convergence.
     */
   def svd(using SpectralBackend): Either[LinAlgError, SVD] =
     Svds.svd(this, SingularSelection.All)
