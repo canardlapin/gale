@@ -166,12 +166,18 @@ private[gale] object DoubleKernels:
       xOffset: Int,
       xStride: Int
   ): Unit =
-    var i = 0
-    var xi = xOffset
-    while i < n do
-      x(xi) = alpha * x(xi)
-      xi += xStride
-      i += 1
+    if xStride == 1 then
+      var i = 0
+      while i < n do
+        x(xOffset + i) = alpha * x(xOffset + i)
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        x(xi) = alpha * x(xi)
+        xi += xStride
+        i += 1
 
   def dadd(
       n: Int,
@@ -185,16 +191,7 @@ private[gale] object DoubleKernels:
       outOffset: Int,
       outStride: Int
   ): Unit =
-    var i = 0
-    var xi = xOffset
-    var yi = yOffset
-    var oi = outOffset
-    while i < n do
-      out(oi) = x(xi) + y(yi)
-      xi += xStride
-      yi += yStride
-      oi += outStride
-      i += 1
+    dzipInto(n, x, xOffset, xStride, y, yOffset, yStride, out, outOffset, outStride)(_ + _)
 
   def dsub(
       n: Int,
@@ -208,16 +205,74 @@ private[gale] object DoubleKernels:
       outOffset: Int,
       outStride: Int
   ): Unit =
-    var i = 0
-    var xi = xOffset
-    var yi = yOffset
-    var oi = outOffset
-    while i < n do
-      out(oi) = x(xi) - y(yi)
-      xi += xStride
-      yi += yStride
-      oi += outStride
-      i += 1
+    dzipInto(n, x, xOffset, xStride, y, yOffset, yStride, out, outOffset, outStride)(_ - _)
+
+  /** Elementwise (Hadamard) product `out_i := x_i * y_i`. */
+  def dmul(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int,
+      out: DoubleArray,
+      outOffset: Int,
+      outStride: Int
+  ): Unit =
+    dzipInto(n, x, xOffset, xStride, y, yOffset, yStride, out, outOffset, outStride)(_ * _)
+
+  /** Elementwise quotient `out_i := x_i / y_i`. */
+  def ddiv(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int,
+      out: DoubleArray,
+      outOffset: Int,
+      outStride: Int
+  ): Unit =
+    dzipInto(n, x, xOffset, xStride, y, yOffset, yStride, out, outOffset, outStride)(_ / _)
+
+  /** `out_i := f(x_i, y_i)`; `out` may alias `x` or `y` (same offset and stride). */
+  inline def dzipInto(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int,
+      y: DoubleArray,
+      yOffset: Int,
+      yStride: Int,
+      out: DoubleArray,
+      outOffset: Int,
+      outStride: Int
+  )(inline f: (Double, Double) => Double): Unit =
+    if xStride == 1 && yStride == 1 && outStride == 1 && xOffset == outOffset && yOffset == outOffset then
+      // One shared index lets C2 vectorize despite possible aliasing (see daxpy).
+      var i = outOffset
+      val end = outOffset + n
+      while i < end do
+        out(i) = f(x(i), y(i))
+        i += 1
+    else if xStride == 1 && yStride == 1 && outStride == 1 then
+      var i = 0
+      while i < n do
+        out(outOffset + i) = f(x(xOffset + i), y(yOffset + i))
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      var yi = yOffset
+      var oi = outOffset
+      while i < n do
+        out(oi) = f(x(xi), y(yi))
+        xi += xStride
+        yi += yStride
+        oi += outStride
+        i += 1
 
   def dgemv(
       rows: Int,

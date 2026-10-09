@@ -622,19 +622,34 @@ final class DMat private[gale] (
     if n > 0 then DoubleKernels.dscal(n, alpha, out, 0, 1)
     DMat.fromDoubleArrayOwned(rows, cols, out)
 
-  /** Elementwise add/subtract through the `dadd`/`dsub` kernels. When both
-    * operands are contiguous row-major the whole block is a single kernel call;
+  /** Elementwise (Hadamard) product of two same-shape matrices, as an owned
+    * row-major result; the kernel behind `a.pointwise * b`.
+    */
+  private[gale] def hadamard(that: DMat): DMat =
+    requireSameShape(that)
+    zipKernel(that)(DoubleKernels.dmul)
+
+  /** Elementwise quotient of two same-shape matrices; the kernel behind
+    * `a.pointwise / b`.
+    */
+  private[gale] def elementwiseQuotient(that: DMat): DMat =
+    requireSameShape(that)
+    zipKernel(that)(DoubleKernels.ddiv)
+
+  private def addSub(that: DMat, subtract: Boolean): DMat =
+    if subtract then zipKernel(that)(DoubleKernels.dsub) else zipKernel(that)(DoubleKernels.dadd)
+
+  /** Elementwise binary op through a `dadd`-shaped kernel. When both operands
+    * are contiguous row-major the whole block is a single kernel call;
     * otherwise each row is one strided call, honouring arbitrary layouts.
     */
-  private def addSub(that: DMat, subtract: Boolean): DMat =
+  private inline def zipKernel(that: DMat)(
+      inline kernel: (Int, DoubleArray, Int, Int, DoubleArray, Int, Int, DoubleArray, Int, Int) => Unit
+  ): DMat =
     val out = DMat.zeros(rows, cols)
     val outData = out.data
     if isContiguousRowMajor && that.isContiguousRowMajor then
-      val n = rows * cols
-      if subtract then
-        DoubleKernels.dsub(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
-      else
-        DoubleKernels.dadd(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
+      kernel(rows * cols, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
     else
       val ncols = cols
       val aColStep = colStride.value
@@ -645,20 +660,12 @@ final class DMat private[gale] (
       var aRow = offset.value
       var bRow = that.offset.value
       var outRow = 0
-      if subtract then
-        while i < rows do
-          DoubleKernels.dsub(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
-          aRow += aRowStep
-          bRow += bRowStep
-          outRow += ncols
-          i += 1
-      else
-        while i < rows do
-          DoubleKernels.dadd(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
-          aRow += aRowStep
-          bRow += bRowStep
-          outRow += ncols
-          i += 1
+      while i < rows do
+        kernel(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
+        aRow += aRowStep
+        bRow += bRowStep
+        outRow += ncols
+        i += 1
     out
 
   /** The factorization dispatch gate in one place: the backend's provider, iff it
