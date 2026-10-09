@@ -272,35 +272,81 @@ private[gale] object DoubleKernels:
       yStride: Int
   ): Unit =
     val betaIsZero = beta == 0.0
-    val limit = cols - (cols & 3)
+    val pairLimit = cols - (cols & 1)
+    val rowLimit = rows - (rows & 3)
     var row = 0
     var aRow = aOffset
     var yi = yOffset
-    while row < rows do
-      // Unroll the contiguous inner dot 4x with independent accumulators: both the
-      // matrix row and x are unit-stride here, so the lanes vectorize.
-      var acc0 = 0.0
-      var acc1 = 0.0
-      var acc2 = 0.0
-      var acc3 = 0.0
+    // Four rows at a time: each x load feeds four rows, and two accumulators per
+    // row give eight independent FMA chains. (Four per row spills and is slower.)
+    while row < rowLimit do
+      val r1 = aRow + rowStride
+      val r2 = r1 + rowStride
+      val r3 = r2 + rowStride
+      var p0 = 0.0
+      var p1 = 0.0
+      var q0 = 0.0
+      var q1 = 0.0
+      var u0 = 0.0
+      var u1 = 0.0
+      var v0 = 0.0
+      var v1 = 0.0
       var col = 0
-      var ai = aRow
-      var xi = xOffset
-      while col < limit do
-        acc0 = fma(a(ai), x(xi), acc0)
-        acc1 = fma(a(ai + 1), x(xi + 1), acc1)
-        acc2 = fma(a(ai + 2), x(xi + 2), acc2)
-        acc3 = fma(a(ai + 3), x(xi + 3), acc3)
-        ai += 4
-        xi += 4
-        col += 4
-      var acc = (acc0 + acc1) + (acc2 + acc3)
-      while col < cols do
-        acc = fma(a(ai), x(xi), acc)
-        ai += 1
-        xi += 1
-        col += 1
-      y(yi) = if betaIsZero then alpha * acc else fma(alpha, acc, beta * y(yi))
+      while col < pairLimit do
+        val xi = xOffset + col
+        val x0 = x(xi)
+        val x1 = x(xi + 1)
+        p0 = fma(a(aRow + col), x0, p0)
+        p1 = fma(a(aRow + col + 1), x1, p1)
+        q0 = fma(a(r1 + col), x0, q0)
+        q1 = fma(a(r1 + col + 1), x1, q1)
+        u0 = fma(a(r2 + col), x0, u0)
+        u1 = fma(a(r2 + col + 1), x1, u1)
+        v0 = fma(a(r3 + col), x0, v0)
+        v1 = fma(a(r3 + col + 1), x1, v1)
+        col += 2
+      var p = p0 + p1
+      var q = q0 + q1
+      var u = u0 + u1
+      var v = v0 + v1
+      if col < cols then
+        val xj = x(xOffset + col)
+        p = fma(a(aRow + col), xj, p)
+        q = fma(a(r1 + col), xj, q)
+        u = fma(a(r2 + col), xj, u)
+        v = fma(a(r3 + col), xj, v)
+      val y1 = yi + yStride
+      val y2 = y1 + yStride
+      val y3 = y2 + yStride
+      if betaIsZero then
+        y(yi) = alpha * p
+        y(y1) = alpha * q
+        y(y2) = alpha * u
+        y(y3) = alpha * v
+      else
+        y(yi) = fma(alpha, p, beta * y(yi))
+        y(y1) = fma(alpha, q, beta * y(y1))
+        y(y2) = fma(alpha, u, beta * y(y2))
+        y(y3) = fma(alpha, v, beta * y(y3))
+      aRow = r3 + rowStride
+      yi = y3 + yStride
+      row += 4
+
+    // Leftover rows repeat the tile's per-row arithmetic exactly (two accumulators
+    // over column pairs, then the odd column), so a row's bits never depend on
+    // whether it landed in a tile: `A * x` agrees with any row slice of it.
+    while row < rows do
+      var p0 = 0.0
+      var p1 = 0.0
+      var col = 0
+      while col < pairLimit do
+        val xi = xOffset + col
+        p0 = fma(a(aRow + col), x(xi), p0)
+        p1 = fma(a(aRow + col + 1), x(xi + 1), p1)
+        col += 2
+      var p = p0 + p1
+      if col < cols then p = fma(a(aRow + col), x(xOffset + col), p)
+      y(yi) = if betaIsZero then alpha * p else fma(alpha, p, beta * y(yi))
       aRow += rowStride
       yi += yStride
       row += 1
@@ -336,6 +382,28 @@ private[gale] object DoubleKernels:
     var col = 0
     var aCol = aOffset
     var xj = xOffset
+    if yStride == 1 then
+      // Four columns per sweep load and store each y element once instead of four
+      // times. The nested FMAs keep the per-element column order of the one-column
+      // sweep, so results are unchanged.
+      val colLimit = cols - (cols & 3)
+      while col < colLimit do
+        val s0 = alpha * x(xj)
+        val s1 = alpha * x(xj + xStride)
+        val s2 = alpha * x(xj + 2 * xStride)
+        val s3 = alpha * x(xj + 3 * xStride)
+        val c1 = aCol + colStride
+        val c2 = c1 + colStride
+        val c3 = c2 + colStride
+        row = 0
+        while row < rows do
+          val yr = yOffset + row
+          y(yr) = fma(s3, a(c3 + row), fma(s2, a(c2 + row), fma(s1, a(c1 + row), fma(s0, a(aCol + row), y(yr)))))
+          row += 1
+        aCol = c3 + colStride
+        xj += 4 * xStride
+        col += 4
+
     while col < cols do
       val scale = alpha * x(xj)
       row = 0

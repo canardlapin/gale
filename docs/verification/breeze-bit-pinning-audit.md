@@ -43,7 +43,7 @@
 | Cholesky `solve(DMat)` (`:1297-1339`) | Inline loops with `value -= l*x` and no fma. | W1.2 changes these bits at every n if `dtrsm` uses fma. |
 | `TriangularSolve.lower/upper` | `dtrsv` | W1.2 does not touch this route. |
 | `symmetricEigen`, `symmetricEigenWith` and `tridiagonalize` (`DenseSpectralKernels.scala:98,174,193`) | All three call `tred2` (`:226`). | W1.5 must keep the single shared call. |
-| `DMat * DVec` (`Matrix.scala:323,339,355`) and `PureBackend.gemv` (`Backend.scala:149`) | `dgemvRowMajor`, `dgemvColMajor` or `dgemv` | Today `PureBackend.gemv` and `DMat.*` already use different kernels. |
+| `DMat * DVec` (`Matrix.scala:323,339,355`) and `PureBackend.gemv` (`Backend.scala:150`) | `dgemvRowMajor`, `dgemvColMajor` or `dgemv` | Since W1.1 (`breeze/hc-gemv`), `PureBackend.gemv` selects its kernel by layout in the same order as `DMat.*`. The two routes are therefore bit-identical, which `BackendContractSuite` pins exactly. Before W1.1 the pure backend always called the generic `dgemv`. |
 
 ## Findings
 
@@ -77,7 +77,7 @@
 | `linalg/LinearOperatorSuite.scala:12, 16` | gemv `applyTo` / `transposeApplyTo` | `Seq(8,20)` and `Seq(-3,-3,-3)` exactly | W1.1 | KEEP | Integer-valued. |
 | `backend/BackendSeamSuite.scala:157-228` | gemm/syrk/gemv routing witnesses | Doubled versus pure at **1e-12** tolerance | W1.1 | KEEP (already tolerance) | No bit pin. The class doc (`:11`) calls the whole suite the "byte-identical witness"; that is wording only. |
 | `BackendSeamSuite.scala:248-250, 257, 265, 277-278, 285` | LU/Cholesky/QR routing | Integer call counts and rank | none | KEEP | Integer routing results. |
-| `backend/BackendContractSuite.scala:270-271` | `PureBackend.gemv` versus `DMat.*` | 1e-12 tolerance | W1.1 | KEEP (already tolerance) | The two kernels already differ (`Backend.scala:149` versus `Matrix.scala:323`). |
+| `backend/BackendContractSuite.scala:270-272` | `PureBackend.gemv` versus `DMat.*` | Exact equality (tightened from 1e-12 in W1.1), plus a bitwise test over row-major and transposed views with tails | W1.1 | TIGHTENED | Since W1.1 both routes run the same layout-selected kernel (`Backend.scala:150` and `Matrix.scala:323`). |
 | `spectral/DenseSymmetricWorkspaceSuite.scala:61` | eigSym values-only | **Workspace equals ordinary route, bit for bit**, n=9 | none if both stay on one `tred2` | KEEP | Route agreement through the shared kernel (plan W1.5). n=9 is below 64, so this test does **not** check sharing above the threshold. |
 | `DenseSymmetricWorkspaceSuite.scala:67-68, 85-86` | eigSym | The same route twice gives the same bits | none | KEEP | Determinism for a fixed build (contract `:17-18`). |
 | `DenseSymmetricWorkspaceSuite.scala:40, 44, 46, 59, 76` | eigSym workspace | Exact scratch sizes: 56 = n²+n, 7 = n, 0, and the measured capacity | W1.5 if the latrd panel W (n×nb) is drawn from the workspace | CONDITIONAL | This is an API contract (`symmetricEigenRequirement`, `DenseSpectralKernels.scala:156`), not floating point. Keep it if W1.5 fits the existing `(d, e, eOffset, workspace)` layout. Otherwise the requirement change is a reviewed API decision and must not be loosened silently. |
@@ -147,6 +147,18 @@ should be measured against the post-fix kernel.
     sequence in `dgemvRowMajor` (`:262-282`). In `dgemvColMajor`, nest the four column
     updates as `fma(s3,a3,fma(s2,a2,fma(s1,a1,fma(s0,a0,y))))`.
   - If the implementation instead reassociates, contract `:14-15` allows it.
+  - **As implemented (branch `breeze/hc-gemv`):** `dgemvColMajor` follows the nesting
+    above and is bit-identical to the one-column sweep. `dgemvRowMajor` deviates from the
+    four-accumulator recommendation. A four-row tile that kept four accumulators per row
+    (sixteen chains) spilled registers and ran 0.87× at n=256. The kernel therefore uses
+    two accumulators per row over column pairs, `(p0 + p1)`, followed by an `fma` for an
+    odd last column. The leftover rows (`rows % 4`) use exactly the same per-row
+    arithmetic as the tile, so each output row depends only on that row and `x`, not on
+    its position: `(A * x)(i)` is bit-identical to `A.slice(i, i + 1, 0, cols) * x` on
+    JVM and JS (`KernelRegressionSuite`, "row-major gemv rows are bit-identical to their
+    1-row slice products"). Compared with the pre-W1.1 kernel, row-major gemv bits change
+    for non-integer inputs. This reassociation is within contract `:14-15`. No exact pin
+    breaks, and the Breeze goldens still pass.
   - Keep the `beta==0` assignment so the `KernelRegressionSuite:10-32` NaN test holds.
   - Add one tolerance test with rows ≥ 9 and a remainder (`rows % 4 ≠ 0`, cols ≥ 8) against a
     naive or `BigDecimal` reference, so the tile and remainder paths run on `PureBackend`.

@@ -1,6 +1,7 @@
 package gale.linalg
 
 import gale.TestAccess
+import gale.platform.DoubleArray
 import gale.sparse.Sparse
 
 class KernelRegressionSuite extends munit.FunSuite:
@@ -83,4 +84,82 @@ class KernelRegressionSuite extends munit.FunSuite:
     intercept[LinAlgError.UnsupportedOperation] {
       a.tMulInto(z.asVec, z)
     }
+  }
+
+  // The row-major kernel tiles four rows and the column-major kernel sweeps four
+  // columns; every shape here straddles both tiles and their scalar tails. Integer
+  // data keeps every partial sum exact, so any summation order must match exactly.
+  test("dgemvRowMajor/dgemvColMajor tiles and tails match a naive product exactly") {
+    import gale.kernel.DoubleKernels
+    def entry(i: Int, j: Int): Double = ((i * 7 + j * 3) % 9 - 4).toDouble
+    for
+      rows <- 1 to 11
+      cols <- 1 to 11
+      (alpha, beta) <- Seq((1.0, 0.0), (2.0, -1.0), (-0.5, 1.0))
+      yStride <- Seq(1, 2)
+    do
+      val xs = Array.tabulate(cols)(j => ((j * 5) % 7 - 3).toDouble)
+      val prior = Array.tabulate(rows)(i => (i % 5 - 2).toDouble)
+      val expected = Array.tabulate(rows) { i =>
+        var s = 0.0
+        var j = 0
+        while j < cols do
+          s += entry(i, j) * xs(j)
+          j += 1
+        if beta == 0.0 then alpha * s else alpha * s + beta * prior(i)
+      }
+      def run(label: String, kernel: (DoubleArray, DoubleArray) => Unit, x: DoubleArray): Unit =
+        val y = TestAccess.filled(1 + rows * yStride, Double.NaN)
+        var i = 0
+        while i < rows do
+          if beta != 0.0 then y(1 + i * yStride) = prior(i)
+          i += 1
+        kernel(x, y)
+        i = 0
+        while i < rows do
+          assertEquals(y(1 + i * yStride), expected(i), s"$label ${rows}x$cols alpha=$alpha beta=$beta yStride=$yStride row $i")
+          i += 1
+        // Untouched gap cells keep their sentinel.
+        if yStride > 1 then assert(y(2).isNaN, s"$label wrote a stride gap")
+
+      // Row-major parent padded by 2 columns, offset 3.
+      val rowMajor = TestAccess.filled(3 + rows * (cols + 2), Double.NaN)
+      // Column-major parent padded by 2 rows, offset 3.
+      val colMajor = TestAccess.filled(3 + cols * (rows + 2), Double.NaN)
+      for i <- 0 until rows; j <- 0 until cols do
+        rowMajor(3 + i * (cols + 2) + j) = entry(i, j)
+        colMajor(3 + j * (rows + 2) + i) = entry(i, j)
+      val xUnit = TestAccess.doubleArray(xs*)
+      val xStrided = TestAccess.filled(1 + cols * 3, Double.NaN)
+      for j <- 0 until cols do xStrided(1 + j * 3) = xs(j)
+
+      run(
+        "row-major",
+        (x, y) => DoubleKernels.dgemvRowMajor(rows, cols, alpha, rowMajor, 3, cols + 2, x, 0, beta, y, 1, yStride),
+        xUnit
+      )
+      run(
+        "col-major",
+        (x, y) => DoubleKernels.dgemvColMajor(rows, cols, alpha, colMajor, 3, rows + 2, x, 1, 3, beta, y, 1, yStride),
+        xStrided
+      )
+  }
+
+  // A row's result must not depend on whether the row-major kernel reached it in a
+  // four-row tile or in the leftover rows: every row of `A * x` is bit-identical to
+  // the 1-row slice product. Non-integer data so a different summation order shows.
+  test("row-major gemv rows are bit-identical to their 1-row slice products") {
+    def bits(v: Double): Long = java.lang.Double.doubleToRawLongBits(v)
+    for
+      rows <- 1 to 13
+      cols <- Seq(1, 2, 3, 4, 7, 8, 9, 16, 17, 33)
+    do
+      val a = Matrix.tabulate(rows, cols)((i, j) => math.sin(1.0 + i * 0.37 + j * 1.13) / (1.0 + j))
+      val x = Vec.tabulate(cols)(j => math.cos(0.5 + j * 0.71) * (j + 1))
+      val full = a * x
+      var i = 0
+      while i < rows do
+        val single = a.slice(i, i + 1, 0, cols) * x
+        assertEquals(bits(full(i)), bits(single(0)), s"${rows}x$cols row $i: ${full(i)} vs ${single(0)}")
+        i += 1
   }

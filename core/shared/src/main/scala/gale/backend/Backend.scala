@@ -102,7 +102,8 @@ trait DenseDoubleFactorizations:
   def cholesky(a: DMat): Either[LinAlgError, Cholesky]
   def qr(a: DMat): Either[LinAlgError, QR]
 
-/** The always-present kernel set: forwards verbatim to [[gale.kernel.DoubleKernels]], so
+/** The always-present kernel set: forwards to [[gale.kernel.DoubleKernels]] (`gemv`
+  * selecting the row- or column-major kernel by layout), so
   * it is the pure, portable, deterministic reference — and the only kernel set on JS.
   */
 object PureDenseDoubleKernel extends DenseDoubleKernel:
@@ -146,7 +147,14 @@ object PureDenseDoubleKernel extends DenseDoubleKernel:
       yOffset: Int,
       yStride: Int
   ): Unit =
-    DoubleKernels.dgemv(rows, cols, alpha, a, aOffset, rowStride, colStride, x, xOffset, xStride, beta, y, yOffset, yStride)
+    // Pick the layout kernel `Matrix.mulInto` uses on the pure path; the generic
+    // strided dot walks a transposed view against its storage order.
+    if colStride == 1 && xStride == 1 then
+      DoubleKernels.dgemvRowMajor(rows, cols, alpha, a, aOffset, rowStride, x, xOffset, beta, y, yOffset, yStride)
+    else if rowStride == 1 then
+      DoubleKernels.dgemvColMajor(rows, cols, alpha, a, aOffset, colStride, x, xOffset, xStride, beta, y, yOffset, yStride)
+    else
+      DoubleKernels.dgemv(rows, cols, alpha, a, aOffset, rowStride, colStride, x, xOffset, xStride, beta, y, yOffset, yStride)
 
   def gemm(
       rows: Int,

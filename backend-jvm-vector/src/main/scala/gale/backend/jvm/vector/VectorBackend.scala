@@ -16,11 +16,16 @@ import jdk.incubator.vector.VectorSpecies
   * have explicit SIMD kernels; every other operation forwards to
   * [[gale.backend.PureDenseDoubleKernel]], the portable reference.
   *
-  * The SIMD path handles only fully row-major inputs. GEMV uses a four-output
-  * row tile; GEMM packs `B` by columns and uses a 3×3 SIMD dot-product tile.
-  * Any strided or transposed operand falls back verbatim to the pure kernel — correctness over
-  * cleverness. Reassociation (SIMD lane order, FMA) makes the result law-equivalent to
-  * the pure kernel within a small tolerance, NOT bit-identical.
+  * GEMV has two SIMD layouts: a four-output row tile for row-major `A`, and a
+  * four-column axpy sweep for column-contiguous `A` (the transpose view of a
+  * row-major matrix). GEMM packs `B` by columns, uses a 3×3 SIMD dot-product tile,
+  * and handles only fully row-major inputs. Any other strided operand falls back
+  * verbatim to the pure kernel — correctness over cleverness.
+  *
+  * The row-major GEMV and the GEMM reassociate (SIMD lane order, FMA), so they are
+  * law-equivalent to the pure kernel within a small tolerance, NOT bit-identical.
+  * The column-contiguous GEMV keeps the pure column-major kernel's per-element FMA
+  * order and is bit-identical to it.
   */
 object VectorDenseDoubleKernel extends DenseDoubleKernel:
   private final val Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED
@@ -82,6 +87,21 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         DoubleArray.asArray(y),
         yOffset
       )
+    else if Species.length() >= 2 && rowStride == 1 && yStride == 1 then
+      gemvColMajorSimd(
+        rows,
+        cols,
+        alpha,
+        DoubleArray.asArray(a),
+        aOffset,
+        colStride,
+        DoubleArray.asArray(x),
+        xOffset,
+        xStride,
+        beta,
+        DoubleArray.asArray(y),
+        yOffset
+      )
     else
       PureDenseDoubleKernel.gemv(
         rows, cols, alpha, a, aOffset, rowStride, colStride,
@@ -107,7 +127,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       yOffset: Int
   ): Unit =
     val species = Species
+    val lanes = species.length()
     val colBound = species.loopBound(cols)
+    val pairBound = cols - cols % (2 * lanes)
     val rowBound = rows - (rows & 3)
     var i = 0
     while i < rowBound do
@@ -119,7 +141,28 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       var s1 = DoubleVector.zero(species)
       var s2 = DoubleVector.zero(species)
       var s3 = DoubleVector.zero(species)
+      // Two accumulators per row: eight independent vector FMA chains.
+      var t0 = DoubleVector.zero(species)
+      var t1 = DoubleVector.zero(species)
+      var t2 = DoubleVector.zero(species)
+      var t3 = DoubleVector.zero(species)
       var j = 0
+      while j < pairBound do
+        val xv = DoubleVector.fromArray(species, x, xOffset + j)
+        val xw = DoubleVector.fromArray(species, x, xOffset + j + lanes)
+        s0 = DoubleVector.fromArray(species, a, aRow0 + j).fma(xv, s0)
+        s1 = DoubleVector.fromArray(species, a, aRow1 + j).fma(xv, s1)
+        s2 = DoubleVector.fromArray(species, a, aRow2 + j).fma(xv, s2)
+        s3 = DoubleVector.fromArray(species, a, aRow3 + j).fma(xv, s3)
+        t0 = DoubleVector.fromArray(species, a, aRow0 + j + lanes).fma(xw, t0)
+        t1 = DoubleVector.fromArray(species, a, aRow1 + j + lanes).fma(xw, t1)
+        t2 = DoubleVector.fromArray(species, a, aRow2 + j + lanes).fma(xw, t2)
+        t3 = DoubleVector.fromArray(species, a, aRow3 + j + lanes).fma(xw, t3)
+        j += 2 * lanes
+      s0 = s0.add(t0)
+      s1 = s1.add(t1)
+      s2 = s2.add(t2)
+      s3 = s3.add(t3)
       while j < colBound do
         val xv = DoubleVector.fromArray(species, x, xOffset + j)
         s0 = DoubleVector.fromArray(species, a, aRow0 + j).fma(xv, s0)
@@ -159,6 +202,84 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         j += 1
       y(yOffset + i) = combine(alpha, scalar, beta, y(yOffset + i))
       i += 1
+
+  /** Column-contiguous (e.g. the transpose view of a row-major matrix) GEMV as a
+    * sequence of SIMD axpys over `y`, four columns per pass so each `y` chunk is
+    * loaded and stored once per four columns. Per element the FMA order is the
+    * column order, matching the pure column-major kernel.
+    */
+  private def gemvColMajorSimd(
+      rows: Int,
+      cols: Int,
+      alpha: Double,
+      a: Array[Double],
+      aOffset: Int,
+      aColStride: Int,
+      x: Array[Double],
+      xOffset: Int,
+      xStride: Int,
+      beta: Double,
+      y: Array[Double],
+      yOffset: Int
+  ): Unit =
+    val species = Species
+    val rowBound = species.loopBound(rows)
+    var i = 0
+    if beta == 0.0 then java.util.Arrays.fill(y, yOffset, yOffset + rows, 0.0)
+    else if beta != 1.0 then
+      while i < rows do
+        y(yOffset + i) = beta * y(yOffset + i)
+        i += 1
+
+    val colBound = cols - (cols & 3)
+    var j = 0
+    while j < colBound do
+      val s0 = alpha * x(xOffset + j * xStride)
+      val s1 = alpha * x(xOffset + (j + 1) * xStride)
+      val s2 = alpha * x(xOffset + (j + 2) * xStride)
+      val s3 = alpha * x(xOffset + (j + 3) * xStride)
+      val col0 = aOffset + j * aColStride
+      val col1 = col0 + aColStride
+      val col2 = col1 + aColStride
+      val col3 = col2 + aColStride
+      val v0 = DoubleVector.broadcast(species, s0)
+      val v1 = DoubleVector.broadcast(species, s1)
+      val v2 = DoubleVector.broadcast(species, s2)
+      val v3 = DoubleVector.broadcast(species, s3)
+      i = 0
+      while i < rowBound do
+        var yv = DoubleVector.fromArray(species, y, yOffset + i)
+        yv = DoubleVector.fromArray(species, a, col0 + i).fma(v0, yv)
+        yv = DoubleVector.fromArray(species, a, col1 + i).fma(v1, yv)
+        yv = DoubleVector.fromArray(species, a, col2 + i).fma(v2, yv)
+        yv = DoubleVector.fromArray(species, a, col3 + i).fma(v3, yv)
+        yv.intoArray(y, yOffset + i)
+        i += species.length()
+      while i < rows do
+        var yi = y(yOffset + i)
+        yi = Math.fma(s0, a(col0 + i), yi)
+        yi = Math.fma(s1, a(col1 + i), yi)
+        yi = Math.fma(s2, a(col2 + i), yi)
+        yi = Math.fma(s3, a(col3 + i), yi)
+        y(yOffset + i) = yi
+        i += 1
+      j += 4
+
+    while j < cols do
+      val s = alpha * x(xOffset + j * xStride)
+      val col = aOffset + j * aColStride
+      val v = DoubleVector.broadcast(species, s)
+      i = 0
+      while i < rowBound do
+        DoubleVector
+          .fromArray(species, a, col + i)
+          .fma(v, DoubleVector.fromArray(species, y, yOffset + i))
+          .intoArray(y, yOffset + i)
+        i += species.length()
+      while i < rows do
+        y(yOffset + i) = Math.fma(s, a(col + i), y(yOffset + i))
+        i += 1
+      j += 1
 
   private inline def combine(alpha: Double, sum: Double, beta: Double, prior: Double): Double =
     if beta == 0.0 then alpha * sum
