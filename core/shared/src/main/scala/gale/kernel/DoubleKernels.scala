@@ -273,9 +273,66 @@ private[gale] object DoubleKernels:
   ): Unit =
     val betaIsZero = beta == 0.0
     val limit = cols - (cols & 3)
+    val pairLimit = cols - (cols & 1)
+    val rowLimit = rows - (rows & 3)
     var row = 0
     var aRow = aOffset
     var yi = yOffset
+    // Four rows at a time: each x load feeds four rows, and two accumulators per
+    // row give eight independent FMA chains. (Four per row spills and is slower.)
+    while row < rowLimit do
+      val r1 = aRow + rowStride
+      val r2 = r1 + rowStride
+      val r3 = r2 + rowStride
+      var p0 = 0.0
+      var p1 = 0.0
+      var q0 = 0.0
+      var q1 = 0.0
+      var u0 = 0.0
+      var u1 = 0.0
+      var v0 = 0.0
+      var v1 = 0.0
+      var col = 0
+      while col < pairLimit do
+        val xi = xOffset + col
+        val x0 = x(xi)
+        val x1 = x(xi + 1)
+        p0 = fma(a(aRow + col), x0, p0)
+        p1 = fma(a(aRow + col + 1), x1, p1)
+        q0 = fma(a(r1 + col), x0, q0)
+        q1 = fma(a(r1 + col + 1), x1, q1)
+        u0 = fma(a(r2 + col), x0, u0)
+        u1 = fma(a(r2 + col + 1), x1, u1)
+        v0 = fma(a(r3 + col), x0, v0)
+        v1 = fma(a(r3 + col + 1), x1, v1)
+        col += 2
+      var p = p0 + p1
+      var q = q0 + q1
+      var u = u0 + u1
+      var v = v0 + v1
+      if col < cols then
+        val xj = x(xOffset + col)
+        p = fma(a(aRow + col), xj, p)
+        q = fma(a(r1 + col), xj, q)
+        u = fma(a(r2 + col), xj, u)
+        v = fma(a(r3 + col), xj, v)
+      val y1 = yi + yStride
+      val y2 = y1 + yStride
+      val y3 = y2 + yStride
+      if betaIsZero then
+        y(yi) = alpha * p
+        y(y1) = alpha * q
+        y(y2) = alpha * u
+        y(y3) = alpha * v
+      else
+        y(yi) = fma(alpha, p, beta * y(yi))
+        y(y1) = fma(alpha, q, beta * y(y1))
+        y(y2) = fma(alpha, u, beta * y(y2))
+        y(y3) = fma(alpha, v, beta * y(y3))
+      aRow = r3 + rowStride
+      yi = y3 + yStride
+      row += 4
+
     while row < rows do
       // Unroll the contiguous inner dot 4x with independent accumulators: both the
       // matrix row and x are unit-stride here, so the lanes vectorize.
