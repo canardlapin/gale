@@ -6,6 +6,7 @@ import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Rows
 import gale.linalg.Shape
+import gale.platform.DoubleArray
 
 final case class MinimumNormSolution(solution: DVec, residual: DVec, rank: Int, cutoff: Double)
 final case class MinimumNormSolutions(solution: DMat, residual: DMat, rank: Int, cutoff: Double)
@@ -30,13 +31,60 @@ final class TruncatedSvd private[spectral] (
 
   /** Materialize A_k^+, without changing the retained factors. */
   def pinv: DMat =
-    DMat.tabulate(coefficientCount, observationCount): (i, j) =>
-      var sum = 0.0
-      var k = 0
-      while k < rank do
-        sum += (vt(k, i) / singularValues(k)) * u(j, k)
-        k += 1
-      sum
+    val n = coefficientCount
+    val m = observationCount
+    val r = rank
+    // A_k^+ = V Σ⁻¹ Uᵀ: entry (i, j) is the row-i dot of W = V Σ⁻¹ (n×r) with
+    // row j of U (m×r), both contiguous, summed over k ascending.
+    val w = DoubleArray.alloc(n * r)
+    var k = 0
+    while k < r do
+      val sigma = singularValues(k)
+      var i = 0
+      while i < n do
+        w(i * r + k) = vt(k, i) / sigma
+        i += 1
+      k += 1
+    val uData = u.toDoubleArrayCopyRowMajor
+    val out = DoubleArray.alloc(n * m)
+    var i = 0
+    while i < n do
+      val rowW = i * r
+      var j = 0
+      // Four independent dots per pass (each still summed in k order).
+      while j + 3 < m do
+        val u0 = j * r
+        val u1 = u0 + r
+        val u2 = u1 + r
+        val u3 = u2 + r
+        var s0 = 0.0
+        var s1 = 0.0
+        var s2 = 0.0
+        var s3 = 0.0
+        k = 0
+        while k < r do
+          val wk = w(rowW + k)
+          s0 += wk * uData(u0 + k)
+          s1 += wk * uData(u1 + k)
+          s2 += wk * uData(u2 + k)
+          s3 += wk * uData(u3 + k)
+          k += 1
+        out(i * m + j) = s0
+        out(i * m + j + 1) = s1
+        out(i * m + j + 2) = s2
+        out(i * m + j + 3) = s3
+        j += 4
+      while j < m do
+        val rowU = j * r
+        var sum = 0.0
+        k = 0
+        while k < r do
+          sum += w(rowW + k) * uData(rowU + k)
+          k += 1
+        out(i * m + j) = sum
+        j += 1
+      i += 1
+    DMat.fromDoubleArrayOwned(n, m, out)
 
   def solve(b: DVec): Either[LinAlgError, MinimumNormSolution] =
     if b.length != observationCount then Left(LinAlgError.VectorLengthMismatch(observationCount, b.length))
@@ -109,10 +157,13 @@ object TruncatedSvd:
       threshold <- cutoff.threshold(a.rows, a.cols, s.singularValues(0))
     yield
       val kept = (0 until s.size).count(i => s.singularValues(i) > threshold)
+      // Full rank keeps the (immutable) factors as they are; only a truncation
+      // slices them.
+      val full = kept == s.size
       new TruncatedSvd(
-        DMat.tabulate(a.rows, kept)((i, k) => s.u(i, k)),
-        DMat.tabulate(kept, a.cols)((k, j) => s.vt(k, j)),
-        DVec.tabulate(kept)(s.singularValues(_)),
+        if full then s.u else DMat.tabulate(a.rows, kept)((i, k) => s.u(i, k)),
+        if full then s.vt else DMat.tabulate(kept, a.cols)((k, j) => s.vt(k, j)),
+        if full then s.singularValues else DVec.tabulate(kept)(s.singularValues(_)),
         s.singularValues(0),
         threshold
       )
