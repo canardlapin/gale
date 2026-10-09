@@ -144,3 +144,22 @@ class KernelRegressionSuite extends munit.FunSuite:
         xStrided
       )
   }
+
+  // A row's result must not depend on whether the row-major kernel reached it in a
+  // four-row tile or in the leftover rows: every row of `A * x` is bit-identical to
+  // the 1-row slice product. Non-integer data so a different summation order shows.
+  test("row-major gemv rows are bit-identical to their 1-row slice products") {
+    def bits(v: Double): Long = java.lang.Double.doubleToRawLongBits(v)
+    for
+      rows <- 1 to 13
+      cols <- Seq(1, 2, 3, 4, 7, 8, 9, 16, 17, 33)
+    do
+      val a = Matrix.tabulate(rows, cols)((i, j) => math.sin(1.0 + i * 0.37 + j * 1.13) / (1.0 + j))
+      val x = Vec.tabulate(cols)(j => math.cos(0.5 + j * 0.71) * (j + 1))
+      val full = a * x
+      var i = 0
+      while i < rows do
+        val single = a.slice(i, i + 1, 0, cols) * x
+        assertEquals(bits(full(i)), bits(single(0)), s"${rows}x$cols row $i: ${full(i)} vs ${single(0)}")
+        i += 1
+  }

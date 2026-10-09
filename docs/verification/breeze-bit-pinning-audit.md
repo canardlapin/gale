@@ -147,6 +147,18 @@ should be measured against the post-fix kernel.
     sequence in `dgemvRowMajor` (`:262-282`). In `dgemvColMajor`, nest the four column
     updates as `fma(s3,a3,fma(s2,a2,fma(s1,a1,fma(s0,a0,y))))`.
   - If the implementation instead reassociates, contract `:14-15` allows it.
+  - **As implemented (branch `breeze/hc-gemv`):** `dgemvColMajor` follows the nesting
+    above and is bit-identical to the one-column sweep. `dgemvRowMajor` deviates from the
+    four-accumulator recommendation. A four-row tile that kept four accumulators per row
+    (sixteen chains) spilled registers and ran 0.87× at n=256. The kernel therefore uses
+    two accumulators per row over column pairs, `(p0 + p1)`, followed by an `fma` for an
+    odd last column. The leftover rows (`rows % 4`) use exactly the same per-row
+    arithmetic as the tile, so each output row depends only on that row and `x`, not on
+    its position: `(A * x)(i)` is bit-identical to `A.slice(i, i + 1, 0, cols) * x` on
+    JVM and JS (`KernelRegressionSuite`, "row-major gemv rows are bit-identical to their
+    1-row slice products"). Compared with the pre-W1.1 kernel, row-major gemv bits change
+    for non-integer inputs. This reassociation is within contract `:14-15`. No exact pin
+    breaks, and the Breeze goldens still pass.
   - Keep the `beta==0` assignment so the `KernelRegressionSuite:10-32` NaN test holds.
   - Add one tolerance test with rows ≥ 9 and a remainder (`rows % 4 ≠ 0`, cols ≥ 8) against a
     naive or `BigDecimal` reference, so the tile and remainder paths run on `PureBackend`.

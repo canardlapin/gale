@@ -272,7 +272,6 @@ private[gale] object DoubleKernels:
       yStride: Int
   ): Unit =
     val betaIsZero = beta == 0.0
-    val limit = cols - (cols & 3)
     val pairLimit = cols - (cols & 1)
     val rowLimit = rows - (rows & 3)
     var row = 0
@@ -333,31 +332,21 @@ private[gale] object DoubleKernels:
       yi = y3 + yStride
       row += 4
 
+    // Leftover rows repeat the tile's per-row arithmetic exactly (two accumulators
+    // over column pairs, then the odd column), so a row's bits never depend on
+    // whether it landed in a tile: `A * x` agrees with any row slice of it.
     while row < rows do
-      // Unroll the contiguous inner dot 4x with independent accumulators: both the
-      // matrix row and x are unit-stride here, so the lanes vectorize.
-      var acc0 = 0.0
-      var acc1 = 0.0
-      var acc2 = 0.0
-      var acc3 = 0.0
+      var p0 = 0.0
+      var p1 = 0.0
       var col = 0
-      var ai = aRow
-      var xi = xOffset
-      while col < limit do
-        acc0 = fma(a(ai), x(xi), acc0)
-        acc1 = fma(a(ai + 1), x(xi + 1), acc1)
-        acc2 = fma(a(ai + 2), x(xi + 2), acc2)
-        acc3 = fma(a(ai + 3), x(xi + 3), acc3)
-        ai += 4
-        xi += 4
-        col += 4
-      var acc = (acc0 + acc1) + (acc2 + acc3)
-      while col < cols do
-        acc = fma(a(ai), x(xi), acc)
-        ai += 1
-        xi += 1
-        col += 1
-      y(yi) = if betaIsZero then alpha * acc else fma(alpha, acc, beta * y(yi))
+      while col < pairLimit do
+        val xi = xOffset + col
+        p0 = fma(a(aRow + col), x(xi), p0)
+        p1 = fma(a(aRow + col + 1), x(xi + 1), p1)
+        col += 2
+      var p = p0 + p1
+      if col < cols then p = fma(a(aRow + col), x(xOffset + col), p)
+      y(yi) = if betaIsZero then alpha * p else fma(alpha, p, beta * y(yi))
       aRow += rowStride
       yi += yStride
       row += 1
