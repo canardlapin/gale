@@ -102,6 +102,7 @@ private[gale] object DenseSpectralKernels:
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n) // EISPACK convention: e(0)=0, e(i)=T(i-1,i)
     tred2(n, work, 0, d, e, 0, wantQ)
+    if wantQ then transposeSquareInPlace(n, work)
     val offLen = math.max(n - 1, 0)
     val off = DoubleArray.alloc(offLen)
     var k = 0
@@ -182,8 +183,7 @@ private[gale] object DenseSpectralKernels:
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n)
     tred2(n, work, 0, d, e, 0, wantVectors)
-    // `work` now holds Q (when accumulating); tql2 rotates its transpose into Vᵀ.
-    if wantVectors then transposeSquareInPlace(n, work)
+    // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
     val z = if wantVectors then Some(work) else None
     solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
@@ -209,7 +209,6 @@ private[gale] object DenseSpectralKernels:
     symmetrizeLowerInto(a, n, work, workOffset)
     val d = DoubleArray.alloc(n)
     tred2(n, work, workOffset, d, scratch, eOffset, wantVectors)
-    if wantVectors then transposeSquareInPlace(n, work)
     val z = if wantVectors then Some(work) else None
     solveTridiagonal(n, d, scratch, eOffset, z, maxSweepsPerValue)
 
@@ -218,7 +217,9 @@ private[gale] object DenseSpectralKernels:
     *
     * On exit `d(0..n-1)` is the diagonal of `T` and `e(1..n-1)` its subdiagonal
     * (`e(0) = 0`). When `accumulate` is true `a` is overwritten with the
-    * orthogonal `Q` such that `A = Q T Qᵀ`; when false the accumulation stores
+    * '''transpose''' `Qᵀ` of the orthogonal `Q` such that `A = Q T Qᵀ` (the
+    * layout the tridiagonal solver rotates, with every accumulation loop
+    * running along contiguous rows); when false the accumulation stores
     * and the final back-transform are skipped, and `a`'s contents are scratch.
     *
     * The reduction reads and updates only the lower triangle plus the row being
@@ -262,23 +263,34 @@ private[gale] object DenseSpectralKernels:
           e(eOffset + i) = scale * g0
           h -= f0 * g0
           a(aOffset + i * n + l) = f0 - g0
+          // p = (A u) / h from the lower triangle, accumulated into e(0..l) row
+          // by row so every read is contiguous. Row r first sets
+          // e(r) = Σ_{k≤r} A(r,k) u(k), then rows r' > r add A(r',r) u(r') in
+          // ascending r' — the same summation order per entry as a
+          // column-oriented symv, so the result is bit-identical.
+          val uRow = aOffset + i * n
+          var r = 0
+          while r <= l do
+            val rowR = aOffset + r * n
+            val ur = a(uRow + r)
+            var kk = 0
+            while kk < r do
+              e(eOffset + kk) = e(eOffset + kk) + a(rowR + kk) * ur
+              kk += 1
+            var g = 0.0
+            kk = 0
+            while kk <= r do
+              g += a(rowR + kk) * a(uRow + kk)
+              kk += 1
+            e(eOffset + r) = g
+            r += 1
           var f = 0.0
           var j = 0
           while j <= l do
             if accumulate then
-              a(aOffset + j * n + i) = a(aOffset + i * n + j) / h
-            // g = (A u)_j using only the lower triangle.
-            var g = 0.0
-            var kk = 0
-            while kk <= j do
-              g += a(aOffset + j * n + kk) * a(aOffset + i * n + kk)
-              kk += 1
-            kk = j + 1
-            while kk <= l do
-              g += a(aOffset + kk * n + j) * a(aOffset + i * n + kk)
-              kk += 1
-            e(eOffset + j) = g / h
-            f += e(eOffset + j) * a(aOffset + i * n + j)
+              a(aOffset + j * n + i) = a(uRow + j) / h
+            e(eOffset + j) = e(eOffset + j) / h
+            f += e(eOffset + j) * a(uRow + j)
             j += 1
           val hh = f / (h + h)
           j = 0
@@ -306,15 +318,17 @@ private[gale] object DenseSpectralKernels:
         if d(i) != 0.0 then
           var j = 0
           while j <= l do
+            // Row j of the leading block holds column j of Q (block is Qᵀ).
+            val rowJ = aOffset + j * n
+            val uRow = aOffset + i * n
             var g = 0.0
             var k = 0
             while k <= l do
-              g += a(aOffset + i * n + k) * a(aOffset + k * n + j)
+              g += a(uRow + k) * a(rowJ + k)
               k += 1
             k = 0
             while k <= l do
-              val idx = aOffset + k * n + j
-              a(idx) = a(idx) - g * a(aOffset + k * n + i)
+              a(rowJ + k) = a(rowJ + k) - g * a(aOffset + k * n + i)
               k += 1
             j += 1
         d(i) = a(aOffset + i * n + i)
