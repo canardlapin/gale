@@ -43,7 +43,7 @@
 | Cholesky `solve(DMat)` (`:1297-1339`) | Inline loops with `value -= l*x` and no fma. | W1.2 changes these bits at every n if `dtrsm` uses fma. |
 | `TriangularSolve.lower/upper` | `dtrsv` | W1.2 does not touch this route. |
 | `symmetricEigen`, `symmetricEigenWith` and `tridiagonalize` (`DenseSpectralKernels.scala:98,174,193`) | All three call `tred2` (`:226`). | W1.5 must keep the single shared call. |
-| `DMat * DVec` (`Matrix.scala:323,339,355`) and `PureBackend.gemv` (`Backend.scala:149`) | `dgemvRowMajor`, `dgemvColMajor` or `dgemv` | Today `PureBackend.gemv` and `DMat.*` already use different kernels. |
+| `DMat * DVec` (`Matrix.scala:323,339,355`) and `PureBackend.gemv` (`Backend.scala:150`) | `dgemvRowMajor`, `dgemvColMajor` or `dgemv` | Since W1.1 (`breeze/hc-gemv`), `PureBackend.gemv` selects its kernel by layout in the same order as `DMat.*`. The two routes are therefore bit-identical, which `BackendContractSuite` pins exactly. Before W1.1 the pure backend always called the generic `dgemv`. |
 
 ## Findings
 
@@ -77,7 +77,7 @@
 | `linalg/LinearOperatorSuite.scala:12, 16` | gemv `applyTo` / `transposeApplyTo` | `Seq(8,20)` and `Seq(-3,-3,-3)` exactly | W1.1 | KEEP | Integer-valued. |
 | `backend/BackendSeamSuite.scala:157-228` | gemm/syrk/gemv routing witnesses | Doubled versus pure at **1e-12** tolerance | W1.1 | KEEP (already tolerance) | No bit pin. The class doc (`:11`) calls the whole suite the "byte-identical witness"; that is wording only. |
 | `BackendSeamSuite.scala:248-250, 257, 265, 277-278, 285` | LU/Cholesky/QR routing | Integer call counts and rank | none | KEEP | Integer routing results. |
-| `backend/BackendContractSuite.scala:270-271` | `PureBackend.gemv` versus `DMat.*` | 1e-12 tolerance | W1.1 | KEEP (already tolerance) | The two kernels already differ (`Backend.scala:149` versus `Matrix.scala:323`). |
+| `backend/BackendContractSuite.scala:270-272` | `PureBackend.gemv` versus `DMat.*` | Exact equality (tightened from 1e-12 in W1.1), plus a bitwise test over row-major and transposed views with tails | W1.1 | TIGHTENED | Since W1.1 both routes run the same layout-selected kernel (`Backend.scala:150` and `Matrix.scala:323`). |
 | `spectral/DenseSymmetricWorkspaceSuite.scala:61` | eigSym values-only | **Workspace equals ordinary route, bit for bit**, n=9 | none if both stay on one `tred2` | KEEP | Route agreement through the shared kernel (plan W1.5). n=9 is below 64, so this test does **not** check sharing above the threshold. |
 | `DenseSymmetricWorkspaceSuite.scala:67-68, 85-86` | eigSym | The same route twice gives the same bits | none | KEEP | Determinism for a fixed build (contract `:17-18`). |
 | `DenseSymmetricWorkspaceSuite.scala:40, 44, 46, 59, 76` | eigSym workspace | Exact scratch sizes: 56 = n²+n, 7 = n, 0, and the measured capacity | W1.5 if the latrd panel W (n×nb) is drawn from the workspace | CONDITIONAL | This is an API contract (`symmetricEigenRequirement`, `DenseSpectralKernels.scala:156`), not floating point. Keep it if W1.5 fits the existing `(d, e, eOffset, workspace)` layout. Otherwise the requirement change is a reviewed API decision and must not be loosened silently. |

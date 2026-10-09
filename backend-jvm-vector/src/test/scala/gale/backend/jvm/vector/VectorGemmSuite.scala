@@ -97,6 +97,19 @@ class VectorGemmSuite extends munit.FunSuite:
         s"mismatch at $i: vector=${actual(i)} pure=${expected(i)}")
     }
 
+  /** Bitwise equality. The column-contiguous SIMD gemv applies each element's FMAs in
+    * the pure column-major kernel's order, so on the JVM the two agree exactly.
+    */
+  private def assertArrayBits(actual: Array[Double], expected: Array[Double])(using munit.Location): Unit =
+    assertEquals(actual.length, expected.length)
+    actual.indices.foreach { i =>
+      assertEquals(
+        java.lang.Double.doubleToRawLongBits(actual(i)),
+        java.lang.Double.doubleToRawLongBits(expected(i)),
+        s"bits differ at $i: vector=${actual(i)} pure=${expected(i)}"
+      )
+    }
+
   /** Parity for `C := A·B` (alpha=1, beta=0 — exactly what the seam issues). */
   private def checkGemm(rows: Int, cols: Int, shared: Int)(using munit.Location): Unit =
     val a = mkA(rows, shared)
@@ -204,7 +217,7 @@ class VectorGemmSuite extends munit.FunSuite:
     val pureY = vectorY.clone()
     runGemv(VectorDenseDoubleKernel, a, x, alpha, beta, vectorY)
     runGemv(PureDenseDoubleKernel, a, x, alpha, beta, pureY)
-    assertArrayClose(vectorY, pureY)
+    assertArrayBits(vectorY, pureY)
 
   // Row counts straddle every lane count (tails of 1..7); column counts straddle
   // the four-column block (tails of 0..3).
@@ -223,7 +236,7 @@ class VectorGemmSuite extends munit.FunSuite:
     val pureY = Array.fill(n)(0.0)
     runGemv(VectorDenseDoubleKernel, a, x, 1.0, 0.0, vectorY)
     runGemv(PureDenseDoubleKernel, a, x, 1.0, 0.0, pureY)
-    assertArrayClose(vectorY, pureY)
+    assertArrayBits(vectorY, pureY)
 
   test("seam: threshold-selected transposed gemv under VectorBackend matches pure"):
     val n = 160
@@ -232,7 +245,7 @@ class VectorGemmSuite extends munit.FunSuite:
     val viaVector = a.t.*(x)(using VectorBackend)
     val viaPure = a.t.*(x)(using PureBackend)
     assertEquals(viaVector.length, n + 3)
-    assertArrayClose(viaVector.toSeq.toArray, viaPure.toSeq.toArray)
+    assertArrayBits(viaVector.toSeq.toArray, viaPure.toSeq.toArray)
 
   test("gemm parity: transposed (column-strided) B operand falls back to pure"):
     // A row-major matrix's transpose view has non-unit column stride, so the SIMD gemm

@@ -267,8 +267,9 @@ class BackendContractSuite extends munit.FunSuite:
       x.data, x.offset.value, x.stride.value,
       0.0, yv.data, yv.offset.value, yv.stride.value
     )
-    assertEqualsDouble(yv(0), expectedMv(0), 1e-12)
-    assertEqualsDouble(yv(1), expectedMv(1), 1e-12)
+    // Same layout-selected kernel as `DMat.*`, so the results are bit-identical.
+    assertEquals(yv(0), expectedMv(0))
+    assertEquals(yv(1), expectedMv(1))
 
     // axpy: yb := 2*x + yb (fresh buffer)
     val yb = Vec(5.0, 6.0, 7.0, 8.0)
@@ -287,4 +288,29 @@ class BackendContractSuite extends munit.FunSuite:
     val yc = Vec.fill(n)(0.0)
     PureBackend.denseDouble.copy(n, x.data, x.offset.value, x.stride.value, yc.data, yc.offset.value, yc.stride.value)
     assertEqualsDouble(yc(1), 2.0, 1e-12)
+  }
+
+  test("PureBackend.gemv is bit-identical to DMat * DVec for row-major and transposed views") {
+    // Non-integer data, row/column tails for both tiles: any kernel difference shows.
+    def bits(v: Double): Long = java.lang.Double.doubleToRawLongBits(v)
+    for (rows, cols) <- Seq((9, 13), (13, 9), (1, 7), (6, 6)) do
+      def fill(i: Int, j: Int): Double = math.sin(0.3 + i * 0.91 + j * 0.47) * (1 + i % 3)
+      val views = Seq(
+        "row-major" -> Matrix.tabulate(rows + 2, cols + 3)(fill).slice(1, rows + 1, 2, cols + 2),
+        "transposed" -> Matrix.tabulate(cols + 2, rows + 3)(fill).slice(1, cols + 1, 2, rows + 2).t
+      )
+      for (label, a) <- views do
+        val x = Vec.tabulate(cols)(j => math.cos(1.1 + j * 0.63))
+        val expected = a * x
+        val y = Vec.fill(rows)(Double.NaN)
+        PureBackend.denseDouble.gemv(
+          a.rows, a.cols, 1.0,
+          a.data, a.offset.value, a.rowStride.value, a.colStride.value,
+          x.data, x.offset.value, x.stride.value,
+          0.0, y.data, y.offset.value, y.stride.value
+        )
+        var i = 0
+        while i < rows do
+          assertEquals(bits(y(i)), bits(expected(i)), s"$label ${rows}x$cols row $i: ${y(i)} vs ${expected(i)}")
+          i += 1
   }
