@@ -180,10 +180,12 @@ was used. To compare against VectorBLAS, re-run on a node without a system
 Run `vectorBackendTest` on the same node as well, so that tier stability and the
 `exp` bound are checked at that species width.
 
-## Results (quiet runs — to fill)
+## Results (quiet runs)
 
 Times are ns/op, lower is better. `×scalar` is `scalar baseline / simd`, and
 `×Breeze` is `breeze / simd`. Fill in one table per platform.
+
+### aarch64 (to fill)
 
 Platform: CPU `______` · arch `______` · lanes `__` · JDK `______` · SHA `______` · load `____`
 
@@ -218,6 +220,107 @@ Platform: CPU `______` · arch `______` · lanes `__` · JDK `______` · SHA `__
 | | 64 | 3 | | | | | |
 | | 256 | 1 | | | | | |
 | | 256 | 3 | | | | | |
+
+### x86-64 AVX-512 (SciNet trillium, executed 2026-10-09)
+
+Platform: CPU `AMD EPYC 9655 (Zen 5), 2 × 96 cores, NPS4` · arch `amd64` · lanes `8`
+(AVX-512, no `UseAVX` cap) · JDK `Temurin 25+36` · SHA `17813d0d761467187ba0764f1081fd30747ad18e`
+· load at start `18.8` (1-min, decaying from the previous job, falling to 3.5 two minutes
+into the run; the only busy process afterwards was this JVM).
+
+How it was run: Slurm job 2524302, partition `compute`, `--exclusive --nodes=1`, node
+`tri0379`. No sbt: the exported `benchmarksJVM/Jmh/fullClasspath` was copied to the
+node and run as `java --add-modules=jdk.incubator.vector -cp … org.openjdk.jmh.Main`
+with the recipe's options (`-jvmArgsAppend -Dgale.bench.lane=B -f 3 -wi 5 -i 10 -w 1s
+-r 1s`, plus `-prof gc` for dispatch). The JVM was pinned to one CCD and its memory node with
+`numactl --physcpubind=0-7 --membind=0`. The site's `JAVA_TOOL_OPTIONS=-Xmx2g` was
+unset. Every fork logged `lanes=8 arch=amd64 jdk=25`. Breeze resolved
+`dev.ludovic.netlib.blas.VectorBLAS` (no native BLAS is visible to the loader on these
+nodes). The runner script, environment, fork logs, sidecar and both JMH JSON files are in
+[`x86-avx512/`](x86-avx512/).
+
+Correctness at this species width: the `vectorBackendTest` suites
+(`VectorL1KernelsSuite`, `VectorGemmSuite`, `VectorBackendConformanceSuite`), run
+with JUnitCore on the same node, gave **42/42 OK** (`x86-avx512/vtest.log`).
+`dexpInto` at 8 lanes: max 1.000 ulp against `StrictMath.exp` over 2,000,003
+points. 223,717 of 10,000,015 rerun results differed by 1 ulp from the first run, which
+confirms the tier instability recorded above.
+
+Values are mean ± 99.9% CI half-width, in ns/op. A `(CI overlap)` ratio does not count.
+
+| op | n | lanes | simd | scalar baseline | Breeze | ×scalar | ×Breeze | gate |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| dot | 1024 | 8 | 61.1 ± 0.1 | 264.8 ± 0.5 | 64.2 ± 0.1 | 4.33× | 1.05× | report-only |
+| dot | 4096 | 8 | 325.9 ± 4.8 | 1,031.5 ± 2.9 | 415.3 ± 0.1 | 3.17× | 1.27× | pass |
+| dot | 65536 | 8 | 6,954.4 ± 417.8 | 16,620 ± 198.0 | 7,411.7 ± 4.0 | 2.39× | 1.07× | pass |
+| dot | 1048576 | 8 | 141,307 ± 7,808.9 | 242,626 ± 3,076.1 | 133,957 ± 1,954.6 | 1.72× | 0.95× (CI overlap) | FAIL (×Breeze) |
+| axpy | 1024 | 8 | 66.3 ± 5.7 | 285.1 ± 0.5 | 61.9 ± 11.7 | 4.30× | 0.93× (CI overlap) | report-only |
+| axpy | 4096 | 8 | 361.2 ± 8.2 | 1,137.6 ± 4.5 | 368.8 ± 10.5 | 3.15× | 1.02× (CI overlap) | FAIL (×Breeze) |
+| axpy | 65536 | 8 | 6,732.9 ± 321.9 | 18,131 ± 55.2 | 6,699.3 ± 276.8 | 2.69× | 1.00× (CI overlap) | FAIL (×Breeze) |
+| axpy | 1048576 | 8 | 150,071 ± 7,825.6 | 299,092 ± 3,807.9 | 147,483 ± 6,785.1 | 1.99× | 0.98× (CI overlap) | FAIL (×Breeze) |
+| nrm2 (vs `pureOptimisticNrm2`) | 1024 | 8 | 62.8 ± 0.1 | 267.1 ± 0.2 | 60.6 ± 0.0 | 4.25× | 0.97× (CI overlap) | report-only |
+| nrm2 (vs `pureOptimisticNrm2`) | 4096 | 8 | 235.6 ± 2.1 | 1,034.2 ± 2.7 | 401.8 ± 0.2 | 4.39× | 1.71× | pass |
+| nrm2 (vs `pureOptimisticNrm2`) | 65536 | 8 | 4,492.9 ± 0.8 | 16,272 ± 49.7 | 7,235.7 ± 3.6 | 3.62× | 1.61× | pass |
+| nrm2 (vs `pureOptimisticNrm2`) | 1048576 | 8 | 79,444 ± 88.3 | 239,450 ± 2,787.7 | 116,686 ± 35.5 | 3.01× | 1.47× | pass |
+| sum | 1024 | 8 | 30.0 ± 0.0 | 120.2 ± 0.2 | 426.3 ± 0.0 | 4.00× | 14.20× | report-only |
+| sum | 4096 | 8 | 98.1 ± 16.9 | 485.6 ± 0.7 | 1,789.9 ± 0.2 | 4.95× | 18.26× | pass |
+| sum | 65536 | 8 | 3,685.9 ± 18.6 | 7,747.2 ± 27.3 | 29,067 ± 6.3 | 2.10× | 7.89× | pass |
+| sum | 1048576 | 8 | 64,581 ± 100.5 | 135,265 ± 4,084.7 | 465,765 ± 58.5 | 2.09× | 7.21× | pass |
+| argmax | 1024 | 8 | 258.3 ± 0.4 | 295.9 ± 2.9 | 788.8 ± 0.8 | 1.15× | 3.05× | report-only |
+| argmax | 4096 | 8 | 604.2 ± 0.5 | 1,315.0 ± 140.8 | 3,106.6 ± 7.1 | 2.18× | 5.14× | pass |
+| argmax | 65536 | 8 | 8,102.5 ± 4.1 | 20,135 ± 1,348.4 | 29,375 ± 28.3 | 2.49× | 3.63× | pass |
+| argmax | 1048576 | 8 | 165,876 ± 17,407 | 296,080 ± 114.3 | 471,985 ± 10,058 | 1.78× | 2.85× | pass |
+| exp (info only) | 1024 | 8 | 308.7 ± 2.5 | 2,811.4 ± 2.5 | 2,911.7 ± 5.7 | 9.11× | 9.43× | report-only |
+| exp (info only) | 4096 | 8 | 1,325.2 ± 41.8 | 11,828 ± 4.7 | 11,929 ± 29.8 | 8.93× | 9.00× | n/a |
+| exp (info only) | 65536 | 8 | 19,237 ± 184.0 | 183,154 ± 2,147.0 | 198,890 ± 1,658.3 | 9.52× | 10.34× | n/a |
+| exp (info only) | 1048576 | 8 | 319,885 ± 4,127.4 | 2,930,642 ± 2,045.2 | 4,577,037 ± 5,664.7 | 9.16× | 14.31× | n/a |
+
+Per-op gate verdict at n ≥ 4K on this platform:
+
+- dot: FAIL (2/3 sizes)
+- axpy: FAIL (0/3 sizes)
+- nrm2 (vs `pureOptimisticNrm2`): PASS (3/3 sizes)
+- sum: PASS (3/3 sizes)
+- argmax: PASS (3/3 sizes)
+
+So nrm2, sum and argmax pass. dot fails only at n = 1M, where it is
+statistically tied with VectorBLAS (0.95×, CIs overlap); it passes at 4K and 64K. axpy is
+2.0–3.2× scalar, but at every size it is statistically tied with VectorBLAS
+(0.98–1.02×, CIs overlap) rather than ahead of it. On this platform the ADR question (reopen
+A-2b) therefore has three passing ops. The axpy criterion of "≥ 1.0× Breeze" is
+not met in the strict CI sense, but neither is gale behind.
+
+Report-only: SIMD nrm2 against the LAPACK-style `pureNrm2` (mostly algorithmic, see above).
+
+| report-only | n | simd nrm2 | pureNrm2 (LAPACK recurrence) | ratio |
+|---|---:|---:|---:|---:|
+| nrm2 vs pureNrm2 | 1024 | 62.8 | 921.0 | 14.66× |
+| nrm2 vs pureNrm2 | 4096 | 235.6 | 3,660.7 | 15.54× |
+| nrm2 vs pureNrm2 | 65536 | 4,492.9 | 59,245 | 13.19× |
+| nrm2 vs pureNrm2 | 1048576 | 79,444 | 956,800 | 12.04× |
+
+A-R1 dispatch (`-prof gc`, 3 forks × 10 × 1 s):
+
+| A-R1 dispatch | n | impls | lanes | direct (ns) | via `using Backend` (ns) | overhead | alloc B/op (direct / via) | within noise? |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| | 16 | 1 | 8 | 7.83 ± 0.06 | 8.21 ± 0.01 | +4.8% | 0.000 / 0.000 | no |
+| | 16 | 3 | 8 | 7.79 ± 0.07 | 10.51 ± 0.06 | +34.8% | 0.000 / 0.000 | no |
+| | 32 | 1 | 8 | 11.91 ± 0.07 | 12.52 ± 0.01 | +5.1% | 0.000 / 0.000 | no |
+| | 32 | 3 | 8 | 11.89 ± 0.03 | 14.20 ± 0.01 | +19.5% | 0.000 / 0.000 | no |
+| | 64 | 1 | 8 | 19.92 ± 0.02 | 20.48 ± 0.02 | +2.8% | 0.000 / 0.000 | no |
+| | 64 | 3 | 8 | 19.92 ± 0.02 | 22.14 ± 0.02 | +11.2% | 0.000 / 0.000 | no |
+| | 128 | 1 | 8 | 35.94 ± 0.02 | 36.44 ± 0.04 | +1.4% | 0.000 / 0.000 | no |
+| | 128 | 3 | 8 | 35.94 ± 0.02 | 38.01 ± 0.10 | +5.8% | 0.000 / 0.000 | no |
+| | 256 | 1 | 8 | 67.99 ± 0.03 | 68.50 ± 0.08 | +0.7% | 0.000 / 0.000 | no |
+| | 256 | 3 | 8 | 67.94 ± 0.03 | 70.13 ± 0.16 | +3.2% | 0.000 / 0.000 | no |
+
+A-R1 reading: the call through `(using Backend)` is **allocation-free** at every n and
+site shape (`gc.alloc.rate.norm` ≈ 0 B/op). The monomorphic site (`impls=1`) costs
++0.7% to +5%, about 0.4–0.6 ns. That is small, but with 3 × 10 one-second iterations the
+CIs are tight enough that it is *not* strictly within noise. The megamorphic site
+(`impls=3`) costs +35% at n = 16, +20% at 32, +11% at 64, +6% at 128 and +3% at
+256, which is about 2.1–2.7 ns per call. That is the same megamorphic risk the smoke
+run flagged.
 
 ## Smoke run (harness check only — NOT evidence)
 

@@ -1,0 +1,13 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+JUnit version 4.13.2
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/scratch/brad/gale-bench/bundle/lib/scala3-library_3-3.7.4.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+............[w21] dexpInto lanes=8 max ulp vs StrictMath.exp over 2000003 points in [-745.0, 710.0]: 1.000 at x=-714.3075331924668 (Math.exp: 1.000)
+[w21] dexpInto reruns differing bitwise from the first run: 223672 of 10000015; max ulp among them 1.000
+..............................
+Time: 0.853
+
+OK (42 tests)
+
