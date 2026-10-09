@@ -76,13 +76,30 @@ private[gale] object DenseSvdKernel:
     if wantVectors then
       accumulateRight(n, u, v, rv1)
       accumulateLeft(m, n, u, w)
-    diagonalize(m, n, u, w, rv1, v, anorm, wantVectors) match
+    // The QR sweeps rotate pairs of singular-vector columns; they run on the
+    // transposes Uᵀ (n×m) and Vᵀ (n×n) so every rotation updates two
+    // contiguous rows.
+    val ut = if wantVectors then transposed(m, n, u) else u
+    val vt = if wantVectors then transposed(n, n, v) else v
+    diagonalize(m, n, ut, w, rv1, vt, anorm, wantVectors) match
       case Some(failure) => Left(failure)
       case None =>
         val sigma = gale.linalg.DVec.tabulate(n)(i => w(i))
         if wantVectors then
-          Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(m, n, u), DMat.fromDoubleArrayOwned(n, n, v).t))
+          Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(n, m, ut).t, DMat.fromDoubleArrayOwned(n, n, vt)))
         else Right(RawSvd(sigma, DMat.zeros(m, 0), DMat.zeros(0, n)))
+
+  /** The `cols×rows` row-major transpose of the `rows×cols` row-major `x`. */
+  private def transposed(rows: Int, cols: Int, x: DoubleArray): DoubleArray =
+    val out = DoubleArray.alloc(rows * cols)
+    var i = 0
+    while i < rows do
+      var j = 0
+      while j < cols do
+        out(j * rows + i) = x(i * cols + j)
+        j += 1
+      i += 1
+    out
 
   /** Householder bidiagonalization of the m×n row-major `u` in place: on return
     * `w` holds the diagonal, `rv1` the superdiagonal (`rv1(0) = 0`), and `u`
@@ -254,7 +271,9 @@ private[gale] object DenseSvdKernel:
       i -= 1
 
   /** Implicit-shift QR on the bidiagonal `(w, rv1)`, rotations accumulated into
-    * `u`/`v` when `wantVectors`. Deflation and cancellation both test against
+    * the transposed factors `ut` (`Uᵀ`, n×m) and `vt` (`Vᵀ`, n×n) when
+    * `wantVectors`, so a rotation of singular-vector columns `p`, `q` updates
+    * rows `p`, `q`. Deflation and cancellation both test against
     * the scale-aware `ε·anorm`. On success every `w(i) ≥ 0` (a converged
     * negative value flips sign along with its `v` column). Returns the typed
     * failure when a value exhausts its sweep budget.
@@ -262,10 +281,10 @@ private[gale] object DenseSvdKernel:
   private def diagonalize(
       m: Int,
       n: Int,
-      u: DoubleArray,
+      ut: DoubleArray,
       w: DoubleArray,
       rv1: DoubleArray,
-      v: DoubleArray,
+      vt: DoubleArray,
       anorm: Double,
       wantVectors: Boolean
   ): Option[SvdKernelFailure] =
@@ -310,12 +329,14 @@ private[gale] object DenseSvdKernel:
               c = g * h
               s = -f * h
               if wantVectors then
+                val rowNm = nm * m
+                val rowI = i * m
                 var j = 0
                 while j < m do
-                  val y = u(j * n + nm)
-                  val z = u(j * n + i)
-                  u(j * n + nm) = y * c + z * s
-                  u(j * n + i) = z * c - y * s
+                  val y = ut(rowNm + j)
+                  val z = ut(rowI + j)
+                  ut(rowNm + j) = y * c + z * s
+                  ut(rowI + j) = z * c - y * s
                   j += 1
             i += 1
         val z0 = w(k)
@@ -324,9 +345,10 @@ private[gale] object DenseSvdKernel:
           if z0 < 0.0 then
             w(k) = -z0
             if wantVectors then
+              val rowK = k * n
               var j = 0
               while j < n do
-                v(j * n + k) = -v(j * n + k)
+                vt(rowK + j) = -vt(rowK + j)
                 j += 1
           converged = true
         else if its >= MaxSweepsPerValue then return Some(SvdKernelFailure.DidNotConverge(totalSweeps))
@@ -361,12 +383,14 @@ private[gale] object DenseSvdKernel:
             h = y * s
             y = y * c
             if wantVectors then
+              val rowJ = j * n
+              val rowI = i * n
               var jj = 0
               while jj < n do
-                val xv = v(jj * n + j)
-                val zv = v(jj * n + i)
-                v(jj * n + j) = xv * c + zv * s
-                v(jj * n + i) = zv * c - xv * s
+                val xv = vt(rowJ + jj)
+                val zv = vt(rowI + jj)
+                vt(rowJ + jj) = xv * c + zv * s
+                vt(rowI + jj) = zv * c - xv * s
                 jj += 1
             z = pythag(f, h)
             w(j) = z
@@ -377,12 +401,14 @@ private[gale] object DenseSvdKernel:
             f = c * g + s * y
             x = c * y - s * g
             if wantVectors then
+              val rowJ = j * m
+              val rowI = i * m
               var jj = 0
               while jj < m do
-                val yv = u(jj * n + j)
-                val zv = u(jj * n + i)
-                u(jj * n + j) = yv * c + zv * s
-                u(jj * n + i) = zv * c - yv * s
+                val yv = ut(rowJ + jj)
+                val zv = ut(rowI + jj)
+                ut(rowJ + jj) = yv * c + zv * s
+                ut(rowI + jj) = zv * c - yv * s
                 jj += 1
             j += 1
           rv1(l) = 0.0
