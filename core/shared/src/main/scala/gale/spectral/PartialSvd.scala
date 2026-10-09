@@ -99,8 +99,9 @@ object Svds:
     * the same returned-set policy the [[SVD]] result type documents;
     * `diagnostics.iterations` is `0` (a dense one-shot solve).
     *
-    * `Left` on: a non-positive dimension; an illegal vector flag; `k ≤ 0` or
-    * `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
+    * `Left` on: a non-positive dimension; an illegal vector flag; a non-finite
+    * entry (`InvalidArgument`, checked before any backend sees the matrix);
+    * `k ≤ 0` or `k > min(m, n)`; or (in practice unreachable) bidiagonal-QR sweep
     * exhaustion, `Left(DidNotConverge)` like the dense eigen paths.
     */
   def svd(a: DMat, selection: SingularSelection, vectors: EigenVectors)(using
@@ -110,7 +111,7 @@ object Svds:
     val n = a.cols
     if m <= 0 || n <= 0 then Left(LinAlgError.InvalidArgument(s"dimensions must be positive, got ${m}x$n"))
     else
-      validateVectors(vectors) match
+      validateVectors(vectors).flatMap(w => FiniteInput.matrix(a).map(_ => w)) match
         case Left(error) => Left(error)
         case Right(wantVectors) =>
           val p = math.min(m, n)
@@ -260,14 +261,21 @@ object Svds:
         val vtMat = DMat.tabulate(p, n): (r, c) =>
           val src = order(r)
           if flip(src) then -raw.vt(src, c) else raw.vt(src, c)
+        // The checks run as matrix products on contiguous row-major operands
+        // (A V, Aᵀ U and the Gram matrices) instead of 2p matrix-vector
+        // products and a product over a transposed view; the transposes are
+        // materialized because a product over a view walks it column-strided.
+        val vMat = DMat.tabulate(n, p)((r, c) => vtMat(c, r))
+        val aMat = if a.isContiguousRowMajor then a else DMat.tabulate(m, n)((r, c) => a(r, c))
+        val atMat = DMat.tabulate(n, m)((r, c) => a(c, r))
+        val av = aMat * vMat
+        val atu = atMat * uMat
         val res = DVec.tabulate(p): c =>
-          val uCol = uMat.col(c)
-          val vRow = vtMat.row(c)
           val sigma = values(c)
-          val rV = (a * vRow - uCol * sigma).norm2
-          val rU = (a.t * uCol - vRow * sigma).norm2
+          val rV = (av.col(c) - uMat.col(c) * sigma).norm2
+          val rU = (atu.col(c) - vMat.col(c) * sigma).norm2
           math.max(rV, rU)
-        (uMat, vtMat, res, math.max(orthogonalityError(uMat), orthogonalityError(vtMat.t)))
+        (uMat, vtMat, res, math.max(orthogonalityError(uMat), orthogonalityError(vMat)))
       else (DMat.zeros(m, 0), DMat.zeros(0, n), DVec.zeros(p), 0.0)
     val tol = SpectralOptions().tolerance
     val sigmaMax = if p > 0 then values(0) else 0.0

@@ -349,3 +349,32 @@ class DenseSvdSuite extends munit.FunSuite:
     intercept[LinAlgError.InvalidArgument]:
       Svds.svd(a, SingularSelection.All, EigenVectors.ValuesOnly)(using provider)
   }
+
+  test("non-finite entries are rejected with InvalidArgument on every dense SVD route") {
+    given SpectralBackend = SpectralBackend.none
+    Seq(Double.NaN, Double.PositiveInfinity, Double.NegativeInfinity).foreach: bad =>
+      // Tall, wide and square, so both kernel orientations are covered.
+      Seq((5, 3), (3, 5), (4, 4)).foreach: (m, n) =>
+        val a = Matrix.tabulate(m, n)((i, j) => if i == 1 && j == 2 then bad else 1.0 / (i + j + 1))
+        Seq(EigenVectors.Right, EigenVectors.ValuesOnly).foreach: vectors =>
+          Svds.svd(a, SingularSelection.All, vectors) match
+            case Left(_: LinAlgError.InvalidArgument) => ()
+            case other                                => fail(s"$bad ${m}x$n $vectors: expected InvalidArgument, got $other")
+        Svds.svd(a, SingularSelection.Count(1, SingularOrder.Largest)) match
+          case Left(_: LinAlgError.InvalidArgument) => ()
+          case other                                => fail(s"$bad ${m}x$n partial: expected InvalidArgument, got $other")
+        assert(a.svd.left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
+        assert(a.pinv.left.exists(_.isInstanceOf[LinAlgError.InvalidArgument]))
+  }
+
+  test("the bidiagonal kernel fails typed, without sweeping, on a non-finite bidiagonal") {
+    Seq(Double.NaN, Double.PositiveInfinity).foreach: bad =>
+      Seq((5, 3), (3, 5)).foreach: (m, n) =>
+        val a = Matrix.tabulate(m, n)((i, j) => if i == 2 && j == 1 then bad else 1.0 / (i + j + 1))
+        Seq(true, false).foreach: wantVectors =>
+          assertEquals(
+            DenseSvdKernel.svd(a, wantVectors).map(_.sigma),
+            Left(DenseSvdKernel.SvdKernelFailure.DidNotConverge(0)),
+            s"$bad ${m}x$n vectors=$wantVectors"
+          )
+  }

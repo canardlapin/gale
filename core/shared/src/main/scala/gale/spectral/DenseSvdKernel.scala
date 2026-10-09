@@ -39,6 +39,9 @@ private[gale] object DenseSvdKernel:
   enum SvdKernelFailure:
     case DidNotConverge(iterations: Int)
 
+  /** Zero-length placeholder for the values-only path (never written). */
+  private val NoVectors: DoubleArray = DoubleArray.alloc(0)
+
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
@@ -70,19 +73,34 @@ private[gale] object DenseSvdKernel:
     val u = a.toDoubleArrayCopyRowMajor // m×n row-major; becomes economy U in place
     val w = DoubleArray.alloc(n)        // singular values
     val rv1 = DoubleArray.alloc(n)      // superdiagonal workspace
-    val v = if wantVectors then DoubleArray.alloc(n * n) else DoubleArray.alloc(0)
+    val vt = if wantVectors then DoubleArray.alloc(n * n) else NoVectors
 
     val anorm = bidiagonalize(m, n, u, w, rv1)
-    if wantVectors then
-      accumulateRight(n, u, v, rv1)
-      accumulateLeft(m, n, u, w)
-    diagonalize(m, n, u, w, rv1, v, anorm, wantVectors) match
+    // The singular vectors are built and rotated as the transposes Vᵀ (n×n)
+    // and Uᵀ (n×m): every reflector application and every QR rotation acts on
+    // singular-vector columns, which are then contiguous rows.
+    if wantVectors then accumulateRight(n, u, vt, rv1)
+    val ut = if wantVectors then transposed(m, n, u) else u
+    if wantVectors then accumulateLeft(m, n, ut, w)
+    diagonalize(m, n, ut, w, rv1, vt, anorm, wantVectors) match
       case Some(failure) => Left(failure)
       case None =>
         val sigma = gale.linalg.DVec.tabulate(n)(i => w(i))
         if wantVectors then
-          Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(m, n, u), DMat.fromDoubleArrayOwned(n, n, v).t))
+          Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(n, m, ut).t, DMat.fromDoubleArrayOwned(n, n, vt)))
         else Right(RawSvd(sigma, DMat.zeros(m, 0), DMat.zeros(0, n)))
+
+  /** The `cols×rows` row-major transpose of the `rows×cols` row-major `x`. */
+  private def transposed(rows: Int, cols: Int, x: DoubleArray): DoubleArray =
+    val out = DoubleArray.alloc(rows * cols)
+    var i = 0
+    while i < rows do
+      var j = 0
+      while j < cols do
+        out(j * rows + i) = x(i * cols + j)
+        j += 1
+      i += 1
+    out
 
   /** Householder bidiagonalization of the m×n row-major `u` in place: on return
     * `w` holds the diagonal, `rv1` the superdiagonal (`rv1(0) = 0`), and `u`
@@ -115,19 +133,36 @@ private[gale] object DenseSvdKernel:
           g = -sign(math.sqrt(s), f)
           val h = f * g - s
           u(i * n + i) = f - g
+          // Apply the left reflector to columns l..n-1 row by row (contiguous):
+          // rv1(l..n-1) is free until the right reflector below and serves as
+          // the per-column dot accumulator, summed over k ascending exactly as
+          // a column-by-column loop would.
           var j = l
           while j < n do
-            var dot = 0.0
-            k = i
-            while k < m do
-              dot += u(k * n + i) * u(k * n + j)
-              k += 1
-            val fj = dot / h
-            k = i
-            while k < m do
-              u(k * n + j) = u(k * n + j) + fj * u(k * n + i)
-              k += 1
+            rv1(j) = 0.0
             j += 1
+          k = i
+          while k < m do
+            val uki = u(k * n + i)
+            val rowK = k * n
+            j = l
+            while j < n do
+              rv1(j) = rv1(j) + uki * u(rowK + j)
+              j += 1
+            k += 1
+          j = l
+          while j < n do
+            rv1(j) = rv1(j) / h
+            j += 1
+          k = i
+          while k < m do
+            val uki = u(k * n + i)
+            val rowK = k * n
+            j = l
+            while j < n do
+              u(rowK + j) = u(rowK + j) + rv1(j) * uki
+              j += 1
+            k += 1
           k = i
           while k < m do
             u(k * n + i) = u(k * n + i) * scale
@@ -176,11 +211,11 @@ private[gale] object DenseSvdKernel:
     anorm
 
   /** Expand the right-hand Householder reflectors stored in `u`'s rows into the
-    * n×n row-major `v` (columns are right singular vectors of the bidiagonal
-    * reduction), walking i from n−1 down so each reflector is applied to the
-    * already-accumulated trailing block.
+    * n×n row-major '''transpose''' `vt = Vᵀ` (rows are right singular vectors of
+    * the bidiagonal reduction), walking i from n−1 down so each reflector is
+    * applied to the already-accumulated trailing block.
     */
-  private def accumulateRight(n: Int, u: DoubleArray, v: DoubleArray, rv1: DoubleArray): Unit =
+  private def accumulateRight(n: Int, u: DoubleArray, vt: DoubleArray, rv1: DoubleArray): Unit =
     var g = 0.0
     var l = 0
     var i = n - 1
@@ -188,87 +223,99 @@ private[gale] object DenseSvdKernel:
       if i < n - 1 then
         if g != 0.0 then
           // Double division (by u(i,l) then g) avoids underflow, per Golub–Reinsch.
+          val rowI = i * n
           var j = l
           while j < n do
-            v(j * n + i) = (u(i * n + j) / u(i * n + l)) / g
+            vt(rowI + j) = (u(rowI + j) / u(rowI + l)) / g
             j += 1
           j = l
           while j < n do
+            val rowJ = j * n
             var s = 0.0
             var k = l
             while k < n do
-              s += u(i * n + k) * v(k * n + j)
+              s += u(rowI + k) * vt(rowJ + k)
               k += 1
             k = l
             while k < n do
-              v(k * n + j) = v(k * n + j) + s * v(k * n + i)
+              vt(rowJ + k) = vt(rowJ + k) + s * vt(rowI + k)
               k += 1
             j += 1
         var j = l
         while j < n do
-          v(i * n + j) = 0.0
-          v(j * n + i) = 0.0
+          vt(i * n + j) = 0.0
+          vt(j * n + i) = 0.0
           j += 1
-      v(i * n + i) = 1.0
+      vt(i * n + i) = 1.0
       g = rv1(i)
       l = i
       i -= 1
 
-  /** Expand the left-hand Householder reflectors into the economy `U` (m×n, in
-    * place over the reflector storage), walking i from n−1 down.
+  /** Expand the left-hand Householder reflectors into the economy `Uᵀ` (n×m,
+    * in place over the transposed reflector storage `ut`, whose row i is the
+    * reflector column i), walking i from n−1 down.
     */
-  private def accumulateLeft(m: Int, n: Int, u: DoubleArray, w: DoubleArray): Unit =
+  private def accumulateLeft(m: Int, n: Int, ut: DoubleArray, w: DoubleArray): Unit =
     var i = n - 1
     while i >= 0 do
       val l = i + 1
+      val rowI = i * m
       var g = w(i)
       var j = l
       while j < n do
-        u(i * n + j) = 0.0
+        ut(j * m + i) = 0.0
         j += 1
       if g != 0.0 then
         g = 1.0 / g
         j = l
         while j < n do
+          val rowJ = j * m
           var s = 0.0
           var k = l
           while k < m do
-            s += u(k * n + i) * u(k * n + j)
+            s += ut(rowI + k) * ut(rowJ + k)
             k += 1
-          val f = (s / u(i * n + i)) * g
+          val f = (s / ut(rowI + i)) * g
           k = i
           while k < m do
-            u(k * n + j) = u(k * n + j) + f * u(k * n + i)
+            ut(rowJ + k) = ut(rowJ + k) + f * ut(rowI + k)
             k += 1
           j += 1
         var k = i
         while k < m do
-          u(k * n + i) = u(k * n + i) * g
+          ut(rowI + k) = ut(rowI + k) * g
           k += 1
       else
         var k = i
         while k < m do
-          u(k * n + i) = 0.0
+          ut(rowI + k) = 0.0
           k += 1
-      u(i * n + i) = u(i * n + i) + 1.0
+      ut(rowI + i) = ut(rowI + i) + 1.0
       i -= 1
 
   /** Implicit-shift QR on the bidiagonal `(w, rv1)`, rotations accumulated into
-    * `u`/`v` when `wantVectors`. Deflation and cancellation both test against
+    * the transposed factors `ut` (`Uᵀ`, n×m) and `vt` (`Vᵀ`, n×n) when
+    * `wantVectors`, so a rotation of singular-vector columns `p`, `q` updates
+    * rows `p`, `q`. Deflation and cancellation both test against
     * the scale-aware `ε·anorm`. On success every `w(i) ≥ 0` (a converged
-    * negative value flips sign along with its `v` column). Returns the typed
-    * failure when a value exhausts its sweep budget.
+    * negative value flips sign along with its row of `vt`). Returns the typed
+    * failure when a value exhausts its sweep budget, or immediately (zero
+    * sweeps) when the bidiagonal is not finite.
     */
   private def diagonalize(
       m: Int,
       n: Int,
-      u: DoubleArray,
+      ut: DoubleArray,
       w: DoubleArray,
       rv1: DoubleArray,
-      v: DoubleArray,
+      vt: DoubleArray,
       anorm: Double,
       wantVectors: Boolean
   ): Option[SvdKernelFailure] =
+    // A non-finite entry makes anorm NaN/Inf; no superdiagonal could then pass
+    // the deflation test (not even the exact zero rv1(0)), and the split search
+    // would run off the front of the arrays. Fail typed before any sweep.
+    if !anorm.isFinite then return Some(SvdKernelFailure.DidNotConverge(0))
     val tol = Epsilon * anorm
     var totalSweeps = 0
     var k = n - 1
@@ -310,12 +357,14 @@ private[gale] object DenseSvdKernel:
               c = g * h
               s = -f * h
               if wantVectors then
+                val rowNm = nm * m
+                val rowI = i * m
                 var j = 0
                 while j < m do
-                  val y = u(j * n + nm)
-                  val z = u(j * n + i)
-                  u(j * n + nm) = y * c + z * s
-                  u(j * n + i) = z * c - y * s
+                  val y = ut(rowNm + j)
+                  val z = ut(rowI + j)
+                  ut(rowNm + j) = y * c + z * s
+                  ut(rowI + j) = z * c - y * s
                   j += 1
             i += 1
         val z0 = w(k)
@@ -324,9 +373,10 @@ private[gale] object DenseSvdKernel:
           if z0 < 0.0 then
             w(k) = -z0
             if wantVectors then
+              val rowK = k * n
               var j = 0
               while j < n do
-                v(j * n + k) = -v(j * n + k)
+                vt(rowK + j) = -vt(rowK + j)
                 j += 1
           converged = true
         else if its >= MaxSweepsPerValue then return Some(SvdKernelFailure.DidNotConverge(totalSweeps))
@@ -361,12 +411,14 @@ private[gale] object DenseSvdKernel:
             h = y * s
             y = y * c
             if wantVectors then
+              val rowJ = j * n
+              val rowI = i * n
               var jj = 0
               while jj < n do
-                val xv = v(jj * n + j)
-                val zv = v(jj * n + i)
-                v(jj * n + j) = xv * c + zv * s
-                v(jj * n + i) = zv * c - xv * s
+                val xv = vt(rowJ + jj)
+                val zv = vt(rowI + jj)
+                vt(rowJ + jj) = xv * c + zv * s
+                vt(rowI + jj) = zv * c - xv * s
                 jj += 1
             z = pythag(f, h)
             w(j) = z
@@ -377,12 +429,14 @@ private[gale] object DenseSvdKernel:
             f = c * g + s * y
             x = c * y - s * g
             if wantVectors then
+              val rowJ = j * m
+              val rowI = i * m
               var jj = 0
               while jj < m do
-                val yv = u(jj * n + j)
-                val zv = u(jj * n + i)
-                u(jj * n + j) = yv * c + zv * s
-                u(jj * n + i) = zv * c - yv * s
+                val yv = ut(rowJ + jj)
+                val zv = ut(rowI + jj)
+                ut(rowJ + jj) = yv * c + zv * s
+                ut(rowI + jj) = zv * c - yv * s
                 jj += 1
             j += 1
           rv1(l) = 0.0

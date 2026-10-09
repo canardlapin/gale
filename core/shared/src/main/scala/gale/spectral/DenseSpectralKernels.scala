@@ -102,6 +102,7 @@ private[gale] object DenseSpectralKernels:
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n) // EISPACK convention: e(0)=0, e(i)=T(i-1,i)
     tred2(n, work, 0, d, e, 0, wantQ)
+    if wantQ then transposeSquareInPlace(n, work)
     val offLen = math.max(n - 1, 0)
     val off = DoubleArray.alloc(offLen)
     var k = 0
@@ -182,7 +183,7 @@ private[gale] object DenseSpectralKernels:
     val d = DoubleArray.alloc(n)
     val e = DoubleArray.alloc(n)
     tred2(n, work, 0, d, e, 0, wantVectors)
-    // `work` now holds Q (when accumulating); tql2 rotates it into V.
+    // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
     val z = if wantVectors then Some(work) else None
     solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
@@ -216,7 +217,9 @@ private[gale] object DenseSpectralKernels:
     *
     * On exit `d(0..n-1)` is the diagonal of `T` and `e(1..n-1)` its subdiagonal
     * (`e(0) = 0`). When `accumulate` is true `a` is overwritten with the
-    * orthogonal `Q` such that `A = Q T Qᵀ`; when false the accumulation stores
+    * '''transpose''' `Qᵀ` of the orthogonal `Q` such that `A = Q T Qᵀ` (the
+    * layout the tridiagonal solver rotates, with every accumulation loop
+    * running along contiguous rows); when false the accumulation stores
     * and the final back-transform are skipped, and `a`'s contents are scratch.
     *
     * The reduction reads and updates only the lower triangle plus the row being
@@ -260,23 +263,32 @@ private[gale] object DenseSpectralKernels:
           e(eOffset + i) = scale * g0
           h -= f0 * g0
           a(aOffset + i * n + l) = f0 - g0
+          // p = (A u) / h from the lower triangle, accumulated into e(0..l) row
+          // by row so every read is contiguous. Row r first sets
+          // e(r) = Σ_{k≤r} A(r,k) u(k), then rows r' > r add A(r',r) u(r') in
+          // ascending r' — the same summation order per entry as a
+          // column-oriented symv, so the result is bit-identical.
+          val uRow = aOffset + i * n
+          var r = 0
+          while r <= l do
+            val rowR = aOffset + r * n
+            val ur = a(uRow + r)
+            var kk = 0
+            while kk < r do
+              e(eOffset + kk) = e(eOffset + kk) + a(rowR + kk) * ur
+              kk += 1
+            var g = 0.0
+            kk = 0
+            while kk <= r do
+              g += a(rowR + kk) * a(uRow + kk)
+              kk += 1
+            e(eOffset + r) = g
+            r += 1
           var f = 0.0
           var j = 0
           while j <= l do
-            if accumulate then
-              a(aOffset + j * n + i) = a(aOffset + i * n + j) / h
-            // g = (A u)_j using only the lower triangle.
-            var g = 0.0
-            var kk = 0
-            while kk <= j do
-              g += a(aOffset + j * n + kk) * a(aOffset + i * n + kk)
-              kk += 1
-            kk = j + 1
-            while kk <= l do
-              g += a(aOffset + kk * n + j) * a(aOffset + i * n + kk)
-              kk += 1
-            e(eOffset + j) = g / h
-            f += e(eOffset + j) * a(aOffset + i * n + j)
+            e(eOffset + j) = e(eOffset + j) / h
+            f += e(eOffset + j) * a(uRow + j)
             j += 1
           val hh = f / (h + h)
           j = 0
@@ -302,17 +314,23 @@ private[gale] object DenseSpectralKernels:
       if accumulate then
         val l = i - 1
         if d(i) != 0.0 then
+          // The reduction stored u (row i) and h (d(i)); u(k)/h is recomputed
+          // from that contiguous row instead of being read down a column. The
+          // quotient is exactly the one EISPACK stores, so no bit changes.
+          val h = d(i)
+          val uRow = aOffset + i * n
           var j = 0
           while j <= l do
+            // Row j of the leading block holds column j of Q (block is Qᵀ).
+            val rowJ = aOffset + j * n
             var g = 0.0
             var k = 0
             while k <= l do
-              g += a(aOffset + i * n + k) * a(aOffset + k * n + j)
+              g += a(uRow + k) * a(rowJ + k)
               k += 1
             k = 0
             while k <= l do
-              val idx = aOffset + k * n + j
-              a(idx) = a(idx) - g * a(aOffset + k * n + i)
+              a(rowJ + k) = a(rowJ + k) - g * (a(uRow + k) / h)
               k += 1
             j += 1
         d(i) = a(aOffset + i * n + i)
@@ -330,13 +348,19 @@ private[gale] object DenseSpectralKernels:
     *
     * `d` holds the diagonal on entry, the eigenvalues on exit; `e(1..n-1)` holds
     * the subdiagonal on entry (`e(0)` arbitrary — the routine shifts it out).
-    * When `z` is `Some(zData)` (an `n x n` row-major basis) its columns are
-    * rotated in lockstep so that, starting from `Q` or the identity, they end as
-    * the eigenvectors. Eigenvalues are sorted ascending afterwards with `z`'s
-    * columns permuted to match. For finite `T` an off-diagonal is deflated once
-    * it is at most `ε · max(|d(m)| + |d(m+1)|, ‖T‖_max)` (`‖T‖_max` the largest
-    * entry magnitude, which cannot overflow and is within a factor 3 of `‖T‖₂`),
-    * so every eigenvalue carries an absolute error of order `ε ‖T‖`: the solver
+    * When `z` is `Some(zData)` it holds the '''transpose''' `Zᵀ` of an `n x n`
+    * basis (row-major, so row `k` is basis column `k`); the rows are rotated in
+    * lockstep — contiguous, cache-friendly updates — so that, starting from `Qᵀ`
+    * or the identity, they end as the eigenvectors. Eigenvalues are sorted
+    * ascending afterwards with the rows permuted to match, and `zData` is then
+    * transposed in place so the returned matrix holds the eigenvectors as
+    * columns. Each entry sees exactly the arithmetic of the column-oriented
+    * formulation, so the layout does not change any result bit.
+    *
+    * For finite `T` an off-diagonal is deflated once it is at most
+    * `ε · max(|d(m)| + |d(m+1)|, ‖T‖_max)` (`‖T‖_max` the largest entry
+    * magnitude, which cannot overflow and is within a factor 3 of `‖T‖₂`), so
+    * every eigenvalue carries an absolute error of order `ε ‖T‖`: the solver
     * is normwise backward-stable only, and tiny eigenvalues of graded matrices
     * get no relative accuracy. If `T` has an infinite entry the norm-scaled test
     * is disabled and only the local test applies, exactly as before it was
@@ -393,6 +417,8 @@ private[gale] object DenseSpectralKernels:
       tMax = tMax * ScaleDownHuge
     val normScale = if tMax.isFinite then tMax else 0.0
 
+    val hasZ = z.isDefined
+    val zData = z.getOrElse(NoVectors)
     var l = 0
     while l < n do
       var iter = 0
@@ -443,12 +469,15 @@ private[gale] object DenseSpectralKernels:
               p = s * r
               d(iBt + 1) = g + p
               g = c * r - b
-              z.foreach: zData =>
+              if hasZ then
+                // Rotate basis columns iBt and iBt+1: contiguous rows of Zᵀ.
+                val row0 = iBt * n
+                val row1 = row0 + n
                 var k = 0
                 while k < n do
-                  val f2 = zData(k * n + iBt + 1)
-                  zData(k * n + iBt + 1) = s * zData(k * n + iBt) + c * f2
-                  zData(k * n + iBt) = c * zData(k * n + iBt) - s * f2
+                  val f2 = zData(row1 + k)
+                  zData(row1 + k) = s * zData(row0 + k) + c * f2
+                  zData(row0 + k) = c * zData(row0 + k) - s * f2
                   k += 1
               iBt -= 1
           if innerZero && iBt >= l then
@@ -466,12 +495,13 @@ private[gale] object DenseSpectralKernels:
         d(i) = d(i) * ScaleUpHuge
         i += 1
     sortAscending(n, d, z)
+    if hasZ then transposeSquareInPlace(n, zData)
     val values = DVec.fromDoubleArrayOwned(d)
     val vectors = z.map(zData => DMat.fromDoubleArrayOwned(n, n, zData))
     Right(SymmetricEigen(values, vectors))
 
-  /** Selection sort of `d` ascending, permuting the columns of the optional
-    * `n x n` row-major `z` in lockstep. `n` is small (dense spectra), so the
+  /** Selection sort of `d` ascending, permuting the rows of the optional
+    * `n x n` row-major `zᵀ` (the basis columns) in lockstep. `n` is small (dense spectra), so the
     * `O(n²)` comparisons are irrelevant against the eigensolve.
     */
   private def sortAscending(n: Int, d: DoubleArray, z: Option[DoubleArray]): Unit =
@@ -489,12 +519,12 @@ private[gale] object DenseSpectralKernels:
         d(k) = d(i)
         d(i) = p
         z.foreach: zData =>
-          var row = 0
-          while row < n do
-            val tmp = zData(row * n + i)
-            zData(row * n + i) = zData(row * n + k)
-            zData(row * n + k) = tmp
-            row += 1
+          var col = 0
+          while col < n do
+            val tmp = zData(i * n + col)
+            zData(i * n + col) = zData(k * n + col)
+            zData(k * n + col) = tmp
+            col += 1
       i += 1
 
   // ---------------------------------------------------------------------------
@@ -1112,6 +1142,9 @@ private[gale] object DenseSpectralKernels:
   // Shared helpers
   // ---------------------------------------------------------------------------
 
+  /** Zero-length placeholder for the values-only paths (never written). */
+  private val NoVectors: DoubleArray = DoubleArray.alloc(0)
+
   /** IEEE machine epsilon for `Double` (2^-52). */
   private inline val Epsilon = 2.220446049250313e-16
 
@@ -1161,6 +1194,18 @@ private[gale] object DenseSpectralKernels:
         out(outOffset + j * n + i) = v
         j += 1
       i += 1
+
+  /** Transpose the `n x n` row-major `a` in place. */
+  private def transposeSquareInPlace(n: Int, a: DoubleArray): Unit =
+    var r = 0
+    while r < n do
+      var c = r + 1
+      while c < n do
+        val t = a(r * n + c)
+        a(r * n + c) = a(c * n + r)
+        a(c * n + r) = t
+        c += 1
+      r += 1
 
   /** A fresh `n x n` row-major identity array. */
   private def identityRowMajor(n: Int): DoubleArray =
