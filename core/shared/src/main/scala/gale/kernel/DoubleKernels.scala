@@ -1208,23 +1208,17 @@ private[gale] object DoubleKernels:
       yOffset: Int,
       yStride: Int
   )(inline f: Double => Double): Unit =
-    if xStride == 1 && yStride == 1 then
-      val limit = n - (n & 3)
+    if xStride == 1 && yStride == 1 && xOffset == yOffset then
+      // One shared index lets C2 vectorize despite possible aliasing (see daxpy).
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        y(i) = f(x(i))
+        i += 1
+    else if xStride == 1 && yStride == 1 then
       var i = 0
-      var xi = xOffset
-      var yi = yOffset
-      while i < limit do
-        y(yi) = f(x(xi))
-        y(yi + 1) = f(x(xi + 1))
-        y(yi + 2) = f(x(xi + 2))
-        y(yi + 3) = f(x(xi + 3))
-        xi += 4
-        yi += 4
-        i += 4
       while i < n do
-        y(yi) = f(x(xi))
-        xi += 1
-        yi += 1
+        y(yOffset + i) = f(x(xOffset + i))
         i += 1
     else
       var i = 0
@@ -1254,7 +1248,11 @@ private[gale] object DoubleKernels:
     */
   inline def sigmoid(v: Double): Double =
     val t = math.exp(-math.abs(v))
-    if v >= 0.0 then 1.0 / (1.0 + t) else t / (1.0 + t)
+    // Select the numerator, not the whole expression: one division either way,
+    // and C2 emits a conditional move instead of a branch on the sign of `v`
+    // (unpredictable for mixed-sign data).
+    val numerator = if v >= 0.0 then 1.0 else t
+    numerator / (1.0 + t)
 
   def dsigmoidInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
     dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(v => sigmoid(v))
