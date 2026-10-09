@@ -26,6 +26,9 @@ import org.openjdk.jmh.infra.BenchmarkParams
   * `--add-modules=jdk.incubator.vector`, under which Breeze's netlib resolves
   * VectorBLAS (logged by [[BreezeBenchData.recordNetlib]]).
   *
+  * `pureNrm2` is the pure LAPACK-style recurrence; `pureOptimisticNrm2` is the
+  * scalar version of the SIMD algorithm and is the gate's scalar baseline for nrm2.
+  *
   * The Breeze `dot`/`axpy`/`nrm2` twins call the resolved netlib `BLAS` instance
   * directly, so they measure VectorBLAS itself rather than Breeze's dispatch.
   * `sum`/`max`/`argmax`/`exp` go through `breeze.linalg`/`breeze.numerics`;
@@ -62,6 +65,11 @@ class SimdL1SpikeJmh:
   @Setup(Level.Trial)
   def setupTrial(params: BenchmarkParams): Unit =
     recordNetlib(params)
+    // The gate is scoped by species width and CPU; every fork states both.
+    System.err.println(
+      s"[w21-simd] benchmark=${params.getBenchmark} n=$n lanes=${VectorL1Kernels.lanes} " +
+        s"arch=${System.getProperty("os.arch")} jdk=${System.getProperty("java.version")}"
+    )
     blas = dev.ludovic.netlib.blas.BLAS.getInstance()
     xs = vectorData(n, 1L)
     ys = vectorData(n, 2L)
@@ -95,6 +103,12 @@ class SimdL1SpikeJmh:
   // --- nrm2 ------------------------------------------------------------------------
   @Benchmark def simdNrm2(): Double = VectorL1Kernels.dnrm2(n, y, 0, 1)
   @Benchmark def pureNrm2(): Double = DoubleKernels.dnrm2(n, y, 0, 1)
+  /** Scalar baseline with the SIMD kernel's algorithm: one optimistic fma sum of
+    * squares (a single contiguous `1×n` block), so `simd/pureOptimistic` isolates the
+    * SIMD gain from the algorithm change. The `[-1, 1)` bench data never takes the
+    * rescan path in either kernel.
+    */
+  @Benchmark def pureOptimisticNrm2(): Double = DoubleKernels.dnrmFrobenius(1, n, y, 0, n, 1)
   @Benchmark def breezeNrm2(): Double = blas.dnrm2(n, ys, 1)
 
   // --- sum -------------------------------------------------------------------------
