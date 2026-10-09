@@ -253,25 +253,18 @@ final class SparseVector private[gale] (
     val bVal = that.values
     val aEnd = aVal.length
     val bEnd = bVal.length
-    // First pass sizes the union exactly, so the output is written once.
+    // One merge pass into arrays sized for a disjoint union; a pattern overlap
+    // leaves slack that one bulk prefix copy trims. Sizing exactly would need
+    // the overlap count, which costs a second branchy merge pass.
+    val capacity = math.min(aEnd.toLong + bEnd, length.toLong).toInt
+    var outIdx = IndexArray.alloc(capacity)
+    var outVal = DoubleArray.alloc(capacity)
     var pa = 0
     var pb = 0
-    var union = 0
+    var write = 0
     while pa < aEnd && pb < bEnd do
       val ia = aIdx(pa)
       val ib = bIdx(pb)
-      if ia <= ib then pa += 1
-      if ib <= ia then pb += 1
-      union += 1
-    union += (aEnd - pa) + (bEnd - pb)
-    val outIdx = IndexArray.alloc(union)
-    val outVal = DoubleArray.alloc(union)
-    pa = 0
-    pb = 0
-    var write = 0
-    while write < union do
-      val ia = if pa < aEnd then aIdx(pa) else Int.MaxValue
-      val ib = if pb < bEnd then bIdx(pb) else Int.MaxValue
       if ia < ib then
         outIdx(write) = ia
         outVal(write) = aVal(pa)
@@ -286,6 +279,19 @@ final class SparseVector private[gale] (
         pa += 1
         pb += 1
       write += 1
+    while pa < aEnd do
+      outIdx(write) = aIdx(pa)
+      outVal(write) = aVal(pa)
+      pa += 1
+      write += 1
+    while pb < bEnd do
+      outIdx(write) = bIdx(pb)
+      outVal(write) = if subtract then 0.0 - bVal(pb) else bVal(pb)
+      pb += 1
+      write += 1
+    if write < capacity then
+      outIdx = IndexArray.copyPrefix(outIdx, write)
+      outVal = DoubleArray.copyPrefix(outVal, write)
     new SparseVector(length, outIdx, outVal)
 
   /** Position of `index` among the active entries, or `-1`. */

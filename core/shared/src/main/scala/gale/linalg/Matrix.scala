@@ -622,19 +622,34 @@ final class DMat private[gale] (
     if n > 0 then DoubleKernels.dscal(n, alpha, out, 0, 1)
     DMat.fromDoubleArrayOwned(rows, cols, out)
 
-  /** Elementwise add/subtract through the `dadd`/`dsub` kernels. When both
-    * operands are contiguous row-major the whole block is a single kernel call;
+  /** Elementwise (Hadamard) product of two same-shape matrices, as an owned
+    * row-major result; the kernel behind `a.pointwise * b`.
+    */
+  private[gale] def hadamard(that: DMat): DMat =
+    requireSameShape(that)
+    zipKernel(that)(DoubleKernels.dmul)
+
+  /** Elementwise quotient of two same-shape matrices; the kernel behind
+    * `a.pointwise / b`.
+    */
+  private[gale] def elementwiseQuotient(that: DMat): DMat =
+    requireSameShape(that)
+    zipKernel(that)(DoubleKernels.ddiv)
+
+  private def addSub(that: DMat, subtract: Boolean): DMat =
+    if subtract then zipKernel(that)(DoubleKernels.dsub) else zipKernel(that)(DoubleKernels.dadd)
+
+  /** Elementwise binary op through a `dadd`-shaped kernel. When both operands
+    * are contiguous row-major the whole block is a single kernel call;
     * otherwise each row is one strided call, honouring arbitrary layouts.
     */
-  private def addSub(that: DMat, subtract: Boolean): DMat =
+  private inline def zipKernel(that: DMat)(
+      inline kernel: (Int, DoubleArray, Int, Int, DoubleArray, Int, Int, DoubleArray, Int, Int) => Unit
+  ): DMat =
     val out = DMat.zeros(rows, cols)
     val outData = out.data
     if isContiguousRowMajor && that.isContiguousRowMajor then
-      val n = rows * cols
-      if subtract then
-        DoubleKernels.dsub(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
-      else
-        DoubleKernels.dadd(n, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
+      kernel(rows * cols, data, offset.value, 1, that.data, that.offset.value, 1, outData, 0, 1)
     else
       val ncols = cols
       val aColStep = colStride.value
@@ -645,20 +660,12 @@ final class DMat private[gale] (
       var aRow = offset.value
       var bRow = that.offset.value
       var outRow = 0
-      if subtract then
-        while i < rows do
-          DoubleKernels.dsub(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
-          aRow += aRowStep
-          bRow += bRowStep
-          outRow += ncols
-          i += 1
-      else
-        while i < rows do
-          DoubleKernels.dadd(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
-          aRow += aRowStep
-          bRow += bRowStep
-          outRow += ncols
-          i += 1
+      while i < rows do
+        kernel(ncols, data, aRow, aColStep, that.data, bRow, bColStep, outData, outRow, 1)
+        aRow += aRowStep
+        bRow += bRowStep
+        outRow += ncols
+        i += 1
     out
 
   /** The factorization dispatch gate in one place: the backend's provider, iff it
@@ -1069,9 +1076,13 @@ final class DMat private[gale] (
     * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
     */
   private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
-    if largest then streamExtremes(axis, out)(_ > _) else streamExtremes(axis, out)(_ < _)
+    if largest then streamExtremes(axis, out)(math.max) else streamExtremes(axis, out)(math.min)
 
-  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline better: (Double, Double) => Boolean): Unit =
+  // The streamed pass is a branch-free `math.max`/`math.min` per slice, which C2
+  // vectorizes. It can differ from the first-occurrence value only in which
+  // signed zero or NaN payload it keeps, so lines ending at zero or NaN are
+  // resolved by `resolveFirstZeroOrNaN`.
+  private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline pick: (Double, Double) => Double): Unit =
     val lines = axisLines(axis)
     val length = axisLength(axis)
     val elementStep = axisElementStep(axis)
@@ -1085,11 +1096,43 @@ final class DMat private[gale] (
       val start = base + k * elementStep
       line = 0
       while line < lines do
-        val current = out(line)
-        val value = data(start + line)
-        if better(value, current) || (value != value && current == current) then out(line) = value
+        out(line) = pick(out(line), data(start + line))
         line += 1
       k += 1
+    resolveFirstZeroOrNaN(lines, elementStep, out)
+
+  /** Streamed counterpart of `DoubleKernels.firstZeroOrNaN`: each line whose
+    * extreme is zero (or NaN) takes its first entry equal to zero (or its first
+    * NaN). One pass over the slices in order, stopping as soon as every such
+    * line is resolved, so early zeros cost a few slices.
+    */
+  private def resolveFirstZeroOrNaN(lines: Int, elementStep: Int, out: DoubleArray): Unit =
+    var pending = 0
+    var line = 0
+    while line < lines do
+      val v = out(line)
+      if v == 0.0 || v != v then pending += 1
+      line += 1
+    if pending > 0 then
+      val unresolved = new Array[Boolean](lines)
+      line = 0
+      while line < lines do
+        val v = out(line)
+        unresolved(line) = v == 0.0 || v != v
+        line += 1
+      var start = offset.value
+      while pending > 0 do
+        line = 0
+        while line < lines do
+          if unresolved(line) then
+            val target = out(line)
+            val value = data(start + line)
+            if (target == target && value == 0.0) || (target != target && value != value) then
+              out(line) = value
+              unresolved(line) = false
+              pending -= 1
+          line += 1
+        start += elementStep
 
   private def extremePosition(largest: Boolean): (Int, Int) =
     if isContiguousRowMajor then
@@ -1134,10 +1177,9 @@ final class DMat private[gale] (
       var line = 0
       while line < lines do
         val start = offset.value + line * lineStep
-        val k =
-          if largest then DoubleKernels.dmaxIndex(length, data, start, elementStep)
-          else DoubleKernels.dminIndex(length, data, start, elementStep)
-        out.data(line) = data(start + k * elementStep)
+        out.data(line) =
+          if largest then DoubleKernels.dmax(length, data, start, elementStep)
+          else DoubleKernels.dmin(length, data, start, elementStep)
         line += 1
     out
 

@@ -17,7 +17,18 @@ bit-for-bit agreement between legal algorithms.
 - The pure single-threaded implementation is deterministic for a fixed Gale
   build and runtime.
 - JVM kernels may use `Math.fma`; Scala.js uses the JavaScript number operation.
-  Cross-platform results can differ in their final ulps.
+  Cross-platform results can differ in their final ulps. The contiguous dot
+  product (and the sums of squares built on it) is the exception: it uses
+  separately rounded multiply-adds on every platform, because the fused form
+  was measurably slower there, so it gives the same bits on JVM and Scala.js.
+  The accuracy cost is small: on 1000-term cancelling sums with condition
+  numbers from about 1e4 to 1e18, the median error relative to `Σ|x_i y_i|`
+  was 2–6e-17 for both forms, the unfused one at most about 20% larger, and
+  both are far inside the classical bound `γ_n Σ|x_i y_i|` (about 1e-13 here).
+  Relative to the result, either form loses about `κ` times that; neither is
+  a compensated dot product, so evaluate a cancelling dot product that must be
+  accurate with exact summation (for example `gale.numeric.ExactSum` over the
+  error-free product terms). `DotAccuracySuite` prints the current figures.
 - Vector and vendor BLAS/LAPACK backends may reassociate operations. Their
   answers must satisfy conformance tolerances but need not match pure Gale bits.
 - Solves and decompositions use scale-aware tests. There is no single absolute
@@ -135,8 +146,10 @@ on both JVM and Scala.js:
   range overflows), while infinite and NaN entries keep their IEEE results:
   `mean(MaxValue, MaxValue, -Inf)` is `-Inf`, not NaN. Per-axis means apply
   the same rule to each line.
-- **Overflow.** `normFrobenius` and `norm2` are scaled, so entries near `1e300`
-  give a finite norm and tiny entries are not lost to underflow. An infinite
+- **Overflow.** `normFrobenius` and `norm2` take one plain sum-of-squares pass
+  and rescan with max scaling only when that sum overflows or is too small to
+  trust, so entries near `1e300` give a finite norm and tiny entries are not
+  lost to underflow. An infinite
   entry gives `+Inf` unless a NaN is also present.
 - **Log domain.** `logSumExp` shifts by the maximum, so finite inputs never
   overflow. NaN anywhere gives NaN; otherwise any `+Inf` gives `+Inf`; all

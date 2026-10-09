@@ -445,3 +445,39 @@ class ReductionsSuite extends ScalaCheckSuite:
       a.mean(Axis.Cols).toSeq.foreach(assertClose(_, max, 4e-16))
     for (name, a) <- matrixLayouts(2, 2, (i, j) => if i == j then PInf else NInf) do assert(a.mean.isNaN, name)
   }
+
+  test("ReLU-like lines with exact signed zeros keep the first-occurrence max/min value") {
+    // Every entry <= 0 (for max) with many exact zeros of both signs, so the
+    // value pass ends at zero and the first-zero resolution decides the bits.
+    // The reference is the value at argmax/argmin, which the index kernels
+    // compute independently. Lengths cover the 4-lane unroll tails.
+    def bits(x: Double) = java.lang.Double.doubleToLongBits(x)
+    val random = new scala.util.Random(20261009L)
+    def relu(n: Int, nanAt: Int): IndexedSeq[Double] =
+      IndexedSeq.tabulate(n) { i =>
+        if i == nanAt then Nan
+        else
+          val u = random.nextDouble()
+          if u < 0.3 then -0.0 else if u < 0.6 then 0.0 else -random.nextDouble()
+      }
+    for
+      n <- (1 to 9) ++ Seq(16, 37)
+      trial <- 0 until 6
+    do
+      val nanAt = if trial == 5 then random.nextInt(n) else -1
+      val xs = relu(n, nanAt)
+      val negated = xs.map(v => -v)
+      for (name, x) <- layouts(xs) do
+        assertEquals(bits(x.max), bits(x(x.argmax)), s"max $name n=$n trial=$trial")
+      for (name, x) <- layouts(negated) do
+        assertEquals(bits(x.min), bits(x(x.argmin)), s"min $name n=$n trial=$trial")
+    // Per-axis: 7 lines of 13 entries, both the streamed and the per-line geometry.
+    val lines = IndexedSeq.tabulate(7)(l => relu(13, if l == 3 then 5 else -1))
+    for ((name, a), axis) <- matrixLayouts(13, 7, (i, j) => lines(j)(i)).map(_ -> Axis.Cols) ++
+        matrixLayouts(7, 13, (i, j) => lines(i)(j)).map(_ -> Axis.Rows)
+    do
+      val expectedMax = lines.map(l => bits(l(Vec(l*).argmax)))
+      val expectedMin = lines.map(l => l.map(v => -v)).map(l => bits(l(Vec(l*).argmin)))
+      assertEquals(a.max(axis).toSeq.map(bits), expectedMax, s"$name max")
+      assertEquals((a * -1.0).min(axis).toSeq.map(bits), expectedMin, s"$name min")
+  }

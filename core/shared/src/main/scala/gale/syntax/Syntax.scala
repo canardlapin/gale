@@ -48,10 +48,10 @@ object all:
 
   extension (p: Pointwise)
     /** Elementwise (Hadamard) product. */
-    def *(b: DMat): DMat = zipShape(reveal(p), b, _ * _)
+    def *(b: DMat): DMat = reveal(p).hadamard(b)
 
     /** Elementwise quotient. */
-    def /(b: DMat): DMat = zipShape(reveal(p), b, _ / _)
+    def /(b: DMat): DMat = reveal(p).elementwiseQuotient(b)
 
     /** Apply `f` to every entry. */
     def map(f: Double => Double): DMat =
