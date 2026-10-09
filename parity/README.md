@@ -46,6 +46,7 @@ dependency.
 | `parity/src/test/scala/gale/parity/GenerateBreezeGoldens.scala` | Generator, and the freshness check |
 | `core/shared/src/test/scala/gale/golden/BreezeGoldens.scala` | Generated corpus (do not edit) |
 | `core/shared/src/test/scala/gale/golden/GoldenData.scala` | Case types and the hex decoder |
+| `core/shared/src/test/scala/gale/golden/GoldenTolerance.scala` | Error units shared by the replay and the freshness check |
 | `core/shared/src/test/scala/gale/golden/BreezeGoldenSuite.scala` | Replay and tolerance policy |
 
 ```sh
@@ -82,19 +83,34 @@ limit.
 
 **Tolerance policy.** Results are never compared bit-for-bit. Gale and Breeze
 use different algorithms and summation orders, and on Scala.js
-`PlatformMath.fma` is `a*b+c`. For each output, the suite computes an error
-unit with the shape of the standard forward-error bound, `n · κ · ε · scale`.
-Here `κ` is Breeze's 2-norm condition number for solves, inverses, `det`,
-Cholesky, QR and `pinv`, and 1 for products and reductions. Least squares adds
-the `κ² ‖r‖ / (‖A‖ ‖x‖)` term. The suite then asserts
-`|gale − breeze| ≤ C · unit`, with a single `C = 8`. Some operations are exact
-or correctly rounded in both libraries: `max`, `min`, `argmax`, `argmin`,
-`normInf`, `kron`, and sparse `+` and `−`. These have a unit of 0 and must
-match exactly. Eigenvectors are compared through the projector of each
-eigenvalue cluster, with unit `n ε ‖A‖ / gap`. The suite prints the worst
-observed `error / unit` for each family and output on each platform. Do not
-loosen `C` to hide a failure; a failure that occurs only on JS is a numerical
-bug to report.
+`PlatformMath.fma` is `a*b+c`. Every check asserts `error ≤ C · unit`, with a
+single `C = 8`. There are two kinds of check.
+
+- **Forward checks** compare gale with Breeze. The unit has the shape of the
+  standard forward-error bound, `n · κ · ε · scale`, and is computed from the
+  case for each reference array (`GoldenTolerance.forwardUnit`). Here `κ` is
+  Breeze's 2-norm condition number for solves, inverses, `det`, Cholesky, QR
+  and `pinv`, and 1 for products and reductions. Least squares adds the
+  `κ² ‖r‖ / (‖A‖ ‖x‖)` term.
+- **Backward checks** test gale's own result, without κ. They are
+  `‖b − A x̂‖∞ ≤ C n ε (‖A‖∞ ‖x̂‖∞ + ‖b‖∞)` for LU and Cholesky solves,
+  `‖A X − I‖∞ ≤ C n ε ‖A‖∞ ‖X‖∞` for the inverse, and
+  `‖L Lᵀ − A‖max ≤ C n ε max aᵢᵢ` for Cholesky. Least squares uses the
+  normal-equations residual
+  `‖Aᵀ r̂‖∞ ≤ C m ε ‖A‖₁ (‖A‖∞ ‖x̂‖∞ + ‖b‖∞ + ‖r̂‖∞)`. On ill-conditioned
+  inputs the forward bounds are loose. These checks catch a solver that loses
+  digits there.
+
+Some operations are exact or correctly rounded in both libraries: `max`, `min`,
+`argmax`, `argmin`, vector `normInf`, `kron`, and sparse `+` and `−`. These
+have a unit of 0 and must match exactly. Eigenvectors are compared through the
+projector of each eigenvalue cluster, with unit `n ε ‖A‖ / gap`. A cluster
+joins two neighbouring eigenvalues only when their gap is at most
+`64 n ε ‖A‖` or at most `1e-8 |λ|`, so a graded spectrum is not merged into one
+projector. The suite prints the worst observed `error / unit` for each family
+and output on each platform. It lists the conditioned cases (κ, Hilbert,
+graded) separately. Do not loosen `C` to hide a failure; a failure that occurs
+only on JS is a numerical bug to report.
 
 **Freshness.** Breeze's references depend on the host. netlib chooses native,
 SIMD or scalar Java BLAS for the machine, and libm intrinsics differ by
@@ -104,11 +120,14 @@ either of two cases:
 
 - the regenerated source is byte-identical to the checked-in file; or
 - the case list, the structure and every input bit are identical, and each
-  reference moved by no more than `1000 · n · κ · ε · scale` (eigenvectors:
-  1000 projector units).
+  reference moved by no more than 64 of the replay's own forward units (the
+  replay allows 8). Eigenvectors may move by 64 projector units. The exact
+  operations have a band of 0.
 
 Any other change fails, and the failure message names the case. The
-`breeze-interop` CI job runs the check after `parityTest`.
+`breeze-interop` CI job runs the check after `parityTest`. To share the unit
+definitions, the `parity` project depends on the core test classes
+(`test->test`).
 
 ## Coverage checklist
 

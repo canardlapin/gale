@@ -30,6 +30,10 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import gale.golden.GoldenArray
+import gale.golden.GoldenCase
+import gale.golden.GoldenTolerance
+
 import scala.collection.mutable.ArrayBuffer
 
 /** Generates `core/shared/src/test/scala/gale/golden/BreezeGoldens.scala`: Breeze 2.1.0 reference results over a
@@ -43,7 +47,7 @@ import scala.collection.mutable.ArrayBuffer
   * Inputs are built with plain IEEE arithmetic, `sqrt` and `StrictMath` only, so they are bit-identical on every
   * host. Breeze's references are not: netlib picks native, SIMD or scalar Java BLAS per host, and the libm
   * intrinsics differ by architecture. `--check` therefore requires an identical corpus (families, names, shapes and
-  * input bits) and accepts a reference that moved by at most a few units of the replay tolerance. See
+  * input bits) and accepts a reference that moved by at most 64 units of the replay's forward unit. See
   * `parity/README.md`.
   */
 object GenerateBreezeGoldens:
@@ -101,10 +105,14 @@ object GenerateBreezeGoldens:
       if dir == null then fail("cannot locate the repository root (no build.sbt above the working directory)")
       dir.resolve(p)
 
+  /** Breeze's version from its jar manifest (the build pins 2.1.0). */
+  private def breezeVersion: String =
+    Option(classOf[BDV[?]].getPackage).flatMap(p => Option(p.getImplementationVersion)).getOrElse("2.1.0 (no manifest)")
+
   private def provenance: String =
     val blas = dev.ludovic.netlib.blas.BLAS.getInstance().getClass.getName
     val lapack = dev.ludovic.netlib.lapack.LAPACK.getInstance().getClass.getName
-    s"breeze=2.1.0 blas=$blas lapack=$lapack java=${System.getProperty("java.version")} " +
+    s"breeze=$breezeVersion blas=$blas lapack=$lapack java=${System.getProperty("java.version")} " +
       s"arch=${System.getProperty("os.arch")}"
 
   // ---------------------------------------------------------------------------
@@ -510,8 +518,14 @@ object GenerateBreezeGoldens:
     flushCase()
     cases.toVector
 
-  /** Freshness band: a reference may move by `FreshnessFactor · κ · ε · scale` across BLAS/libm hosts. */
-  private val FreshnessFactor = 1e3
+  /** Freshness band, in units of the replay's own forward unit (`gale.golden.GoldenTolerance`, where the replay
+    * allows `C = 8`): a regenerated reference may move by `FreshnessUnits` units across BLAS/libm hosts. Exact
+    * operations have unit `0` and must not move at all.
+    */
+  private val FreshnessUnits = 64.0
+
+  private def toGolden(c: Case): GoldenCase =
+    GoldenCase(c.family, c.name, c.arrays.map(a => new GoldenArray(a.key, a.rows, a.cols, a.input, a.values.map(hex).mkString)))
 
   def compare(committed: Vector[Case], fresh: Vector[Case]): Vector[String] =
     val problems = Vector.newBuilder[String]
@@ -522,54 +536,23 @@ object GenerateBreezeGoldens:
       for (old, now) <- committed.zip(fresh) do
         if shape(old) != shape(now) then problems += s"${now.name}: structure differs"
         else
-          val kappa = now.arrays.find(_.key == "kappa").map(_.values(0)).getOrElse(1.0)
-          val n = now.arrays.map(a => math.max(a.rows, a.cols)).max
+          val golden = toGolden(old)
           for (o, f) <- old.arrays.zip(now.arrays) do
             if o.input then
               if !o.values.indices.forall(i => java.lang.Double.compare(o.values(i), f.values(i)) == 0) then
                 problems += s"${now.name}/${o.key}: input bits differ"
             else if o.key == "vectors" then
-              val ratio = projectorRatio(o, f, now.arrays.find(_.key == "values").get.values)
-              if !(ratio <= FreshnessFactor) then problems += s"${now.name}/vectors: subspaces moved ($ratio units)"
+              val n = o.rows
+              val ratio = GoldenTolerance.projectorRatio(
+                (i, j) => o.values(i * n + j),
+                (i, j) => f.values(i * n + j),
+                old.arrays.find(_.key == "values").get.values
+              )
+              if !(ratio <= FreshnessUnits) then problems += s"${now.name}/vectors: subspaces moved ($ratio units)"
             else
-              val scale = (o.values ++ f.values).map(math.abs).filter(_.isFinite).maxOption.getOrElse(0.0)
-              val band = FreshnessFactor * n * kappa * Eps * scale
+              val unit = GoldenTolerance.forwardUnit(golden, o.key)
               for i <- o.values.indices do
                 val (u, v) = (o.values(i), f.values(i))
-                if java.lang.Double.compare(u, v) != 0 && !(math.abs(u - v) <= band) then
-                  problems += s"${now.name}/${o.key}($i): $u became $v (band $band)"
+                if java.lang.Double.compare(u, v) != 0 && !(math.abs(u - v) <= FreshnessUnits * unit(i)) then
+                  problems += s"${now.name}/${o.key}($i): $u became $v (band ${FreshnessUnits * unit(i)})"
     problems.result()
-
-  private val Eps = Math.ulp(1.0)
-
-  /** Worst `‖P_old − P_new‖_max · gap / (n ε ‖A‖)` over clusters of (numerically) equal eigenvalues. */
-  private def projectorRatio(o: Arr, f: Arr, values: Array[Double]): Double =
-    val n = o.rows
-    val norm = values.map(math.abs).max.max(Double.MinPositiveValue)
-    val clusters = clustersOf(values, 1e-8 * norm)
-    clusters.map { r =>
-      val gap = clusters
-        .filter(_ != r)
-        .map(q => math.min(math.abs(values(q.head) - values(r.last)), math.abs(values(q.last) - values(r.head))))
-        .minOption
-        .getOrElse(norm)
-      var worst = 0.0
-      for i <- 0 until n; j <- 0 until n do
-        var po = 0.0
-        var pf = 0.0
-        for k <- r do
-          po += o.values(i * n + k) * o.values(j * n + k)
-          pf += f.values(i * n + k) * f.values(j * n + k)
-        worst = worst.max(math.abs(po - pf))
-      worst * gap / (n * Eps * norm)
-    }.max
-
-  private def clustersOf(values: Array[Double], tol: Double): Vector[Range] =
-    val out = Vector.newBuilder[Range]
-    var start = 0
-    for i <- 1 until values.length do
-      if values(i) - values(i - 1) > tol then
-        out += (start until i)
-        start = i
-    out += (start until values.length)
-    out.result()

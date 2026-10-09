@@ -269,7 +269,9 @@ lazy val breezeVersion = "2.1.0"
 lazy val parity =
   project
     .in(file("parity"))
-    .dependsOn(coreJVM)
+    // test->test: the golden generator's freshness check reuses the replay's tolerance units
+    // (core/shared/src/test/scala/gale/golden/GoldenTolerance.scala).
+    .dependsOn(coreJVM % "compile->compile;test->test")
     .settings(
       name := "gale-parity",
       publish / skip := true,
