@@ -7,3 +7,6 @@ private[gale] object PlatformMath:
     */
   inline def fma(a: Double, b: Double, c: Double): Double =
     a * b + c
+
+  /** Extreme values use the `math.max`/`math.min` reduction on JavaScript. */
+  inline val scanExtremes = false
