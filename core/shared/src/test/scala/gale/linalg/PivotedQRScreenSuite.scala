@@ -35,14 +35,14 @@ class PivotedQRScreenSuite extends munit.FunSuite:
       var bestNorm = -1.0
       var col = k
       while col < n do
-        val norm = DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+        val norm = DoubleKernels.dnrm2Scaled(m - k, r, k * n + col, n)
         if norm > bestNorm then
           bestNorm = norm
           pivot = col
         col += 1
       val selectedNorm =
         if bestNorm >= 0.0 then bestNorm
-        else DoubleKernels.dnrm2(m - k, r, k * n + pivot, n)
+        else DoubleKernels.dnrm2Scaled(m - k, r, k * n + pivot, n)
 
       if pivot != k then
         var row = 0

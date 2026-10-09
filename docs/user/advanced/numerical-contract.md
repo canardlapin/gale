@@ -135,8 +135,10 @@ on both JVM and Scala.js:
   range overflows), while infinite and NaN entries keep their IEEE results:
   `mean(MaxValue, MaxValue, -Inf)` is `-Inf`, not NaN. Per-axis means apply
   the same rule to each line.
-- **Overflow.** `normFrobenius` and `norm2` are scaled, so entries near `1e300`
-  give a finite norm and tiny entries are not lost to underflow. An infinite
+- **Overflow.** `normFrobenius` and `norm2` take one plain sum-of-squares pass
+  and rescan with max scaling only when that sum overflows or is too small to
+  trust, so entries near `1e300` give a finite norm and tiny entries are not
+  lost to underflow. An infinite
   entry gives `+Inf` unless a NaN is also present.
 - **Log domain.** `logSumExp` shifts by the maximum, so finite inputs never
   overflow. NaN anywhere gives NaN; otherwise any `+Inf` gives `+Inf`; all

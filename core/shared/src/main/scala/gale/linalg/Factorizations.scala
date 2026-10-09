@@ -365,9 +365,9 @@ object DenseDecompositions:
 
   /** Rank-revealing unblocked QR with exact column-pivot selection.
     *
-    * Both widths select the pivot from exact `dnrm2` values in ascending column order under the same strict-improvement
-    * rule; they differ only in how the scans that cannot win are avoided. The default unpivoted path retains the
-    * blocked fast kernel.
+    * Both widths select the pivot from exact `dnrm2Scaled` values in ascending column order under the same
+    * strict-improvement rule; they differ only in how the scans that cannot win are avoided. The default unpivoted path
+    * retains the blocked fast kernel.
     */
   private def factorPivotedQR(
       r: DoubleArray,
@@ -387,7 +387,7 @@ object DenseDecompositions:
     else factorPivotedQRScreened(r, m, n, reflectors, limit, tau, scratch, permutation)
 
   /** Compact-width pivoted QR: every trailing column norm is recomputed before each pivot decision, but all columns
-    * share one row-contiguous matrix pass with the scaled accumulation and row order of `dnrm2` held in locals.
+    * share one row-contiguous matrix pass with the scaled accumulation and row order of `dnrm2Scaled` held in locals.
     */
   private def factorPivotedQRRowFirst(
       r: DoubleArray,
@@ -412,7 +412,7 @@ object DenseDecompositions:
           pivot = col
         col += 1
       // Read the chosen column's actual accumulator so Householder sees exactly
-      // the value a fresh `dnrm2` would have produced, including when every
+      // the value a fresh `dnrm2Scaled` would have produced, including when every
       // norm is NaN and `bestNorm` remains the scan sentinel.
       val selectedNorm = scratch(pivot) * math.sqrt(scratch(n + pivot))
       if pivot != k then
@@ -429,12 +429,12 @@ object DenseDecompositions:
     * Applying the step-`k` reflector is orthogonal on rows `k..m-1`, so `‖A(k+1:m, j)‖² = ‖A(k:m, j)‖² - R(k, j)²`
     * holds exactly in real arithmetic. This path carries that downdate for every trailing column alongside a running
     * bound on the rounding error the downdate has accumulated, which makes `[estimate - bound, estimate + bound]` an
-    * enclosure of the squared norm a fresh `dnrm2` scan would report.
+    * enclosure of the squared norm a fresh `dnrm2Scaled` scan would report.
     *
     * The enclosure is used only to discard columns that provably cannot hold the maximum. Every surviving column is
-    * then measured by the same `dnrm2` scan, in the same ascending order, under the same strict-improvement rule as
-    * recomputing all of them, so the pivot index, the tie choice, the rank decision, and the `selectedNorm` handed to
-    * `factorHouseholder` are unchanged. Only discarded scans are saved: a step costs one scan rather than one per
+    * then measured by the same `dnrm2Scaled` scan, in the same ascending order, under the same strict-improvement rule
+    * as recomputing all of them, so the pivot index, the tie choice, the rank decision, and the `selectedNorm` handed
+    * to `factorHouseholder` are unchanged. Only discarded scans are saved: a step costs one scan rather than one per
     * trailing column whenever the columns are separated, and falls back to measuring all of them when they are not.
     */
   private def factorPivotedQRScreened(
@@ -453,7 +453,7 @@ object DenseDecompositions:
     val bounds = 2 * n
     var col = 0
     while col < n do
-      val norm = DoubleKernels.dnrm2(m, r, col, n)
+      val norm = DoubleKernels.dnrm2Scaled(m, r, col, n)
       val square = norm * norm
       scratch(estimates + col) = square
       scratch(bounds + col) = pivotScreenMeasuredBound(square, m)
@@ -477,7 +477,7 @@ object DenseDecompositions:
         // Negated so a NaN enclosure stays in the measured set and reaches the
         // same comparison it would have reached under full recomputation.
         if !(scratch(estimates + col) + scratch(bounds + col) < screen) then
-          val norm = DoubleKernels.dnrm2(m - k, r, k * n + col, n)
+          val norm = DoubleKernels.dnrm2Scaled(m - k, r, k * n + col, n)
           val square = norm * norm
           scratch(estimates + col) = square
           scratch(bounds + col) = pivotScreenMeasuredBound(square, m - k)
@@ -488,10 +488,10 @@ object DenseDecompositions:
 
       // `bestNorm` deliberately remains the scan sentinel when every measured
       // norm is NaN. Read the chosen column's actual accumulator so Householder
-      // sees exactly the non-finite value a fresh `dnrm2` would have produced.
+      // sees exactly the non-finite value a fresh `dnrm2Scaled` would have produced.
       val selectedNorm =
         if bestNorm >= 0.0 then bestNorm
-        else DoubleKernels.dnrm2(m - k, r, k * n + pivot, n)
+        else DoubleKernels.dnrm2Scaled(m - k, r, k * n + pivot, n)
 
       if pivot != k then
         swapColumns(r, m, n, k, pivot)
@@ -529,10 +529,10 @@ object DenseDecompositions:
     */
   private inline val PivotScreenStepRounding = 2.0 * PivotScreenEpsilon
 
-  /** Bound on how far a squared norm measured now can sit from the value a later `dnrm2` scan reports for the same
-    * column.
+  /** Bound on how far a squared norm measured now can sit from the value a later `dnrm2Scaled` scan reports for the
+    * same column.
     *
-    * `dnrm2` admits one scaled update per scanned row, so its relative error grows with the scan length; squaring
+    * `dnrm2Scaled` admits one scaled update per scanned row, so its relative error grows with the scan length; squaring
     * doubles that, and the constant term carries the final rounding of the square itself with slack. A bound that is
     * too wide only costs scans that the screen then declines to discard.
     */
@@ -669,7 +669,7 @@ object DenseDecompositions:
     if width > 7 then
       scratch(k + 7) = scale7
       scratch(n + k + 7) = ssq7
-    // Mirror `DoubleKernels.dnrm2`'s non-finite repair so this compact path and
+    // Mirror `DoubleKernels.dnrm2Scaled`'s non-finite repair so this compact path and
     // the screened wide path rank an all-infinite column identically: the
     // recurrence forms `Inf / Inf` once two infinities meet, so a NaN norm with
     // no NaN entry is `+Inf`. Finite columns never reach the rescan.

@@ -54,7 +54,33 @@ private[gale] object DoubleKernels:
         i += 1
       acc
 
-  /** Euclidean norm via scaled accumulation (the LAPACK `dnrm2` recurrence).
+  /** Euclidean norm, overflow- and underflow-safe.
+    *
+    * One optimistic pass forms the plain fma sum of squares (four accumulators
+    * when contiguous); only when that total overflows, is zero, or falls below
+    * a safe floor does [[dnrmFrobenius]] rescan with max scaling, so large
+    * elements (e.g. 1e155) never overflow and tiny ones (e.g. 1e-170) never
+    * underflow to zero. NaN anywhere gives NaN; otherwise an infinite element
+    * gives `+Inf`. Ordinary inputs agree with `sqrt(dot(x, x))` exactly.
+    */
+  def dnrm2(
+      n: Int,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int
+  ): Double =
+    if n < 1 then 0.0
+    else if n == 1 then math.abs(x(xOffset))
+    else
+      val ssq = dsumsq(n, x, xOffset, xStride)
+      if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
+      else dnrmFrobenius(1, n, x, xOffset, n * xStride, xStride)
+
+  /** Euclidean norm by the LAPACK `dnrm2` scaled recurrence, in one pass.
+    *
+    * Kept for pivoted QR, whose compact and screened widths (and its exact
+    * reference test) are defined in terms of this recurrence's values; other
+    * callers use the faster [[dnrm2]].
     *
     * Tracks the running maximum magnitude `scale` and the scaled sum of squares
     * `ssq`, so `sqrt(sum x_i^2)` never forms the intermediate `sum x_i^2` that
@@ -62,7 +88,7 @@ private[gale] object DoubleKernels:
     * tiny ones (e.g. 1e-170). Ordinary inputs agree with `sqrt(dot(x, x))` to
     * full relative precision.
     */
-  def dnrm2(
+  def dnrm2Scaled(
       n: Int,
       x: DoubleArray,
       xOffset: Int,
