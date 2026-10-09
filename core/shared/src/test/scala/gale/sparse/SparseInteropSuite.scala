@@ -98,6 +98,15 @@ class SparseInteropSuite extends munit.FunSuite:
     assertEquals(storedEntries(checkedCsc).sortBy(e => (e._1, e._2)), expected)
     assertEquals(checkedCsc.pruneZeros.nnz, 1)
 
+    // Tuple equality treats -0.0 == 0.0, so check the stored signs directly.
+    def signs(entries: Vector[(Int, Int, Double)]): Vector[Boolean] =
+      entries.sortBy(e => (e._1, e._2)).map(e => 1.0 / e._3 < 0.0)
+    val expectedSigns = Vector(false, false, false, true)
+    assertEquals(signs(storedEntries(checked)), expectedSigns)
+    assertEquals(signs(storedEntries(total)), expectedSigns)
+    assertEquals(signs(storedEntries(checkedCsc)), expectedSigns)
+    assertEquals(signs(storedEntries(totalCsc)), expectedSigns)
+
     // The issue's reproducer.
     val small = Sparse.coo(2, 2).add(1, 0, 0.0).add(1, 1, 2.0)
     assertEquals(small.toCSR().nnz, 2)
@@ -199,7 +208,10 @@ class SparseInteropSuite extends munit.FunSuite:
       _ <- builder.tryAdd(1, 2, 7.0)
       csr <- builder.tryToCSR(DuplicatePolicy.Sum)
     yield csr
-    val csr = result.toOption.get.pruneZeros
+    val stored = result.toOption.get
+    assertEquals(stored.nnz, 4, "the duplicates summed to zero at (0, 1) stay stored")
+    assertEquals(stored(0, 1), 0.0)
+    val csr = stored.pruneZeros
     assert(csr.hasCanonicalFormat)
     assertEquals(storedEntries(csr), Vector((1, 2, 7.0), (2, 0, 4.0), (2, 3, 5.0)))
 
