@@ -27,6 +27,10 @@ object DoubleArray:
   private[gale] def copy(array: DoubleArray): DoubleArray =
     array.clone()
 
+  /** Independent copy of the first `length` elements (a bulk copy). */
+  private[gale] def copyPrefix(array: DoubleArray, length: Int): DoubleArray =
+    java.util.Arrays.copyOf(array, length)
+
   /** True when both handles refer to the same underlying storage. Used to
     * reject aliased in-place destinations before a kernel corrupts them.
     */
@@ -76,6 +80,10 @@ object IndexArray:
   /** Independent copy of `array`. */
   private[gale] def copy(array: IndexArray): IndexArray =
     array.clone()
+
+  /** Independent copy of the first `length` elements (a bulk copy). */
+  private[gale] def copyPrefix(array: IndexArray, length: Int): IndexArray =
+    java.util.Arrays.copyOf(array, length)
 
   extension (array: IndexArray)
     private[gale] inline def apply(index: Int): Int =

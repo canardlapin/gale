@@ -33,6 +33,10 @@ object DoubleArray:
       i += 1
     out
 
+  /** Independent copy of the first `length` elements (a bulk copy). */
+  private[gale] def copyPrefix(array: DoubleArray, length: Int): DoubleArray =
+    new Float64Array(array.subarray(0, length))
+
   /** View an owned `DoubleArray` as its underlying `Float64Array` without
     * copying, for copy-only JS export. The argument must be a
     * freshly-allocated array the caller owns (e.g. from a `*OwnedCopy`).
@@ -104,6 +108,10 @@ object IndexArray:
       out(i) = array(i)
       i += 1
     out
+
+  /** Independent copy of the first `length` elements (a bulk copy). */
+  private[gale] def copyPrefix(array: IndexArray, length: Int): IndexArray =
+    new Int32Array(array.subarray(0, length))
 
   extension (array: IndexArray)
     private[gale] inline def apply(index: Int): Int =

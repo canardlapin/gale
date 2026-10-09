@@ -254,7 +254,8 @@ final class SparseVector private[gale] (
     val aEnd = aVal.length
     val bEnd = bVal.length
     // One merge pass into arrays sized for a disjoint union; a pattern overlap
-    // leaves slack that is trimmed by a copy (cheaper than a sizing pass).
+    // leaves slack that one bulk prefix copy trims. Sizing exactly would need
+    // the overlap count, which costs a second branchy merge pass.
     val capacity = math.min(aEnd.toLong + bEnd, length.toLong).toInt
     var outIdx = IndexArray.alloc(capacity)
     var outVal = DoubleArray.alloc(capacity)
@@ -289,15 +290,8 @@ final class SparseVector private[gale] (
       pb += 1
       write += 1
     if write < capacity then
-      val trimmedIdx = IndexArray.alloc(write)
-      val trimmedVal = DoubleArray.alloc(write)
-      var k = 0
-      while k < write do
-        trimmedIdx(k) = outIdx(k)
-        trimmedVal(k) = outVal(k)
-        k += 1
-      outIdx = trimmedIdx
-      outVal = trimmedVal
+      outIdx = IndexArray.copyPrefix(outIdx, write)
+      outVal = DoubleArray.copyPrefix(outVal, write)
     new SparseVector(length, outIdx, outVal)
 
   /** Position of `index` among the active entries, or `-1`. */
