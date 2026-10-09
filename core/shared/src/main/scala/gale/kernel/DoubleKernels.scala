@@ -1158,27 +1158,56 @@ private[gale] object DoubleKernels:
     * `0.0` against `-0.0`, keep the first occurrence and the first NaN returns
     * at once, so the result is exact without a rescan.
     */
+  // The scans are written out (not shared through an inline helper) so the
+  // first NaN can `return`: ending the loop by assigning its index would stop
+  // C2 from treating it as a counted loop, losing unrolling and range-check
+  // elimination. `!(v <= m)` is true for a strictly larger `v` or a NaN.
   private[gale] def dmaxScan(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    extremeScan(n, x, xOffset, xStride, Double.NegativeInfinity)(_ <= _)
+    assert(n > 0, "extreme value of an empty line")
+    var m = Double.NegativeInfinity
+    if xStride == 1 then
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        val v = x(i)
+        if !(v <= m) then
+          if v != v then return v
+          m = v
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        val v = x(xi)
+        if !(v <= m) then
+          if v != v then return v
+          m = v
+        xi += xStride
+        i += 1
+    m
 
   private[gale] def dminScan(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    extremeScan(n, x, xOffset, xStride, Double.PositiveInfinity)(_ >= _)
-
-  // `noBetter(v, m)` is an ordered comparison, so it is false when `v` is NaN.
-  private inline def extremeScan(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
-      inline noBetter: (Double, Double) => Boolean
-  ): Double =
     assert(n > 0, "extreme value of an empty line")
-    var m = worst
-    var i = 0
-    var xi = xOffset
-    while i < n do
-      val v = x(xi)
-      if !noBetter(v, m) then
-        m = v
-        if v != v then i = n // the first NaN is the result
-      xi += xStride
-      i += 1
+    var m = Double.PositiveInfinity
+    if xStride == 1 then
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        val v = x(i)
+        if !(v >= m) then
+          if v != v then return v
+          m = v
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        val v = x(xi)
+        if !(v >= m) then
+          if v != v then return v
+          m = v
+        xi += xStride
+        i += 1
     m
 
   private inline def extremeValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
