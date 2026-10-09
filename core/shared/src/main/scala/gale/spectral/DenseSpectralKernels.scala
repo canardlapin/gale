@@ -287,8 +287,6 @@ private[gale] object DenseSpectralKernels:
           var f = 0.0
           var j = 0
           while j <= l do
-            if accumulate then
-              a(aOffset + j * n + i) = a(uRow + j) / h
             e(eOffset + j) = e(eOffset + j) / h
             f += e(eOffset + j) * a(uRow + j)
             j += 1
@@ -316,11 +314,15 @@ private[gale] object DenseSpectralKernels:
       if accumulate then
         val l = i - 1
         if d(i) != 0.0 then
+          // The reduction stored u (row i) and h (d(i)); u(k)/h is recomputed
+          // from that contiguous row instead of being read down a column. The
+          // quotient is exactly the one EISPACK stores, so no bit changes.
+          val h = d(i)
+          val uRow = aOffset + i * n
           var j = 0
           while j <= l do
             // Row j of the leading block holds column j of Q (block is Qᵀ).
             val rowJ = aOffset + j * n
-            val uRow = aOffset + i * n
             var g = 0.0
             var k = 0
             while k <= l do
@@ -328,7 +330,7 @@ private[gale] object DenseSpectralKernels:
               k += 1
             k = 0
             while k <= l do
-              a(rowJ + k) = a(rowJ + k) - g * a(aOffset + k * n + i)
+              a(rowJ + k) = a(rowJ + k) - g * (a(uRow + k) / h)
               k += 1
             j += 1
         d(i) = a(aOffset + i * n + i)
