@@ -18,10 +18,14 @@ import jdk.incubator.vector.VectorSpecies
   *
   * GEMV has two SIMD layouts: a four-output row tile for row-major `A`, and a
   * four-column axpy sweep for column-contiguous `A` (the transpose view of a
-  * row-major matrix). GEMM packs `B` by columns and uses a 3×3 SIMD dot-product
-  * tile and handles only fully row-major inputs. Any other strided operand falls
-  * back verbatim to the pure kernel — correctness over cleverness. Reassociation (SIMD lane order, FMA) makes the result law-equivalent to
-  * the pure kernel within a small tolerance, NOT bit-identical.
+  * row-major matrix). GEMM packs `B` by columns, uses a 3×3 SIMD dot-product tile,
+  * and handles only fully row-major inputs. Any other strided operand falls back
+  * verbatim to the pure kernel — correctness over cleverness.
+  *
+  * The row-major GEMV and the GEMM reassociate (SIMD lane order, FMA), so they are
+  * law-equivalent to the pure kernel within a small tolerance, NOT bit-identical.
+  * The column-contiguous GEMV keeps the pure column-major kernel's per-element FMA
+  * order and is bit-identical to it.
   */
 object VectorDenseDoubleKernel extends DenseDoubleKernel:
   private final val Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED

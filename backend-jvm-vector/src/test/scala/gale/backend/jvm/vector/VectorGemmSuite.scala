@@ -156,7 +156,7 @@ class VectorGemmSuite extends munit.FunSuite:
     runGemv(PureDenseDoubleKernel, a, x, 2.5, -1.25, pureY)
     assertArrayClose(vectorY, pureY)
 
-  test("gemv parity: strided x/y and transposed A fall back to pure"):
+  test("gemv parity: transposed A with strided x and y falls back to pure"):
     val rows = 9
     val cols = 6
     val a = mkA(cols, rows).t
@@ -173,6 +173,57 @@ class VectorGemmSuite extends munit.FunSuite:
     runGemv(VectorDenseDoubleKernel, a, x, -0.75, 0.5, vectorY, yOffset = 1, yStride = 3)
     runGemv(PureDenseDoubleKernel, a, x, -0.75, 0.5, pureY, yOffset = 1, yStride = 3)
     assertArrayClose(vectorY, pureY)
+
+  /** Row-major SIMD `gemv` on an interior submatrix of a NaN-padded parent (row and
+    * column offsets), with `x` and `y` at non-zero offsets. Column counts are chosen
+    * so the two-accumulator pair loop, the single-vector loop and the scalar tail
+    * all run on 2-, 4- and 8-lane species.
+    */
+  private def checkGemvRowMajor(
+      rows: Int,
+      cols: Int,
+      alpha: Double,
+      beta: Double,
+      rowOff: Int = 3,
+      colOff: Int = 5
+  )(using munit.Location): Unit =
+    val parentCols = colOff + cols + 3
+    val lead = 1
+    val backing = Array.fill(lead + (rowOff + rows + 1) * parentCols)(Double.NaN)
+    var i = 0
+    while i < rows do
+      var j = 0
+      while j < cols do
+        backing(lead + (rowOff + i) * parentCols + colOff + j) = ((i * 13 + j * 7) % 11 - 5).toDouble / 4.0 + i * 1e-3
+        j += 1
+      i += 1
+    val a = new DMat(
+      DoubleArray.fromArray(backing),
+      Offset.unsafe(lead + rowOff * parentCols + colOff),
+      Rows.unsafe(rows),
+      Cols.unsafe(cols),
+      Stride.unsafe(parentCols),
+      Stride.unsafe(1)
+    )
+    val xBacking = Array.fill(cols + 4)(Double.NaN)
+    var j = 0
+    while j < cols do
+      xBacking(3 + j) = ((j * 5) % 9 - 4).toDouble / 3.0
+      j += 1
+    val x = new DVec(DoubleArray.fromArray(xBacking), Offset.unsafe(3), Length.unsafe(cols), Stride.unsafe(1))
+    val vectorY = Array.tabulate(rows + 4)(k => if k < 3 || k >= rows + 3 then 99.0 else (k % 7).toDouble - 3.0)
+    val pureY = vectorY.clone()
+    runGemv(VectorDenseDoubleKernel, a, x, alpha, beta, vectorY, yOffset = 3)
+    runGemv(PureDenseDoubleKernel, a, x, alpha, beta, pureY, yOffset = 3)
+    assertArrayClose(vectorY, pureY)
+    assertEquals(Seq(vectorY(0), vectorY(1), vectorY(2), vectorY(rows + 3)), Seq(99.0, 99.0, 99.0, 99.0))
+
+  test("gemv parity: 4x16 offset view (one pair step on 8 lanes)")(checkGemvRowMajor(4, 16, 1.0, 0.0))
+  test("gemv parity: 9x75 offset view, alpha/beta")(checkGemvRowMajor(9, 75, -0.5, 2.0))
+  test("gemv parity: 33x67 offset view")(checkGemvRowMajor(33, 67, 1.0, 0.0))
+  test("gemv parity: 64x64 offset view, beta = 1")(checkGemvRowMajor(64, 64, 1.5, 1.0))
+  test("gemv parity: 131x129 offset view, alpha/beta")(checkGemvRowMajor(131, 129, 0.75, -1.25))
+  test("gemv parity: 6x7 offset view, columns below one pair")(checkGemvRowMajor(6, 7, 1.0, 0.0, rowOff = 0, colOff = 1))
 
   /** `gemv` on the transpose view of an offset, padded row-major parent: the
     * column-contiguous SIMD path. Padding is NaN, so a read past a column fails.
@@ -213,11 +264,13 @@ class VectorGemmSuite extends munit.FunSuite:
     val x = new DVec(
       DoubleArray.fromArray(xBacking), Offset.unsafe(0), Length.unsafe(cols), Stride.unsafe(xStride)
     )
-    val vectorY = Array.tabulate(rows)(i => (i % 7).toDouble - 3.0)
+    // y sits at offset 2 between sentinels that must survive.
+    val vectorY = Array.tabulate(rows + 3)(i => if i < 2 || i >= rows + 2 then 99.0 else (i % 7).toDouble - 3.0)
     val pureY = vectorY.clone()
-    runGemv(VectorDenseDoubleKernel, a, x, alpha, beta, vectorY)
-    runGemv(PureDenseDoubleKernel, a, x, alpha, beta, pureY)
+    runGemv(VectorDenseDoubleKernel, a, x, alpha, beta, vectorY, yOffset = 2)
+    runGemv(PureDenseDoubleKernel, a, x, alpha, beta, pureY, yOffset = 2)
     assertArrayBits(vectorY, pureY)
+    assertEquals(Seq(vectorY(0), vectorY(1), vectorY(rows + 2)), Seq(99.0, 99.0, 99.0))
 
   // Row counts straddle every lane count (tails of 1..7); column counts straddle
   // the four-column block (tails of 0..3).
