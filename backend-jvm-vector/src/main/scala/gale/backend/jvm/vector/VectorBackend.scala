@@ -123,7 +123,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       yOffset: Int
   ): Unit =
     val species = Species
+    val lanes = species.length()
     val colBound = species.loopBound(cols)
+    val pairBound = cols - cols % (2 * lanes)
     val rowBound = rows - (rows & 3)
     var i = 0
     while i < rowBound do
@@ -135,7 +137,28 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       var s1 = DoubleVector.zero(species)
       var s2 = DoubleVector.zero(species)
       var s3 = DoubleVector.zero(species)
+      // Two accumulators per row: eight independent vector FMA chains.
+      var t0 = DoubleVector.zero(species)
+      var t1 = DoubleVector.zero(species)
+      var t2 = DoubleVector.zero(species)
+      var t3 = DoubleVector.zero(species)
       var j = 0
+      while j < pairBound do
+        val xv = DoubleVector.fromArray(species, x, xOffset + j)
+        val xw = DoubleVector.fromArray(species, x, xOffset + j + lanes)
+        s0 = DoubleVector.fromArray(species, a, aRow0 + j).fma(xv, s0)
+        s1 = DoubleVector.fromArray(species, a, aRow1 + j).fma(xv, s1)
+        s2 = DoubleVector.fromArray(species, a, aRow2 + j).fma(xv, s2)
+        s3 = DoubleVector.fromArray(species, a, aRow3 + j).fma(xv, s3)
+        t0 = DoubleVector.fromArray(species, a, aRow0 + j + lanes).fma(xw, t0)
+        t1 = DoubleVector.fromArray(species, a, aRow1 + j + lanes).fma(xw, t1)
+        t2 = DoubleVector.fromArray(species, a, aRow2 + j + lanes).fma(xw, t2)
+        t3 = DoubleVector.fromArray(species, a, aRow3 + j + lanes).fma(xw, t3)
+        j += 2 * lanes
+      s0 = s0.add(t0)
+      s1 = s1.add(t1)
+      s2 = s2.add(t2)
+      s3 = s3.add(t3)
       while j < colBound do
         val xv = DoubleVector.fromArray(species, x, xOffset + j)
         s0 = DoubleVector.fromArray(species, a, aRow0 + j).fma(xv, s0)
