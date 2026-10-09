@@ -82,14 +82,23 @@ object SolvePairedMain:
           x(0)
       )
     // Live solve vs the pre-dtrsmLeft loops ([[SolveRef]]); "gale" is the live side.
-    for (n, k) <- Seq((3, 1), (4, 4), (8, 1), (16, 16), (64, 16), (256, 64)) do
+    for (n, k) <- Seq((3, 1), (4, 4), (8, 1), (12, 4), (16, 16), (64, 16), (256, 64)) do
       val rng = new scala.util.Random(11L)
       val gA = Matrix.tabulate(n, n)((i, j) => if i == j then n.toDouble else rng.nextDouble() * 2.0 - 1.0)
       val gS = (gA * gA.t) + Matrix.eye(n) * n.toDouble
       val gB = Matrix.tabulate(n, k)((_, _) => rng.nextDouble() * 2.0 - 1.0)
       val lu = gA.lu.fold(e => throw e, identity)
       val ch = gS.cholesky.fold(e => throw e, identity)
-      out += Case(s"cur/ref lu n=$n", () => gA.lu.fold(e => throw e, _.packed(0, 0)), () => SolveRef.lu(gA).packed(0, 0))
+      // Both sides call the kernel directly (no facade gate or Either fold).
+      out += Case(
+        s"cur/ref lu n=$n",
+        () =>
+          DenseDecompositions.lu(gA) match
+            case Right(f) => f.packed(0, 0)
+            case Left(e)  => throw e
+        ,
+        () => SolveRef.lu(gA).packed(0, 0)
+      )
       out += Case(s"cur/ref luSolveOnly n=$n k=$k", () => first(lu.solve(gB)), () => SolveRef.luSolve(lu, gB)(0, 0))
       out += Case(s"cur/ref cholSolveOnly n=$n k=$k", () => first(ch.solve(gB)), () => SolveRef.choleskySolve(ch, gB)(0, 0))
     for n <- Seq(4, 16, 64, 256, 512) do
@@ -100,7 +109,7 @@ object SolvePairedMain:
       out += Case(s"inv n=$n", () => first(gA.inverse), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
       out += Case(s"invSolveI n=$n", () => first(gA.solve(gEye)), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
     // Small-n factorizations, inputs as in FactorizationBreezeJmh / LeastSquaresBreezeJmh.
-    for n <- Seq(16, 64, 256) do
+    for n <- Seq(3, 4, 8, 16, 64, 256) do
       val aData = diagonallyDominant(n, 100L)
       val gA = galeMatrix(aData)
       val bA = breezeMatrix(aData)
