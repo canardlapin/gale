@@ -5,12 +5,65 @@ import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 
-/** The multi-right-hand-side LU and Cholesky solves as they stood before the
-  * blocked `dtrsmLeft` kernel (one `dtrsv` per column for LU; an element-accessor
+/** The dense LU factorization and multi-right-hand-side LU and Cholesky solves
+  * as they stood before the paired-column LU and the blocked `dtrsmLeft` kernel
+  * (one-column elimination; one `dtrsv` per column for LU; an element-accessor
   * triple loop for Cholesky), kept verbatim so JVM and Scala.js harnesses can
-  * pair them against the live `solve` in one process.
+  * pair them against the live code in one process.
   */
 object SolveRef:
+  /** One-column-at-a-time right-looking LU, wrapped exactly as the live `lu`. */
+  def lu(a: DMat): LU =
+    val n = a.rows
+    val packed = a.toDoubleArrayCopyRowMajor
+    val pivots = new Array[Int](n)
+    var i = 0
+    while i < n do
+      pivots(i) = i
+      i += 1
+    var parity = 1
+    var k = 0
+    while k < n do
+      var pivot = k
+      var maxAbs = math.abs(packed(k * n + k))
+      i = k + 1
+      while i < n do
+        val candidate = math.abs(packed(i * n + k))
+        if candidate > maxAbs then
+          maxAbs = candidate
+          pivot = i
+        i += 1
+      if maxAbs == 0.0 || maxAbs.isNaN then throw LinAlgError.SingularMatrix(k)
+      if pivot != k then
+        var col = 0
+        while col < n do
+          val t = packed(k * n + col)
+          packed(k * n + col) = packed(pivot * n + col)
+          packed(pivot * n + col) = t
+          col += 1
+        val tmpPivot = pivots(k)
+        pivots(k) = pivots(pivot)
+        pivots(pivot) = tmpPivot
+        parity = -parity
+      val pivotValue = packed(k * n + k)
+      i = k + 1
+      while i < n do
+        val ik = i * n + k
+        packed(ik) = packed(ik) / pivotValue
+        val multiplier = packed(ik)
+        var j = k + 1
+        while j < n do
+          packed(i * n + j) = packed(i * n + j) - multiplier * packed(k * n + j)
+          j += 1
+        i += 1
+      k += 1
+    LU(
+      packed = DMat.fromDoubleArrayOwned(n, n, packed),
+      pivots = PivotVector.fromArray(pivots),
+      parity = parity,
+      diagnostics = FactorizationDiagnostics(info = 0)
+    )
+
   def luSolve(lu: LU, b: DMat): DMat =
     val n = lu.packed.rows
     val rhsCols = b.cols

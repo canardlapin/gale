@@ -1,6 +1,6 @@
 package gale.bench
 
-import breeze.linalg.{DenseMatrix as BDM, inv}
+import breeze.linalg.{DenseMatrix as BDM, DenseVector as BDV, LU as BreezeLU, det, inv, qr}
 import dev.ludovic.netlib.lapack.LAPACK
 import gale.backend.Backend
 import gale.bench.BreezeBenchData.*
@@ -15,7 +15,8 @@ import org.netlib.util.intW
   *
   * Run with a plain `java -cp <benchmarksJVM runtime classpath>` (no
   * `--add-modules=jdk.incubator.vector`) so Breeze resolves its scalar lane-A
-  * BLAS. `rounds` defaults to 41; the first argument filters case names.
+  * BLAS. `rounds` defaults to 41; the first argument is a comma-separated list
+  * of case-name substrings to run.
   */
 object SolvePairedMain:
   final case class Case(name: String, gale: () => Double, breeze: () => Double)
@@ -24,10 +25,10 @@ object SolvePairedMain:
   private given Backend = Backend.pure
 
   def main(args: Array[String]): Unit =
-    val filter = args.headOption.getOrElse("")
+    val filters = args.headOption.getOrElse("").split(',').toSeq
     val rounds = sys.props.getOrElse("rounds", "41").toInt
     println(s"blas=${dev.ludovic.netlib.blas.BLAS.getInstance().getClass.getName}")
-    for c <- cases if c.name.contains(filter) do run(c, rounds)
+    for c <- cases if filters.exists(c.name.contains) do run(c, rounds)
 
   private def first(m: Either[LinAlgError, DMat]): Double = m.fold(e => throw e, _(0, 0))
 
@@ -81,13 +82,14 @@ object SolvePairedMain:
           x(0)
       )
     // Live solve vs the pre-dtrsmLeft loops ([[SolveRef]]); "gale" is the live side.
-    for (n, k) <- Seq((8, 1), (16, 16), (64, 16), (256, 64)) do
+    for (n, k) <- Seq((3, 1), (4, 4), (8, 1), (16, 16), (64, 16), (256, 64)) do
       val rng = new scala.util.Random(11L)
       val gA = Matrix.tabulate(n, n)((i, j) => if i == j then n.toDouble else rng.nextDouble() * 2.0 - 1.0)
       val gS = (gA * gA.t) + Matrix.eye(n) * n.toDouble
       val gB = Matrix.tabulate(n, k)((_, _) => rng.nextDouble() * 2.0 - 1.0)
       val lu = gA.lu.fold(e => throw e, identity)
       val ch = gS.cholesky.fold(e => throw e, identity)
+      out += Case(s"cur/ref lu n=$n", () => gA.lu.fold(e => throw e, _.packed(0, 0)), () => SolveRef.lu(gA).packed(0, 0))
       out += Case(s"cur/ref luSolveOnly n=$n k=$k", () => first(lu.solve(gB)), () => SolveRef.luSolve(lu, gB)(0, 0))
       out += Case(s"cur/ref cholSolveOnly n=$n k=$k", () => first(ch.solve(gB)), () => SolveRef.choleskySolve(ch, gB)(0, 0))
     for n <- Seq(4, 16, 64, 256, 512) do
@@ -97,6 +99,24 @@ object SolvePairedMain:
       val gEye = Matrix.eye(n)
       out += Case(s"inv n=$n", () => first(gA.inverse), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
       out += Case(s"invSolveI n=$n", () => first(gA.solve(gEye)), () => { val r: BDM[Double] = inv(bA); r(0, 0) })
+    // Small-n factorizations, inputs as in FactorizationBreezeJmh / LeastSquaresBreezeJmh.
+    for n <- Seq(16, 64, 256) do
+      val aData = diagonallyDominant(n, 100L)
+      val gA = galeMatrix(aData)
+      val bA = breezeMatrix(aData)
+      val gb = galeVector(vectorData(n, 300L))
+      val bb = breezeVector(vectorData(n, 300L))
+      out += Case(s"lu n=$n", () => gA.lu.fold(e => throw e, _.packed(0, 0)), () => BreezeLU.primitive(bA)._1(0, 0))
+      out += Case(s"det n=$n", () => gA.det.fold(e => throw e, identity), () => det(bA))
+      out += Case(s"solve n=$n", () => gA.solve(gb).fold(e => throw e, _(0)), () => { val r: BDV[Double] = bA \ bb; r(0) })
+      out += Case(s"qr n=$n", () => gA.qr.r(0, 0), () => { val r: BDM[Double] = qr.justR(bA); r(0, 0) })
+      val m = 4 * n
+      val tData = matrixData(m, n, 400L)
+      val gT = galeMatrix(tData)
+      val bT = breezeMatrix(tData)
+      val gy = galeVector(vectorData(m, 500L))
+      val by = breezeVector(vectorData(m, 500L))
+      out += Case(s"lstsq n=$n", () => gT.leastSquares(gy).fold(e => throw e, _(0)), () => { val r: BDV[Double] = bT \ by; r(0) })
     out.result()
 
   private def time(f: () => Double, calls: Int): Long =

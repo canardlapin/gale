@@ -4,8 +4,8 @@ import gale.backend.PureBackend
 import gale.linalg.*
 import scala.scalajs.js
 
-/** Scala.js wall-clock pairing of the pre-`dtrsmLeft` multi-right-hand-side
-  * solves ([[SolveRef]]) with the live `LU.solve` / `Cholesky.solve`:
+/** Scala.js wall-clock pairing of the pre-hill-climb LU and multi-right-hand-side
+  * solves ([[SolveRef]]) with the live `lu`, `LU.solve` and `Cholesky.solve`:
   * alternating rounds, median ns per call. Run with full optimisation:
   * `sbt "set benchmarksJS/scalaJSStage := FullOptStage" "benchmarksJS/runMain gale.bench.SolveJsBench"`.
   */
@@ -14,7 +14,7 @@ object SolveJsBench:
 
   def main(args: Array[String]): Unit =
     given gale.backend.Backend = PureBackend
-    for (n, k) <- Seq((8, 1), (16, 16), (64, 16), (256, 64)) do
+    for (n, k) <- Seq((8, 1), (16, 16), (64, 16), (128, 8), (256, 64)) do
       val rng = new scala.util.Random(11L)
       val m = Matrix.tabulate(n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
       val a = Matrix.tabulate(n, n)((i, j) => if i == j then n.toDouble else m(i, j))
@@ -30,8 +30,11 @@ object SolveJsBench:
         println(
           f"$name%-10s n=$n%-4d k=$k%-4d ref ${math.min(r1, r2)}%11.0f ns  cur ${math.min(c1, c2)}%11.0f ns  speedup ${math.min(r1, r2) / math.min(c1, c2)}%5.2fx"
         )
+      pair("lu")(SolveRef.lu(a).packed(0, 0))(lu0(a))
       pair("luSolve")(SolveRef.luSolve(lu, b)(0, 0))(lu.solve(b).toOption.get(0, 0))
       pair("cholSolve")(SolveRef.choleskySolve(ch, b)(0, 0))(ch.solve(b).toOption.get(0, 0))
+
+  private def lu0(a: DMat)(using gale.backend.Backend): Double = a.lu.toOption.get.packed(0, 0)
 
   /** Median ns per call over 15 rounds of enough calls to fill ~20 ms. */
   private def measure(body: => Double): Double =

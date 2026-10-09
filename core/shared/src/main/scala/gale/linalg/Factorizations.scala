@@ -227,40 +227,97 @@ object DenseDecompositions:
         pivots(i) = i
         i += 1
 
+      // Two pivot columns per pass: column k is factored, column k + 1 and row
+      // k + 1 take step k's update, column k + 1 is factored, and the trailing
+      // block then takes both rank-1 updates in one sweep. Every element sees
+      // exactly the sequential operations in the sequential order, so the
+      // factors match the one-column-at-a-time elimination bit for bit; the
+      // trailing block is read and written once per two columns instead of once
+      // per column.
       var parity = 1
       var k = 0
       while k < n do
-        var pivot = k
-        var maxAbs = math.abs(packed(k * n + k))
-        i = k + 1
-        while i < n do
-          val candidate = math.abs(packed(i * n + k))
-          if candidate > maxAbs then
-            maxAbs = candidate
-            pivot = i
-          i += 1
-
-        if maxAbs == 0.0 || maxAbs.isNaN then return Left(LinAlgError.SingularMatrix(k))
-
+        val pivot = luPivotRow(packed, n, k)
+        if pivot < 0 then return Left(LinAlgError.SingularMatrix(k))
         if pivot != k then
           swapRows(packed, n, k, pivot)
           val tmpPivot = pivots(k)
           pivots(k) = pivots(pivot)
           pivots(pivot) = tmpPivot
           parity = -parity
-
-        val pivotValue = packed(k * n + k)
+        val rowK = k * n
+        val pivotValue = packed(rowK + k)
         i = k + 1
         while i < n do
           val ik = i * n + k
           packed(ik) = packed(ik) / pivotValue
-          val multiplier = packed(ik)
-          var j = k + 1
-          while j < n do
-            packed(i * n + j) = packed(i * n + j) - multiplier * packed(k * n + j)
-            j += 1
           i += 1
-        k += 1
+
+        val k1 = k + 1
+        if k1 == n then k = n
+        else
+          val rowK1 = k1 * n
+          val uKK1 = packed(rowK + k1)
+          i = k1
+          while i < n do
+            val row = i * n
+            packed(row + k1) = packed(row + k1) - packed(row + k) * uKK1
+            i += 1
+          val pivot1 = luPivotRow(packed, n, k1)
+          if pivot1 < 0 then return Left(LinAlgError.SingularMatrix(k1))
+          if pivot1 != k1 then
+            swapRows(packed, n, k1, pivot1)
+            val tmpPivot = pivots(k1)
+            pivots(k1) = pivots(pivot1)
+            pivots(pivot1) = tmpPivot
+            parity = -parity
+          val pivotValue1 = packed(rowK1 + k1)
+          val lK1K = packed(rowK1 + k)
+          var j = k + 2
+          while j < n do
+            packed(rowK1 + j) = packed(rowK1 + j) - lK1K * packed(rowK + j)
+            j += 1
+          // Trailing rows four at a time, so each loaded pair of pivot-row entries
+          // feeds four rows; then the 0-3 leftover rows.
+          i = k + 2
+          while i + 3 < n do
+            val row = i * n
+            val rowB = row + n
+            val rowC = rowB + n
+            val rowD = rowC + n
+            val l0 = packed(row + k)
+            val l1 = packed(row + k1) / pivotValue1
+            packed(row + k1) = l1
+            val m0 = packed(rowB + k)
+            val m1 = packed(rowB + k1) / pivotValue1
+            packed(rowB + k1) = m1
+            val p0 = packed(rowC + k)
+            val p1 = packed(rowC + k1) / pivotValue1
+            packed(rowC + k1) = p1
+            val q0 = packed(rowD + k)
+            val q1 = packed(rowD + k1) / pivotValue1
+            packed(rowD + k1) = q1
+            j = k + 2
+            while j < n do
+              val u0 = packed(rowK + j)
+              val u1 = packed(rowK1 + j)
+              packed(row + j) = (packed(row + j) - l0 * u0) - l1 * u1
+              packed(rowB + j) = (packed(rowB + j) - m0 * u0) - m1 * u1
+              packed(rowC + j) = (packed(rowC + j) - p0 * u0) - p1 * u1
+              packed(rowD + j) = (packed(rowD + j) - q0 * u0) - q1 * u1
+              j += 1
+            i += 4
+          while i < n do
+            val row = i * n
+            val l0 = packed(row + k)
+            val l1 = packed(row + k1) / pivotValue1
+            packed(row + k1) = l1
+            j = k + 2
+            while j < n do
+              packed(row + j) = (packed(row + j) - l0 * packed(rowK + j)) - l1 * packed(rowK1 + j)
+              j += 1
+            i += 1
+          k += 2
 
       Right(
         LU(
@@ -1933,6 +1990,21 @@ object DenseDecompositions:
             col += 1
           row += 1
         Right(DMat.fromDoubleArrayOwned(n, n, out))
+
+  /** Partial-pivot row for LU column `k`: the first row at or below `k` with the largest magnitude, or `-1` when that
+    * magnitude is `0` or the diagonal is NaN.
+    */
+  private def luPivotRow(packed: DoubleArray, n: Int, k: Int): Int =
+    var pivot = k
+    var maxAbs = math.abs(packed(k * n + k))
+    var i = k + 1
+    while i < n do
+      val candidate = math.abs(packed(i * n + k))
+      if candidate > maxAbs then
+        maxAbs = candidate
+        pivot = i
+      i += 1
+    if maxAbs == 0.0 || maxAbs.isNaN then -1 else pivot
 
   private def swapRows(values: DoubleArray, cols: Int, r1: Int, r2: Int): Unit =
     var col = 0

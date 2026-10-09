@@ -102,3 +102,56 @@ class LUSuite extends munit.FunSuite:
     val empty = Matrix.zeros(0, 0).inverse.orThrow
     assertEquals((empty.rows, empty.cols), (0, 0))
   }
+
+  /** The one-column-at-a-time right-looking elimination the paired-column LU
+    * must reproduce exactly: `(packed row-major, pivots, parity)` or the
+    * singular column.
+    */
+  private def sequentialLu(a: DMat): Either[Int, (Seq[Double], Seq[Int], Int)] =
+    val n = a.rows
+    val p = Array.tabulate(n * n)(i => a(i / n, i % n))
+    val pivots = Array.tabulate(n)(identity)
+    var parity = 1
+    var singular = -1
+    var k = 0
+    while singular < 0 && k < n do
+      var pivot = k
+      var maxAbs = math.abs(p(k * n + k))
+      for i <- k + 1 until n do
+        if math.abs(p(i * n + k)) > maxAbs then
+          maxAbs = math.abs(p(i * n + k))
+          pivot = i
+      if maxAbs == 0.0 || maxAbs.isNaN then singular = k
+      else
+        if pivot != k then
+          for j <- 0 until n do
+            val t = p(k * n + j); p(k * n + j) = p(pivot * n + j); p(pivot * n + j) = t
+          val t = pivots(k); pivots(k) = pivots(pivot); pivots(pivot) = t
+          parity = -parity
+        for i <- k + 1 until n do
+          p(i * n + k) = p(i * n + k) / p(k * n + k)
+          for j <- k + 1 until n do p(i * n + j) = p(i * n + j) - p(i * n + k) * p(k * n + j)
+        k += 1
+    if singular >= 0 then Left(singular) else Right((p.toSeq, pivots.toSeq, parity))
+
+  test("paired-column LU reproduces sequential elimination bit for bit, including singular columns") {
+    def bits(xs: Seq[Double]) = xs.map(java.lang.Double.doubleToRawLongBits)
+    for n <- Seq(1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 37, 64); seed <- Seq(1, 2) do
+      val rng = new scala.util.Random(1000 * n + seed)
+      val a = Matrix.tabulate(n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+      val lu = a.lu.orThrow
+      val (packed, pivots, parity) = sequentialLu(a).toOption.get
+      assertEquals(bits(lu.packed.valuesRowMajor), bits(packed), s"n=$n seed=$seed")
+      assertEquals(lu.pivots.toIndexSeq, pivots.toIndexedSeq, s"n=$n seed=$seed")
+      assertEquals(lu.parity, parity, s"n=$n seed=$seed")
+      // A zero column stays exactly zero under elimination, so the factorization
+      // stops there: an even and an odd paired column...
+      for c <- Seq(0, 1, 2, n - 1).distinct if c < n do
+        val singular = Matrix.tabulate(n, n)((i, j) => if j == c then 0.0 else a(i, j))
+        assertEquals(singular.lu, Left(LinAlgError.SingularMatrix(c)), s"n=$n zero column $c")
+        assertEquals(sequentialLu(singular).left.toOption, Some(c))
+      // ...and a NaN diagonal is reported at its column.
+      if n >= 3 then
+        val poisoned = Matrix.tabulate(n, n)((i, j) => if i >= 1 && j == 1 then Double.NaN else a(i, j))
+        assertEquals(poisoned.lu.left.toOption, sequentialLu(poisoned).left.toOption.map(LinAlgError.SingularMatrix(_)))
+  }
