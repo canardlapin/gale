@@ -173,8 +173,10 @@ binary-compatibility claims against a published baseline.
 `SpectralDiagnostics` is no longer a case class. It is a final class with the
 same field names, the same eager `SpectralDiagnostics(...)` constructor and
 defaults, and a `copy` with the same parameters. The synthesized `unapply`,
-`Product` members and `canEqual` are gone; `equals`, `hashCode` and `toString`
-keep the former case-class meaning (`residuals` still compares as a `DVec`).
+`Product` members and `canEqual` are gone. `equals` and `hashCode` keep the
+former case-class meaning (`residuals` still compares as a `DVec`) and take
+any deferred measurement; `toString` does not, printing `<deferred>` for an
+unmeasured value; `copy` is strict and measures what it carries over.
 The dense one-shot facades — `Eigen.eigSymmetric`, `Eigen.eigSymmetricWith`
 and the full dense `Svds.svd` path (which `pinv` and minimum-norm least squares
 share) — now measure `residuals` and `orthogonalityError` on first access and
@@ -182,11 +184,17 @@ cache them, instead of forming `A·V` and `VᵀV` (and, for SVD, `AᵀU`) on eve
 call. No convergence or certification decision reads either value on these
 paths, so `converged`, `requireConverged` and `requireExtremeCertified` are
 unchanged, and the measured values are bit-identical to the former eager ones.
-The measurement uses snapshots taken when the result is built (the mirrored
-lower triangle of the input, or a copy of the SVD input), so it is unaffected
-by later mutation of a borrowed input view. The first read pays the two matrix
-products; iterative, generalized and nonsymmetric solvers still report values
-computed during the solve.
+The first read pays the two matrix products; iterative, generalized and
+nonsymmetric solvers still report values computed during the solve.
+
+Retention: until both values are read, a result's diagnostics keep the
+returned vectors (owned by the result anyway) and the decomposed matrix
+alive. The ordinary routes (`eigSymmetric`, dense `svd`) keep a reference to
+the immutable input `DMat`, with no copy; the workspace route
+(`eigSymmetricWith`) keeps a packed copy of the input's lower triangle
+(`n(n+1)/2` doubles). Each source is released once its value is measured. An
+explicitly `unsafe` borrowed view is measured with its contents at the first
+read.
 
 ## Divide-and-conquer dense symmetric eigenvectors
 

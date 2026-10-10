@@ -272,21 +272,21 @@ object Svds:
       i += 1
     // Nothing here is decided by the residuals or the orthogonality error, so
     // both are measured on first access (SpectralDiagnostics, "Deferred
-    // measurements"). `a` is snapshotted now because it may be a borrowed view
-    // of mutable storage; `u` and `vt` are immutable values owned by the result.
+    // measurements"). The immutable input `a`, `u` and `vt` are kept by
+    // reference; nothing is copied until the first read.
     val diagnostics =
       if wantVectors then
         // The checks run as matrix products on contiguous row-major operands
         // (A V, Aᵀ U and the Gram matrices) instead of 2p matrix-vector
         // products and a product over a transposed view; the transposes are
         // materialized because a product over a view walks it column-strided.
-        val aMat = DMat.tabulate(m, n)((r, c) => a(r, c))
         lazy val vMat = DMat.tabulate(n, p)((r, c) => vt(c, r))
         SpectralDiagnostics.deferred(
           requested = p,
           converged = p,
           residuals = () =>
-            val atMat = DMat.tabulate(n, m)((r, c) => aMat(c, r))
+            val aMat = if a.isContiguousRowMajor then a else DMat.tabulate(m, n)((r, c) => a(r, c))
+            val atMat = DMat.tabulate(n, m)((r, c) => a(c, r))
             val av = aMat * vMat
             val atu = atMat * u
             DVec.tabulate(p): c =>

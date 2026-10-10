@@ -153,7 +153,7 @@ object Eigen:
                 case Left(error) => Left(error)
                 case Right((values, vecs)) =>
                   val indices = denseSelectionIndices(selection, values, n)
-                  Right(assembleDense(a, values, vecs, indices, wantVectors))
+                  Right(assembleDense(a, values, vecs, indices, wantVectors, snapshotInput = false))
 
   /** Primitive scratch required by [[eigSymmetricWith]] for an `order x order`
     * dense symmetric problem. This is a checked, allocation-free query; left and
@@ -200,7 +200,7 @@ object Eigen:
               Left(LinAlgError.DidNotConverge(iters, 0.0))
             case Right(kernel) =>
               val indices = denseSelectionIndices(selection, kernel.values, n)
-              Right(assembleDense(a, kernel.values, kernel.vectors, indices, wantVectors))
+              Right(assembleDense(a, kernel.values, kernel.vectors, indices, wantVectors, snapshotInput = true))
 
   /** The S8 dispatch seam: the full '''ascending''' symmetric spectrum (and full
     * eigenvector matrix when wanted), from a routed backend or the pure kernel.
@@ -1029,7 +1029,8 @@ object Eigen:
       values: DVec,
       vectors: Option[DMat],
       indices: Array[Int],
-      wantVectors: Boolean
+      wantVectors: Boolean,
+      snapshotInput: Boolean
   ): EigenDecomposition =
     val selValues = DVec.tabulate(indices.length)(i => values(indices(i)))
     val n = a.rows
@@ -1042,17 +1043,33 @@ object Eigen:
     // Nothing here is decided by the residuals or the orthogonality error, so
     // both are measured on first access (SpectralDiagnostics, "Deferred
     // measurements"). Residuals must be measured against the matrix actually
-    // decomposed: the kernel reads only the lower triangle, so mirror it here
-    // too — otherwise a non-mirror strict upper triangle yields spurious
-    // residuals against a correct decomposition. The mirror is taken now, as
-    // the snapshot, because `a` may be a borrowed view of mutable storage.
+    // decomposed: the kernel reads only the lower triangle, so the measurement
+    // mirrors it — otherwise a non-mirror strict upper triangle yields spurious
+    // residuals against a correct decomposition. The ordinary route keeps the
+    // immutable input itself; the workspace route keeps a packed copy of the
+    // lower triangle (SpectralDiagnostics, "Retention").
     val diagnostics =
       if wantVectors then
-        val sym = DMat.tabulate(n, n)((i, j) => if i >= j then a(i, j) else a(j, i))
+        val lower: (Int, Int) => Double =
+          if snapshotInput then
+            val packed = new Array[Double](n * (n + 1) / 2)
+            var i = 0
+            var k = 0
+            while i < n do
+              var j = 0
+              while j <= i do
+                packed(k) = a(i, j)
+                k += 1
+                j += 1
+              i += 1
+            (i, j) => packed(i * (i + 1) / 2 + j)
+          else (i, j) => a(i, j)
         SpectralDiagnostics.deferred(
           requested = m,
           converged = m,
-          residuals = () => densePairResiduals(sym * selVectors, selValues, selVectors),
+          residuals = () =>
+            val sym = DMat.tabulate(n, n)((i, j) => if i >= j then lower(i, j) else lower(j, i))
+            densePairResiduals(sym * selVectors, selValues, selVectors),
           orthogonalityError = () => orthogonalityError(selVectors),
           iterations = 0,
           rank = None,

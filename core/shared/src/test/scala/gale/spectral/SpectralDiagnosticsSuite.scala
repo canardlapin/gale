@@ -130,7 +130,7 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     assert(generalizedSvd.requireExtremeCertified.isRight)
   }
 
-  test("deferred measurements run once, survive copy, and match eager diagnostics") {
+  test("deferred measurements run once, print as deferred, and match eager diagnostics") {
     var residualRuns = 0
     var orthogonalityRuns = 0
     val deferred = SpectralDiagnostics.deferred(
@@ -148,22 +148,38 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     )
     assert(deferred.allConverged)
     assert(deferred.requireExtremeCertified(()).isRight)
+    assertEquals(deferred.toString, "SpectralDiagnostics(2,2,<deferred>,<deferred>,0,None,true,None)")
     assertEquals((residualRuns, orthogonalityRuns), (0, 0))
 
-    val copied = deferred.copy(iterations = 4)
-    assertEquals((residualRuns, orthogonalityRuns), (0, 0))
-    assertEqualsDouble(copied.worstResidual, 3e-14, 0.0)
     assertEqualsDouble(deferred.worstResidual, 3e-14, 0.0)
+    assertEqualsDouble(deferred.worstResidual, 3e-14, 0.0)
+    assertEquals((residualRuns, orthogonalityRuns), (1, 0))
+    assert(deferred.toString.endsWith(",<deferred>,0,None,true,None)"), deferred.toString)
+
+    // copy is strict: it measures what it carries over and shares the values.
+    val copied = deferred.copy(iterations = 4)
+    assertEquals((residualRuns, orthogonalityRuns), (1, 1))
+    assertEquals(copied.iterations, 4)
+    assert(copied.residuals eq deferred.residuals)
     assertEqualsDouble(copied.orthogonalityError, 2e-15, 0.0)
     assertEquals((residualRuns, orthogonalityRuns), (1, 1))
 
     // DVec compares by reference (as the former case class did), so share it.
     val eager = SpectralDiagnostics(2, 2, deferred.residuals, 2e-15, 0, None, extremalityCertified = true)
+    assert(!eager.toString.contains("<deferred>"), eager.toString)
     assertEquals(deferred, eager)
     assertEquals(deferred.hashCode, eager.hashCode)
     assertEquals(deferred.toString, eager.toString)
     assertNotEquals(deferred, eager.copy(orthogonalityError = 1.0))
     assertEquals((residualRuns, orthogonalityRuns), (1, 1))
+  }
+
+  test("equality takes a deferred measurement") {
+    var runs = 0
+    def make() = SpectralDiagnostics.deferred(1, 1, () => { runs += 1; Vec(0.0) }, () => 0.0, 0, None, true)
+    val first = make()
+    assertNotEquals(first, make()) // distinct DVec instances compare by reference
+    assertEquals(runs, 2)
   }
 
   test("dense facades measure diagnostics on access to the same values as explicit products") {
