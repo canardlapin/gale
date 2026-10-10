@@ -11,8 +11,17 @@ import gale.linalg.*
   * the same matrix. A failure means the operation order changed: a deliberate
   * change must say so and regenerate these values, never relax them.
   *
-  * The cases cover vectors at small orders (always QL), values only above the
-  * divide-and-conquer order (still QL), and a subnormal-scale tridiagonal.
+  * The cases cover vectors at small orders (always QL), QL vectors at n = 64
+  * through `divideAndConquer = false` (the block-Krylov projected path, which
+  * runs QL at any order), values only above the divide-and-conquer order
+  * (still QL), and a subnormal-scale tridiagonal. Divide-and-conquer pins at
+  * n = 48, 77 and 101 (leaves of 24, 19/20, and 25 plus a 26-row block split
+  * into 13/13) guard the merge, the secular solver and `multiplyRowMajor`;
+  * they were generated after the power-of-two scaling change.
+  *
+  * '''Run this suite on the JS lane too.''' The claim that the symmetric
+  * eigen kernels give identical bits on the JVM and Scala.js rests on these
+  * hashes matching on both platforms, so `coreJS/test` must include it.
   * That last input took the `r == 0` underflow restart until QL gained its
   * tiny-scale lift (`2^600`); its pin was regenerated then (a deliberate bit
   * change for inputs below `2^-600` only), and on the lifted scale it no
@@ -48,6 +57,29 @@ class QlBitPinSuite extends munit.FunSuite:
 
   for (n, expected) <- vectorPins do
     test(s"QL values and vectors keep their bits at n=$n (both routes)") {
+      val a = Matrix.tabulate(n, n)(entry)
+      val ordinary = DenseSpectralKernels.symmetricEigen(a, wantVectors = true).toOption.get
+      assertEquals(hash(ordinary.values, ordinary.vectors), expected)
+      val workspace =
+        DenseSpectralKernels.symmetricEigenWith(a, wantVectors = true, DenseWorkspace.empty).toOption.get
+      assertEquals(hash(workspace.values, workspace.vectors), expected)
+    }
+
+  test("QL values and vectors keep their bits at n=64 with divide and conquer disabled") {
+    val a = Matrix.tabulate(64, 64)(entry)
+    val ql = DenseSpectralKernels.symmetricEigen(a, wantVectors = true, divideAndConquer = false).toOption.get
+    assertEquals(hash(ql.values, ql.vectors), -4215932567600665687L)
+  }
+
+  private val divideAndConquerPins = Seq(
+    48 -> -4642693434710438725L,
+    77 -> 6401054900483506815L,
+    101 -> -3001978090945615853L
+  )
+
+  for (n, expected) <- divideAndConquerPins do
+    test(s"divide-and-conquer values and vectors keep their bits at n=$n (both routes)") {
+      assert(DenseSpectralKernels.usesDivideAndConquer(n))
       val a = Matrix.tabulate(n, n)(entry)
       val ordinary = DenseSpectralKernels.symmetricEigen(a, wantVectors = true).toOption.get
       assertEquals(hash(ordinary.values, ordinary.vectors), expected)
