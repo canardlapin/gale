@@ -129,9 +129,6 @@ _OWN_TOLERANCE = Caveat(
     "not like-for-like: each library stops on its own convergence test", withhold=True
 )
 _SOFTMAX = "Breeze idiom `exp(x - softmax(x))` makes 2 allocations and an extra pass"
-_INV = Caveat(
-    "gale `solve(I)` is ~8/3 n^3 flops vs Breeze `dgetri` ~2 n^3 (disfavours gale)"
-)
 _SUM = Caveat("gale multi-accumulator sum vs Breeze's single-accumulator loop")
 _ROWS = "gale row-major: rows contiguous for gale, strided for Breeze (column-major)"
 _COLS = "gale row-major: columns strided for gale, contiguous for Breeze (column-major)"
@@ -145,8 +142,6 @@ CAVEATS: dict[tuple, Caveat] = {
     ("LbfgsBreezeJmh", "Logistic", (("budget", "tolerance"),)): _OWN_TOLERANCE,
     ("ReductionBreezeJmh", "Softmax"): Caveat(_SOFTMAX),
     ("MatrixReductionBreezeJmh", "SoftmaxRows"): Caveat(f"{_SOFTMAX}; {_ROWS}"),
-    ("DenseDecompositionBreezeJmh", "Inv"): _INV,
-    ("SmallDenseBreezeJmh", "Inv"): _INV,
     ("ReductionBreezeJmh", "Mean"): Caveat(
         "Breeze `stats.mean` is a running mean (a division per element); gale is sum/n"
     ),

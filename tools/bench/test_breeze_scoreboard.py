@@ -195,11 +195,11 @@ class Caveats(unittest.TestCase):
         self.assertIn("**2 ahead, 0 tie, 1 behind, 0 n/a, 2 withheld** of 5 pairs", self.out)
 
     def test_caveat_keeps_verdict_and_adds_note(self) -> None:
-        inv = table_row(
-            self.out, "DenseDecompositionBreezeJmh", "Inv", "n=64", "pure", note=True,
+        total = table_row(
+            self.out, "ReductionBreezeJmh", "Sum", "n=1024", "backend-insensitive", note=True,
         )
-        self.assertEqual(inv[-3:-1], ["0.50x", "behind"])
-        self.assertIn("dgetri", inv[-1])
+        self.assertEqual(total[-3:-1], ["0.50x", "behind"])
+        self.assertIn("multi-accumulator", total[-1])
 
     def test_unqualified_pairs_have_no_note(self) -> None:
         csc = table_row(
