@@ -194,6 +194,8 @@ jobs:
         run: sbt benchmarksJVM/test
       - name: Test Breeze receipt validation
         run: python3 -I tools/bench/test_breeze_scoreboard.py
+      - name: Test Trillium runner receipt contracts
+        run: python3 -I tools/bench/test_trillium_runner.py
 
   vector-backend:
     name: Vector backend (JDK ${{ matrix.java }})
