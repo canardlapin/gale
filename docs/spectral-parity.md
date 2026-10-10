@@ -34,10 +34,13 @@ These are inputs to the matrix, not open questions:
 4. **Phase split.** Phase **a**: dense + partial **symmetric eigen** and
    **partial SVD** (full dense SVD stays deferred — see § 3).
    Phase **b**: **nonsymmetric eigen**, **generalized eigen**, and **GSVD**.
-5. **Internal dense kernels.** Householder tridiagonalization + implicit-shift
-   tridiagonal QL/QR (symmetric); Hessenberg reduction + Francis double-shift QR
-   (nonsymmetric). Partial methods (Lanczos/Arnoldi) solve their small projected
-   problems with these same kernels.
+5. **Internal dense kernels.** Householder tridiagonalization followed, for
+   the symmetric problem, by implicit-shift tridiagonal QL/QR — or, for
+   eigenvectors from order 48, Cuppen divide and conquer (`dstedc`-style
+   deflation, safeguarded secular solver, Gu–Eisenstat vectors) and the
+   back-transform `V = Q Z`; Hessenberg reduction + Francis double-shift QR
+   (nonsymmetric). Partial methods (Lanczos/Arnoldi, block Krylov) solve their
+   small projected problems with QL and the nonsymmetric kernel.
 
 ## Error-model idiom this matrix maps onto
 
@@ -80,7 +83,7 @@ LAPACK: `syev`/`syevd`/`syevr`/`syevx` (standard), `sygv`/`sygvd`/`sygvx`
 | Subset by index range | — | `eigh(A, subset_by_index=[il, iu])` (0-based, inclusive) | **in-a** `EigenSelection.IndexRange(from, to)` | Maps to `syevr`/`syevx`. Ascending-rank indices. Symmetric-only. |
 | Subset by value interval | — | `eigh(A, subset_by_value=(vl, vu))` half-open `(vl, vu]` | **in-a** `EigenSelection.ValueInterval(lower, upper)` (`(lower, upper]`) | Count of results is data-dependent; diagnostics report how many fell in range. Symmetric-only. |
 | Eigenvector layout (values vs matrix) | `eig(A,'vector')` / `'matrix'` | always `(w, V)` | **in-a** — always `(DVec, DMat)` | gale returns values as `DVec`, vectors as `DMat` columns; no `'matrix'` diagonal form. |
-| Driver / algorithm choice | (internal) | `driver='ev'\|'evd'\|'evr'\|'evx'` | **out** (v0.3.5) | Single kernel (tridiag QL/QR). Driver selection is an internal optimization, not public surface. |
+| Driver / algorithm choice | (internal) | `driver='ev'\|'evd'\|'evr'\|'evx'` | **out** (v0.3.5) | Internal choice: implicit QL/QR for values and small orders, divide and conquer for eigenvectors from order 48 (one rule for both routes). Driver selection is an internal optimization, not public surface. |
 | Lower-vs-upper stored triangle | — | `lower=True\|False` | **in-a** (implicit) | gale reads one triangle by assumption, mirroring the `Cholesky` precedent (lower triangle only). Expose which triangle via option if needed; default lower. |
 
 **Ordering guarantee.** gale returns symmetric eigenvalues **ascending-algebraic

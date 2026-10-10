@@ -195,9 +195,11 @@ eigenvectors solve the tridiagonal problem by divide and conquer (Cuppen with
 `dlaed`-style deflation, a safeguarded secular solver and Gu–Eisenstat
 vectors), then form `V = Q Z`. Below order 48, for values only, and for the
 Lanczos and block-Krylov projected problems, the implicit QL solver is
-unchanged. This changes result bits at those orders: eigenvalues agree with
-QL to a few ulps of `‖A‖`, and residuals and orthogonality are at least as
-good on the regression probes. Both routes still run one kernel and agree
+unchanged. This changes result bits at those orders. The tested bounds are:
+eigenvalues within `n·ε·max|λ|` of QL; residual `‖AV − VΛ‖_F ≤ n·ε·‖A‖_F` and
+at most `max(4 × QL residual, 2√n·ε·‖A‖_F)`; orthogonality
+`‖VᵀV − I‖_F ≤ 4n·ε`. The probes include clusters, repeated zeros, grading,
+glued Wilkinson matrices and 1e±300 scaling. Both routes still run one kernel and agree
 exactly, and the JVM and Scala.js agree because the merge products use
 unfused arithmetic.
 

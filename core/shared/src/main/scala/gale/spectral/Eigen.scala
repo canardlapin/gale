@@ -113,15 +113,27 @@ object Eigen:
     * `Left` on: non-square `a`; an [[EigenOrder]] illegal for a symmetric problem
     * ([[EigenOrder.LargestRealPart]]/[[EigenOrder.SmallestRealPart]]); `k` outside
     * `[1, n]`; an out-of-bounds `IndexRange`; an inverted `ValueInterval`; or
-    * kernel non-convergence (`DidNotConverge`) when some eigenvalue needs more than
-    * 30 implicit QL sweeps. For finite input the tridiagonal solver deflates an
-    * off-diagonal once it is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖_max)`, so it
-    * converges in a few sweeps per eigenvalue (at most 10 observed, including
-    * clusters of repeated eigenvalues at zero). The result is normwise
-    * backward-stable only: eigenvalues carry absolute error `O(ε ‖A‖)`, so tiny
-    * eigenvalues of graded matrices get no relative accuracy. NaN entries never
-    * deflate and return this `Left`; with an infinite entry only the local
-    * neighbour test applies, which may yield non-finite values or this `Left`.
+    * kernel non-convergence (`DidNotConverge`). Its meaning depends on the
+    * tridiagonal solver:
+    *
+    *   - '''Implicit QL''' (values only, eigenvectors below order 48, non-finite
+    *     `T`, and orders whose divide-and-conquer scratch is not addressable):
+    *     some eigenvalue needed more than 30 QL sweeps, and `iterations` is the
+    *     sweep count. For finite input the solver deflates an off-diagonal once
+    *     it is at most `ε · max(|dₘ| + |dₘ₊₁|, ‖T‖_max)`, so it converges in a
+    *     few sweeps per eigenvalue (at most 10 observed, including clusters of
+    *     repeated eigenvalues at zero).
+    *   - '''Divide and conquer''' (eigenvectors from order 48): either a QL leaf
+    *     block (at most 25 rows) exceeded the same 30-sweep bound, or a secular
+    *     equation root was not resolved within 400 safeguarded iterations;
+    *     `iterations` is that sweep or iteration count. Neither is expected for
+    *     finite input (the secular iteration is bracketed by bisection).
+    *
+    * Either way the result is normwise backward-stable only: eigenvalues carry
+    * absolute error `O(ε ‖A‖)`, so tiny eigenvalues of graded matrices get no
+    * relative accuracy. NaN entries never deflate and return this `Left`; with
+    * an infinite entry only the local neighbour test applies, which may yield
+    * non-finite values or this `Left`.
     */
   def eigSymmetric(
       a: DMat,
@@ -594,8 +606,11 @@ object Eigen:
     * same `Left` the dense `Cholesky` returns); an [[EigenOrder]] illegal for a
     * symmetric problem; `k` outside `[1, n]`; an out-of-bounds `IndexRange`; an
     * inverted `ValueInterval`; [[EigenVectors.Left]]/[[EigenVectors.LeftAndRight]];
-    * or tridiagonal-solver non-convergence, under the same 30-sweeps-per-eigenvalue
-    * bound as [[eigSymmetric]].
+    * or tridiagonal-solver non-convergence (`DidNotConverge`) with the same
+    * solver-dependent meaning as for [[eigSymmetric]]: more than 30 QL sweeps
+    * for an eigenvalue (or a divide-and-conquer leaf), or a secular root not
+    * resolved within 400 iterations when eigenvectors of order 48 or more use
+    * divide and conquer.
     */
   def eigSymmetricGeneralized(
       a: DMat,
