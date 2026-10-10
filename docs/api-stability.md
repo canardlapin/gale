@@ -187,3 +187,61 @@ at every `n`, because the earlier matrix route did not use fused multiply-add.
 For `n ≤ 8` each column of either matrix solve equals the corresponding vector
 solve bit for bit; above that they can differ by rounding. Error
 indices, input non-mutation, and the Cholesky finiteness checks are unchanged.
+
+## Deferred dense spectral diagnostics
+
+`SpectralDiagnostics` is no longer a case class. It is a final class with the
+same field names, the same eager `SpectralDiagnostics(...)` constructor and
+defaults, and a `copy` with the same parameters. The synthesized `unapply`,
+`Product` members and `canEqual` are gone. `equals` and `hashCode` keep the
+former case-class meaning (`residuals` still compares as a `DVec`) and take
+any deferred measurement; `toString` does not, printing `<deferred>` for an
+unmeasured value; `copy` is strict and measures what it carries over.
+The dense one-shot facades — `Eigen.eigSymmetric`, `Eigen.eigSymmetricWith`
+and the full dense `Svds.svd` path (which `pinv` and minimum-norm least squares
+share) — now measure `residuals` and `orthogonalityError` on first access and
+cache them, instead of forming `A·V` and `VᵀV` (and, for SVD, `AᵀU`) on every
+call. No convergence or certification decision reads either value on these
+paths, so `converged`, `requireConverged` and `requireExtremeCertified` are
+unchanged, and the measured values are bit-identical to the former eager ones.
+The first read pays the two matrix products; iterative, generalized and
+nonsymmetric solvers still report values computed during the solve.
+
+Retention: until both values are read, a result's diagnostics keep the
+returned vectors (owned by the result anyway) and the decomposed matrix
+alive. The ordinary routes (`eigSymmetric`, dense `svd`) keep a reference to
+the immutable input `DMat`, with no copy; the workspace route
+(`eigSymmetricWith`) keeps a packed copy of the input's lower triangle
+(`n(n+1)/2` doubles). Each source is released once its value is measured. An
+explicitly `unsafe` borrowed view is measured with its contents at the first
+read.
+
+## Divide-and-conquer dense symmetric eigenvectors
+
+From order 48, `Eigen.eigSymmetric` and `Eigen.eigSymmetricWith` with
+eigenvectors solve the tridiagonal problem by divide and conquer (Cuppen with
+`dlaed`-style deflation, a safeguarded secular solver and Gu–Eisenstat
+vectors), then form `V = Q Z`. Below order 48, for values only, and for the
+Lanczos and block-Krylov projected problems, the implicit QL solver is
+unchanged. This changes result bits at those orders. The tested bounds are:
+eigenvalues within `n·ε·max|λ|` of QL; residual `‖AV − VΛ‖_F ≤ n·ε·‖A‖_F` and
+at most `max(4 × QL residual, 2√n·ε·‖A‖_F)`; orthogonality
+`‖VᵀV − I‖_F ≤ 2n·ε`. The probes include clusters, repeated zeros, grading,
+glued Wilkinson matrices and 1e±300 scaling. Both routes still run one kernel and agree
+exactly, and the JVM and Scala.js agree because the merge products use
+unfused arithmetic.
+
+`Eigen.symmetricScratchRequirement(n, EigenVectors.Right)` therefore grows
+for `n ≥ 48` from `n` doubles to `n + 2n² + 105n` doubles and `7n` indices
+(the transposed tridiagonal eigenvectors, a packing region and per-merge
+vectors and panels — the same order as LAPACK `dsyevd`). Callers that size a
+`DenseWorkspace` from this requirement need no change; callers that
+hard-coded the former `n` must re-query it. Values-only requirements are
+unchanged. Above the largest order whose divide-and-conquer scratch is
+addressable (`n + 2n² + 105n ≤ Int.MaxValue`, i.e. `n ≤ 32,741`), both
+routes fall back to QL and the requirement is again `n` doubles, so vector
+solves keep working up to QL's own `n² ≤ Int.MaxValue` limit. Non-finite input keeps the QL path and its `DidNotConverge`
+behaviour. Peak memory of the ordinary `eigSymmetric` vector route at those
+orders is about `3n²` doubles (result plus transient scratch, 24 MB at
+`n = 1024`), against `n² + 2n` for QL; `eigSymmetricWith` draws the scratch
+from the caller's reusable workspace.

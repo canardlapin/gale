@@ -129,3 +129,82 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     )
     assert(generalizedSvd.requireExtremeCertified.isRight)
   }
+
+  test("deferred measurements run once, print as deferred, and match eager diagnostics") {
+    var residualRuns = 0
+    var orthogonalityRuns = 0
+    val deferred = SpectralDiagnostics.deferred(
+      requested = 2,
+      converged = 2,
+      residuals = () =>
+        residualRuns += 1
+        Vec(1e-14, 3e-14),
+      orthogonalityError = () =>
+        orthogonalityRuns += 1
+        2e-15,
+      iterations = 0,
+      rank = None,
+      extremalityCertified = true
+    )
+    assert(deferred.allConverged)
+    assert(deferred.requireExtremeCertified(()).isRight)
+    assertEquals(deferred.toString, "SpectralDiagnostics(2,2,<deferred>,<deferred>,0,None,true,None)")
+    assertEquals((residualRuns, orthogonalityRuns), (0, 0))
+
+    assertEqualsDouble(deferred.worstResidual, 3e-14, 0.0)
+    assertEqualsDouble(deferred.worstResidual, 3e-14, 0.0)
+    assertEquals((residualRuns, orthogonalityRuns), (1, 0))
+    assert(deferred.toString.endsWith(",<deferred>,0,None,true,None)"), deferred.toString)
+
+    // copy is strict: it measures what it carries over and shares the values.
+    val copied = deferred.copy(iterations = 4)
+    assertEquals((residualRuns, orthogonalityRuns), (1, 1))
+    assertEquals(copied.iterations, 4)
+    assert(copied.residuals eq deferred.residuals)
+    assertEqualsDouble(copied.orthogonalityError, 2e-15, 0.0)
+    assertEquals((residualRuns, orthogonalityRuns), (1, 1))
+
+    // DVec compares by reference (as the former case class did), so share it.
+    val eager = SpectralDiagnostics(2, 2, deferred.residuals, 2e-15, 0, None, extremalityCertified = true)
+    assert(!eager.toString.contains("<deferred>"), eager.toString)
+    assertEquals(deferred, eager)
+    assertEquals(deferred.hashCode, eager.hashCode)
+    assertEquals(deferred.toString, eager.toString)
+    assertNotEquals(deferred, eager.copy(orthogonalityError = 1.0))
+    assertEquals((residualRuns, orthogonalityRuns), (1, 1))
+  }
+
+  test("equality takes a deferred measurement") {
+    var runs = 0
+    def make() = SpectralDiagnostics.deferred(1, 1, () => { runs += 1; Vec(0.0) }, () => 0.0, 0, None, true)
+    val first = make()
+    assertNotEquals(first, make()) // distinct DVec instances compare by reference
+    assertEquals(runs, 2)
+  }
+
+  test("dense facades measure diagnostics on access to the same values as explicit products") {
+    val n = 7
+    val a = Matrix.tabulate(n, n)((r, c) => 1.0 / (1 + r + c) + (if r == c then r.toDouble else 0.0))
+    val eig = Eigen.eigSymmetric(a, EigenSelection.All).toOption.get
+    val v = eig.eigenvectors
+    val av = a * v
+    var worst = 0.0
+    var c = 0
+    while c < n do
+      val r = (av.col(c) - v.col(c) * eig.eigenvalues(c)).norm2
+      assertEqualsDouble(eig.diagnostics.residuals(c), r, 0.0)
+      worst = math.max(worst, r)
+      c += 1
+    assertEqualsDouble(eig.diagnostics.worstResidual, worst, 0.0)
+    assert(eig.diagnostics.orthogonalityError < 1e-13)
+
+    val workspace = Eigen.eigSymmetricWith(a, EigenSelection.All, gale.linalg.DenseWorkspace.empty).toOption.get
+    assertEquals(workspace.diagnostics.residuals.toSeq, eig.diagnostics.residuals.toSeq)
+    assertEqualsDouble(workspace.diagnostics.orthogonalityError, eig.diagnostics.orthogonalityError, 0.0)
+
+    val tall = Matrix.tabulate(9, 5)((r, c) => math.sin(1.0 + r * 5 + c))
+    val svd = Svds.svd(tall, SingularSelection.All).toOption.get
+    assertEquals(svd.diagnostics.residuals.length, 5)
+    assert(svd.diagnostics.worstResidual < 1e-12)
+    assert(svd.diagnostics.orthogonalityError < 1e-13)
+  }
