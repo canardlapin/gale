@@ -50,10 +50,11 @@ enum SpectralConvergenceStatus:
   * `unsafeFromBreezeView`) is measured with its contents at the time of the
   * first read.
   *
-  * Every other solver supplies values it already computed. `equals` and
-  * `hashCode` read both values (taking any deferred measurement); `toString`
-  * does not, and prints `<deferred>` for a value not yet measured. [[copy]]
-  * is strict: it measures any value it carries over.
+  * Every other solver supplies values it already computed. `equals` reads
+  * measurements as needed when comparing distinct instances; self-comparison
+  * does not measure. `hashCode` reads both values. `toString` does not measure,
+  * and prints `<deferred>` for a value not yet measured. [[copy]] is strict:
+  * it measures any value it carries over.
   */
 final class SpectralDiagnostics private (
     val requested: Int,
@@ -96,14 +97,17 @@ final class SpectralDiagnostics private (
       innerSolve
     )
 
-  /** Structural equality; reads both measurements (taking a deferred one). */
+  /** Structural equality; comparing an instance to itself does not measure it.
+    * Comparing distinct instances reads the measurements as needed.
+    */
   override def equals(other: Any): Boolean =
     other match
       case that: SpectralDiagnostics =>
-        requested == that.requested && converged == that.converged &&
-        residuals == that.residuals && orthogonalityError == that.orthogonalityError &&
-        iterations == that.iterations && rank == that.rank &&
-        extremalityCertified == that.extremalityCertified && innerSolve == that.innerSolve
+        (this eq that) ||
+          (requested == that.requested && converged == that.converged &&
+            residuals == that.residuals && orthogonalityError == that.orthogonalityError &&
+            iterations == that.iterations && rank == that.rank &&
+            extremalityCertified == that.extremalityCertified && innerSolve == that.innerSolve)
       case _ => false
 
   /** Consistent with [[equals]]; reads both measurements. */

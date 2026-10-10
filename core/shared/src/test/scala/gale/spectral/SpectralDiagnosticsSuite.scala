@@ -182,6 +182,27 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     assertEquals(runs, 2)
   }
 
+  test("equality is reflexive for NaN measurements without forcing deferred work") {
+    val residuals = Vec(Double.NaN)
+    val eager = SpectralDiagnostics(1, 1, residuals, Double.NaN, 0)
+    assert(eager.equals(eager))
+    // Preserve the former case class's field comparison for distinct objects.
+    assert(!eager.equals(SpectralDiagnostics(1, 1, residuals, Double.NaN, 0)))
+    assert(!eager.equals(null))
+    var runs = 0
+    val deferred = SpectralDiagnostics.deferred(
+      1, 1,
+      () => { runs += 1; residuals },
+      () => { runs += 1; Double.NaN },
+      0, None, true
+    )
+    assert(deferred.equals(deferred))
+    assertEquals(runs, 0)
+    assert(deferred.orthogonalityError.isNaN)
+    assert(deferred.equals(deferred))
+    assertEquals(runs, 1)
+  }
+
   test("dense facades measure diagnostics on access to the same values as explicit products") {
     val n = 7
     val a = Matrix.tabulate(n, n)((r, c) => 1.0 / (1 + r + c) + (if r == c then r.toDouble else 0.0))

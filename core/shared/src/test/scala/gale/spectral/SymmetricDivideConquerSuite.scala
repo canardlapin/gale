@@ -112,6 +112,33 @@ class SymmetricDivideConquerSuite extends munit.FunSuite:
       assertEquals(entries(second.eigenvectors), entries(first.eigenvectors), s"n=$n reuse")
   }
 
+  test("diagonal reductions keep QL ordering and vectors at D&C orders") {
+    val workspace = DenseWorkspace.empty
+    for n <- Seq(48, 77, 128); kind <- Seq("zero", "identity", "repeated") do
+      val diagonal = Array.tabulate(n): i =>
+        kind match
+          case "zero" => 0.0
+          case "identity" => 1.0
+          case _ => (n - i) % 7 - 3.0
+      val a = Matrix.tabulate(n, n)((r, c) => if r == c then diagonal(r) else 0.0)
+      val automatic = DenseSpectralKernels.symmetricEigen(a, wantVectors = true).toOption.get
+      val ql = DenseSpectralKernels.symmetricEigen(a, wantVectors = true, divideAndConquer = false).toOption.get
+      val reusable = DenseSpectralKernels.symmetricEigenWith(a, wantVectors = true, workspace).toOption.get
+      val expected = diagonal.sorted.toSeq
+      for result <- Seq(automatic, ql, reusable) do
+        assertEquals(result.values.toSeq, expected)
+        val v = result.vectors.get
+        assertEquals(entries(v), entries(ql.vectors.get))
+        val (residual, orth) = quality(a, result.values, v)
+        assertEquals(residual, 0.0)
+        assertEquals(orth, 0.0)
+      // Reusing D&C storage on a subsequent dense problem cannot alter the
+      // shortcut's separately owned result.
+      val saved = entries(reusable.vectors.get)
+      DenseSpectralKernels.symmetricEigenWith(gaussian(n, 7000L + n), wantVectors = true, workspace).toOption.get
+      assertEquals(entries(reusable.vectors.get), saved)
+  }
+
   private val probes: Seq[(String, () => DMat)] = Seq(
     "gaussian n=64" -> (() => gaussian(64, 1L)),
     "gaussian n=100" -> (() => gaussian(100, 2L)),

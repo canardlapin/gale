@@ -221,7 +221,7 @@ private[gale] object DenseSpectralKernels:
     require(a.cols == n, "symmetricEigen requires a square matrix")
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
-    val lifted = liftTinyInput(n, work, 0)
+    val unscale = scaleInputToSafeRange(n, work, 0)
     val result =
       if wantVectors && divideAndConquer && usesDivideAndConquer(n) then
         val requirement = symmetricEigenRequirement(n, wantVectors = true) match
@@ -236,7 +236,7 @@ private[gale] object DenseSpectralKernels:
         // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
         val z = if wantVectors then Some(work) else None
         solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
-    if lifted then lowerLiftedValues(n, d)
+    if unscale != 1.0 then rescaleValues(n, d, unscale)
     result
 
   /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own
@@ -256,49 +256,54 @@ private[gale] object DenseSpectralKernels:
       case Right(value) => value
     val scratch = workspace.doubles(requirement)
     val d = DoubleArray.alloc(n)
-    var lifted = false
+    var unscale = 1.0
     val result =
       if wantVectors then
         val work = DoubleArray.alloc(n * n)
         symmetrizeLowerInto(a, n, work, 0)
-        lifted = liftTinyInput(n, work, 0)
+        unscale = scaleInputToSafeRange(n, work, 0)
         val indices = workspace.indices(requirement)
         symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
       else
         val eOffset = n * n
         symmetrizeLowerInto(a, n, scratch, 0)
-        lifted = liftTinyInput(n, scratch, 0)
+        unscale = scaleInputToSafeRange(n, scratch, 0)
         tred2(n, scratch, 0, d, scratch, eOffset, accumulate = false)
         solveTridiagonal(n, d, scratch, eOffset, None, maxSweepsPerValue)
-    if lifted then lowerLiftedValues(n, d)
+    if unscale != 1.0 then rescaleValues(n, d, unscale)
     result
 
-  /** Scale the mirrored `n x n` input at `offset` by the exact `2^600` when it
-    * is nonzero and every entry is below `2^-600`, so the reduction and the
-    * tridiagonal solve do not run in or near the subnormal range (where their
-    * products lose relative accuracy). Returns whether it did; the caller then
-    * scales the eigenvalues back with [[lowerLiftedValues]]. Ordinary,
-    * huge and non-finite inputs are untouched.
+  /** Bring the mirrored input into a safe range before Householder reduction:
+    * multiply a nonzero max-entry norm below `2^-600` by `2^600`, or a finite
+    * norm above `2^600` by `2^-600`. Scaling only the reduced tridiagonal is
+    * too late: a large finite input can overflow the reduction's row-magnitude
+    * sums even when its spectrum is representable. Power-of-two scaling is
+    * exact except where small entries underflow; the guarantee is normwise.
+    * Returns the factor that restores the eigenvalues, or 1 when unchanged.
+    * Ordinary, zero and non-finite inputs are untouched.
     */
-  private def liftTinyInput(n: Int, a: DoubleArray, offset: Int): Boolean =
+  private def scaleInputToSafeRange(n: Int, a: DoubleArray, offset: Int): Double =
     var max = 0.0
     var i = 0
     while i < n * n do
       max = math.max(max, math.abs(a(offset + i)))
       i += 1
-    val lift = max > 0.0 && max < TinyTridiagonalEntry
-    if lift then
+    val factor =
+      if max > 0.0 && max < TinyTridiagonalEntry then ScaleUpHuge
+      else if max.isFinite && max > HugeTridiagonalEntry then ScaleDownHuge
+      else 1.0
+    if factor != 1.0 then
       i = 0
       while i < n * n do
-        a(offset + i) = a(offset + i) * ScaleUpHuge
+        a(offset + i) = a(offset + i) * factor
         i += 1
-    lift
+    1.0 / factor
 
-  /** Undo [[liftTinyInput]] on the eigenvalues (the result's own storage). */
-  private def lowerLiftedValues(n: Int, d: DoubleArray): Unit =
+  /** Undo [[scaleInputToSafeRange]] on the eigenvalues (the result's own storage). */
+  private def rescaleValues(n: Int, d: DoubleArray, factor: Double): Unit =
     var i = 0
     while i < n do
-      d(i) = d(i) * ScaleDownHuge
+      d(i) = d(i) * factor
       i += 1
 
   /** The vector route shared by [[symmetricEigen]] and [[symmetricEigenWith]].
@@ -318,7 +323,9 @@ private[gale] object DenseSpectralKernels:
       divideAndConquer: Boolean
   ): Either[SpectralKernelFailure, SymmetricEigen] =
     tred2(n, work, 0, d, scratch, 0, accumulate = true)
-    if !divideAndConquer || !usesDivideAndConquer(n) || !finiteTridiagonal(n, d, scratch) then
+    if !divideAndConquer || !usesDivideAndConquer(n) || !finiteTridiagonal(n, d, scratch) ||
+      diagonalTridiagonal(n, scratch)
+    then
       solveTridiagonal(n, d, scratch, 0, Some(work), maxSweeps)
     else
       // EISPACK e(i) = T(i-1, i) becomes off(i) = T(i, i+1).
@@ -344,6 +351,17 @@ private[gale] object DenseSpectralKernels:
             c += 1
           r += 1
         Right(SymmetricEigen(DVec.fromDoubleArrayOwned(d), Some(DMat.fromDoubleArrayOwned(n, n, work))))
+
+  /** An already-diagonal reduction needs only QL's sorting and basis transpose,
+    * with no sweeps. Avoid constructing Z and the cubic QZ product. Check exact
+    * zeros only: this shortcut introduces no new numerical deflation rule.
+    */
+  private def diagonalTridiagonal(n: Int, e: DoubleArray): Boolean =
+    var i = 1
+    while i < n do
+      if e(i) != 0.0 then return false
+      i += 1
+    true
 
   /** True when the tridiagonal from [[tred2]] (`d`, EISPACK `e(1..n-1)`) is
     * finite; non-finite input keeps the QL path and its failure semantics.

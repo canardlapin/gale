@@ -195,7 +195,9 @@ same field names, the same eager `SpectralDiagnostics(...)` constructor and
 defaults, and a `copy` with the same parameters. The synthesized `unapply`,
 `Product` members and `canEqual` are gone. `equals` and `hashCode` keep the
 former case-class meaning (`residuals` still compares as a `DVec`) and take
-any deferred measurement; `toString` does not, printing `<deferred>` for an
+deferred measurements as needed. Comparing an instance to itself returns true
+without measuring it, including when its orthogonality error is NaN.
+`toString` does not measure, printing `<deferred>` for an
 unmeasured value; `copy` is strict and measures what it carries over.
 The dense one-shot facades — `Eigen.eigSymmetric`, `Eigen.eigSymmetricWith`
 and the full dense `Svds.svd` path (which `pinv` and minimum-norm least squares
@@ -230,6 +232,20 @@ at most `max(4 × QL residual, 2√n·ε·‖A‖_F)`; orthogonality
 glued Wilkinson matrices and 1e±300 scaling. Both routes still run one kernel and agree
 exactly, and the JVM and Scala.js agree because the merge products use
 unfused arithmetic.
+
+An exactly diagonal reduced tridiagonal uses QL's sorting and basis transpose
+without sweeps, avoiding the cubic `Q Z` product. This includes zero and
+diagonal inputs; repeated eigenspaces follow QL's basis ordering. The shortcut
+does not change the reported workspace requirement or introduce a new
+deflation tolerance.
+
+Before reduction, finite dense inputs with max-entry norm above `2^600` are
+scaled by `2^-600`, complementing the existing `2^600` lift below `2^-600`.
+Eigenvalues are scaled back after solving. This prevents intermediate overflow
+in Householder reduction even when the original spectrum is representable;
+scaling only the resulting tridiagonal was insufficient. Large-input result
+bits may change; ordinary-scale bit pins and non-finite-input behavior are
+unchanged. Accuracy remains normwise: downscaling can underflow tiny entries.
 
 `Eigen.symmetricScratchRequirement(n, EigenVectors.Right)` therefore grows
 for `n ≥ 48` from `n` doubles to `n + 2n² + 105n` doubles and `7n` indices

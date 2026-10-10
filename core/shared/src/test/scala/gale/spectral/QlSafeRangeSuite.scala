@@ -57,6 +57,44 @@ class QlSafeRangeSuite extends munit.FunSuite:
     assertAccurate("cluster", a, ql.toOption.getOrElse(fail(s"QL failed: $ql")))
   }
 
+  test("large finite Hadamard inputs are scaled before reduction on every dense route") {
+    // Symmetric Sylvester H obeys H^2 = n I. At n=64 its spectrum is +/-8e307,
+    // all representable, but summing 63 row magnitudes of 1e307 overflowed.
+    // n=32 also covers the ordinary QL vector route below the D&C threshold.
+    for n <- Seq(32, 64) do
+      val unit = 1e307
+      def entry(r: Int, c: Int): Double =
+        if (java.lang.Integer.bitCount(r & c) & 1) == 0 then unit else -unit
+      val a = Matrix.tabulate(n, n)(entry)
+      val workspace = DenseWorkspace.empty
+      for wantVectors <- Seq(false, true) do
+        val ordinary = DenseSpectralKernels.symmetricEigen(a, wantVectors).toOption.get
+        val reusable = DenseSpectralKernels.symmetricEigenWith(a, wantVectors, workspace).toOption.get
+        val ql = DenseSpectralKernels.symmetricEigen(a, wantVectors, divideAndConquer = false).toOption.get
+        assertEquals(reusable.values.toSeq, ordinary.values.toSeq)
+        for result <- Seq(ordinary, reusable, ql) do
+          for i <- 0 until n do
+            val expected = if i < n / 2 then -math.sqrt(n.toDouble) else math.sqrt(n.toDouble)
+            assert(result.values(i).isFinite)
+            // Normwise eigenvalue bound n*epsilon*||H||_2, where ||H||_2=sqrt(n).
+            assertEqualsDouble(result.values(i) / unit, expected, n * Eps * math.abs(expected))
+          if wantVectors then assertAccurate(s"Hadamard n=$n", a, result)
+        if wantVectors then
+          for r <- 0 until n; c <- 0 until n do
+            assertEquals(reusable.vectors.get(r, c), ordinary.vectors.get(r, c))
+      // Neither route modifies the caller's matrix.
+      for r <- 0 until n; c <- 0 until n do assertEquals(a(r, c), entry(r, c))
+  }
+
+  test("large two-by-two spectrum is restored after input scaling") {
+    val a = Matrix.tabulate(2, 2)((r, c) => if r == c then 8e307 else 2e307)
+    for wantVectors <- Seq(false, true) do
+      val result = DenseSpectralKernels.symmetricEigen(a, wantVectors).toOption.get
+      assertEqualsDouble(result.values(0) / 1e307, 6.0, 8 * Eps)
+      assertEqualsDouble(result.values(1) / 1e307, 10.0, 16 * Eps)
+      if wantVectors then assertAccurate("large 2x2", a, result)
+  }
+
   test("QL converges and stays accurate on subnormal-scale (1e-310) entries") {
     val a = gaussian(90, 6L, 1e-310)
     val ql = DenseSpectralKernels.symmetricEigen(a, wantVectors = true, divideAndConquer = false)
