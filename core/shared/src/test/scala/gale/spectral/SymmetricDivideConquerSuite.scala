@@ -182,7 +182,7 @@ class SymmetricDivideConquerSuite extends munit.FunSuite:
       // test QL's luck rather than divide and conquer.
       val bound = n * Eps
       assert(dcResidual <= bound, s"residual $dcResidual > n·ε = $bound (QL $qlResidual)")
-      assert(dcOrth <= 4 * bound, s"orthogonality $dcOrth > 4n·ε (QL $qlOrth)")
+      assert(dcOrth <= 2 * bound, s"orthogonality $dcOrth > 2n·ε (QL $qlOrth)")
       assert(
         dcResidual <= math.max(4 * qlResidual, 2 * math.sqrt(n.toDouble) * Eps),
         s"residual $dcResidual vs QL $qlResidual"

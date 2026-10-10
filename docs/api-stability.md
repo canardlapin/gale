@@ -206,7 +206,7 @@ Lanczos and block-Krylov projected problems, the implicit QL solver is
 unchanged. This changes result bits at those orders. The tested bounds are:
 eigenvalues within `n·ε·max|λ|` of QL; residual `‖AV − VΛ‖_F ≤ n·ε·‖A‖_F` and
 at most `max(4 × QL residual, 2√n·ε·‖A‖_F)`; orthogonality
-`‖VᵀV − I‖_F ≤ 4n·ε`. The probes include clusters, repeated zeros, grading,
+`‖VᵀV − I‖_F ≤ 2n·ε`. The probes include clusters, repeated zeros, grading,
 glued Wilkinson matrices and 1e±300 scaling. Both routes still run one kernel and agree
 exactly, and the JVM and Scala.js agree because the merge products use
 unfused arithmetic.
