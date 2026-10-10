@@ -935,7 +935,12 @@ private[gale] object DenseSpectralKernels:
     orthes(n, h, ort)
     // Q must be accumulated from the reflectors stored below the subdiagonal
     // before those cells are cleared to expose a clean Hessenberg H.
-    val q = if wantQ then Some(DMat.fromDoubleArrayOwned(n, n, ortran(n, h, ort))) else None
+    val q =
+      if wantQ then
+        val qt = ortranTransposed(n, h, ort)
+        transposeSquareInPlace(n, qt)
+        Some(DMat.fromDoubleArrayOwned(n, n, qt))
+      else None
     zeroBelowSubdiagonal(n, h)
     Hessenberg(DMat.fromDoubleArrayOwned(n, n, h), q)
 
@@ -958,7 +963,9 @@ private[gale] object DenseSpectralKernels:
     val inputExponent = DenseInputScaling.normalize(h, n * n)
     val ort = DoubleArray.alloc(n)
     orthes(n, h, ort)
-    val z = if wantVectors then ortran(n, h, ort) else DoubleArray.alloc(0)
+    // `z` holds Qᵀ (row-major): each column of Q — the unit the QR sweeps and the
+    // back-transform update — is a contiguous row. It is transposed back once.
+    val z = if wantVectors then ortranTransposed(n, h, ort) else DoubleArray.alloc(0)
     zeroBelowSubdiagonal(n, h)
     val wr = DoubleArray.alloc(n)
     val wi = DoubleArray.alloc(n)
@@ -969,6 +976,7 @@ private[gale] object DenseSpectralKernels:
         val vectors =
           if wantVectors then
             normalizeSchurVectors(n, wr, wi, z)
+            transposeSquareInPlace(n, z)
             // Normalization must not hide a non-finite/overflowed vector norm
             // by returning an all-zero real column or packed complex pair.
             var j = 0
@@ -1008,7 +1016,7 @@ private[gale] object DenseSpectralKernels:
   /** Householder reduction to upper Hessenberg form (EISPACK `orthes`), in place
     * on the `n x n` row-major `h`, with `low = 0`, `high = n - 1`. The Householder
     * vectors are left in the strictly-below-subdiagonal cells (column `m-1`, rows
-    * `m+1..high`) and in `ort(m)`, for [[ortran]] to accumulate `Q`. Norms are
+    * `m+1..high`) and in `ort(m)`, for [[ortranTransposed]] to accumulate `Q`. Norms are
     * formed on the explicitly `scale`-normalized column to avoid overflow.
     */
   private def orthes(n: Int, h: DoubleArray, ort: DoubleArray): Unit =
@@ -1082,13 +1090,13 @@ private[gale] object DenseSpectralKernels:
       m += 1
 
   /** Accumulate the orthogonal `Q` (EISPACK `ortran`) from the reflectors
-    * [[orthes]] left in `h` and `ort`. Returns a fresh `n x n` row-major `Q`.
-    * Must run before the reflector cells in `h` are cleared.
+    * [[orthes]] left in `h` and `ort`. Returns a fresh `n x n` row-major '''`Qᵀ`'''
+    * (row `j` holds column `j` of `Q`), so every column dot product and update
+    * is contiguous. Must run before the reflector cells in `h` are cleared.
     */
-  private def ortran(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
+  private def ortranTransposed(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
     val high = n - 1
-    val z = identityRowMajor(n)
-    val colDot = DoubleArray.alloc(n)
+    val qt = identityRowMajor(n)
     var mp = high - 1
     while mp >= 1 do
       val sub = h(mp * n + (mp - 1))
@@ -1097,38 +1105,23 @@ private[gale] object DenseSpectralKernels:
         while i <= high do
           ort(i) = h(i * n + (mp - 1))
           i += 1
-        // Column dot products accumulate a row at a time (contiguous in the
-        // row-major `z`), each in the ascending-`i` order of a column walk.
         var j = mp
         while j <= high do
-          colDot(j) = 0.0
+          val row = j * n
+          var g = 0.0
+          i = mp
+          while i <= high do
+            g += ort(i) * qt(row + i)
+            i += 1
+          // Double division (by ort(mp) then by the subdiagonal) avoids underflow.
+          g = (g / ort(mp)) / sub
+          i = mp
+          while i <= high do
+            qt(row + i) = qt(row + i) + g * ort(i)
+            i += 1
           j += 1
-        i = mp
-        while i <= high do
-          val oi = ort(i)
-          val row = i * n
-          j = mp
-          while j <= high do
-            colDot(j) = colDot(j) + oi * z(row + j)
-            j += 1
-          i += 1
-        // Double division (by ort(mp) then by the subdiagonal) avoids underflow.
-        val om = ort(mp)
-        j = mp
-        while j <= high do
-          colDot(j) = (colDot(j) / om) / sub
-          j += 1
-        i = mp
-        while i <= high do
-          val oi = ort(i)
-          val row = i * n
-          j = mp
-          while j <= high do
-            z(row + j) = z(row + j) + colDot(j) * oi
-            j += 1
-          i += 1
       mp -= 1
-    z
+    qt
 
   /** Zero the strictly-below-subdiagonal cells of an `n x n` row-major matrix,
     * turning the reflector-carrying reduction output into a clean Hessenberg.
@@ -1149,8 +1142,8 @@ private[gale] object DenseSpectralKernels:
     * the eigenvalues in diagonal order — conjugate pairs adjacent, positive-
     * imaginary member first, with exact conjugate symmetry (`wr(j+1) == wr(j)`,
     * `wi(j+1) == -wi(j)`). When `hasVectors` is true, `z` holds the accumulated
-    * `Q` on entry and, on success, the real-Schur packed right eigenvectors on
-    * exit (back-substitution through the quasi-triangular `T` followed by the `Q`
+    * `Qᵀ` on entry and, on success, the transposed real-Schur packed right
+    * eigenvectors on exit (back-substitution through the quasi-triangular `T` followed by the `Q`
     * transform). When false, `z` is untouched and only the eigenvalues are formed.
     *
     * Returns `None` on success or `Some(sweeps)` if the total QR-step budget
@@ -1281,8 +1274,9 @@ private[gale] object DenseSpectralKernels:
   ): Unit =
     inline def hv(i: Int, j: Int): Double = h(i * n + j)
     inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
-    inline def zv(i: Int, j: Int): Double = z(i * n + j)
-    inline def sz(i: Int, j: Int, v: Double): Unit = z(i * n + j) = v
+    // `z` holds Qᵀ: Q(i, j) lives at row j, column i.
+    inline def zv(i: Int, j: Int): Double = z(j * n + i)
+    inline def sz(i: Int, j: Int, v: Double): Unit = z(j * n + i) = v
     val na = en - 1
     var p = (y - x) / 2.0
     val q = p * p + w
@@ -1392,8 +1386,9 @@ private[gale] object DenseSpectralKernels:
   ): Unit =
     inline def hv(i: Int, j: Int): Double = h(i * n + j)
     inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
-    inline def zv(i: Int, j: Int): Double = z(i * n + j)
-    inline def sz(i: Int, j: Int, v: Double): Unit = z(i * n + j) = v
+    // `z` holds Qᵀ: Q(i, j) lives at row j, column i.
+    inline def zv(i: Int, j: Int): Double = z(j * n + i)
+    inline def sz(i: Int, j: Int, v: Double): Unit = z(j * n + i) = v
 
     // Clear the fill introduced two and three rows below the diagonal.
     var i2 = m + 2
@@ -1625,34 +1620,35 @@ private[gale] object DenseSpectralKernels:
               j2 += 1
         i -= 1
 
-  /** Multiply the accumulated Q (`z`) by the triangular eigenvector matrix stored
-    * in `h`'s upper triangle, giving eigenvectors of the original matrix. Each row
-    * of `z` is formed in a buffer by streaming the rows of `h` (contiguous), with
-    * every entry summed over `k = 0..j` in ascending order.
+  /** Multiply the accumulated Q by the triangular eigenvector matrix stored in
+    * `h`'s upper triangle, giving eigenvectors of the original matrix. `z` holds
+    * Qᵀ, so eigenvector `j` is the contiguous row `j`: it is formed in a buffer as
+    * `Σ_{k ≤ j} h(k, j) · row_k`, summed in ascending `k`, and rows are formed
+    * high-to-low so each one reads only rows not yet overwritten.
     */
   private def backTransform(n: Int, h: DoubleArray, z: DoubleArray): Unit =
     val acc = DoubleArray.alloc(n)
-    var i = 0
-    while i < n do
-      val zRow = i * n
-      var j = 0
-      while j < n do
-        acc(j) = 0.0
-        j += 1
+    var j = n - 1
+    while j >= 0 do
+      var i = 0
+      while i < n do
+        acc(i) = 0.0
+        i += 1
       var kf = 0
-      while kf < n do
-        val zik = z(zRow + kf)
-        val hRow = kf * n
-        j = kf
-        while j < n do
-          acc(j) = acc(j) + zik * h(hRow + j)
-          j += 1
+      while kf <= j do
+        val hkj = h(kf * n + j)
+        val zRow = kf * n
+        i = 0
+        while i < n do
+          acc(i) = acc(i) + z(zRow + i) * hkj
+          i += 1
         kf += 1
-      j = 0
-      while j < n do
-        z(zRow + j) = acc(j)
-        j += 1
-      i += 1
+      val outRow = j * n
+      i = 0
+      while i < n do
+        z(outRow + i) = acc(i)
+        i += 1
+      j -= 1
 
   /** Complex division `(ar + ai·i) / (br + bi·i)` via the EISPACK `cdiv`
     * scaled formula (scale by `|br| + |bi|`), avoiding intermediate overflow.
@@ -1666,7 +1662,8 @@ private[gale] object DenseSpectralKernels:
     val d = brs * brs + bis * bis
     ((ars * brs + ais * bis) / d, (ais * brs - ars * bis) / d)
 
-  /** Normalize each real-Schur packed eigenvector to unit 2-norm — a real column
+  /** Normalize each real-Schur packed eigenvector, held as a row of the
+    * transposed `z`, to unit 2-norm — a real column
     * to `‖v‖ = 1`, a conjugate pair's two columns so the complex vector
     * `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair,
     * so the packing invariant and the `A v = λ v` relation are preserved.
@@ -1678,16 +1675,16 @@ private[gale] object DenseSpectralKernels:
         var nrm = 0.0
         var i = 0
         while i < n do
-          val re = z(i * n + col)
-          val im = z(i * n + col + 1)
+          val re = z(col * n + i)
+          val im = z((col + 1) * n + i)
           nrm += re * re + im * im
           i += 1
         nrm = math.sqrt(nrm)
         if nrm > 0.0 then
           i = 0
           while i < n do
-            z(i * n + col) = z(i * n + col) / nrm
-            z(i * n + col + 1) = z(i * n + col + 1) / nrm
+            z(col * n + i) = z(col * n + i) / nrm
+            z((col + 1) * n + i) = z((col + 1) * n + i) / nrm
             i += 1
         col += 2
       else
@@ -1696,14 +1693,14 @@ private[gale] object DenseSpectralKernels:
         var nrm = 0.0
         var i = 0
         while i < n do
-          val v = z(i * n + col)
+          val v = z(col * n + i)
           nrm += v * v
           i += 1
         nrm = math.sqrt(nrm)
         if nrm > 0.0 then
           i = 0
           while i < n do
-            z(i * n + col) = z(i * n + col) / nrm
+            z(col * n + i) = z(col * n + i) / nrm
             i += 1
         col += 1
 
