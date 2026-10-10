@@ -119,7 +119,7 @@ identical seeded `@Setup` data at matching `@Param` sizes:
 - `SymEigenBreezeJmh` — symmetric eigen with vectors: gale `Eigen.eigSymmetric(All)` vs breeze `eigSym` (`n` in {16, 64, 128}).
 - `FactorizationLargeBreezeJmh` — `solve`, `lu`, `chol`, `qr`, `lstsq` (`m = 2n`) and `eigSym` at `n` in {512, 1024}; average time, kept apart so the small sweeps stay bounded.
 - `MultiRhsBreezeJmh` — `luSolve` (`A \ B`) and `cholSolve` (Breeze twin: netlib `dpotrf` + `dpotrs`, as Breeze has no Cholesky solve) at `n = 256`, `k = 64`.
-- `DenseDecompositionBreezeJmh` — `inv` (gale `A.solve(I)`), `det`, `pinv`, full `svd`, nonsymmetric `eig` (`n` in {16, 64, 256}).
+- `DenseDecompositionBreezeJmh` — `inv` (gale `A.inverse`), `det`, `pinv`, full `svd`, nonsymmetric `eig` (`n` in {16, 64, 256}).
 - `SmallDenseBreezeJmh` — `gemm`, `solve`, `inv`, `det` at `n` in {3, 4} (report-only).
 - `SparseMatrixBreezeJmh` — CSC/CSR matvec and sparse × dense (`n × 32`) vs Breeze `CSCMatrix` (`n` in {1000, 10000}, `density` in {0.01, 0.1}); Breeze has no CSR, so its CSR twins repeat the CSC product.
 - `SparseVectorBreezeJmh` — `dot`, `dotDense`, in-place `axpy`, `add` (length 100000, `nnz` in {1000, 10000}).

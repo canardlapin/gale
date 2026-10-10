@@ -516,6 +516,7 @@ are cross-checked.
 | Norms | `norm1`, `norm2`, `normInf`, `normFrobenius` | Matrix `norm1`/`normInf` are the induced column/row-sum norms. |
 | Log-sum-exp and softmax | `Numerics.logSumExp`, `Numerics.softmax` | Breeze's `softmax(v)` is the scalar log-sum-exp; Gale's `softmax` is the normalized vector. |
 | Square solve with vector or matrix RHS | `A.solve(b)`, `A.solve(B)` | Returns `Either`; matrix RHS is factored once. |
+| Inverse | `A.inverse` (Breeze `inv(A)`) | Returns `Either`; singular input is `Left(SingularMatrix(k))` where Breeze throws. Prefer `A.solve(B)` for `A⁻¹B`. |
 | Least squares | `A.leastSquares(b)` or `A.leastSquares(B)` | Tall, full-column-rank systems; rank deficiency is reported. |
 | LU, Cholesky, QR, determinant | `A.lu`, `A.cholesky`, `A.qr`, `A.det` | Typed factors and failures; legal signs and pivots may differ. |
 | Rank | `A.rankEstimate` | Numerical estimate with Gale's tolerance policy. |

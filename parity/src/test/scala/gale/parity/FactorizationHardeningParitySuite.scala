@@ -174,10 +174,11 @@ class FactorizationHardeningParitySuite extends munit.FunSuite:
       )
   }
 
-  test("large n inverse (with and without pivoting): residual, and gale solve(I) vs breeze inv") {
+  test("large n inverse (with and without pivoting): residual, and gale solve(I) and inverse vs breeze inv") {
     for (n, seed) <- largeSizes.zip(List(31L, 32L, 33L, 34L)); (family, data, _) <- luFamilies(n, seed) do
       val tol = forwardTol(n, kappa(data))
       assertInverse(data, galeMatrix(data).solve(Matrix.eye(n)).orThrow, tol, s"$family n=$n")
+      assertInverse(data, galeMatrix(data).inverse.orThrow, tol, s"inverse $family n=$n")
   }
 
   test("large n QR: reconstruction, orthonormality, and RᵀR = AᵀA") {
@@ -228,6 +229,7 @@ class FactorizationHardeningParitySuite extends munit.FunSuite:
       assertVecClose(ga.solve(Vec(2.0)).orThrow, ba \ BDV(2.0), Eps, s"solve [$value]")
       assertMatClose(ga.solve(Matrix(1, 3)(1.0, -2.0, 4.0)).orThrow, ba \ BDM((1.0, -2.0, 4.0)), Eps, s"solve RHS [$value]")
       assertMatClose(ga.solve(Matrix.eye(1)).orThrow, inv(ba), Eps, s"inv [$value]")
+      assertMatClose(ga.inverse.orThrow, inv(ba), Eps, s"inverse [$value]")
       val r = ga.qr.r(0, 0)
       assertScalarClose(math.abs(r), math.abs(qr(ba).r(0, 0)), 0.0, s"|R| [$value]")
       assertVecClose(ga.leastSquares(Vec(2.0)).orThrow, ba \ BDV(2.0), Eps, s"lstsq [$value]")

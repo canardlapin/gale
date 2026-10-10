@@ -261,7 +261,7 @@
  },
  {
   "jmhVersion": "1.37",
-  "benchmark": "gale.bench.DenseDecompositionBreezeJmh.galeInv",
+  "benchmark": "gale.bench.ReductionBreezeJmh.galeSum",
   "mode": "thrpt",
   "threads": 1,
   "forks": 2,
@@ -273,8 +273,7 @@
   "vmName": "OpenJDK 64-Bit Server VM",
   "vmVersion": "25.0.1",
   "params": {
-   "backend": "pure",
-   "n": "64"
+   "n": "1024"
   },
   "primaryMetric": {
    "score": 500,
@@ -294,7 +293,7 @@
  },
  {
   "jmhVersion": "1.37",
-  "benchmark": "gale.bench.DenseDecompositionBreezeJmh.breezeInv",
+  "benchmark": "gale.bench.ReductionBreezeJmh.breezeSum",
   "mode": "thrpt",
   "threads": 1,
   "forks": 2,
@@ -306,7 +305,7 @@
   "vmName": "OpenJDK 64-Bit Server VM",
   "vmVersion": "25.0.1",
   "params": {
-   "n": "64"
+   "n": "1024"
   },
   "primaryMetric": {
    "score": 1000,

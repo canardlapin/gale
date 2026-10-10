@@ -586,6 +586,188 @@ private[gale] object DoubleKernels:
         i -= 1
       -1
 
+  /** Rows per diagonal block of [[dtrsmLeft]]. Small blocks keep nearly all of the
+    * work in the register-tiled [[dgemm]] update; 4 to 16 measured within noise
+    * of each other at n = 64 to 512, and all well ahead of 32 and 64.
+    */
+  private inline val TrsmBlock = 8
+
+  /** In-place multi-right-hand-side triangular solve `T X = B` (`B` holds the
+    * right-hand sides on entry and the solution on exit). `T` is `n × n` with
+    * arbitrary strides, so `Lᵀ` is the lower factor with its strides swapped. `B`
+    * is `n × nrhs`, '''row-major with unit column stride''' and leading dimension
+    * `ldb`. `lower` selects forward vs back substitution; `unit` uses an implicit
+    * unit diagonal and never reads the stored one.
+    *
+    * Returns the index of the first exactly-zero diagonal in substitution order
+    * (ascending for `lower`, descending otherwise) — the index [[dtrsv]] reports
+    * with `tol == 0` — or `-1` on success. The diagonal is scanned before any
+    * write, so a failed solve leaves `B` untouched, except a single right-hand
+    * side with `n` within one block: that is [[dtrsv]] itself, which may already
+    * have written the rows it solved before the zero diagonal.
+    *
+    * Blocked left-looking: each diagonal block of rows first subtracts the
+    * contribution of the rows already solved through one [[dgemm]] (`alpha = -1`,
+    * `beta = 1`), then substitutes within the block. Above one block, a `T`
+    * without unit column stride is first packed row-major (its triangle only) so
+    * that update takes the row-major path. When `n` fits one block the
+    * per-element arithmetic is exactly that of [[dtrsv]] on each column.
+    */
+  def dtrsmLeft(
+      lower: Boolean,
+      unit: Boolean,
+      n: Int,
+      nrhs: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      aRowStride: Int,
+      aColStride: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      ldb: Int
+  ): Int =
+    // One column within one block is exactly dtrsv, which reports the same index.
+    if nrhs == 1 && n <= TrsmBlock then return dtrsv(n, lower, unit, 0.0, a, aOffset, aRowStride, aColStride, b, bOffset, ldb)
+    if !unit then
+      var i = 0
+      while i < n do
+        val row = if lower then i else n - 1 - i
+        if a(aOffset + row * (aRowStride + aColStride)) == 0.0 then return row
+        i += 1
+    if n <= TrsmBlock then
+      if nrhs < 4 then
+        // Tiny systems with no four-column group: the single-column kernel
+        // directly (identical arithmetic, less per-call work).
+        var c = 0
+        while c < nrhs do
+          dtrsv(n, lower, unit, 0.0, a, aOffset, aRowStride, aColStride, b, bOffset + c, ldb)
+          c += 1
+      else trsmDiagonalBlock(lower, unit, n, nrhs, a, aOffset, aRowStride, aColStride, b, bOffset, ldb)
+    else if aColStride != 1 then
+      val packed = DoubleArray.alloc(n * n)
+      var i = 0
+      while i < n do
+        var j = if lower then 0 else i
+        val jEnd = if lower then i + 1 else n
+        var aij = aOffset + i * aRowStride + j * aColStride
+        while j < jEnd do
+          packed(i * n + j) = a(aij)
+          aij += aColStride
+          j += 1
+        i += 1
+      trsmBlocked(lower, unit, n, nrhs, packed, 0, n, b, bOffset, ldb)
+    else trsmBlocked(lower, unit, n, nrhs, a, aOffset, aRowStride, b, bOffset, ldb)
+    -1
+
+  private def trsmBlocked(
+      lower: Boolean,
+      unit: Boolean,
+      n: Int,
+      nrhs: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      lda: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      ldb: Int
+  ): Unit =
+    if lower then
+      var i0 = 0
+      while i0 < n do
+        val nb = math.min(TrsmBlock, n - i0)
+        if i0 > 0 then
+          dgemm(
+            nb, nrhs, i0, -1.0, a, aOffset + i0 * lda, lda, 1, b, bOffset, ldb, 1, 1.0, b, bOffset + i0 * ldb, ldb, 1
+          )
+        trsmDiagonalBlock(lower, unit, nb, nrhs, a, aOffset + i0 * lda + i0, lda, 1, b, bOffset + i0 * ldb, ldb)
+        i0 += nb
+    else
+      var i1 = n
+      while i1 > 0 do
+        val i0 = math.max(0, i1 - TrsmBlock)
+        val nb = i1 - i0
+        if i1 < n then
+          dgemm(
+            nb, nrhs, n - i1, -1.0, a, aOffset + i0 * lda + i1, lda, 1, b, bOffset + i1 * ldb, ldb, 1, 1.0, b,
+            bOffset + i0 * ldb, ldb, 1
+          )
+        trsmDiagonalBlock(lower, unit, nb, nrhs, a, aOffset + i0 * lda + i0, lda, 1, b, bOffset + i0 * ldb, ldb)
+        i1 = i0
+
+  /** Substitution within one `nb × nb` diagonal block of [[dtrsmLeft]], four
+    * right-hand-side columns at a time so each load of `T` feeds four
+    * independent FMA chains. Each element follows [[dtrsv]]'s exact sequence.
+    */
+  private def trsmDiagonalBlock(
+      lower: Boolean,
+      unit: Boolean,
+      nb: Int,
+      nrhs: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      aRowStride: Int,
+      aColStride: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      ldb: Int
+  ): Unit =
+    val colMain = nrhs & ~3
+    var c = 0
+    while c < colMain do
+      var step = 0
+      while step < nb do
+        val i = if lower then step else nb - 1 - step
+        val aRow = aOffset + i * aRowStride
+        val bi = bOffset + i * ldb + c
+        var s0 = b(bi)
+        var s1 = b(bi + 1)
+        var s2 = b(bi + 2)
+        var s3 = b(bi + 3)
+        var j = if lower then 0 else i + 1
+        val jEnd = if lower then i else nb
+        var aij = aRow + j * aColStride
+        var bj = bOffset + j * ldb + c
+        while j < jEnd do
+          val t = -a(aij)
+          s0 = fma(t, b(bj), s0)
+          s1 = fma(t, b(bj + 1), s1)
+          s2 = fma(t, b(bj + 2), s2)
+          s3 = fma(t, b(bj + 3), s3)
+          aij += aColStride
+          bj += ldb
+          j += 1
+        if !unit then
+          val d = a(aRow + i * aColStride)
+          s0 = s0 / d
+          s1 = s1 / d
+          s2 = s2 / d
+          s3 = s3 / d
+        b(bi) = s0
+        b(bi + 1) = s1
+        b(bi + 2) = s2
+        b(bi + 3) = s3
+        step += 1
+      c += 4
+    while c < nrhs do
+      var step = 0
+      while step < nb do
+        val i = if lower then step else nb - 1 - step
+        val aRow = aOffset + i * aRowStride
+        val bi = bOffset + i * ldb + c
+        var s = b(bi)
+        var j = if lower then 0 else i + 1
+        val jEnd = if lower then i else nb
+        var aij = aRow + j * aColStride
+        var bj = bOffset + j * ldb + c
+        while j < jEnd do
+          s = fma(-a(aij), b(bj), s)
+          aij += aColStride
+          bj += ldb
+          j += 1
+        b(bi) = if unit then s else s / a(aRow + i * aColStride)
+        step += 1
+      c += 1
+
   /** Above this element count (`64^3`) the row-major path blocks for cache reuse. */
   private inline val GemmBlockThreshold = 262144L
   // 128 measured best with the 4x4 register panel (n=256 gemm: 267 -> 356 ops/s

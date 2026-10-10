@@ -119,6 +119,12 @@ final case class LU private[gale] (
   def det: Either[LinAlgError, Double] =
     DenseDecompositions.det(this)
 
+  /** The inverse `A⁻¹` of the factored matrix, formed from the LU factors as `U⁻¹ L⁻¹ P` (about `4n³/3` flops) rather
+    * than by solving against the identity. Prefer [[solve]] when only `A⁻¹ B` is needed.
+    */
+  def inverse: Either[LinAlgError, DMat] =
+    DenseDecompositions.inverse(this)
+
 /** Cholesky factorization `A = L Lᵀ` of a symmetric positive-definite matrix, holding the lower factor `L`.
   *
   * The factorization reads only the '''lower triangle''' of the input (including the diagonal); the strict upper
@@ -221,40 +227,97 @@ object DenseDecompositions:
         pivots(i) = i
         i += 1
 
+      // Two pivot columns per pass: column k is factored, column k + 1 and row
+      // k + 1 take step k's update, column k + 1 is factored, and the trailing
+      // block then takes both rank-1 updates in one sweep. Every element sees
+      // exactly the sequential operations in the sequential order, so the
+      // factors match the one-column-at-a-time elimination bit for bit; the
+      // trailing block is read and written once per two columns instead of once
+      // per column.
       var parity = 1
       var k = 0
       while k < n do
-        var pivot = k
-        var maxAbs = math.abs(packed(k * n + k))
-        i = k + 1
-        while i < n do
-          val candidate = math.abs(packed(i * n + k))
-          if candidate > maxAbs then
-            maxAbs = candidate
-            pivot = i
-          i += 1
-
-        if maxAbs == 0.0 || maxAbs.isNaN then return Left(LinAlgError.SingularMatrix(k))
-
+        val pivot = luPivotRow(packed, n, k)
+        if pivot < 0 then return Left(LinAlgError.SingularMatrix(k))
         if pivot != k then
           swapRows(packed, n, k, pivot)
           val tmpPivot = pivots(k)
           pivots(k) = pivots(pivot)
           pivots(pivot) = tmpPivot
           parity = -parity
-
-        val pivotValue = packed(k * n + k)
+        val rowK = k * n
+        val pivotValue = packed(rowK + k)
         i = k + 1
         while i < n do
           val ik = i * n + k
           packed(ik) = packed(ik) / pivotValue
-          val multiplier = packed(ik)
-          var j = k + 1
-          while j < n do
-            packed(i * n + j) = packed(i * n + j) - multiplier * packed(k * n + j)
-            j += 1
           i += 1
-        k += 1
+
+        val k1 = k + 1
+        if k1 == n then k = n
+        else
+          val rowK1 = k1 * n
+          val uKK1 = packed(rowK + k1)
+          i = k1
+          while i < n do
+            val row = i * n
+            packed(row + k1) = packed(row + k1) - packed(row + k) * uKK1
+            i += 1
+          val pivot1 = luPivotRow(packed, n, k1)
+          if pivot1 < 0 then return Left(LinAlgError.SingularMatrix(k1))
+          if pivot1 != k1 then
+            swapRows(packed, n, k1, pivot1)
+            val tmpPivot = pivots(k1)
+            pivots(k1) = pivots(pivot1)
+            pivots(pivot1) = tmpPivot
+            parity = -parity
+          val pivotValue1 = packed(rowK1 + k1)
+          val lK1K = packed(rowK1 + k)
+          var j = k + 2
+          while j < n do
+            packed(rowK1 + j) = packed(rowK1 + j) - lK1K * packed(rowK + j)
+            j += 1
+          // Trailing rows four at a time, so each loaded pair of pivot-row entries
+          // feeds four rows; then the 0-3 leftover rows.
+          i = k + 2
+          while i + 3 < n do
+            val row = i * n
+            val rowB = row + n
+            val rowC = rowB + n
+            val rowD = rowC + n
+            val l0 = packed(row + k)
+            val l1 = packed(row + k1) / pivotValue1
+            packed(row + k1) = l1
+            val m0 = packed(rowB + k)
+            val m1 = packed(rowB + k1) / pivotValue1
+            packed(rowB + k1) = m1
+            val p0 = packed(rowC + k)
+            val p1 = packed(rowC + k1) / pivotValue1
+            packed(rowC + k1) = p1
+            val q0 = packed(rowD + k)
+            val q1 = packed(rowD + k1) / pivotValue1
+            packed(rowD + k1) = q1
+            j = k + 2
+            while j < n do
+              val u0 = packed(rowK + j)
+              val u1 = packed(rowK1 + j)
+              packed(row + j) = (packed(row + j) - l0 * u0) - l1 * u1
+              packed(rowB + j) = (packed(rowB + j) - m0 * u0) - m1 * u1
+              packed(rowC + j) = (packed(rowC + j) - p0 * u0) - p1 * u1
+              packed(rowD + j) = (packed(rowD + j) - q0 * u0) - q1 * u1
+              j += 1
+            i += 4
+          while i < n do
+            val row = i * n
+            val l0 = packed(row + k)
+            val l1 = packed(row + k1) / pivotValue1
+            packed(row + k1) = l1
+            j = k + 2
+            while j < n do
+              packed(row + j) = (packed(row + j) - l0 * packed(rowK + j)) - l1 * packed(rowK1 + j)
+              j += 1
+            i += 1
+          k += 2
 
       Right(
         LU(
@@ -821,8 +884,21 @@ object DenseDecompositions:
       while j < width do
         scratch(scratchOffset + j) = 0.0
         j += 1
+      // Two rows per sweep load and store each scratch entry once per pair; the
+      // nested FMAs keep the one-row accumulation order exactly.
       var i = k
-      while i < m do
+      while i + 1 < m do
+        val vi = reflectors(i * limit + k)
+        val vi1 = reflectors((i + 1) * limit + k)
+        val rRow = i * n + colFrom
+        val rRow1 = rRow + n
+        j = 0
+        while j < width do
+          val wj = scratchOffset + j
+          scratch(wj) = fma(vi1, r(rRow1 + j), fma(vi, r(rRow + j), scratch(wj)))
+          j += 1
+        i += 2
+      if i < m then
         val vi = reflectors(i * limit + k)
         val rRow = i * n + colFrom
         j = 0
@@ -830,20 +906,30 @@ object DenseDecompositions:
           val wj = scratchOffset + j
           scratch(wj) = fma(vi, r(rRow + j), scratch(wj))
           j += 1
-        i += 1
       j = 0
       while j < width do
         scratch(scratchOffset + j) = tauK * scratch(scratchOffset + j)
         j += 1
       i = k
-      while i < m do
+      while i + 1 < m do
+        val vi = reflectors(i * limit + k)
+        val vi1 = reflectors((i + 1) * limit + k)
+        val rRow = i * n + colFrom
+        val rRow1 = rRow + n
+        j = 0
+        while j < width do
+          val w = scratch(scratchOffset + j)
+          r(rRow + j) = fma(-vi, w, r(rRow + j))
+          r(rRow1 + j) = fma(-vi1, w, r(rRow1 + j))
+          j += 1
+        i += 2
+      if i < m then
         val vi = reflectors(i * limit + k)
         val rRow = i * n + colFrom
         j = 0
         while j < width do
           r(rRow + j) = fma(-vi, scratch(scratchOffset + j), r(rRow + j))
           j += 1
-        i += 1
 
   /** Form the upper-triangular compact-WY factor `T` for one reflector panel. */
   private def formCompactWY(
@@ -1235,11 +1321,6 @@ object DenseDecompositions:
       )
     else
       val rhsCols = b.cols
-      val packed = lu.packed
-      val packedData = packed.data
-      val packedOffset = packed.offset.value
-      val packedRowStride = packed.rowStride.value
-      val packedColStride = packed.colStride.value
       val values = DoubleArray.alloc(n * rhsCols)
       var row = 0
       while row < n do
@@ -1250,36 +1331,40 @@ object DenseDecompositions:
           rhs += 1
         row += 1
 
-      var rhs = 0
-      while rhs < rhsCols do
-        DoubleKernels.dtrsv(
-          n,
-          lower = true,
-          unit = true,
-          0.0,
-          packedData,
-          packedOffset,
-          packedRowStride,
-          packedColStride,
-          values,
-          rhs,
-          rhsCols
-        )
-        val info = DoubleKernels.dtrsv(
-          n,
+      // Both sweeps run on all right-hand sides at once through the blocked
+      // triangular kernel.
+      val pData = lu.packed.data
+      val pOff = lu.packed.offset.value
+      val pRowStep = lu.packed.rowStride.value
+      val pColStep = lu.packed.colStride.value
+      DoubleKernels.dtrsmLeft(
+        lower = true,
+        unit = true,
+        n,
+        rhsCols,
+        pData,
+        pOff,
+        pRowStep,
+        pColStep,
+        values,
+        0,
+        rhsCols
+      )
+      val info =
+        DoubleKernels.dtrsmLeft(
           lower = false,
           unit = false,
-          0.0,
-          packedData,
-          packedOffset,
-          packedRowStride,
-          packedColStride,
+          n,
+          rhsCols,
+          pData,
+          pOff,
+          pRowStep,
+          pColStep,
           values,
-          rhs,
+          0,
           rhsCols
         )
-        if info >= 0 then return Left(LinAlgError.SingularMatrix(info))
-        rhs += 1
+      if info >= 0 then return Left(LinAlgError.SingularMatrix(info))
       Right(DMat.fromDoubleArrayOwned(n, rhsCols, values))
 
   def solve(cholesky: Cholesky, b: DVec): Either[LinAlgError, DVec] =
@@ -1320,33 +1405,18 @@ object DenseDecompositions:
       val rhsCols = b.cols
       val x = b.toDoubleArrayCopyRowMajor
       if !finiteCholeskyValues(x) then return Left(LinAlgError.InvalidArgument("non-finite Cholesky right-hand side"))
-      val lower = cholesky.lower
-      var row = 0
-      while row < n do
-        val diagonal = lower(row, row)
-        var rhs = 0
-        while rhs < rhsCols do
-          var value = x(row * rhsCols + rhs)
-          var k = 0
-          while k < row do
-            value -= lower(row, k) * x(k * rhsCols + rhs)
-            k += 1
-          x(row * rhsCols + rhs) = value / diagonal
-          rhs += 1
-        row += 1
-      row = n - 1
-      while row >= 0 do
-        val diagonal = lower(row, row)
-        var rhs = 0
-        while rhs < rhsCols do
-          var value = x(row * rhsCols + rhs)
-          var k = row + 1
-          while k < n do
-            value -= lower(k, row) * x(k * rhsCols + rhs)
-            k += 1
-          x(row * rhsCols + rhs) = value / diagonal
-          rhs += 1
-        row -= 1
+      // L Y = B, then Lᵀ X = Y: the transpose is the same storage with row and
+      // column strides swapped, as in the vector solve.
+      val lData = cholesky.lower.data
+      val lOff = cholesky.lower.offset.value
+      val lRowStep = cholesky.lower.rowStride.value
+      val lColStep = cholesky.lower.colStride.value
+      val forward =
+        DoubleKernels.dtrsmLeft(lower = true, unit = false, n, rhsCols, lData, lOff, lRowStep, lColStep, x, 0, rhsCols)
+      if forward >= 0 then return Left(LinAlgError.NotPositiveDefinite(forward))
+      val back =
+        DoubleKernels.dtrsmLeft(lower = false, unit = false, n, rhsCols, lData, lOff, lColStep, lRowStep, x, 0, rhsCols)
+      if back >= 0 then return Left(LinAlgError.NotPositiveDefinite(back))
       if !finiteCholeskyValues(x) then Left(LinAlgError.InvalidArgument("non-finite Cholesky solution"))
       else Right(DMat.fromDoubleArrayOwned(n, rhsCols, x))
 
@@ -1891,6 +1961,73 @@ object DenseDecompositions:
         out *= lu.packed(i, i)
         i += 1
       Right(out)
+
+  /** Columns of `L⁻¹` formed per triangular solve in [[inverse]]. */
+  private inline val InverseColumnBlock = 16
+
+  def inverse(lu: LU): Either[LinAlgError, DMat] =
+    val n = lu.packed.rows
+    if lu.packed.cols != n then Left(LinAlgError.NonSquareMatrix(lu.packed.shape))
+    else
+      val packed = lu.packed
+      val (pData, pOff, pRowStep) =
+        if packed.colStride.value == 1 then (packed.data, packed.offset.value, packed.rowStride.value)
+        else (packed.toDoubleArrayCopyRowMajor, 0, n)
+      // W = L⁻¹ in place over the identity. A block of identity columns starting
+      // at c0 is zero above row c0, so only the trailing system L[c0:, c0:] is
+      // solved for it: n³/3 flops in all instead of n³.
+      val w = DoubleArray.alloc(n * n)
+      var i = 0
+      while i < n do
+        w(i * n + i) = 1.0
+        i += 1
+      var c0 = 0
+      while c0 < n do
+        val width = math.min(InverseColumnBlock, n - c0)
+        DoubleKernels.dtrsmLeft(
+          lower = true,
+          unit = true,
+          n - c0,
+          width,
+          pData,
+          pOff + c0 * (pRowStep + 1),
+          pRowStep,
+          1,
+          w,
+          c0 * n + c0,
+          n
+        )
+        c0 += width
+      // Z = U⁻¹ W = U⁻¹ L⁻¹, then A⁻¹ = Z P: column i of Z is column pivots(i) of A⁻¹.
+      val info = DoubleKernels.dtrsmLeft(lower = false, unit = false, n, n, pData, pOff, pRowStep, 1, w, 0, n)
+      if info >= 0 then Left(LinAlgError.SingularMatrix(info))
+      else
+        val pivots = lu.pivots.toArray
+        val out = DoubleArray.alloc(n * n)
+        var row = 0
+        while row < n do
+          val base = row * n
+          var col = 0
+          while col < n do
+            out(base + pivots(col)) = w(base + col)
+            col += 1
+          row += 1
+        Right(DMat.fromDoubleArrayOwned(n, n, out))
+
+  /** Partial-pivot row for LU column `k`: the first row at or below `k` with the largest magnitude, or `-1` when that
+    * magnitude is `0` or the diagonal is NaN.
+    */
+  private def luPivotRow(packed: DoubleArray, n: Int, k: Int): Int =
+    var pivot = k
+    var maxAbs = math.abs(packed(k * n + k))
+    var i = k + 1
+    while i < n do
+      val candidate = math.abs(packed(i * n + k))
+      if candidate > maxAbs then
+        maxAbs = candidate
+        pivot = i
+      i += 1
+    if maxAbs == 0.0 || maxAbs.isNaN then -1 else pivot
 
   private def swapRows(values: DoubleArray, cols: Int, r1: Int, r2: Int): Unit =
     var col = 0

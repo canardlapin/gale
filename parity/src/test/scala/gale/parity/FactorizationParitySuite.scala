@@ -170,6 +170,22 @@ class FactorizationParitySuite extends munit.FunSuite:
       assertMatClose(gx, bx, solveTol, s"inv n=$n seed=$seed")
   }
 
+  test("inverse: gale A.inverse matches breeze inv(A), with and without row pivoting") {
+    for n <- List(1, 5, 12, 20, 100); seed <- List(1L, 2L) do
+      for (family, aData) <- List("dominant" -> diagonallyDominant(n, seed), "random" -> matrixData(n, n, seed + 7)) do
+        val gx = galeMatrix(aData).inverse.orThrow
+        val bx = inv(breezeMatrix(aData))
+        // The random family is not diagonally dominant: scale by its condition.
+        val tol = if family == "dominant" then solveTol else solveTol * cond(breezeMatrix(aData))
+        assertMatClose(gx, bx, tol, s"inverse $family n=$n seed=$seed")
+  }
+
+  test("inverse: an exactly singular matrix is a typed Left where breeze throws") {
+    val singular = Array(Array(1.0, 2.0, 3.0), Array(2.0, 4.0, 6.0), Array(1.0, 0.0, 1.0))
+    assertEquals(galeMatrix(singular).inverse, Left(LinAlgError.SingularMatrix(2)))
+    intercept[breeze.linalg.MatrixSingularException](inv(breezeMatrix(singular)))
+  }
+
   // ---------------------------------------------------------------------------
   // QR (Q R = A; compare sign-free invariants)
   // ---------------------------------------------------------------------------
