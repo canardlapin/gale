@@ -119,8 +119,8 @@ final case class LU private[gale] (
   def det: Either[LinAlgError, Double] =
     DenseDecompositions.det(this)
 
-  /** The inverse `A⁻¹` of the factored matrix, formed from the factors as LAPACK `dgetri` does (`U⁻¹ L⁻¹ P`, about
-    * `4n³/3` flops) rather than by solving against the identity. Prefer [[solve]] when only `A⁻¹ B` is needed.
+  /** The inverse `A⁻¹` of the factored matrix, formed from the LU factors as `U⁻¹ L⁻¹ P` (about `4n³/3` flops) rather
+    * than by solving against the identity. Prefer [[solve]] when only `A⁻¹ B` is needed.
     */
   def inverse: Either[LinAlgError, DMat] =
     DenseDecompositions.inverse(this)

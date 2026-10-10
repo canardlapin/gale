@@ -172,14 +172,18 @@ binary-compatibility claims against a published baseline.
 
 `DMat` adds `inverse` and `LU` adds `inverse`, both returning
 `Either[LinAlgError, DMat]`. `DMat.inverse` factors through the same backend
-gate as `lu`. The inverse is formed from the LU factors as LAPACK `dgetri`
-does (`U⁻¹ L⁻¹ P`, about `4n³/3` flops after the factorization), not by
-solving against the identity. An exactly singular pivot returns
+gate as `lu`. The inverse is formed from the LU factors as `U⁻¹ L⁻¹ P`: it
+builds `L⁻¹`, then solves `U X = L⁻¹`, about `4n³/3` flops after the
+factorization (the same count as LAPACK `dgetri`, a different order of
+operations), rather than solving against the identity. An exactly singular pivot returns
 `SingularMatrix(k)` with the LU index; a non-square input returns
 `NonSquareMatrix`; the `0 × 0` inverse is `0 × 0`. Its bits can differ from
 `A.solve(Matrix.eye(n))` by rounding.
 
 The multi-right-hand-side `LU.solve(DMat)` and `Cholesky.solve(DMat)` now run
-a blocked triangular kernel. For `n > 8` their results can differ in the last
-bits from earlier builds and from column-by-column vector solves. Error
+a blocked triangular kernel. `LU.solve(DMat)` results can differ in the last
+bits from earlier builds for `n > 8`. `Cholesky.solve(DMat)` results can differ
+at every `n`, because the earlier matrix route did not use fused multiply-add.
+For `n ≤ 8` each column of either matrix solve equals the corresponding vector
+solve bit for bit; above that they can differ by rounding. Error
 indices, input non-mutation, and the Cholesky finiteness checks are unchanged.

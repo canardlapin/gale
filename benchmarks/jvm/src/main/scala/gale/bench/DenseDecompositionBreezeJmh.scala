@@ -21,7 +21,7 @@ import org.openjdk.jmh.infra.Blackhole
 /** Dense inverse, determinant, pseudo-inverse, full SVD and nonsymmetric eigen,
   * gale vs Breeze (`n` in {16, 64, 256}):
   *
-  *   - `inv`: gale `A.inverse` (LU, then `U⁻¹ L⁻¹ P` as `dgetri` forms it) vs
+  *   - `inv`: gale `A.inverse` (LU, then `U⁻¹ L⁻¹ P` formed from the factors) vs
   *     breeze `inv(A)` (`dgetrf` + `dgetri`).
   *   - `det`: gale `A.det` (LU) vs breeze `det(A)` (LU).
   *   - `pinv`: gale `A.pinv` (economy SVD, cutoff `max(m,n)·ε·σ_max`) vs breeze

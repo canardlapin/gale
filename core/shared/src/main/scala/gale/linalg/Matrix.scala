@@ -776,8 +776,8 @@ final class DMat private[gale] (
   def det(using Backend): Either[LinAlgError, Double] =
     lu.flatMap(_.det)
 
-  /** The inverse `A⁻¹` through one LU factorization, formed from the factors as
-    * LAPACK `dgetri` does. A singular matrix returns `Left(SingularMatrix(k))`.
+  /** The inverse `A⁻¹` through one LU factorization, formed from the LU factors as
+    * `U⁻¹ L⁻¹ P`. A singular matrix returns `Left(SingularMatrix(k))`.
     * Prefer [[solve]] for `A⁻¹ B`: it is cheaper and more accurate.
     */
   def inverse(using Backend): Either[LinAlgError, DMat] =
