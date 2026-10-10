@@ -155,3 +155,46 @@ class LUSuite extends munit.FunSuite:
         val poisoned = Matrix.tabulate(n, n)((i, j) => if i >= 1 && j == 1 then Double.NaN else a(i, j))
         assertEquals(poisoned.lu.left.toOption, sequentialLu(poisoned).left.toOption.map(LinAlgError.SingularMatrix(_)))
   }
+
+  test("paired-column LU keeps the first-row tie-break on tied pivot magnitudes") {
+    // ±1 entries tie every pivot candidate in the first column and many later
+    // ones; the first row at or below k with the largest magnitude must win.
+    def bits(xs: Seq[Double]) = xs.map(java.lang.Double.doubleToRawLongBits)
+    for n <- Seq(2, 3, 4, 5, 8, 9, 16, 33); seed <- 1 to 4 do
+      val rng = new scala.util.Random(77 * n + seed)
+      val a = Matrix.tabulate(n, n)((_, _) => if rng.nextBoolean() then 1.0 else -1.0)
+      (a.lu, sequentialLu(a)) match
+        case (Right(lu), Right((packed, pivots, parity))) =>
+          assertEquals(bits(lu.packed.valuesRowMajor), bits(packed), s"n=$n seed=$seed")
+          assertEquals(lu.pivots.toIndexSeq, pivots.toIndexedSeq, s"n=$n seed=$seed")
+          assertEquals(lu.parity, parity, s"n=$n seed=$seed")
+        case (Left(error), Left(k)) => assertEquals(error, LinAlgError.SingularMatrix(k), s"n=$n seed=$seed")
+        case (got, want)            => fail(s"n=$n seed=$seed: $got vs $want")
+  }
+
+  test("inverse of an ill-conditioned Hilbert matrix meets the backward bound and agrees with solve(I)") {
+    val eps = 2.220446049250313e-16
+    for n <- 8 to 10 do
+      val a = Matrix.tabulate(n, n)((i, j) => 1.0 / (i + j + 1).toDouble)
+      val x = a.inverse.orThrow
+      val viaSolve = a.solve(Matrix.eye(n)).orThrow
+      // ‖A‖·‖X‖ is the condition estimate (≈ 1e10 to 1e13 here).
+      val kappaScale = a.normInf * x.normInf
+      assert(kappaScale > 1e9, s"n=$n should be ill-conditioned: $kappaScale")
+      val residual = (a * x - Matrix.eye(n)).normInf
+      assert(residual <= 32.0 * n * eps * kappaScale, s"n=$n residual $residual vs κ-scale $kappaScale")
+      val diff = (x - viaSolve).normInf
+      assert(diff <= 32.0 * n * eps * kappaScale * x.normInf, s"n=$n inverse vs solve(I): $diff")
+  }
+
+  test("matrix solve columns equal vector solves bit for bit within one triangular block") {
+    for n <- 1 to 8; k <- Seq(1, 3, 4, 5, 9) do
+      val rng = new scala.util.Random(13 * n + k)
+      val a = Matrix.tabulate(n, n)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+      val b = Matrix.tabulate(n, k)((_, _) => rng.nextDouble() * 2.0 - 1.0)
+      val lu = a.lu.orThrow
+      val x = lu.solve(b).orThrow
+      for c <- 0 until k do
+        val column = lu.solve(Vec.tabulate(n)(i => b(i, c))).orThrow
+        for i <- 0 until n do assertEquals(x(i, c), column(i), s"n=$n k=$k ($i, $c)")
+  }
