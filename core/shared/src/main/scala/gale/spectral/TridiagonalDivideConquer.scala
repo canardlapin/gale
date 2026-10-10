@@ -87,8 +87,9 @@ private[spectral] object TridiagonalDivideConquer:
     while i < n * n do
       zt(ztOffset + i) = 0.0
       i += 1
-    // Scale to unit max-norm (`dstedc` scales by the norm too); the
-    // eigenvectors are scale-invariant and the eigenvalues are scaled back.
+    // Scale by a power of two to a max-norm in [1, 2) (`dstedc` scales by the
+    // norm; a power of two keeps the scaling exact). The eigenvectors are
+    // scale-invariant and the eigenvalues are scaled back.
     var norm = 0.0
     i = 0
     while i < n do
@@ -101,19 +102,46 @@ private[spectral] object TridiagonalDivideConquer:
         zt(ztOffset + i * n + i) = 1.0
         i += 1
       return 0
-    i = 0
-    while i < n do
-      d(i) = d(i) / norm
-      if i < n - 1 then off(offOffset + i) = off(offOffset + i) / norm
-      i += 1
+    var exponent = 0 // T has been multiplied by 2^exponent
+    if norm < MinNormal then
+      // Subnormal scale: lift exactly into the normal range first.
+      scaleBy(n, d, off, offOffset, LiftExponent)
+      norm = norm * powerOfTwo(LiftExponent)
+      exponent = LiftExponent
+    val normExponent = ((java.lang.Double.doubleToRawLongBits(norm) >>> 52) & 0x7ffL).toInt - 1023
+    scaleBy(n, d, off, offOffset, -normExponent)
+    exponent -= normExponent
     val solver = new Solver(n, d, off, offOffset, zt, ztOffset, work, workOffset, iwork, iworkOffset, maxSweeps)
     val failure = solver.split(0, n)
-    if failure == 0 then
-      i = 0
-      while i < n do
-        d(i) = d(i) * norm
-        i += 1
+    if failure == 0 then scaleBy(n, d, off, offOffset, -exponent, values = true)
     failure
+
+  private val MinNormal: Double = java.lang.Double.longBitsToDouble(1L << 52)
+
+  private inline val LiftExponent = 600
+
+  /** `2^k` for `|k| <= 1022`. */
+  private def powerOfTwo(k: Int): Double = java.lang.Double.longBitsToDouble((1023L + k) << 52)
+
+  /** Multiply `d` (and, unless `values`, the off-diagonal) by `2^k`, as two
+    * normal-range factors so every finite `|k| <= 2045` is reachable; exact
+    * except where a result leaves the normal range.
+    */
+  private def scaleBy(
+      n: Int,
+      d: DoubleArray,
+      off: DoubleArray,
+      offOffset: Int,
+      k: Int,
+      values: Boolean = false
+  ): Unit =
+    val first = powerOfTwo(k / 2)
+    val second = powerOfTwo(k - k / 2)
+    var i = 0
+    while i < n do
+      d(i) = d(i) * first * second
+      if !values && i < n - 1 then off(offOffset + i) = off(offOffset + i) * first * second
+      i += 1
 
   private final class Solver(
       n: Int,
@@ -186,7 +214,7 @@ private[spectral] object TridiagonalDivideConquer:
           var found = false
           while m < size - 1 && !found do
             val dd = math.abs(d(lo + m)) + math.abs(d(lo + m + 1))
-            // `T` is scaled to unit max-norm, so 1 is the norm-scaled test.
+            // `T` is scaled to a max-norm in [1, 2), so 1 is the norm-scaled test.
             if math.abs(work(vtmp + m)) <= Epsilon * math.max(dd, 1.0) then found = true
             else m += 1
           if m == l then continue = false

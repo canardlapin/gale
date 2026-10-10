@@ -221,4 +221,7 @@ unchanged. Above the largest order whose divide-and-conquer scratch is
 addressable (`n + 2n² + 105n ≤ Int.MaxValue`, i.e. `n ≤ 32,741`), both
 routes fall back to QL and the requirement is again `n` doubles, so vector
 solves keep working up to QL's own `n² ≤ Int.MaxValue` limit. Non-finite input keeps the QL path and its `DidNotConverge`
-behaviour.
+behaviour. Peak memory of the ordinary `eigSymmetric` vector route at those
+orders is about `3n²` doubles (result plus transient scratch, 24 MB at
+`n = 1024`), against `n² + 2n` for QL; `eigSymmetricWith` draws the scratch
+from the caller's reusable workspace.

@@ -203,6 +203,13 @@ private[gale] object DenseSpectralKernels:
     * problems keep it). Reads only the lower triangle of `A`. Scratch is laid
     * out exactly as in [[symmetricEigenWith]], so both routes return the same
     * bits.
+    *
+    * '''Peak memory.''' This route allocates the `n²` reduction matrix (which
+    * becomes the eigenvector result) plus, with divide and conquer, its
+    * scratch of `n + 2n² + 105n` doubles and `7n` indices: about `3n²`
+    * doubles live at once (24 MB at `n = 1024`, 6 GB at `n = 16384`), beside
+    * the caller's input. QL needs `n² + 2n`. [[symmetricEigenWith]] takes the
+    * scratch from a reusable workspace instead.
     */
   def symmetricEigen(
       a: DMat,
