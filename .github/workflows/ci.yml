@@ -190,6 +190,12 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - name: Compile JVM (JMH) and JS benchmarks
         run: sbt benchCompile
+      - name: Check benchmark numerical preflight
+        run: sbt benchmarksJVM/test
+      - name: Test Breeze receipt validation
+        run: python3 -I tools/bench/test_breeze_scoreboard.py
+      - name: Test Trillium runner receipt contracts
+        run: python3 -I tools/bench/test_trillium_runner.py
 
   vector-backend:
     name: Vector backend (JDK ${{ matrix.java }})

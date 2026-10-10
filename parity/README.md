@@ -39,6 +39,16 @@ The factorization and spectral suites use fixed adversarial and
 well-conditioned fixtures. A parity test should state the shared mathematical
 contract and use a tolerance that accounts for the algorithms being compared.
 
+The spectral comparisons include the exact nonsymmetric benchmark fixtures at
+n=16/64/256, strongly nonnormal and near-defective examples, and normal spectra at
+`1e±200`. Full-SVD factor checks cover n=128/256, tall/wide shapes, repeated and
+graded values, rank deficiency, and `1e±200`. Both implementations must satisfy
+scaled residuals and orthogonality. Rank-deficient pseudoinverses compare Gale's
+explicit cutoff with the same cutoff applied to Breeze's SVD, because their
+default `pinv` policies differ. These additions take about 15 seconds locally on
+ARM64/JDK25; the timed symmetric n=512/1024 fixtures are checked separately by the
+benchmark preflight described in [`benchmarks/README.md`](../benchmarks/README.md).
+
 ## Cross-platform Breeze goldens
 
 Breeze runs only on the JVM, so the parity suites above say nothing about
@@ -62,7 +72,7 @@ sbt breezeGoldensCheck   # regenerate in memory; fail if the checked-in corpus i
 sbt "coreJVM/testOnly gale.golden.BreezeGoldenSuite" "coreJS/testOnly gale.golden.BreezeGoldenSuite"
 ```
 
-**Coverage.** The corpus has 69 cases (about 93,000 doubles, about 1.5 MB of
+**Coverage.** The corpus has 75 cases (about 106,000 doubles, about 1.7 MB of
 source). Sizes run from 1 to 64, with a few near 100. It covers:
 
 - dense `A·x`, `Aᵀ·x`, `A·B`, `Aᵀ·D`, `dot` and `axpy`;
@@ -71,8 +81,12 @@ source). Sizes run from 1 to 64, with a few near 100. It covers:
 - the Cholesky factor `L` and solve, including Hilbert(8) and κ = 1e8;
 - the sign-normalized QR `R` and least squares, including κ = 1e6;
 - `eigSym` eigenvalues and eigenvectors (random, a repeated-eigenvalue
-  spectrum, and a graded spectrum with κ = 1e10), plus values only at n = 96;
-- singular values, the full-rank `pinv`, and `kron`;
+  spectrum, and a graded spectrum with κ = 1e10), including D&C vectors at n=77
+  and values only at n = 96;
+- nonsymmetric real/complex spectra on small normal matrices, with decoded
+  right-eigenvector residuals and values-only replay, including scales `1e±100`;
+- singular values, compact economy U/VT references for tall, wide and clustered
+  rank-deficient cases, the full-rank `pinv`, and `kron`;
 - vector and matrix reductions: `sum`, `mean`, `max`, `min`, `argmax`,
   `argmin`, the 1-, 2- and ∞-norms, and the Frobenius norm;
 - `exp`, `log`, `sigmoid`, `logSumExp` and `softmax`. Breeze's `softmax(v)` is
@@ -114,7 +128,12 @@ have a unit of 0 and must match exactly. Eigenvectors are compared through the
 projector of each eigenvalue cluster, with unit `n ε ‖A‖ / gap`. A cluster
 joins two neighbouring eigenvalues only when their gap is at most
 `64 n ε ‖A‖` or at most `1e-8 |λ|`, so a graded spectrum is not merged into one
-projector. The suite prints the worst observed `error / unit` for each family
+projector. Singular-factor comparisons use the corresponding positive-singular
+subspaces, with the ambient zero spectrum included in rectangular separation
+bounds. Numerical null-space completions may differ. Reconstruction and
+orthogonality remain mandatory, including during the freshness comparison, so
+independent U/VT projectors cannot hide inconsistent signs or rotations.
+The suite prints the worst observed `error / unit` for each family
 and output on each platform. It lists the conditioned cases (κ, Hilbert,
 graded) separately. Do not loosen `C` to hide a failure; a failure that occurs
 only on JS is a numerical bug to report.

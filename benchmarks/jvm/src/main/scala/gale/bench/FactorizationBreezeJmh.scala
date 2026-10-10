@@ -57,6 +57,9 @@ class FactorizationBreezeJmh:
     bA = breezeMatrix(aData)
     bS = breezeMatrix(sData)
     bb = breezeVector(bData)
+    val chol = BreezeBenchmarkValidation.operation(params) == "Chol"
+    BreezeBenchmarkValidation.preflight(params, if chol then sData else aData,
+      if chol then "spd-seed200-v1" else "dominant100-vector300-v1", BreezeBenchmarkValidation.column(bData))
 
   @Benchmark def galeSolve(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
@@ -111,6 +114,7 @@ class LeastSquaresBreezeJmh:
     gb = galeVector(bData)
     bA = breezeMatrix(aData)
     bb = breezeVector(bData)
+    BreezeBenchmarkValidation.preflight(params, aData, "matrix400-vector500-v1", BreezeBenchmarkValidation.column(bData))
 
   @Benchmark def galeLstsq(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected

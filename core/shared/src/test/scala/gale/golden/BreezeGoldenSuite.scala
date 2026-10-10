@@ -115,6 +115,7 @@ class BreezeGoldenSuite extends munit.FunSuite:
     "cholesky",
     "qr",
     "eigsym",
+    "eig",
     "svd",
     "pinv",
     "kron",
@@ -141,6 +142,7 @@ class BreezeGoldenSuite extends munit.FunSuite:
     case "cholesky"      => cholesky(c)
     case "qr"            => qr(c)
     case "eigsym"        => eigsym(c)
+    case "eig"           => eig(c)
     case "svd"           => svd(c)
     case "pinv"          => pinv(c)
     case "kron"          => kron(c)
@@ -238,7 +240,49 @@ class BreezeGoldenSuite extends munit.FunSuite:
       check(c, "vectors", projectorRatio(d.eigenvectors(_, _), ref(_, _), c.values("values")))
 
   private def svd(c: GoldenCase): Unit =
-    forward(c, "sigma", arr(mat(c.array("A")).svd.orThrow.singularValues))
+    val a = c.array("A")
+    val d = mat(a).svd.orThrow
+    assert(d.diagnostics.allConverged, c.name)
+    forward(c, "sigma", arr(d.singularValues))
+    if c.has("U") then
+      val dimension = math.max(a.rows, a.cols)
+      val u = c.array("U")
+      val vt = c.array("VT")
+      assertEquals((d.u.rows, d.u.cols, d.vt.rows, d.vt.cols), (u.rows, u.cols, vt.rows, vt.cols))
+      check(c, "U-subspaces", svdProjectorRatio(d.u(_, _), u(_, _), c.values("sigma"), a.rows, dimension))
+      check(c, "V-subspaces", svdProjectorRatio((i, j) => d.vt(j, i), (i, j) => vt(j, i), c.values("sigma"), a.cols, dimension))
+      for (name, units) <- svdFactorRatios(a(_, _), a.rows, a.cols, arr(d.singularValues), d.u(_, _), d.vt(_, _)) do
+        check(c, name, units)
+
+  private def eig(c: GoldenCase): Unit =
+    val a = c.array("A")
+    val n = a.rows
+    val scale = maxAbs(a.values)
+    val normA = a.values.foldLeft(0.0)((s, v) => math.hypot(s, v / scale))
+    for mode <- Seq(EigenVectors.Right, EigenVectors.ValuesOnly) do
+      val d = Eigen.eigNonsymmetric(mat(a), EigenSelection.All, mode).orThrow
+      assertEquals(d.size, n)
+      assert(d.diagnostics.allConverged, c.name)
+      val order = (0 until n).sortBy(i => (d.eigenvalue(i).re, d.eigenvalue(i).im))
+      forward(c, "real", order.map(d.eigenvalue(_).re).toArray)
+      forward(c, "imag", order.map(d.eigenvalue(_).im).toArray)
+      if mode == EigenVectors.Right then
+        for k <- 0 until n do
+          val lambda = d.eigenvalue(k)
+          val (vr, vi) = d.eigenvector(k)
+          var residual = 0.0
+          var normV = 0.0
+          for i <- 0 until n do
+            var ar = 0.0
+            var ai = 0.0
+            for j <- 0 until n do
+              ar += (a(i, j) / scale) * vr(j)
+              ai += (a(i, j) / scale) * vi(j)
+            residual = math.hypot(residual, ar - (lambda.re / scale) * vr(i) + (lambda.im / scale) * vi(i))
+            residual = math.hypot(residual, ai - (lambda.re / scale) * vi(i) - (lambda.im / scale) * vr(i))
+            normV = math.hypot(normV, math.hypot(vr(i), vi(i)))
+          assert(normV > 0.0 && normV.isFinite, c.name)
+          check(c, "eigenpair", residual / ((normA + math.hypot(lambda.re / scale, lambda.im / scale)) * normV * n * Eps))
 
   private def pinv(c: GoldenCase): Unit =
     forward(c, "P", arr(mat(c.array("A")).pinv.orThrow))

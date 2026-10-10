@@ -5,6 +5,7 @@ import breeze.linalg.kron as breezeKron
 import breeze.linalg.pinv as breezePinv
 import breeze.linalg.svd as breezeSvd
 import gale.linalg.*
+import gale.golden.GoldenTolerance.{svdFactorRatios, svdProjectorRatio}
 import gale.parity.ParitySupport.*
 import gale.spectral.*
 
@@ -31,6 +32,75 @@ class FullSvdParitySuite extends munit.FunSuite:
   private val vecTol  = 1e-7
   private val pinvTol = 1e-8
   private val kronTol = 1e-12
+
+  /** A deterministic Householder basis, independent of either library's QR. */
+  private def householder(n: Int, offset: Int): Array[Array[Double]] =
+    val v = Array.tabulate(n)(i => 1.0 + ((i + offset) % 7).toDouble)
+    val norm = math.sqrt(v.map(x => x * x).sum)
+    val q = v.map(_ / norm)
+    Array.tabulate(n, n)((i, j) => (if i == j then 1.0 else 0.0) - 2.0 * q(i) * q(j))
+
+  private def planted(m: Int, n: Int, sigma: Array[Double]): Array[Array[Double]] =
+    val u = householder(m, 1)
+    val v = householder(n, 3)
+    Array.tabulate(m, n)((i, j) => sigma.indices.map(k => u(i)(k) * sigma(k) * v(j)(k)).sum)
+
+  private def checkFullFactors(data: Array[Array[Double]], clue: String): Unit =
+    val m = data.length
+    val n = data(0).length
+    val p = math.min(m, n)
+    val b = breezeSvd(breezeMatrix(data))
+    for (name, units) <- svdFactorRatios(data(_)(_), m, n, b.singularValues.toArray, (i, j) => b.leftVectors(i, j), (i, j) => b.rightVectors(i, j)) do
+      assert(units <= 32.0, s"$clue Breeze $name: $units dimension*eps units")
+    val g = galeMatrix(data).svd.fold(e => fail(s"$clue Gale SVD: $e"), identity)
+    assert(g.diagnostics.allConverged, clue)
+    assertEquals((g.size, g.u.rows, g.u.cols, g.vt.rows, g.vt.cols), (p, m, p, p, n))
+    val unit = math.max(m, n) * Eps * b.singularValues(0)
+    for k <- 0 until p do assertBelow(math.abs(g.singularValues(k) - b.singularValues(k)), 32.0 * unit, s"$clue sigma[$k]")
+    for (label, s, u, vt) <- Seq(
+      ("gale", g.singularValues.toArray, g.u.apply, g.vt.apply),
+      ("breeze", b.singularValues.toArray, (i: Int, j: Int) => b.leftVectors(i, j), (i: Int, j: Int) => b.rightVectors(i, j))
+    ) do
+      for (name, units) <- svdFactorRatios(data(_)(_), m, n, s, u, vt) do
+        assert(units <= 32.0, s"$clue $label $name: $units dimension*eps units")
+    val s = b.singularValues.toArray
+    assert(svdProjectorRatio(g.u.apply, (i, j) => b.leftVectors(i, j), s, m, math.max(m, n)) <= 32.0, s"$clue U subspaces")
+    assert(svdProjectorRatio((i, j) => g.vt(j, i), (i, j) => b.rightVectors(j, i), s, n, math.max(m, n)) <= 32.0, s"$clue V subspaces")
+
+  test("benchmark-size full SVD: both libraries reconstruct and have orthonormal factors") {
+    for (m, n) <- Seq((128, 128), (256, 256), (192, 128), (128, 192)) do
+      checkFullFactors(matrixData(m, n, 801L + m + n), s"${m}x$n")
+  }
+
+  for scale <- Seq(1e-200, 1.0, 1e200); (m, n) <- Seq((12, 8), (8, 12)) do
+    test(s"clustered graded full SVD ${m}x$n scale=$scale retains factors") {
+      val sigma = Array(8.0, 3.0, 3.0, 1.0, 1e-3, 1e-6, 1e-9, 1e-12)
+      checkFullFactors(planted(m, n, sigma.map(_ * scale)), s"graded ${m}x$n scale=$scale")
+    }
+
+  test("rank-deficient pinv matches Breeze SVD with the same explicit cutoff") {
+    // Breeze pinv's exact-zero cutoff differs. Build its reference from its SVD,
+    // retaining exactly sigma > 1e-10*sigmaMax, the same policy passed to Gale.
+    for (m, n) <- Seq((128, 64), (64, 128)) do
+      val data = planted(m, n, Array(8.0, 3.0, 3.0, 1.0, 0.25, 1e-14))
+      checkFullFactors(data, s"rank5 ${m}x$n")
+      val g = galeMatrix(data).pinv(SvdCutoff.Relative(1e-10)).orThrow
+      val b = breezeSvd(breezeMatrix(data))
+      val retained = (0 until math.min(m, n)).filter(k => b.singularValues(k) > 1e-10 * b.singularValues(0))
+      assertEquals(retained.size, 5)
+      val expected = BDM.tabulate(n, m)((i, j) => retained.map(k => b.rightVectors(k, i) * b.leftVectors(j, k) / b.singularValues(k)).sum)
+      assertMatClose(g, expected, 32.0 * math.max(m, n) * Eps * 32.0, s"explicit-cutoff ${m}x$n")
+      val a = galeMatrix(data)
+      val ax = a * g
+      val xa = g * a
+      for (left, right, label) <- Seq((ax * a, a, "AXA"), (xa * g, g, "XAX"), (ax, ax.t, "AX symmetric"), (xa, xa.t, "XA symmetric")) do
+        var error = 0.0
+        var norm = 0.0
+        for i <- 0 until left.rows; j <- 0 until left.cols do
+          error = math.hypot(error, left(i, j) - right(i, j))
+          norm = math.hypot(norm, right(i, j))
+        assert(error / norm <= 32.0 * math.max(m, n) * Eps * 32.0, s"${m}x$n $label: ${error / norm}")
+  }
 
   private def galeColumn(m: DMat, j: Int): IndexedSeq[Double] =
     (0 until m.rows).map(m(_, j))

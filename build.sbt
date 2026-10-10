@@ -431,9 +431,15 @@ lazy val benchmarksJVM =
       // breezeLaneB (SIMD) aliases below; every Breeze bench logs the resolved
       // netlib class to target/breeze-netlib.jsonl.
       libraryDependencies += "org.scalanlp" %% "breeze" % breezeVersion,
+      libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test,
+      Test / fork := true,
+      Test / javaOptions += "--add-modules=jdk.incubator.vector",
       // JMH forks run in this module's directory, so the default sidecar
       // (BreezeBenchData.DefaultNetlibSidecar) lands here.
-      breezeNetlibReset := IO.delete(baseDirectory.value / "target" / "breeze-netlib.jsonl")
+      breezeNetlibReset := {
+        val sidecar = baseDirectory.value / "target" / "breeze-netlib.jsonl"
+        IO.delete(Seq(sidecar, file(sidecar.getPath + ".validation.jsonl")))
+      }
     )
 
 // JDK 22+ copy-inclusive native crossover harness. Separate from benchmarksJVM
@@ -592,12 +598,12 @@ addCommandAlias("benchCompile", ";benchmarksJVM/Jmh/compile;benchmarksJS/compile
 addCommandAlias(
   "breezeLaneA",
   ";benchmarksJVM/breezeNetlibReset" +
-    ";benchmarksJVM/Jmh/run -jvmArgs \"-Xms4g -Xmx4g -Dgale.bench.lane=A\" -p backend=pure -rf json"
+    ";benchmarksJVM/Jmh/run -foe true -jvmArgs \"-Xms4g -Xmx4g -Dgale.bench.lane=A\" -p backend=pure -rf json"
 )
 addCommandAlias(
   "breezeLaneB",
   ";benchmarksJVM/breezeNetlibReset" +
-    ";benchmarksJVM/Jmh/run -jvmArgsAppend \"-Xms4g -Xmx4g -Dgale.bench.lane=B\" -p backend=pure,vector -rf json"
+    ";benchmarksJVM/Jmh/run -foe true -jvmArgsAppend \"-Xms4g -Xmx4g -Dgale.bench.lane=B\" -p backend=pure,vector -rf json"
 )
 addCommandAlias("benchSmokeJS", ";benchmarksJS/run")
 // Browser PCA demo: link, then open demo/index.html in a browser.

@@ -71,6 +71,7 @@ private[gale] object DenseSvdKernel:
     val m = a.rows
     val n = a.cols
     val u = a.toDoubleArrayCopyRowMajor // m×n row-major; becomes economy U in place
+    val inputExponent = DenseInputScaling.normalize(u, m * n)
     val w = DoubleArray.alloc(n)        // singular values
     val rv1 = DoubleArray.alloc(n)      // superdiagonal workspace
     val vt = if wantVectors then DoubleArray.alloc(n * n) else NoVectors
@@ -85,6 +86,13 @@ private[gale] object DenseSvdKernel:
     diagonalize(m, n, ut, w, rv1, vt, anorm, wantVectors) match
       case Some(failure) => Left(failure)
       case None =>
+        if inputExponent != 0 then DenseInputScaling.scaleBy(w, n, -inputExponent)
+        var i = 0
+        while i < n do
+          // A finite input can have an unrepresentable singular value. Keep
+          // the kernel's existing typed non-finite-arithmetic failure policy.
+          if !w(i).isFinite then return Left(SvdKernelFailure.DidNotConverge(0))
+          i += 1
         val sigma = gale.linalg.DVec.tabulate(n)(i => w(i))
         if wantVectors then
           Right(RawSvd(sigma, DMat.fromDoubleArrayOwned(n, m, ut).t, DMat.fromDoubleArrayOwned(n, n, vt)))

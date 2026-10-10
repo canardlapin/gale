@@ -69,6 +69,10 @@ object GoldenTolerance:
         const(a.rows * Eps * (norm2(a.values) * norm2(c.values("x")) + norm2(c.values("b"))))
       case ("eigsym", "values") =>
         const(c.array("A").rows * Eps * maxAbs(ref))
+      case ("eig", "real" | "imag") =>
+        // Only normal inputs belong to this golden family: eigenvalue forward
+        // error is bounded by the matrix scale without an eigenbasis condition.
+        const(c.array("A").rows * Eps * c.values("A").foldLeft(0.0)(math.hypot))
       case ("svd", "sigma") =>
         const(c.array("A").rows.max(c.array("A").cols) * Eps * maxAbs(ref))
       case ("pinv", "P") =>
@@ -118,7 +122,7 @@ object GoldenTolerance:
     for k <- idx.indices do out(idx(k).toInt) = v(k)
     out
 
-  /** Partitions ascending eigenvalues into clusters a projector must treat together: consecutive values whose gap
+  /** Partitions monotone eigen/singular values into clusters a projector must treat together: consecutive values whose gap
     * is unresolvable at working precision (`≤ 64 n ε ‖A‖`) or tiny relative to their magnitude (`≤ 1e-8 |λ|`).
     * Graded spectra keep their small, well-separated (relative to themselves) eigenvalues apart.
     */
@@ -128,7 +132,7 @@ object GoldenTolerance:
     val out = Vector.newBuilder[Range]
     var start = 0
     for i <- 1 until n do
-      val gap = values(i) - values(i - 1)
+      val gap = math.abs(values(i) - values(i - 1))
       val scale = math.max(math.abs(values(i)), math.abs(values(i - 1)))
       if gap > 64 * n * Eps * norm && gap > 1e-8 * scale then
         out += (start until i)
@@ -140,22 +144,62 @@ object GoldenTolerance:
     * (columns aligned with the ascending `values`).
     */
   def projectorRatio(u: (Int, Int) => Double, v: (Int, Int) => Double, values: Array[Double]): Double =
-    val n = values.length
+    projectorRatioImpl(u, v, values, values.length, values.length, singular = false)
+
+  /** Positive singular subspaces, allowing sign/cluster rotations. Economy
+    * factors omit ambient null directions on a rectangular matrix's larger side;
+    * zero must still participate in the separation bound. Numerical zero
+    * subspaces are not uniquely completed and are checked by the invariants below.
+    */
+  def svdProjectorRatio(u: (Int, Int) => Double, v: (Int, Int) => Double, sigma: Array[Double], rows: Int, dimension: Int): Double =
+    projectorRatioImpl(u, v, sigma, rows, dimension, singular = true)
+
+  private def projectorRatioImpl(u: (Int, Int) => Double, v: (Int, Int) => Double, values: Array[Double], rows: Int, dimension: Int, singular: Boolean): Double =
     val norm = math.max(maxAbs(values), Double.MinPositiveValue)
     val clusters = clustersOf(values)
-    clusters.map { cl =>
-      val gap = clusters
+    val zero = 64.0 * dimension * Eps * norm
+    clusters.filter(cl => !singular || cl.exists(i => values(i) > zero)).map { cl =>
+      val otherGap = clusters
         .filter(_ != cl)
         .map(q => math.min(math.abs(values(q.head) - values(cl.last)), math.abs(values(q.last) - values(cl.head))))
         .minOption
-        .getOrElse(norm)
+        .getOrElse(Double.PositiveInfinity)
+      val ambientGap = if singular && rows > values.length then cl.map(i => math.abs(values(i))).min else Double.PositiveInfinity
+      val separation = math.min(otherGap, ambientGap)
+      val gap = if separation.isInfinite then norm else separation
       var diff = 0.0
-      for i <- 0 until n; j <- 0 until n do
+      for i <- 0 until rows; j <- 0 until rows do
         var pu = 0.0
         var pv = 0.0
         for k <- cl do
           pu += u(i, k) * u(j, k)
           pv += v(i, k) * v(j, k)
         diff = math.max(diff, math.abs(pu - pv))
-      if diff == 0.0 then 0.0 else diff / (n * Eps * norm / gap)
-    }.max
+      if diff == 0.0 then 0.0 else diff / (dimension * Eps * norm / gap)
+    }.maxOption.getOrElse(0.0)
+
+  /** Independent scalar reconstruction and orthogonality, in dimension*eps
+    * units. Scale before multiplying so tiny/huge finite inputs remain useful.
+    * Projectors alone cannot catch inconsistent signs/rotations of U and V.
+    */
+  def svdFactorRatios(a: (Int, Int) => Double, rows: Int, cols: Int, sigma: Array[Double], u: (Int, Int) => Double, vt: (Int, Int) => Double): Vector[(String, Double)] =
+    val p = math.min(rows, cols)
+    require(sigma.length == p)
+    val dim = math.max(rows, cols)
+    var scale = 0.0
+    for i <- 0 until rows; j <- 0 until cols do scale = math.max(scale, math.abs(a(i, j)))
+    if scale == 0.0 then scale = 1.0
+    var reconstruction = 0.0
+    for i <- 0 until rows; j <- 0 until cols do
+      var sum = 0.0
+      for k <- 0 until p do sum += u(i, k) * (sigma(k) / scale) * vt(k, j)
+      reconstruction = math.max(reconstruction, math.abs(sum - a(i, j) / scale))
+    def orthogonality(size: Int, q: (Int, Int) => Double): Double =
+      var worst = 0.0
+      for i <- 0 until p; j <- 0 until p do
+        var sum = if i == j then -1.0 else 0.0
+        for k <- 0 until size do sum += q(k, i) * q(k, j)
+        worst = math.max(worst, math.abs(sum))
+      worst
+    Vector("reconstruction" -> reconstruction, "U-orthogonality" -> orthogonality(rows, u), "V-orthogonality" -> orthogonality(cols, (i, j) => vt(j, i)))
+      .map((name, error) => name -> (if error.isFinite then error / (dim * Eps) else Double.PositiveInfinity))

@@ -41,6 +41,7 @@ class SymEigenBreezeJmh:
     val data = symmetric(n, 600L)
     gA = galeMatrix(data)
     bA = breezeMatrix(data)
+    BreezeBenchmarkValidation.preflight(params, data, "symmetric-seed600-v1")
 
   @Benchmark def galeEigSym(bh: Blackhole): Unit =
     bh.consume(Eigen.eigSymmetric(gA, EigenSelection.All, EigenVectors.Right))
