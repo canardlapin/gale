@@ -167,3 +167,23 @@ inputs it uses the unrolled kernel, so `conditionEstimate` can change in the
 last ulp. Compact pivoted QR (width 8 or less) applies the same infinite-entry
 repair as `norm2`, so its pivot choice matches the wider screened path. These are numerical-contract repairs, not
 binary-compatibility claims against a published baseline.
+
+## Deferred dense spectral diagnostics
+
+`SpectralDiagnostics` is no longer a case class. It is a final class with the
+same field names, the same eager `SpectralDiagnostics(...)` constructor and
+defaults, and a `copy` with the same parameters. The synthesized `unapply`,
+`Product` members and `canEqual` are gone; `equals`, `hashCode` and `toString`
+keep the former case-class meaning (`residuals` still compares as a `DVec`).
+The dense one-shot facades — `Eigen.eigSymmetric`, `Eigen.eigSymmetricWith`
+and the full dense `Svds.svd` path (which `pinv` and minimum-norm least squares
+share) — now measure `residuals` and `orthogonalityError` on first access and
+cache them, instead of forming `A·V` and `VᵀV` (and, for SVD, `AᵀU`) on every
+call. No convergence or certification decision reads either value on these
+paths, so `converged`, `requireConverged` and `requireExtremeCertified` are
+unchanged, and the measured values are bit-identical to the former eager ones.
+The measurement uses snapshots taken when the result is built (the mirrored
+lower triangle of the input, or a copy of the SVD input), so it is unaffected
+by later mutation of a borrowed input view. The first read pays the two matrix
+products; iterative, generalized and nonsymmetric solvers still report values
+computed during the solve.

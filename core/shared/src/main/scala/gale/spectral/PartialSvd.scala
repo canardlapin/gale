@@ -255,28 +255,14 @@ object Svds:
     // `vt` n×n); the leading `p` columns/rows are the economy factors either
     // way, so slice the permitted slack after validating every load-bearing
     // dimension above.
-    val (u, vt, residuals, orthoErr) =
+    val (u, vt) =
       if wantVectors then
         val uMat = DMat.tabulate(m, p)((r, c) => raw.u(r, order(c)))
         val vtMat = DMat.tabulate(p, n): (r, c) =>
           val src = order(r)
           if flip(src) then -raw.vt(src, c) else raw.vt(src, c)
-        // The checks run as matrix products on contiguous row-major operands
-        // (A V, Aᵀ U and the Gram matrices) instead of 2p matrix-vector
-        // products and a product over a transposed view; the transposes are
-        // materialized because a product over a view walks it column-strided.
-        val vMat = DMat.tabulate(n, p)((r, c) => vtMat(c, r))
-        val aMat = if a.isContiguousRowMajor then a else DMat.tabulate(m, n)((r, c) => a(r, c))
-        val atMat = DMat.tabulate(n, m)((r, c) => a(c, r))
-        val av = aMat * vMat
-        val atu = atMat * uMat
-        val res = DVec.tabulate(p): c =>
-          val sigma = values(c)
-          val rV = (av.col(c) - uMat.col(c) * sigma).norm2
-          val rU = (atu.col(c) - vMat.col(c) * sigma).norm2
-          math.max(rV, rU)
-        (uMat, vtMat, res, math.max(orthogonalityError(uMat), orthogonalityError(vMat)))
-      else (DMat.zeros(m, 0), DMat.zeros(0, n), DVec.zeros(p), 0.0)
+        (uMat, vtMat)
+      else (DMat.zeros(m, 0), DMat.zeros(0, n))
     val tol = SpectralOptions().tolerance
     val sigmaMax = if p > 0 then values(0) else 0.0
     var rank = 0
@@ -284,16 +270,45 @@ object Svds:
     while i < p do
       if values(i) > tol * sigmaMax then rank += 1
       i += 1
+    // Nothing here is decided by the residuals or the orthogonality error, so
+    // both are measured on first access (SpectralDiagnostics, "Deferred
+    // measurements"). `a` is snapshotted now because it may be a borrowed view
+    // of mutable storage; `u` and `vt` are immutable values owned by the result.
     val diagnostics =
-      SpectralDiagnostics(
-        requested = p,
-        converged = p,
-        residuals = residuals,
-        orthogonalityError = orthoErr,
-        iterations = 0,
-        rank = Some(rank),
-        extremalityCertified = true
-      )
+      if wantVectors then
+        // The checks run as matrix products on contiguous row-major operands
+        // (A V, Aᵀ U and the Gram matrices) instead of 2p matrix-vector
+        // products and a product over a transposed view; the transposes are
+        // materialized because a product over a view walks it column-strided.
+        val aMat = DMat.tabulate(m, n)((r, c) => a(r, c))
+        lazy val vMat = DMat.tabulate(n, p)((r, c) => vt(c, r))
+        SpectralDiagnostics.deferred(
+          requested = p,
+          converged = p,
+          residuals = () =>
+            val atMat = DMat.tabulate(n, m)((r, c) => aMat(c, r))
+            val av = aMat * vMat
+            val atu = atMat * u
+            DVec.tabulate(p): c =>
+              val sigma = values(c)
+              val rV = (av.col(c) - u.col(c) * sigma).norm2
+              val rU = (atu.col(c) - vMat.col(c) * sigma).norm2
+              math.max(rV, rU),
+          orthogonalityError = () => math.max(orthogonalityError(u), orthogonalityError(vMat)),
+          iterations = 0,
+          rank = Some(rank),
+          extremalityCertified = true
+        )
+      else
+        SpectralDiagnostics(
+          requested = p,
+          converged = p,
+          residuals = DVec.zeros(p),
+          orthogonalityError = 0.0,
+          iterations = 0,
+          rank = Some(rank),
+          extremalityCertified = true
+        )
     SVD(values, u, vt, rank, diagnostics)
 
   // ===========================================================================

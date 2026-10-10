@@ -34,17 +34,85 @@ enum SpectralConvergenceStatus:
   *     established independently of the returned residuals.
   *   - `innerSolve` — aggregated work for algorithms that explicitly solve an
   *     inner linear system; `None` means no inner solves were performed.
+  *
+  * '''Deferred measurements.''' The dense one-shot facades (dense symmetric
+  * eigen, ordinary and workspace routes, and dense SVD) decide nothing from
+  * `residuals` or `orthogonalityError`, so they measure both '''on first
+  * access''' and cache them: a caller that never reads them does not pay for
+  * the `A·V` and `VᵀV` products. The measurement uses private snapshots of the
+  * decomposed matrix and of the vectors, taken when the result was built, so
+  * mutating the caller's input or the returned storage afterwards does not
+  * change it. Every other solver supplies values it already computed.
+  * Equality, `hashCode` and `toString` read both values (taking a deferred
+  * measurement); [[copy]] keeps an unreplaced deferred value deferred.
   */
-final case class SpectralDiagnostics(
-    requested: Int,
-    converged: Int,
-    residuals: DVec,
-    orthogonalityError: Double,
-    iterations: Int,
-    rank: Option[Int] = None,
-    extremalityCertified: Boolean = false,
-    innerSolve: Option[LinearSolveSummary] = None
+final class SpectralDiagnostics private (
+    val requested: Int,
+    val converged: Int,
+    residualsSource: () => DVec,
+    orthogonalitySource: () => Double,
+    val iterations: Int,
+    val rank: Option[Int],
+    val extremalityCertified: Boolean,
+    val innerSolve: Option[LinearSolveSummary]
 ):
+  // Each source is dropped once measured, so a cached value does not keep the
+  // snapshot matrices alive.
+  private var pendingResiduals: () => DVec = residualsSource
+  private var pendingOrthogonality: () => Double = orthogonalitySource
+
+  /** Per-pair residual norms of the returned pairs. */
+  lazy val residuals: DVec =
+    val value = pendingResiduals()
+    pendingResiduals = null
+    value
+
+  /** Gram error of the returned basis. */
+  lazy val orthogonalityError: Double =
+    val value = pendingOrthogonality()
+    pendingOrthogonality = null
+    value
+
+  /** A copy with the given fields replaced. An unreplaced deferred measurement
+    * stays deferred and is shared with this instance (measured once).
+    */
+  def copy(
+      requested: Int = this.requested,
+      converged: Int = this.converged,
+      residuals: => DVec = this.residuals,
+      orthogonalityError: => Double = this.orthogonalityError,
+      iterations: Int = this.iterations,
+      rank: Option[Int] = this.rank,
+      extremalityCertified: Boolean = this.extremalityCertified,
+      innerSolve: Option[LinearSolveSummary] = this.innerSolve
+  ): SpectralDiagnostics =
+    new SpectralDiagnostics(
+      requested,
+      converged,
+      () => residuals,
+      () => orthogonalityError,
+      iterations,
+      rank,
+      extremalityCertified,
+      innerSolve
+    )
+
+  override def equals(other: Any): Boolean =
+    other match
+      case that: SpectralDiagnostics =>
+        requested == that.requested && converged == that.converged &&
+        residuals == that.residuals && orthogonalityError == that.orthogonalityError &&
+        iterations == that.iterations && rank == that.rank &&
+        extremalityCertified == that.extremalityCertified && innerSolve == that.innerSolve
+      case _ => false
+
+  override def hashCode: Int =
+    (requested, converged, residuals, orthogonalityError, iterations, rank, extremalityCertified, innerSolve).hashCode
+
+  override def toString: String =
+    s"SpectralDiagnostics($requested,$converged,$residuals,$orthogonalityError,$iterations,$rank," +
+      s"$extremalityCertified,$innerSolve)"
+
   /** True when every requested pair passed the solver's residual test
     * (`converged == requested`). For an iterative partial solver this is
     * convergence within the explored subspace, not proof that the requested
@@ -105,3 +173,50 @@ final case class SpectralDiagnostics(
         Left(LinAlgError.SpectralExtremeNotCertified(iterations, worstResidual))
       case SpectralConvergenceStatus.ExtremeCertified =>
         Right(result)
+
+object SpectralDiagnostics:
+  /** Diagnostics with already-measured `residuals` and `orthogonalityError`. */
+  def apply(
+      requested: Int,
+      converged: Int,
+      residuals: DVec,
+      orthogonalityError: Double,
+      iterations: Int,
+      rank: Option[Int] = None,
+      extremalityCertified: Boolean = false,
+      innerSolve: Option[LinearSolveSummary] = None
+  ): SpectralDiagnostics =
+    new SpectralDiagnostics(
+      requested,
+      converged,
+      () => residuals,
+      () => orthogonalityError,
+      iterations,
+      rank,
+      extremalityCertified,
+      innerSolve
+    )
+
+  /** Diagnostics whose `residuals` and `orthogonalityError` are measured on
+    * first access and cached. Both sources must read only snapshots that no
+    * caller can mutate.
+    */
+  private[spectral] def deferred(
+      requested: Int,
+      converged: Int,
+      residuals: () => DVec,
+      orthogonalityError: () => Double,
+      iterations: Int,
+      rank: Option[Int],
+      extremalityCertified: Boolean
+  ): SpectralDiagnostics =
+    new SpectralDiagnostics(
+      requested,
+      converged,
+      residuals,
+      orthogonalityError,
+      iterations,
+      rank,
+      extremalityCertified,
+      None
+    )

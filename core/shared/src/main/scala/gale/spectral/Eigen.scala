@@ -1018,27 +1018,41 @@ object Eigen:
   ): EigenDecomposition =
     val selValues = DVec.tabulate(indices.length)(i => values(indices(i)))
     val n = a.rows
-    val (selVectors, residuals, orthoErr) =
+    val m = indices.length
+    val selVectors =
       if wantVectors then
         val src = vectors.get
-        val sel = DMat.tabulate(n, indices.length)((r, c) => src(r, indices(c)))
-        // Residuals must be measured against the matrix actually decomposed: the
-        // kernel reads only the lower triangle, so mirror it here too — otherwise
-        // a non-mirror strict upper triangle yields spurious residuals against a
-        // correct decomposition.
-        val sym = DMat.tabulate(n, n)((i, j) => if i >= j then a(i, j) else a(j, i))
-        (sel, densePairResiduals(sym * sel, selValues, sel), orthogonalityError(sel))
-      else (DMat.zeros(n, 0), DVec.zeros(indices.length), 0.0)
+        DMat.tabulate(n, m)((r, c) => src(r, indices(c)))
+      else DMat.zeros(n, 0)
+    // Nothing here is decided by the residuals or the orthogonality error, so
+    // both are measured on first access (SpectralDiagnostics, "Deferred
+    // measurements"). Residuals must be measured against the matrix actually
+    // decomposed: the kernel reads only the lower triangle, so mirror it here
+    // too — otherwise a non-mirror strict upper triangle yields spurious
+    // residuals against a correct decomposition. The mirror is taken now, as
+    // the snapshot, because `a` may be a borrowed view of mutable storage.
     val diagnostics =
-      SpectralDiagnostics(
-        requested = indices.length,
-        converged = indices.length,
-        residuals = residuals,
-        orthogonalityError = orthoErr,
-        iterations = 0,
-        rank = None,
-        extremalityCertified = true
-      )
+      if wantVectors then
+        val sym = DMat.tabulate(n, n)((i, j) => if i >= j then a(i, j) else a(j, i))
+        SpectralDiagnostics.deferred(
+          requested = m,
+          converged = m,
+          residuals = () => densePairResiduals(sym * selVectors, selValues, selVectors),
+          orthogonalityError = () => orthogonalityError(selVectors),
+          iterations = 0,
+          rank = None,
+          extremalityCertified = true
+        )
+      else
+        SpectralDiagnostics(
+          requested = m,
+          converged = m,
+          residuals = DVec.zeros(m),
+          orthogonalityError = 0.0,
+          iterations = 0,
+          rank = None,
+          extremalityCertified = true
+        )
     EigenDecomposition(selValues, selVectors, diagnostics)
 
   // ===========================================================================
