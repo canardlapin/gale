@@ -9,6 +9,7 @@ import breeze.linalg.argmin as bArgmin
 import breeze.linalg.cholesky as bCholesky
 import breeze.linalg.cond as bCond
 import breeze.linalg.det as bDet
+import breeze.linalg.eig as bEig
 import breeze.linalg.eigSym as bEigSym
 import breeze.linalg.inv as bInv
 import breeze.linalg.kron as bKron
@@ -228,6 +229,7 @@ object GenerateBreezeGoldens:
     "cholesky" -> Set("A", "b"),
     "qr" -> Set("A", "b"),
     "eigsym" -> Set("A"),
+    "eig" -> Set("A"),
     "svd" -> Set("A"),
     "pinv" -> Set("A"),
     "kron" -> Set("A", "B"),
@@ -324,7 +326,7 @@ object GenerateBreezeGoldens:
 
     // Symmetric eigen: ascending values and (optionally) vectors.
     val eigInputs: Seq[(String, Int, Array[Double], Boolean)] =
-      Seq(1, 4, 16, 48).map(n => (s"random-n$n", n, symmetric(n, 70L + n), true)) ++
+      Seq(1, 4, 16, 48, 77).map(n => (s"random-n$n", n, symmetric(n, 70L + n), true)) ++
         Seq(
           ("random-n96-values", 96, symmetric(96, 71L), false),
           (
@@ -342,13 +344,44 @@ object GenerateBreezeGoldens:
         if withVectors then c.mat("vectors", es.eigenvectors)
       }
 
-    // Singular values.
+    // Nonsymmetric path on normal matrices: eigenvalues are well-conditioned.
+    // Store sorted complex spectra; right vectors are replayed through residuals.
+    val normalN = 6
+    val normalQ = orthogonal(normalN, 79L)
+    val normalT = Array(
+      Array(1.0, -2.0, 0.0, 0.0, 0.0, 0.0), Array(2.0, 1.0, 0.0, 0.0, 0.0, 0.0),
+      Array(0.0, 0.0, -3.0, 0.0, 0.0, 0.0), Array(0.0, 0.0, 0.0, 5.0, -0.5, 0.0),
+      Array(0.0, 0.0, 0.0, 0.5, 5.0, 0.0), Array(0.0, 0.0, 0.0, 0.0, 0.0, 7.0)
+    )
+    val normal = Array.tabulate(normalN * normalN) { p =>
+      val i = p / normalN
+      val j = p % normalN
+      (0 until normalN).flatMap(k => (0 until normalN).map(l => normalQ(i * normalN + k) * normalT(k)(l) * normalQ(j * normalN + l))).sum
+    }
+    val nonsymInputs = Seq(("normal-real-n5", 5, symmetricWithSpectrum(Array(-4.0, -1.0, 0.5, 2.0, 7.0), 78L))) ++
+      Seq(1e-100, 1.0, 1e100).map(scale => (s"normal-mixed-n6-scale$scale", normalN, normal.map(_ * scale)))
+    for (name, n, a) <- nonsymInputs do
+      add("eig", name) { c =>
+        val d = bEig(bm(n, n, a))
+        val order = (0 until n).sortBy(i => (d.eigenvalues(i), d.eigenvaluesComplex(i)))
+        c.mat("A", n, n, a).vec("real", order.map(d.eigenvalues(_)).toArray).vec("imag", order.map(d.eigenvaluesComplex(_)).toArray)
+      }
+
+    // Singular values, plus compact economy factors for sign/cluster-safe replay.
     val svdInputs: Seq[(String, Int, Int, Array[Double])] =
       Seq((1, 1), (8, 5), (5, 8), (30, 30), (100, 60)).map((m, n) => (s"${m}x$n", m, n, general(m, n, 80L + m * n))) ++
-        Seq(("kappa1e8-20x12", 20, 12, withSingularValues(20, 12, geometric(12, 1e8), 81L)))
+        Seq(
+          ("kappa1e8-20x12", 20, 12, withSingularValues(20, 12, geometric(12, 1e8), 81L)),
+          ("clustered-rank5-12x8", 12, 8, withSingularValues(12, 8, Array(7.0, 3.0, 3.0, 1.0, 0.25), 82L))
+        )
     for (name, m, n, a) <- svdInputs do
       add("svd", name) { c =>
-        c.mat("A", m, n, a).vec("sigma", bSvd(bm(m, n, a)).singularValues)
+        val d = bSvd(bm(m, n, a))
+        c.mat("A", m, n, a).vec("sigma", d.singularValues)
+        if (m == 8 && n == 5) || (m == 5 && n == 8) || name.startsWith("clustered-") then
+          val p = math.min(m, n)
+          c.mat("U", BDM.tabulate(m, p)(d.leftVectors(_, _)))
+            .mat("VT", BDM.tabulate(p, n)(d.rightVectors(_, _)))
       }
 
     // Full-rank pseudoinverse.
@@ -549,6 +582,23 @@ object GenerateBreezeGoldens:
                 old.arrays.find(_.key == "values").get.values
               )
               if !(ratio <= FreshnessUnits) then problems += s"${now.name}/vectors: subspaces moved ($ratio units)"
+            else if old.family == "svd" && (o.key == "U" || o.key == "VT") then
+              val input = old.arrays.find(_.key == "A").get
+              val sigma = old.arrays.find(_.key == "sigma").get.values
+              val transposed = o.key == "VT"
+              def at(a: Arr)(i: Int, j: Int): Double = if transposed then a.values(j * a.cols + i) else a.values(i * a.cols + j)
+              val ratio = GoldenTolerance.svdProjectorRatio(at(o), at(f), sigma, if transposed then o.cols else o.rows, math.max(input.rows, input.cols))
+              if !(ratio <= FreshnessUnits) then problems += s"${now.name}/${o.key}: subspaces moved ($ratio units)"
+              if o.key == "U" then
+                // Also reject a one-sided sign/rotation change, which leaves
+                // the two independent projectors unchanged.
+                for candidate <- Seq(old, now) do
+                  def ref(key: String): Arr = candidate.arrays.find(_.key == key).get
+                  def matrix(key: String)(i: Int, j: Int): Double =
+                    val a = ref(key)
+                    a.values(i * a.cols + j)
+                  for (name, units) <- GoldenTolerance.svdFactorRatios(matrix("A"), input.rows, input.cols, ref("sigma").values, matrix("U"), matrix("VT")) do
+                    if !(units <= FreshnessUnits) then problems += s"${candidate.name}/$name: invalid factors ($units units)"
             else
               val unit = GoldenTolerance.forwardUnit(golden, o.key)
               for i <- o.values.indices do

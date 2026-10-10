@@ -21,6 +21,87 @@ class NonsymmetricEigenParitySuite extends munit.FunSuite:
   private val resTol = 1e-8
   private val vecTol = 1e-7
 
+  /** Same frozen seed-2200 LCG fixture as DenseDecompositionBreezeJmh, kept
+    * local so the parity module does not depend on the JMH module.
+    */
+  private def benchmarkFixture(n: Int): Array[Array[Double]] =
+    Array.tabulate(n) { i =>
+      var state = (2200L + i * 0x9e3779b9L) * 6364136223846793005L + 1442695040888963407L
+      Array.tabulate(n) { _ =>
+        state = state * 6364136223846793005L + 1442695040888963407L
+        ((state >>> 11).toDouble / (1L << 53).toDouble) * 2.0 - 1.0
+      }
+    }
+
+  /** Compute on A/max|A| so the residual stays meaningful at 1e+/-200. */
+  private def normalizedResidual(a: Array[Array[Double]], re: Double, im: Double, vr: Array[Double], vi: Array[Double]): Double =
+    val scale = a.iterator.flatMap(_.iterator).map(math.abs).max
+    val divisor = if scale == 0.0 then 1.0 else scale
+    val lr = re / divisor
+    val li = im / divisor
+    var residual = 0.0
+    var aNorm = 0.0
+    var vNorm = 0.0
+    for i <- a.indices do
+      var ar = 0.0
+      var ai = 0.0
+      for j <- a.indices do
+        val entry = a(i)(j) / divisor
+        ar += entry * vr(j)
+        ai += entry * vi(j)
+        aNorm = math.hypot(aNorm, entry)
+      residual = math.hypot(residual, ar - lr * vr(i) + li * vi(i))
+      residual = math.hypot(residual, ai - lr * vi(i) - li * vr(i))
+      vNorm = math.hypot(vNorm, math.hypot(vr(i), vi(i)))
+    assert(vNorm > 0.0 && vNorm.isFinite, "finite nonzero eigenvector")
+    residual / ((aNorm + math.hypot(lr, li)) * vNorm)
+
+  private def checkNormalized(data: Array[Array[Double]], clue: String): Unit =
+    val n = data.length
+    val (wr, wi, v) = breezeParts(data)
+    assertEquals(wr.length, n, clue)
+    for k <- 0 until n do
+      val rc = if wi(k) < 0.0 then k - 1 else k
+      val ic = if wi(k) > 0.0 then k + 1 else k
+      val br = normalizedResidual(data, wr(k), wi(k), Array.tabulate(n)(v(_, rc)), Array.tabulate(n)(i => if wi(k) == 0.0 then 0.0 else math.signum(wi(k)) * v(i, ic)))
+      assert(br <= 64.0 * n * Eps, s"$clue Breeze pair[$k] residual=$br")
+    val g = galeAll(data)
+    assert(g.diagnostics.allConverged, s"$clue Gale convergence")
+    assertEquals(g.size, n, clue)
+    for k <- 0 until n do
+      val lambda = g.eigenvalue(k)
+      val (vr, vi) = g.eigenvector(k)
+      val gr = normalizedResidual(data, lambda.re, lambda.im, vr.toArray, vi.toArray)
+      assert(gr <= 64.0 * n * Eps, s"$clue Gale pair[$k] residual=$gr")
+
+  test("timed nonsymmetric fixtures n=16/64/256 have normalized residual evidence on both sides") {
+    for n <- Seq(16, 64, 256) do checkNormalized(benchmarkFixture(n), s"seed2200 n=$n")
+  }
+
+  test("strongly nonnormal and nearly defective systems have small backward error") {
+    for coupling <- Seq(1.0, 1e8); gap <- Seq(0.0, 1e-8) do
+      val a = Array.tabulate(6, 6)((i, j) => if i == j then 1.0 + i * gap else if j == i + 1 then coupling else 0.0)
+      // Forward roots/vectors are ill-conditioned here; compare backward error.
+      checkNormalized(a, s"Jordan-like coupling=$coupling gap=$gap")
+  }
+
+  test("normal real/complex spectra retain eigenpairs at tiny and huge scales") {
+    val n = 6
+    val v = Array.tabulate(n)(i => (i + 1).toDouble / math.sqrt(91.0))
+    val q = Array.tabulate(n, n)((i, j) => (if i == j then 1.0 else 0.0) - 2.0 * v(i) * v(j))
+    val t = Array(Array(1.0, -2.0, 0.0, 0.0, 0.0, 0.0), Array(2.0, 1.0, 0.0, 0.0, 0.0, 0.0), Array(0.0, 0.0, -3.0, 0.0, 0.0, 0.0), Array(0.0, 0.0, 0.0, 5.0, -0.5, 0.0), Array(0.0, 0.0, 0.0, 0.5, 5.0, 0.0), Array(0.0, 0.0, 0.0, 0.0, 0.0, 7.0))
+    val normal = Array.tabulate(n, n)((i, j) => (0 until n).flatMap(k => (0 until n).map(l => q(i)(k) * t(k)(l) * q(j)(l))).sum)
+    for scale <- Seq(1e-200, 1.0, 1e200) do
+      val a = normal.map(_.map(_ * scale))
+      checkNormalized(a, s"normal scale=$scale")
+      val g = galeValuesOnly(a)
+      val (br, bi, _) = breezeParts(a)
+      val expectedRe = IndexedSeq(1.0, 1.0, -3.0, 5.0, 5.0, 7.0)
+      val expectedIm = IndexedSeq(2.0, -2.0, 0.0, 0.5, -0.5, 0.0)
+      matchEigenvalueMultisets((0 until n).map(k => g.eigenvalue(k).re / scale), (0 until n).map(k => g.eigenvalue(k).im / scale), expectedRe, expectedIm, 64.0 * n * Eps, s"analytic Gale scale=$scale")
+      matchEigenvalueMultisets(br.map(_ / scale), bi.map(_ / scale), expectedRe, expectedIm, 64.0 * n * Eps, s"analytic Breeze scale=$scale")
+  }
+
   private def galeAll(data: Array[Array[Double]]): NonsymmetricEigenDecomposition =
     Eigen.eigNonsymmetric(galeMatrix(data), EigenSelection.All, EigenVectors.Right).orThrow
 

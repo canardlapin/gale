@@ -35,6 +35,14 @@ bit-for-bit agreement between legal algorithms.
   tolerance valid for every matrix; applications should assess a relative
   residual such as `||A*x-b|| / (||A||*||x|| + ||b||)` against a tolerance
   appropriate to data scale and conditioning.
+- Pure full SVD and nonsymmetric eigen normalize uniformly extreme finite
+  inputs with exact powers of two before quadratic intermediates, then restore
+  the spectral values. This protects normwise accuracy; it does not promise
+  relative accuracy for every tiny component of a matrix with a large dynamic
+  range. An unrepresentable restored spectrum returns `DidNotConverge`, including
+  a complex pair whose imaginary parts would round to zero and invalidate its
+  packed-vector representation. Ordinary inputs with maximum magnitude between
+  `2^-256` and `2^256` receive no scaling multiplications.
 - Iterative and spectral results carry convergence/residual diagnostics. A
   returned approximation is not a claim that every requested component
   converged; inspect the diagnostics or call the result's `requireConverged`

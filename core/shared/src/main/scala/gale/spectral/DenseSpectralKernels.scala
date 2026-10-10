@@ -955,6 +955,7 @@ private[gale] object DenseSpectralKernels:
     require(a.cols == n, "nonsymmetricEigen requires a square matrix")
     val budget = if maxSweeps < 0 then 30 * math.max(n, 1) else maxSweeps
     val h = a.toDoubleArrayCopyRowMajor
+    val inputExponent = DenseInputScaling.normalize(h, n * n)
     val ort = DoubleArray.alloc(n)
     orthes(n, h, ort)
     val z = if wantVectors then ortran(n, h, ort) else DoubleArray.alloc(0)
@@ -968,8 +969,40 @@ private[gale] object DenseSpectralKernels:
         val vectors =
           if wantVectors then
             normalizeSchurVectors(n, wr, wi, z)
+            // Normalization must not hide a non-finite/overflowed vector norm
+            // by returning an all-zero real column or packed complex pair.
+            var j = 0
+            while j < n do
+              val width = if wi(j) > 0.0 then 2 else 1
+              var largest = 0.0
+              var i = 0
+              while i < n do
+                var c = j
+                while c < j + width do
+                  val v = z(i * n + c)
+                  if !v.isFinite then return Left(SpectralKernelFailure.DidNotConverge(0))
+                  largest = math.max(largest, math.abs(v))
+                  c += 1
+                i += 1
+              if largest == 0.0 then return Left(SpectralKernelFailure.DidNotConverge(0))
+              j += width
             Some(DMat.fromDoubleArrayOwned(n, n, z))
           else None
+        // Back-substitution and vector normalization must see the working
+        // eigenvalue units and pair signs. Restore only after both finish.
+        val first = DenseInputScaling.powerOfTwo(-inputExponent / 2)
+        val second = DenseInputScaling.powerOfTwo(-inputExponent - (-inputExponent / 2))
+        var i = 0
+        while i < n do
+          val oldImag = wi(i)
+          if inputExponent != 0 then
+            wr(i) = wr(i) * first * second
+            wi(i) = wi(i) * first * second
+          // If an imaginary part underflows to zero, the public accessor would
+          // misinterpret packed complex columns as two independent real ones.
+          if !wr(i).isFinite || !wi(i).isFinite || (oldImag != 0.0 && wi(i) == 0.0) then
+            return Left(SpectralKernelFailure.DidNotConverge(0))
+          i += 1
         Right(NonsymmetricEigen(DVec.fromDoubleArrayOwned(wr), DVec.fromDoubleArrayOwned(wi), vectors))
 
   /** Householder reduction to upper Hessenberg form (EISPACK `orthes`), in place
