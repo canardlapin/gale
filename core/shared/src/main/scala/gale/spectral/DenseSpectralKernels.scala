@@ -1013,6 +1013,7 @@ private[gale] object DenseSpectralKernels:
     */
   private def orthes(n: Int, h: DoubleArray, ort: DoubleArray): Unit =
     val high = n - 1
+    val colDot = DoubleArray.alloc(n)
     var m = 1
     while m <= high - 1 do
       var scale = 0.0
@@ -1032,21 +1033,35 @@ private[gale] object DenseSpectralKernels:
         val g = if ort(m) >= 0.0 then -math.sqrt(hNorm) else math.sqrt(hNorm)
         hNorm -= ort(m) * g
         ort(m) = ort(m) - g
-        // Left transform: H := (I - u uᵀ / hNorm) H over columns m..n-1.
+        // Left transform: H := (I - u uᵀ / hNorm) H over columns m..n-1. The
+        // column dot products accumulate a row at a time (contiguous in the
+        // row-major `h`), each in the descending-`i` order of a column walk.
         var j = m
         while j < n do
-          var f = 0.0
-          i = high
-          while i >= m do
-            f += ort(i) * h(i * n + j)
-            i -= 1
-          f = f / hNorm
-          i = m
-          while i <= high do
-            val idx = i * n + j
-            h(idx) = h(idx) - f * ort(i)
-            i += 1
+          colDot(j) = 0.0
           j += 1
+        i = high
+        while i >= m do
+          val oi = ort(i)
+          val row = i * n
+          j = m
+          while j < n do
+            colDot(j) = colDot(j) + oi * h(row + j)
+            j += 1
+          i -= 1
+        j = m
+        while j < n do
+          colDot(j) = colDot(j) / hNorm
+          j += 1
+        i = m
+        while i <= high do
+          val oi = ort(i)
+          val row = i * n
+          j = m
+          while j < n do
+            h(row + j) = h(row + j) - colDot(j) * oi
+            j += 1
+          i += 1
         // Right transform: H := H (I - u uᵀ / hNorm) over rows 0..high.
         i = 0
         while i <= high do
@@ -1073,6 +1088,7 @@ private[gale] object DenseSpectralKernels:
   private def ortran(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
     val high = n - 1
     val z = identityRowMajor(n)
+    val colDot = DoubleArray.alloc(n)
     var mp = high - 1
     while mp >= 1 do
       val sub = h(mp * n + (mp - 1))
@@ -1081,21 +1097,36 @@ private[gale] object DenseSpectralKernels:
         while i <= high do
           ort(i) = h(i * n + (mp - 1))
           i += 1
+        // Column dot products accumulate a row at a time (contiguous in the
+        // row-major `z`), each in the ascending-`i` order of a column walk.
         var j = mp
         while j <= high do
-          var g = 0.0
-          i = mp
-          while i <= high do
-            g += ort(i) * z(i * n + j)
-            i += 1
-          // Double division (by ort(mp) then by the subdiagonal) avoids underflow.
-          g = (g / ort(mp)) / sub
-          i = mp
-          while i <= high do
-            val idx = i * n + j
-            z(idx) = z(idx) + g * ort(i)
-            i += 1
+          colDot(j) = 0.0
           j += 1
+        i = mp
+        while i <= high do
+          val oi = ort(i)
+          val row = i * n
+          j = mp
+          while j <= high do
+            colDot(j) = colDot(j) + oi * z(row + j)
+            j += 1
+          i += 1
+        // Double division (by ort(mp) then by the subdiagonal) avoids underflow.
+        val om = ort(mp)
+        j = mp
+        while j <= high do
+          colDot(j) = (colDot(j) / om) / sub
+          j += 1
+        i = mp
+        while i <= high do
+          val oi = ort(i)
+          val row = i * n
+          j = mp
+          while j <= high do
+            z(row + j) = z(row + j) + colDot(j) * oi
+            j += 1
+          i += 1
       mp -= 1
     z
 
@@ -1595,22 +1626,33 @@ private[gale] object DenseSpectralKernels:
         i -= 1
 
   /** Multiply the accumulated Q (`z`) by the triangular eigenvector matrix stored
-    * in `h`'s upper triangle, giving eigenvectors of the original matrix. Columns
-    * are formed high-to-low so each read touches only untouched columns.
+    * in `h`'s upper triangle, giving eigenvectors of the original matrix. Each row
+    * of `z` is formed in a buffer by streaming the rows of `h` (contiguous), with
+    * every entry summed over `k = 0..j` in ascending order.
     */
   private def backTransform(n: Int, h: DoubleArray, z: DoubleArray): Unit =
-    var j = n - 1
-    while j >= 0 do
-      var i = 0
-      while i < n do
-        var zsum = 0.0
-        var kf = 0
-        while kf <= j do
-          zsum += z(i * n + kf) * h(kf * n + j)
-          kf += 1
-        z(i * n + j) = zsum
-        i += 1
-      j -= 1
+    val acc = DoubleArray.alloc(n)
+    var i = 0
+    while i < n do
+      val zRow = i * n
+      var j = 0
+      while j < n do
+        acc(j) = 0.0
+        j += 1
+      var kf = 0
+      while kf < n do
+        val zik = z(zRow + kf)
+        val hRow = kf * n
+        j = kf
+        while j < n do
+          acc(j) = acc(j) + zik * h(hRow + j)
+          j += 1
+        kf += 1
+      j = 0
+      while j < n do
+        z(zRow + j) = acc(j)
+        j += 1
+      i += 1
 
   /** Complex division `(ar + ai·i) / (br + bi·i)` via the EISPACK `cdiv`
     * scaled formula (scale by `|br| + |bi|`), avoiding intermediate overflow.
