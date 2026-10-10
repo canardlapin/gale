@@ -107,6 +107,16 @@ class TrsmKernelSuite extends munit.FunSuite:
       assertEquals(DoubleKernels.dtrsmLeft(lower, unit = true, n, 6, a, 0, n, 1, b, 0, 6), -1)
   }
 
+  test("dtrsmLeft reports the same zero-diagonal index for a single column within one block") {
+    val n = 8
+    for lower <- Seq(true, false) do
+      val a = triangle(n, lower, unit = false, aOffset = 0, lda = n, seed = 9)
+      a(2 * n + 2) = 0.0
+      a(5 * n + 5) = 0.0
+      val b = rhs(n, 1, bOffset = 0, ldb = 1, seed = 10)
+      assertEquals(DoubleKernels.dtrsmLeft(lower, unit = false, n, 1, a, 0, n, 1, b, 0, 1), if lower then 2 else 5)
+  }
+
   test("dtrsmLeft with no right-hand sides or an empty system is a no-op") {
     val a = TestAccess.doubleArray(2.0)
     val b = TestAccess.doubleArray(Sentinel)

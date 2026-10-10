@@ -181,7 +181,7 @@ should be measured against the post-fix kernel.
     through swapped strides, packed row-major above one block). For n ≤ 8 each column is
     bit-identical to `dtrsv`, so the LU matrix solve keeps its old bits there. The Cholesky
     matrix solve changes bits at every n, because its old loop did not use fma. Above n = 8
-    both routes change bits. All of this is within contract `:14-15`. The diagonal is scanned before any write, so `SingularMatrix(k)` and
+    both routes change bits. All of this is within contract `:14-15`. The kernel reports the first zero diagonal in substitution order, so `SingularMatrix(k)` and
     `NotPositiveDefinite(k)` report the same index as before. `TrsmKernelSuite` and the
     n = 100 × 7 tests in `LUSuite` and `CholeskySuite` cover the blocked path. The n = 96 to 300
     multi-RHS cases in `FactorizationHardeningParitySuite` cover it against Breeze.

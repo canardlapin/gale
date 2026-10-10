@@ -601,7 +601,9 @@ private[gale] object DoubleKernels:
     * Returns the index of the first exactly-zero diagonal in substitution order
     * (ascending for `lower`, descending otherwise) — the index [[dtrsv]] reports
     * with `tol == 0` — or `-1` on success. The diagonal is scanned before any
-    * write, so a failed solve leaves `B` untouched.
+    * write, so a failed solve leaves `B` untouched, except a single right-hand
+    * side with `n` within one block: that is [[dtrsv]] itself, which may already
+    * have written the rows it solved before the zero diagonal.
     *
     * Blocked left-looking: each diagonal block of rows first subtracts the
     * contribution of the rows already solved through one [[dgemm]] (`alpha = -1`,
@@ -623,6 +625,8 @@ private[gale] object DoubleKernels:
       bOffset: Int,
       ldb: Int
   ): Int =
+    // One column within one block is exactly dtrsv, which reports the same index.
+    if nrhs == 1 && n <= TrsmBlock then return dtrsv(n, lower, unit, 0.0, a, aOffset, aRowStride, aColStride, b, bOffset, ldb)
     if !unit then
       var i = 0
       while i < n do
