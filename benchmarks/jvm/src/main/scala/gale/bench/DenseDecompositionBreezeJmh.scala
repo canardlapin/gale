@@ -25,8 +25,10 @@ import org.openjdk.jmh.infra.Blackhole
   *     breeze `inv(A)` (`dgetrf` + `dgetri`).
   *   - `det`: gale `A.det` (LU) vs breeze `det(A)` (LU).
   *   - `pinv`: gale `A.pinv` (economy SVD, cutoff `max(m,n)·ε·σ_max`) vs breeze
-  *     `pinv(A)` (also SVD-based; Breeze's cutoff differs, which does not change the
-  *     work on the full-rank input used here).
+  *     `pinv(A)` (also SVD-based; Breeze inverts every nonzero singular value).
+  *     Both now use the guaranteed-full-rank diagonally dominant input. The old
+  *     seed-2200 general fixture at n=64 was numerically rank-deficient: historical
+  *     pinv timings therefore require rebaselining, not a speedup comparison.
   *   - `svd`: gale `A.svd` (economy, values and both factors) vs breeze `svd(A)`
   *     (`dgesdd`, full factors). The input is square, so economy and full shapes agree.
   *   - `eig`: gale `Eigen.eigNonsymmetric(A, All, Right)` vs breeze `eig(A)` (`dgeev`
@@ -60,6 +62,9 @@ class DenseDecompositionBreezeJmh:
     gGeneral = galeMatrix(generalData)
     bA = breezeMatrix(aData)
     bGeneral = breezeMatrix(generalData)
+    val general = Set("Svd", "Eig").contains(BreezeBenchmarkValidation.operation(params))
+    BreezeBenchmarkValidation.preflight(params, if general then generalData else aData,
+      if general then "matrixData-seed2200-v1" else "diagonallyDominant-seed2100-v1")
 
   @Benchmark def galeInv(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
@@ -73,8 +78,8 @@ class DenseDecompositionBreezeJmh:
     bh.consume(gA.det)
   @Benchmark def breezeDet(): Double = det(bA)
 
-  @Benchmark def galePinv(bh: Blackhole): Unit   = bh.consume(gGeneral.pinv)
-  @Benchmark def breezePinv(bh: Blackhole): Unit = bh.consume(pinv(bGeneral))
+  @Benchmark def galePinv(bh: Blackhole): Unit   = bh.consume(gA.pinv)
+  @Benchmark def breezePinv(bh: Blackhole): Unit = bh.consume(pinv(bA))
 
   @Benchmark def galeSvd(bh: Blackhole): Unit   = bh.consume(gGeneral.svd)
   @Benchmark def breezeSvd(bh: Blackhole): Unit = bh.consume(svd(bGeneral))
@@ -123,6 +128,8 @@ class SmallDenseBreezeJmh:
     bA = breezeMatrix(aData)
     bB = breezeMatrix(bData)
     bb = breezeVector(vData)
+    val rhs = if BreezeBenchmarkValidation.operation(params) == "Gemm" then bData else BreezeBenchmarkValidation.column(vData)
+    BreezeBenchmarkValidation.preflight(params, aData, "small-dominant2300-matrix2400-vector2500-v1", rhs)
 
   @Benchmark def galeGemm(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected

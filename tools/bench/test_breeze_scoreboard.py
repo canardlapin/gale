@@ -7,6 +7,8 @@ Run isolated from the repository: ``python3 -I tools/bench/test_breeze_scoreboar
 from __future__ import annotations
 
 import contextlib
+import copy
+from dataclasses import replace
 import importlib.util
 import io
 import sys
@@ -246,6 +248,78 @@ class LaneB(unittest.TestCase):
         code, _, err = lane("B", "laneB-netlib-novector.jsonl", "laneB-results.json")
         self.assertEqual(code, 2)
         self.assertIn("ran without jdk.incubator.vector", err)
+
+
+class NumericalPreflight(unittest.TestCase):
+    def setUp(self) -> None:
+        source, _ = scoreboard.load_results([DATA / "laneA-results.json"])
+        self.rows = [
+            replace(row, cls="DenseDecompositionBreezeJmh", op="Inv",
+                    benchmark=f"gale.bench.DenseDecompositionBreezeJmh.{row.lib}Inv")
+            for row in source
+            if row.cls == "BlasL3BreezeJmh" and row.op == "Gemm" and row.params.get("n") == "16"
+        ]
+        self.records = [
+            dict(benchmark=row.benchmark,
+                 params=",".join(f"{k}={v}" for k, v in row.params.items()),
+                 backend=row.params.get("backend", "pure"), sourceSha="abc123",
+                 forkId=f"00000000-0000-0000-0000-{i:012x}",
+                 lane="A", jdk=row.jdk, vectorModule=False,
+                 blas="dev.ludovic.netlib.blas.Java11BLAS", lapack="dev.ludovic.netlib.lapack.F2jLAPACK",
+                 fixture="dominant-seed2100-v1", fixtureSha256="a" * 64,
+                 status="passed", metrics=[dict(name="inverse residual", value=1e-16, limit=1e-12)])
+            for i, row in enumerate(self.rows)
+        ]
+        self.netlib = copy.deepcopy(self.records)
+        self.assertEqual(len(self.rows), 2)
+
+    def test_valid_multiple_forks_and_matching_pair(self) -> None:
+        self.assertEqual(scoreboard.validate_preflight(self.rows, self.records * 2, "abc123", self.netlib), 2)
+
+    def test_reject_missing_failed_stale_wrong_source_and_backend(self) -> None:
+        for field, value in (("status", "failed"), ("sourceSha", "stale"),
+                             ("backend", "vector"), ("fixtureSha256", "invalid"),
+                             ("benchmark", "unknown"), ("metrics", [])):
+            with self.subTest(field=field):
+                records = copy.deepcopy(self.records)
+                records[0][field] = value
+                with self.assertRaises(scoreboard.ReceiptError):
+                    scoreboard.validate_preflight(self.rows, records, "abc123", self.netlib)
+        with self.assertRaisesRegex(scoreboard.ReceiptError, "missing numerical preflight"):
+            scoreboard.validate_preflight(self.rows, self.records[:1], "abc123", self.netlib)
+
+    def test_reject_failing_or_nonfinite_metrics(self) -> None:
+        for value in (1.0, float("nan"), float("inf"), -1.0):
+            records = copy.deepcopy(self.records)
+            records[0]["metrics"][0]["value"] = value
+            with self.assertRaises(scoreboard.ReceiptError):
+                scoreboard.validate_preflight(self.rows, records, "abc123", self.netlib)
+
+    def test_reject_fixture_drift_between_libraries_and_forks(self) -> None:
+        records = copy.deepcopy(self.records)
+        records[0]["fixtureSha256"] = "b" * 64
+        with self.assertRaisesRegex(scoreboard.ReceiptError, "paired preflight fixtures differ"):
+            scoreboard.validate_preflight(self.rows, records, "abc123", self.netlib)
+        with self.assertRaisesRegex(scoreboard.ReceiptError, "fixture changed between forks"):
+            scoreboard.validate_preflight(self.rows, self.records + records, "abc123", self.netlib)
+
+
+    def test_rejects_cross_lane_runtime_and_missing_fork_evidence(self) -> None:
+        for field, value in (("lane", "B"), ("jdk", "other"), ("vectorModule", True),
+                             ("blas", scoreboard.VECTOR_BLAS), ("lapack", "other"),
+                             ("forkId", "10000000-0000-0000-0000-000000000000")):
+            with self.subTest(field=field):
+                records = copy.deepcopy(self.records)
+                records[0][field] = value
+                with self.assertRaisesRegex(scoreboard.ReceiptError, "netlib fork/runtime"):
+                    scoreboard.validate_preflight(self.rows, records, "abc123", self.netlib)
+        second = copy.deepcopy(self.records)
+        for record in second:
+            record["forkId"] = "1" + record["forkId"][1:]
+        netlib = self.netlib + second
+        self.assertEqual(scoreboard.validate_preflight(self.rows, self.records + second, "abc123", netlib), 2)
+        with self.assertRaisesRegex(scoreboard.ReceiptError, "one or more netlib forks"):
+            scoreboard.validate_preflight(self.rows, self.records, "abc123", netlib)
 
 
 if __name__ == "__main__":

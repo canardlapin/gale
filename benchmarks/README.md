@@ -160,13 +160,17 @@ lanes. Both aliases set `-rf json`; append a result file, JMH options and a benc
 regex. Use one pinned JDK (25 LTS) for both lanes:
 
 ```bash
-sbt "breezeLaneA -rff target/breeze-laneA.json .*BreezeJmh.*"
-sbt "breezeLaneB -rff target/breeze-laneB.json .*BreezeJmh.*"
+BREEZE_SOURCE_SHA=$(git rev-parse HEAD)
+env JAVA_TOOL_OPTIONS="-Dgale.bench.sourceSha=$BREEZE_SOURCE_SHA" \
+  sbt "breezeLaneA -rff target/breeze-laneA.json .*BreezeJmh.*"
+# Archive lane A's result and both sidecars before lane B resets them.
+env JAVA_TOOL_OPTIONS="-Dgale.bench.sourceSha=$BREEZE_SOURCE_SHA" \
+  sbt "breezeLaneB -rff target/breeze-laneB.json .*BreezeJmh.*"
 ```
 
 `-p backend=vector` in lane A fails that trial with an explicit
-`IllegalStateException` (the Vector API module is absent); the other benchmarks
-still run. Run single pairs with the same aliases, for example
+`IllegalStateException` (the Vector API module is absent). Both aliases use
+`-foe true`: a failed trial aborts the run. Run single pairs with the same aliases, for example
 `sbt "breezeLaneA -prof gc -p n=256 .*BlasL3BreezeJmh.*Gemm$"`.
 
 Each Breeze bench records the netlib classes it resolved, once per trial, to
@@ -180,6 +184,36 @@ Running the two lanes concurrently in one checkout is unsupported, because the
 reset and both lanes share that fixed path: use a separate worktree per lane, or
 give each run its own `-Dgale.bench.netlibSidecar` (which the reset does not delete).
 
+The dense decomposition, factorization, least-squares, multi-RHS, small-dense and
+symmetric-eigen classes validate both libraries in trial setup, using the exact
+fixture and selected Gale backend. Independent scalar-array checks cover finite
+outputs, shapes, reconstruction, orthogonality and normalized residuals. A
+failed operation or accuracy check prevents timing. Determinant overflow is
+accepted only against an independent sign/log-magnitude witness. Validation
+never forces lazy diagnostics or Q on a result used by a timed invocation.
+
+Checks append `passed` or `failed` records to `<netlib-sidecar>.validation.jsonl`
+(override with `gale.bench.validationSidecar`). Records include fixture identity
+and SHA-256, parameters, backend, source SHA, numerical errors and their bounds.
+A per-fork UUID binds each check to its netlib sidecar record, including the lane,
+JDK, Vector-module presence, and BLAS/LAPACK providers. The scoreboard requires
+matching validation for every covered fork; evidence from another lane or run is
+rejected.
+Use a clean, committed source tree for release receipts; set the fork property
+`gale.bench.sourceSha` to that exact compiled revision. The aliases reset both
+default sidecars. Keep both alongside the JMH JSON. Other benchmark families
+are not covered by this numerical preflight yet.
+
+The pseudoinverse pair now uses the existing diagonally dominant seed-2100
+matrix. Its former seed-2200 fixture was numerically rank-deficient at n=64;
+Breeze 2.1 inverts every nonzero singular value whereas Gale uses a numerical
+cutoff. Rebaseline this changed workload: its new timings cannot be reported as
+speedups over the old pinv fixtures. SVD and nonsymmetric eig retain their inputs.
+
+Run the preflight regression tests with `sbt benchmarksJVM/test`. They include
+deliberately rejected operations, zero/wrongly packed eigenvectors, corrupted
+factors and incorrect determinant overflow. CI runs these with benchmark compilation.
+
 ### Scoreboard
 
 `tools/bench/breeze_scoreboard.py` turns a lane's JMH JSON and sidecar into the
@@ -189,6 +223,7 @@ rows):
 ```bash
 python3 tools/bench/breeze_scoreboard.py --lane A \
   --netlib benchmarks/jvm/target/breeze-netlib.jsonl target/breeze-laneA.json \
+  --validation benchmarks/jvm/target/breeze-netlib.jsonl.validation.jsonl --strict \
   -o benchmarks/results/<date>-breeze-laneA.md
 python3 -I tools/bench/test_breeze_scoreboard.py   # self-test on synthetic fixtures
 ```
@@ -206,6 +241,10 @@ or a native BLAS/LAPACK (a Linux host with `libblas.so.3` would otherwise quietl
 get native BLAS), if any fork resolved the Vector module (via the JMH args or, for
 example, `JDK_JAVA_OPTIONS`), or if gale ran a non-`pure` backend; a lane-B receipt
 is rejected unless every fork had the module and Breeze resolved `VectorBLAS`.
+Supply `--validation` for new receipts. It rejects missing or failed covered
+checks, a mismatched source/backend, non-finite or out-of-bound metrics, changed
+fixtures between forks, and different paired inputs. Without it, the report is
+explicitly marked as a legacy receipt without numerical preflight evidence.
 
 ### What each lane measures
 

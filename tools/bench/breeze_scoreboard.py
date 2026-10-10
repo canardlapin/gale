@@ -280,6 +280,79 @@ def _sidecar_params(text: str) -> dict:
     )
 
 
+PREFLIGHT_CLASSES = {
+    "DenseDecompositionBreezeJmh", "SmallDenseBreezeJmh",
+    "FactorizationBreezeJmh", "LeastSquaresBreezeJmh",
+    "FactorizationLargeBreezeJmh", "MultiRhsBreezeJmh", "SymEigenBreezeJmh",
+}
+
+
+def validate_preflight(rows: list[Row], records: list[dict], commit: str, netlib: list[dict]) -> int:
+    """Require numerical evidence for every covered result, on its exact fixture.
+
+    Multiple forks may append the same check. Every record must pass; an earlier
+    failed fork cannot be hidden by a later success or by dropping its JMH row.
+    """
+    expected = {
+        _params_key(r.benchmark, r.params): r
+        for r in rows if r.cls in PREFLIGHT_CLASSES
+    }
+    runtime_fields = ("lane", "jdk", "vectorModule", "blas", "lapack")
+    forks = {}
+    for record in netlib:
+        key = _params_key(str(record.get("benchmark")), _sidecar_params(record.get("params")))
+        if key in expected:
+            fork_id = record.get("forkId")
+            if not isinstance(fork_id, str) or not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", fork_id):
+                raise ReceiptError(f"missing/invalid netlib fork identity: {key}")
+            forks[(key, fork_id)] = tuple(record.get(field) for field in runtime_fields)
+    observed: dict[tuple, tuple[str, str]] = {}
+    observed_forks = set()
+    for record in records:
+        key = _params_key(str(record.get("benchmark")), _sidecar_params(record.get("params")))
+        if key not in expected:
+            raise ReceiptError(f"preflight record has no covered result: {key}")
+        fork = (key, record.get("forkId"))
+        if fork not in forks or tuple(record.get(field) for field in runtime_fields) != forks[fork]:
+            raise ReceiptError(f"preflight does not match its netlib fork/runtime: {key}")
+        observed_forks.add(fork)
+        if record.get("status") != "passed":
+            raise ReceiptError(f"failed numerical preflight: {key}: {record.get('message')}")
+        if record.get("sourceSha") != commit or commit == "unrecorded":
+            raise ReceiptError(f"preflight source SHA does not match receipt: {key}")
+        row = expected[key]
+        if record.get("backend") != row.params.get("backend", "pure"):
+            raise ReceiptError(f"preflight backend does not match result: {key}")
+        fingerprint = record.get("fixtureSha256", "")
+        fixture = record.get("fixture", "")
+        if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint) or not fixture:
+            raise ReceiptError(f"missing/invalid preflight fixture identity: {key}")
+        metrics = record.get("metrics")
+        if not isinstance(metrics, list) or not metrics:
+            raise ReceiptError(f"preflight has no numerical checks: {key}")
+        for metric in metrics:
+            value, limit = _num(metric.get("value")), _num(metric.get("limit"))
+            if not math.isfinite(value) or not math.isfinite(limit) or not 0 <= value <= limit:
+                raise ReceiptError(f"invalid/failing preflight metric: {key}: {metric}")
+        identity = (fixture, fingerprint)
+        if key in observed and observed[key] != identity:
+            raise ReceiptError(f"fixture changed between forks: {key}")
+        observed[key] = identity
+    missing = expected.keys() - observed.keys()
+    if missing:
+        raise ReceiptError(f"missing numerical preflight for: {sorted(missing)}")
+    if forks.keys() - observed_forks:
+        raise ReceiptError("missing numerical preflight for one or more netlib forks")
+    paired, _ = pair(rows)
+    for gale, breeze in paired:
+        if gale.cls in PREFLIGHT_CLASSES:
+            gkey = _params_key(gale.benchmark, gale.params)
+            bkey = _params_key(breeze.benchmark, breeze.params)
+            if observed[gkey] != observed[bkey]:
+                raise ReceiptError(f"paired preflight fixtures differ: {gale.benchmark} {gale.params}")
+    return len(expected)
+
+
 def validate(lane: str, rows: list[Row], sidecar: list[dict]) -> tuple[str, str]:
     if not sidecar:
         raise ReceiptError(
@@ -437,6 +510,7 @@ def render(
     machine: str | None,
     ignored: int,
     strict: bool = False,
+    validated: int | None = None,
 ) -> str:
     pairs, unpaired = pair(rows)
     if strict and unpaired:
@@ -472,6 +546,8 @@ def render(
         f"- Breeze netlib BLAS: `{blas}`",
         f"- Breeze netlib LAPACK: `{lapack}`",
         f"- Commit: `{commit}`",
+        (f"- Numerical preflight: {validated} decomposition/factorization result rows validated on this SHA."
+         if validated is not None else "- Numerical preflight: not supplied (legacy receipt; successful numerical completion unverified by this tool)."),
     ]
     if machine:
         out.append(f"- Machine: {machine}")
@@ -518,6 +594,10 @@ def main(argv: list[str] | None = None) -> int:
         "--commit", help="source commit (default: git rev-parse HEAD of this checkout)"
     )
     parser.add_argument(
+        "--validation", action="append", type=Path,
+        help="numerical preflight JSONL (repeatable; required for new decomposition/factorization receipts)",
+    )
+    parser.add_argument(
         "--machine", help="free-text machine description for the header"
     )
     parser.add_argument(
@@ -531,10 +611,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         rows, ignored = load_results(args.results)
-        blas, lapack = validate(args.lane, rows, load_sidecars(args.netlib))
+        netlib = load_sidecars(args.netlib)
+        blas, lapack = validate(args.lane, rows, netlib)
         commit = args.commit or git_commit(Path(__file__).resolve().parent)
+        validated = validate_preflight(rows, load_sidecars(args.validation), commit, netlib) if args.validation else None
         text = render(
-            args.lane, rows, blas, lapack, commit, args.machine, ignored, args.strict
+            args.lane, rows, blas, lapack, commit, args.machine, ignored, args.strict, validated
         )
     except ReceiptError as exc:
         print(f"breeze_scoreboard: error: {exc}", file=sys.stderr)

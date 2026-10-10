@@ -27,6 +27,9 @@ import org.openjdk.jmh.infra.BenchmarkParams
   */
 object BreezeBenchData:
 
+  /** Connect the numerical preflight to this exact fork's netlib evidence. */
+  private[bench] val forkId: String = java.util.UUID.randomUUID().toString
+
   /** Deterministic pseudo-random `[-1, 1)` sequence — a tiny LCG so a given seed
     * yields the same data on every fork.
     */
@@ -195,7 +198,7 @@ object BreezeBenchData:
     )
     def q(v: String): String = "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
     val line =
-      s"""{"lane":${q(lane)},"benchmark":${q(params.getBenchmark)},"params":${q(paramText)},""" +
+      s"""{"forkId":${q(forkId)},"lane":${q(lane)},"benchmark":${q(params.getBenchmark)},"params":${q(paramText)},""" +
         s""""jdk":${q(System.getProperty("java.version"))},"vectorModule":$vectorModule,""" +
         s""""blas":${q(blas)},"lapack":${q(lapack)}}\n"""
     val path = Paths.get(System.getProperty(NetlibSidecarProperty, DefaultNetlibSidecar))

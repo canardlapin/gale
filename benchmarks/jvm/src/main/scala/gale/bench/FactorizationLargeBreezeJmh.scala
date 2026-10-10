@@ -82,6 +82,12 @@ class FactorizationLargeBreezeJmh:
     bb = breezeVector(bData)
     bTall = breezeMatrix(tallData)
     bTallB = breezeVector(tallB)
+    val (input, rhs, fixture) = BreezeBenchmarkValidation.operation(params) match
+      case "Chol" => (sData, bData, "spd1200-v1")
+      case "EigSym" => (symData, bData, "symmetric1300-v1")
+      case "Lstsq" => (tallData, tallB, "matrix1500-vector1600-v1")
+      case _ => (aData, bData, "dominant1100-vector1400-v1")
+    BreezeBenchmarkValidation.preflight(params, input, fixture, BreezeBenchmarkValidation.column(rhs))
 
   @Benchmark def galeSolve(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
@@ -158,6 +164,9 @@ class MultiRhsBreezeJmh:
     bA = breezeMatrix(aData)
     bS = breezeMatrix(sData)
     bB = breezeMatrix(bData)
+    val chol = BreezeBenchmarkValidation.operation(params) == "CholSolve"
+    BreezeBenchmarkValidation.preflight(params, if chol then sData else aData,
+      if chol then "spd1800-matrix1900-v1" else "dominant1700-matrix1900-v1", bData)
 
   @Benchmark def galeLuSolve(g: GaleBackendState, bh: Blackhole): Unit =
     val backend = g.selected
