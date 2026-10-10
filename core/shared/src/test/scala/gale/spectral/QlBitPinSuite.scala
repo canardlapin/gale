@@ -12,8 +12,11 @@ import gale.linalg.*
   * change must say so and regenerate these values, never relax them.
   *
   * The cases cover vectors at small orders (always QL), values only above the
-  * divide-and-conquer order (still QL), and a subnormal tridiagonal whose QL
-  * sweep takes the `r == 0` underflow restart.
+  * divide-and-conquer order (still QL), and a subnormal-scale tridiagonal.
+  * That last input took the `r == 0` underflow restart until QL gained its
+  * tiny-scale lift (`2^600`); its pin was regenerated then (a deliberate bit
+  * change for inputs below `2^-600` only), and on the lifted scale it no
+  * longer underflows.
   */
 class QlBitPinSuite extends munit.FunSuite:
   private def entry(i: Int, j: Int): Double =
@@ -68,11 +71,11 @@ class QlBitPinSuite extends munit.FunSuite:
       assertEquals(hash(workspace.values, None), expected)
     }
 
-  test("QL keeps its bits through the r == 0 underflow restart") {
+  test("QL keeps its bits on a subnormal-scale tridiagonal (solved on the lifted scale)") {
     val tiny = java.lang.Double.MIN_VALUE
     val diagonal = Vec(7 * tiny, -1e-310, 2 * tiny, 1e-310, -tiny, -2 * tiny)
     val offDiagonal = Vec(3 * tiny, 0.0, 5 * tiny, 2 * tiny, -2 * tiny)
     val result =
       DenseSpectralKernels.symmetricTridiagonalEigen(diagonal, offDiagonal, wantVectors = true).toOption.get
-    assertEquals(hash(result.values, result.vectors), -3046087759038496836L)
+    assertEquals(hash(result.values, result.vectors), 8283310461317691503L)
   }

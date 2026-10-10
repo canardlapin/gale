@@ -221,19 +221,23 @@ private[gale] object DenseSpectralKernels:
     require(a.cols == n, "symmetricEigen requires a square matrix")
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
-    if wantVectors && divideAndConquer && usesDivideAndConquer(n) then
-      val requirement = symmetricEigenRequirement(n, wantVectors = true) match
-        case Left(error)  => throw error
-        case Right(value) => value
-      val scratch = DoubleArray.alloc(requirement.doubleElements)
-      val indices = IndexArray.alloc(requirement.indexElements)
-      symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
-    else
-      val e = DoubleArray.alloc(n)
-      tred2(n, work, 0, d, e, 0, wantVectors)
-      // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
-      val z = if wantVectors then Some(work) else None
-      solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
+    val lifted = liftTinyInput(n, work, 0)
+    val result =
+      if wantVectors && divideAndConquer && usesDivideAndConquer(n) then
+        val requirement = symmetricEigenRequirement(n, wantVectors = true) match
+          case Left(error)  => throw error
+          case Right(value) => value
+        val scratch = DoubleArray.alloc(requirement.doubleElements)
+        val indices = IndexArray.alloc(requirement.indexElements)
+        symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
+      else
+        val e = DoubleArray.alloc(n)
+        tred2(n, work, 0, d, e, 0, wantVectors)
+        // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
+        val z = if wantVectors then Some(work) else None
+        solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
+    if lifted then lowerLiftedValues(n, d)
+    result
 
   /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own
     * their storage; reduction, off-diagonal and divide-and-conquer scratch come
@@ -252,16 +256,50 @@ private[gale] object DenseSpectralKernels:
       case Right(value) => value
     val scratch = workspace.doubles(requirement)
     val d = DoubleArray.alloc(n)
-    if wantVectors then
-      val work = DoubleArray.alloc(n * n)
-      symmetrizeLowerInto(a, n, work, 0)
-      val indices = workspace.indices(requirement)
-      symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
-    else
-      val eOffset = n * n
-      symmetrizeLowerInto(a, n, scratch, 0)
-      tred2(n, scratch, 0, d, scratch, eOffset, accumulate = false)
-      solveTridiagonal(n, d, scratch, eOffset, None, maxSweepsPerValue)
+    var lifted = false
+    val result =
+      if wantVectors then
+        val work = DoubleArray.alloc(n * n)
+        symmetrizeLowerInto(a, n, work, 0)
+        lifted = liftTinyInput(n, work, 0)
+        val indices = workspace.indices(requirement)
+        symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
+      else
+        val eOffset = n * n
+        symmetrizeLowerInto(a, n, scratch, 0)
+        lifted = liftTinyInput(n, scratch, 0)
+        tred2(n, scratch, 0, d, scratch, eOffset, accumulate = false)
+        solveTridiagonal(n, d, scratch, eOffset, None, maxSweepsPerValue)
+    if lifted then lowerLiftedValues(n, d)
+    result
+
+  /** Scale the mirrored `n x n` input at `offset` by the exact `2^600` when it
+    * is nonzero and every entry is below `2^-600`, so the reduction and the
+    * tridiagonal solve do not run in or near the subnormal range (where their
+    * products lose relative accuracy). Returns whether it did; the caller then
+    * scales the eigenvalues back with [[lowerLiftedValues]]. Ordinary,
+    * huge and non-finite inputs are untouched.
+    */
+  private def liftTinyInput(n: Int, a: DoubleArray, offset: Int): Boolean =
+    var max = 0.0
+    var i = 0
+    while i < n * n do
+      max = math.max(max, math.abs(a(offset + i)))
+      i += 1
+    val lift = max > 0.0 && max < TinyTridiagonalEntry
+    if lift then
+      i = 0
+      while i < n * n do
+        a(offset + i) = a(offset + i) * ScaleUpHuge
+        i += 1
+    lift
+
+  /** Undo [[liftTinyInput]] on the eigenvalues (the result's own storage). */
+  private def lowerLiftedValues(n: Int, d: DoubleArray): Unit =
+    var i = 0
+    while i < n do
+      d(i) = d(i) * ScaleDownHuge
+      i += 1
 
   /** The vector route shared by [[symmetricEigen]] and [[symmetricEigenWith]].
     * `work` holds the mirrored input and becomes the eigenvector result;
@@ -642,7 +680,9 @@ private[gale] object DenseSpectralKernels:
     * `maxSweeps` QL sweeps; with finite input and the Wilkinson shift this is not
     * expected (a few sweeps per eigenvalue). Finite `T` with entries above
     * `2^600` is solved on the exact rescaling `2^-600 T` so that QL
-    * intermediates cannot overflow. A NaN never satisfies either test,
+    * intermediates cannot overflow, and nonzero `T` whose entries are all
+    * below `2^-600` on `2^600 T`, so that rotations and deflation do not run
+    * in the subnormal range. A NaN never satisfies either test,
     * so NaN input exhausts the cap; ±Inf input behaves as under the local test
     * alone (it may converge to non-finite values or exhaust the cap).
     *
@@ -679,16 +719,21 @@ private[gale] object DenseSpectralKernels:
       i += 1
     // The QL recurrences form intermediates up to a few times ‖T‖, so a finite
     // T near the overflow threshold is first scaled by the exact power of two
-    // 2^-600 (dsteqr's safe-range scaling); eigenvalues are scaled back below
-    // and eigenvectors are unaffected. Ordinary inputs are never rescaled.
+    // 2^-600, and a nonzero T below 2^-600 by 2^600 (dsteqr's safe-range
+    // scaling, both ways): at that scale the rotations, the shift and the
+    // ε·‖T‖ deflation threshold would run in or near the subnormal range and
+    // lose their relative accuracy. Eigenvalues are scaled back below and
+    // eigenvectors are unaffected. Ordinary inputs are never rescaled.
     val rescaled = tMax.isFinite && tMax > HugeTridiagonalEntry
-    if rescaled then
+    val lifted = tMax > 0.0 && tMax < TinyTridiagonalEntry
+    if rescaled || lifted then
+      val factor = if rescaled then ScaleDownHuge else ScaleUpHuge
       i = 0
       while i < n do
-        d(i) = d(i) * ScaleDownHuge
-        e(eOffset + i) = e(eOffset + i) * ScaleDownHuge
+        d(i) = d(i) * factor
+        e(eOffset + i) = e(eOffset + i) * factor
         i += 1
-      tMax = tMax * ScaleDownHuge
+      tMax = tMax * factor
     val normScale = if tMax.isFinite then tMax else 0.0
 
     val hasZ = z.isDefined
@@ -770,10 +815,11 @@ private[gale] object DenseSpectralKernels:
             e(eOffset + m) = 0.0
       l += 1
 
-    if rescaled then
+    if rescaled || lifted then
+      val factor = if rescaled then ScaleUpHuge else ScaleDownHuge
       i = 0
       while i < n do
-        d(i) = d(i) * ScaleUpHuge
+        d(i) = d(i) * factor
         i += 1
     sortAscending(n, d, z)
     if hasZ then transposeSquareInPlace(n, zData)
@@ -1475,6 +1521,9 @@ private[gale] object DenseSpectralKernels:
   private val HugeTridiagonalEntry: Double = java.lang.Double.longBitsToDouble((1023L + 600L) << 52)
   private val ScaleDownHuge: Double = java.lang.Double.longBitsToDouble((1023L - 600L) << 52)
   private val ScaleUpHuge: Double = HugeTridiagonalEntry
+
+  /** Nonzero tridiagonals whose entries are all below `2^-600` are scaled by `2^600`. */
+  private val TinyTridiagonalEntry: Double = ScaleDownHuge
 
   /** `sqrt(a² + b²)` without forming the overflow-prone intermediate, using only
     * correctly-rounded `sqrt` so the result is identical on JVM and Scala.js
