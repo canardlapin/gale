@@ -154,11 +154,10 @@ private[gale] object DenseSpectralKernels:
 
   /** Primitive scratch required by [[symmetricEigenWith]]. Values-only execution
     * reuses the n² reduction matrix plus the length-n off-diagonal. When vectors
-    * are returned the n² matrix is result storage; below
-    * [[TridiagonalDivideConquer.MinOrder]] only the off-diagonal is scratch,
-    * and from that order on the divide-and-conquer solve adds an n² vector
-    * region, its n² packing region, `105·n` doubles of per-merge vectors and
-    * panels, and `7·n` indices.
+    * are returned the n² matrix is result storage; when [[usesDivideAndConquer]]
+    * holds the divide-and-conquer solve adds an n² vector region, its n²
+    * packing region, `105·n` doubles of per-merge vectors and panels, and
+    * `7·n` indices; otherwise only the off-diagonal is scratch.
     */
   def symmetricEigenRequirement(
       order: Int,
@@ -166,22 +165,39 @@ private[gale] object DenseSpectralKernels:
   ): Either[LinAlgError, ScratchRequirement] =
     if order < 0 then
       Left(LinAlgError.InvalidArgument(s"symmetric eigen order must be non-negative, got $order"))
-    else if wantVectors && order >= TridiagonalDivideConquer.MinOrder then
-      ScratchRequirement.checked(
-        order.toLong + order.toLong * order.toLong + TridiagonalDivideConquer.doubleScratch(order),
-        TridiagonalDivideConquer.indexScratch(order)
-      )
+    else if wantVectors && usesDivideAndConquer(order) then
+      ScratchRequirement.checked(divideAndConquerDoubles(order), TridiagonalDivideConquer.indexScratch(order))
     else
       val doubles =
         if wantVectors then order.toLong
         else order.toLong * order.toLong + order.toLong
       ScratchRequirement.checked(doubles, 0L)
 
+  /** Doubles of vector-route scratch when divide and conquer runs: the
+    * off-diagonal, `Zᵀ`, and the [[TridiagonalDivideConquer]] region.
+    */
+  private def divideAndConquerDoubles(order: Int): Long =
+    order.toLong + order.toLong * order.toLong + TridiagonalDivideConquer.doubleScratch(order)
+
+  /** Whether the dense vector route of order `order` uses divide and conquer:
+    * from [[TridiagonalDivideConquer.MinOrder]] up to the largest order whose
+    * divide-and-conquer scratch is still addressable (`Int.MaxValue` doubles
+    * and indices, about 32.7k). Above that both routes fall back to QL, whose
+    * requirement is the off-diagonal alone, so a vector solve never fails
+    * because the faster solver's scratch cannot be represented. Both routes and
+    * [[symmetricEigenRequirement]] apply this one rule.
+    */
+  private[spectral] def usesDivideAndConquer(order: Int): Boolean =
+    order >= TridiagonalDivideConquer.MinOrder &&
+      divideAndConquerDoubles(order) <= Int.MaxValue.toLong &&
+      TridiagonalDivideConquer.indexScratch(order) <= Int.MaxValue.toLong
+
   /** Dense symmetric eigendecomposition `A V = V diag(λ)` with `λ` ascending and
     * `V` orthonormal (columns aligned with `values`). Composes
     * [[tridiagonalize]] with a tridiagonal eigensolver: with `wantVectors`, at
     * order [[TridiagonalDivideConquer.MinOrder]] or more and finite `T`,
-    * divide and conquer followed by the back-transform `V = Q Z`; otherwise
+    * divide and conquer followed by the back-transform `V = Q Z` (while
+    * [[usesDivideAndConquer]] holds); otherwise
     * the QL/QR solver accumulating eigenvectors through the tridiagonalization
     * `Q`. `divideAndConquer = false` forces QL (the block Krylov projected
     * problems keep it). Reads only the lower triangle of `A`. Scratch is laid
@@ -198,7 +214,7 @@ private[gale] object DenseSpectralKernels:
     require(a.cols == n, "symmetricEigen requires a square matrix")
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
-    if wantVectors && divideAndConquer && n >= TridiagonalDivideConquer.MinOrder then
+    if wantVectors && divideAndConquer && usesDivideAndConquer(n) then
       val requirement = symmetricEigenRequirement(n, wantVectors = true) match
         case Left(error)  => throw error
         case Right(value) => value
@@ -257,7 +273,7 @@ private[gale] object DenseSpectralKernels:
       divideAndConquer: Boolean
   ): Either[SpectralKernelFailure, SymmetricEigen] =
     tred2(n, work, 0, d, scratch, 0, accumulate = true)
-    if !divideAndConquer || n < TridiagonalDivideConquer.MinOrder || !finiteTridiagonal(n, d, scratch) then
+    if !divideAndConquer || !usesDivideAndConquer(n) || !finiteTridiagonal(n, d, scratch) then
       solveTridiagonal(n, d, scratch, 0, Some(work), maxSweeps)
     else
       // EISPACK e(i) = T(i-1, i) becomes off(i) = T(i, i+1).

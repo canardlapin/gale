@@ -68,7 +68,31 @@ class SymmetricDivideConquerSuite extends munit.FunSuite:
       Eigen.symmetricScratchRequirement(at, EigenVectors.ValuesOnly).map(r => (r.doubleElements, r.indexElements)),
       Right((at * at + at, 0))
     )
-    assert(Eigen.symmetricScratchRequirement(40000, EigenVectors.Right).isLeft)
+  }
+
+  test("vector route falls back to QL where divide-and-conquer scratch is not addressable") {
+    // Largest order whose n + 2n² + 105n doubles still fit an Int (no allocation here).
+    def dcDoubles(n: Long): Long = n + 2 * n * n + 105 * n
+    var last = 32000L
+    while dcDoubles(last + 1) <= Int.MaxValue.toLong do last += 1
+    val n = last.toInt
+    assert(n > 32000 && n < 46340, s"boundary $n")
+    assert(DenseSpectralKernels.usesDivideAndConquer(n))
+    assert(!DenseSpectralKernels.usesDivideAndConquer(n + 1))
+    assertEquals(
+      Eigen.symmetricScratchRequirement(n, EigenVectors.Right).map(r => (r.doubleElements.toLong, r.indexElements.toLong)),
+      Right((dcDoubles(last), 7 * last))
+    )
+    // Above it the QL requirement (the off-diagonal alone) is reported, up to
+    // the n² result limit that QL itself has.
+    assertEquals(
+      Eigen.symmetricScratchRequirement(n + 1, EigenVectors.Right).map(r => (r.doubleElements, r.indexElements)),
+      Right((n + 1, 0))
+    )
+    assertEquals(
+      Eigen.symmetricScratchRequirement(46340, EigenVectors.Right).map(r => (r.doubleElements, r.indexElements)),
+      Right((46340, 0))
+    )
   }
 
   test("ordinary and workspace routes agree exactly and reuse exact-sized scratch") {

@@ -207,5 +207,8 @@ for `n ≥ 48` from `n` doubles to `n + 2n² + 105n` doubles and `7n` indices
 vectors and panels — the same order as LAPACK `dsyevd`). Callers that size a
 `DenseWorkspace` from this requirement need no change; callers that
 hard-coded the former `n` must re-query it. Values-only requirements are
-unchanged. Non-finite input keeps the QL path and its `DidNotConverge`
+unchanged. Above the largest order whose divide-and-conquer scratch is
+addressable (`n + 2n² + 105n ≤ Int.MaxValue`, i.e. `n ≤ 32,741`), both
+routes fall back to QL and the requirement is again `n` doubles, so vector
+solves keep working up to QL's own `n² ≤ Int.MaxValue` limit. Non-finite input keeps the QL path and its `DidNotConverge`
 behaviour.
