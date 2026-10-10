@@ -5,6 +5,10 @@ Status: approved 2026-10-08; in execution.
 
 Mote epic: `bd-01M4EJ8JTE95TM3HQ7ZYC358EN`; one task per workstream item (W0–W6).
 
+The original context below describes the October 8 baseline. The
+[October 10 follow-up](#october-10-follow-up--correctness-and-performance-comparisons)
+sets the next execution order after the first hill-climbs.
+
 
 ## Context
 
@@ -218,3 +222,151 @@ Parallelism: W1, W3/W4 and W5.2–5.4 touch disjoint files and can run in separa
   - W5 suites are green on CI.
   - The docs gate (`docsCheck`) passes.
   - A fresh-context reviewer signs off on the final receipt.
+
+## October 10 follow-up — correctness and performance comparisons
+
+Planning reference: `breeze/integration` at `e8f1f8732acc79df0b91d0c0dc4d4e39477ed978`.
+Status: next-stage plan requested 2026-10-10; implementation has not started under
+this follow-up. Keep the existing epic and workstream ownership.
+
+**Outcome.** Every reported speed ratio measures a successfully completed,
+numerically validated operation. Publish an updated two-lane comparison, then
+reduce its remaining losses through separately measured changes.
+
+**Current evidence.** The complete Milestone 1 receipts measure `ff03eed`, before
+the max, solve/inverse and D&C follow-ups. Their old losses are not current-head
+verdicts. Nonsymmetric eig remains owned by HC-1. Direct nonsymmetric Breeze
+parity stops at n=12; full-SVD factor parity is mostly small; JS goldens omit
+nonsymmetric eig and large spectral factors. Current receipts cover Zen 5/JDK 25,
+Java11BLAS or VectorBLAS with F2jLAPACK, not native-backed Breeze.
+
+### 1. Validate the exact workloads before timing
+
+Extend the existing Breeze benchmark setup helpers and decomposition/factorization
+JMH classes. Before any timed iteration, run both implementations on the exact
+fixture and selected backend. Require successful completion, finite outputs where
+appropriate, the requested result shape/count, and operation-specific accuracy:
+scaled solve/inverse residuals, factor reconstruction, eigenpair residuals and
+SVD reconstruction/orthogonality. Respect sign and cluster-basis ambiguity.
+
+Record the preflight result beside the existing SHA, seed, backend and netlib
+identity. A `Left`, nonconvergence, or failed accuracy check aborts the trial; it
+must never produce a competitive timing. Keep validation outside timed methods
+and preserve the existing lazy-result consumption contract. Diagnostics timing,
+if measured later, is a separately named workload.
+
+Acceptance: an intentionally rejected result demonstrably fails validation;
+all benchmark fixtures pass preflight on the selected lane. Run `benchCompile`,
+focused validation checks, and short JMH smoke runs. Smoke timings are not receipts.
+If current eig fails, retain the reproducer and return it to HC-1 before timing.
+
+### 2. Close the spectral correctness gaps and finish HC-1
+
+Extend the existing nonsymmetric, full-SVD and spectral-hardening parity suites,
+and the Breeze golden generator/replay. Inventory existing cases first; add only
+the missing discriminating cases.
+
+- Nonsymmetric eig: cover the benchmark fixtures at n=16/64/256, planted real and
+  complex spectra, strong nonnormality, near-defective cases and scale extremes.
+  Check normalized residuals for both libraries; use forward eigenvalue/vector
+  comparisons only when conditioning makes them informative. Preserve packing,
+  ordering and values-only contracts. Coordinate with the existing HC-1 owner.
+- Full SVD/pinv: extend to n=128/256 and selected tall/wide shapes, repeated or
+  clustered singular values, graded scales and rank deficiency. Use residuals,
+  orthogonality, cluster projectors and Moore–Penrose identities; align cutoff
+  policy explicitly before comparing pseudoinverses.
+- Symmetric eigen: validate the timed n=512/1024 fixtures; retain the existing
+  threshold, tiny/huge-scale, workspace-ownership and bit-pin regressions.
+- JVM/JS goldens: add a compact nonsymmetric corpus, another D&C vector case
+  above n=48, and full-SVD factor evidence. Store vectors or projectors only where
+  their comparison is well-defined; constrain generated-source and CI costs.
+
+Acceptance: independent analytic or Breeze evidence plus numerical invariants,
+with tolerances justified by scale, precision, conditioning and spectral gaps.
+No tolerance widening to conceal failures. Keep a small deterministic CI corpus;
+run expensive benchmark-size/adversarial cases in a separately invocable stress
+lane if their measured runtime would burden normal CI. Re-run `parityTest`,
+`breezeGoldensCheck` and JVM/JS core tests after the changes. HC-1 must pass this
+evidence and the existing merge gates before inclusion in Milestone 2.
+
+### 3. Freeze and publish Milestone 2 evidence
+
+After steps 1–2 and the HC-1 merge, freeze one source SHA. Run both existing JMH
+lanes on exclusive trillium resources using the established JDK, CPU/memory
+pinning, two forks and per-class warmup/measurement settings. Preserve complete
+raw JSON, fork logs, preflight evidence and BLAS/LAPACK sidecars. Use the existing
+runner and strict scoreboard; record exact commands and scheduler job IDs.
+
+Report deltas against Milestone 1, especially eig, eigSym, SVD/pinv, inverse,
+multi-RHS solves, max and n=64 factorizations. Keep pure-versus-vector control
+rows, but summarize the comparable vector lane without double-counting them.
+Continue withholding comparisons with mismatched work or stopping rules. Capture
+allocation evidence for the spectral and solve workloads where workspace or
+lazy diagnostics changed, using a separately identified profiling run if needed.
+
+Acceptance: every timed fixture passes preflight; strict pairing/backend checks
+pass; each remaining loss has an owner and an evidence-based explanation or next
+experiment. Do not transplant branch-local ratios into this receipt. A failure
+blocks the affected claim and is reported explicitly.
+
+### 4. Optimize the remaining measured losses, one change at a time
+
+Use Milestone 2 to select sizes and confirm priorities. First investigate SIMD
+`AᵀA` (M1 n=256: 0.62×), tall GEMM (n=64: 0.62×), and sigmoid (0.53–0.85×).
+Profile layout/packing and dispatch for the products; profile scalar branching
+and exponential evaluation for sigmoid. Preserve sigmoid's extreme-input and
+NaN semantics. Treat GEMV's smaller 3–8% deficits as a later tuning target.
+
+For each candidate: state the bottleneck hypothesis, retain a same-machine
+baseline, change one kernel or threshold, run focused correctness checks, and
+measure both the target and neighboring sizes/shapes. Apply the existing W1
+accept-or-revert rule: achieve the target Breeze ratio, no reproducible >3%
+regression elsewhere, and no >5% shared-code JS regression at n≤256. Reject or
+revise a failed candidate; do not start an unbounded tuning loop. Large blocked
+LU/Cholesky/tridiagonalization remain later work unless M2 makes them a priority.
+
+### 5. Complete the gated SIMD routing decision
+
+Continue W2 rather than opening another SIMD effort. The retained AVX-512 spike
+passes for norm, sum and argmax, but dispatch fails A-R1 at small sizes. Resolve
+that cost while preserving explicit backend selection and custom-backend
+contracts, then refresh the gate against current scalar kernels. Measure
+monomorphic and mixed-backend call sites and allocation, including small inputs.
+
+Acceptance: satisfy both the existing per-operation speed gate and A-R1 before
+routing a passing operation. A failed gate leaves that operation unrouted and
+documented. Do not relax the gate implicitly. SIMD exp remains excluded from
+default routing because its output is JIT-tier/position dependent. Scope every
+result to the measured architecture/species width; AVX-512 does not qualify AVX2.
+
+### 6. Compare optimizer time to equivalent accuracy
+
+Reuse the shared stopping criterion and independent residual recomputation from
+`OptimizerParitySuite` in the JMH optimizer workload. Retain fixed-iteration
+measurements as a separate cost comparison. Start with Rosenbrock and regularized
+logistic regression; add bounded logistic/LBFGSB with its projected-gradient
+criterion once the shared harness is established.
+
+Record final objective/residual, status, iterations, function/gradient calls,
+allocations and elapsed time. Both solvers must reach the same requested accuracy
+before a time-to-solution winner is declared. Preserve early termination/failure
+information; no success ratio for a failed solve. Only then profile and optimize
+callback copies, line-search work or vector kernels implicated by the evidence.
+
+### Integration, qualification and next action
+
+Use one primary writer and the existing independently reviewed merge process;
+do not duplicate the active HC-1 work. Preserve public numerical, ownership and
+workspace contracts. Apply the ground-rule gates above, plus `benchCompile` for
+benchmark changes, `breezeGoldensCheck` for corpus changes, `vectorBackendTest`
+for backend changes and `benchSmokeJSFull` for shared-kernel performance changes.
+Run affected gates after the final edit, then retain their exact-source receipts.
+
+Refresh the final scoreboard after accepted optimizations. Close relevant Motes
+only when their acceptance evidence is present; documented exceptions remain
+visible. Native-backed Breeze and additional CPU families need separate explicit
+receipts before broadening the claim; provisioning new native backends is outside
+this follow-up. Preserve unrelated main-worktree files and stage only owned paths.
+
+Next action: implement step 1 on an isolated branch from current integration,
+while coordinating benchmark-sized eig validation with the existing HC-1 owner.
