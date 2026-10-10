@@ -446,6 +446,69 @@ class ReductionsSuite extends ScalaCheckSuite:
     for (name, a) <- matrixLayouts(2, 2, (i, j) => if i == j then PInf else NInf) do assert(a.mean.isNaN, name)
   }
 
+  test("both extreme-value kernels (scan and reduce) return the bits at argmax/argmin on every layout") {
+    // Only one kernel backs dmax/dmin on a given platform (scan on x86 JVM,
+    // reduce elsewhere); drive both directly so each is checked on every host.
+    // Entries mix ties, signed zeros, infinities and occasional NaNs.
+    def bits(x: Double) = java.lang.Double.doubleToLongBits(x)
+    val random = new scala.util.Random(20261010L)
+    val pool = IndexedSeq(-0.0, 0.0, 1.0, -1.0, 2.0, -2.0, PInf, NInf)
+    def entry(nanRate: Double): Double =
+      val u = random.nextDouble()
+      if u < nanRate then Nan
+      else if u < 0.6 then pool(random.nextInt(pool.length))
+      else random.nextGaussian()
+    for
+      n <- (1 to 9) ++ Seq(16, 37)
+      trial <- 0 until 12
+    do
+      val xs = IndexedSeq.fill(n)(entry(if trial % 3 == 0 then 0.1 else 0.0))
+      for (name, x) <- layouts(xs) do
+        val (len, data, off, stride) = (x.length, x.data, x.offset.value, x.stride.value)
+        val expectedMax = bits(x(x.argmax))
+        val expectedMin = bits(x(x.argmin))
+        val where = s"$name n=$n trial=$trial xs=$xs"
+        assertEquals(bits(gale.kernel.DoubleKernels.dmaxScan(len, data, off, stride)), expectedMax, s"scan max $where")
+        assertEquals(bits(gale.kernel.DoubleKernels.dmaxReduce(len, data, off, stride)), expectedMax, s"reduce max $where")
+        assertEquals(bits(gale.kernel.DoubleKernels.dminScan(len, data, off, stride)), expectedMin, s"scan min $where")
+        assertEquals(bits(gale.kernel.DoubleKernels.dminReduce(len, data, off, stride)), expectedMin, s"reduce min $where")
+  }
+
+  test("both streamed per-axis passes (scan and reduce) return the bits at each line's argmax/argmin") {
+    // As above: drive both passes on every host, not only the platform default.
+    def bits(x: Double) = java.lang.Double.doubleToLongBits(x)
+    val random = new scala.util.Random(20261011L)
+    val pool = IndexedSeq(-0.0, 0.0, 1.0, -1.0, PInf, NInf)
+    def entry(nanRate: Double): Double =
+      val u = random.nextDouble()
+      if u < nanRate then Nan
+      else if u < 0.7 then pool(random.nextInt(pool.length))
+      else random.nextGaussian()
+    for
+      (rows, cols) <- Seq((2, 2), (3, 7), (9, 4), (13, 5))
+      trial <- 0 until 6
+    do
+      val nanRate = if trial % 2 == 0 then 0.08 else 0.0
+      val entries = IndexedSeq.fill(rows, cols)(entry(nanRate))
+      for
+        (name, a) <- matrixLayouts(rows, cols, (i, j) => entries(i)(j))
+        axis <- Seq(Axis.Rows, Axis.Cols)
+        if a.streamsAxis(axis)
+      do
+        val lines =
+          if axis == Axis.Rows then entries.map(r => Vec(r*))
+          else IndexedSeq.tabulate(cols)(j => Vec(entries.map(_(j))*))
+        val expectedMax = lines.map(l => bits(l(l.argmax)))
+        val expectedMin = lines.map(l => bits(l(l.argmin)))
+        for scan <- Seq(true, false) do
+          val out = gale.platform.DoubleArray.alloc(lines.length)
+          val where = s"$name $axis ${rows}x$cols trial=$trial scan=$scan"
+          a.streamedExtremes(axis, largest = true, out, scan)
+          assertEquals(lines.indices.map(i => bits(out(i))), expectedMax, s"max $where")
+          a.streamedExtremes(axis, largest = false, out, scan)
+          assertEquals(lines.indices.map(i => bits(out(i))), expectedMin, s"min $where")
+  }
+
   test("ReLU-like lines with exact signed zeros keep the first-occurrence max/min value") {
     // Every entry <= 0 (for max) with many exact zeros of both signs, so the
     // value pass ends at zero and the first-zero resolution decides the bits.

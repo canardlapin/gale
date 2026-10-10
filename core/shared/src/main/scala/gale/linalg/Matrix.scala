@@ -5,6 +5,7 @@ import gale.backend.PureBackend
 import gale.kernel.DoubleKernels
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.platform.PlatformMath
 import gale.spectral.SVD
 import gale.spectral.SingularSelection
 import gale.spectral.SpectralBackend
@@ -1076,11 +1077,44 @@ final class DMat private[gale] (
     * value: the first strict improvement wins ties, and a NaN, once seen, sticks.
     */
   private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray): Unit =
-    if largest then streamExtremes(axis, out)(math.max) else streamExtremes(axis, out)(math.min)
+    streamedExtremes(axis, largest, out, PlatformMath.scanExtremes)
+
+  /** [[streamedExtremes]] with the pass chosen explicitly: `scan` compares in
+    * order (x86 JVM, as `DoubleKernels.dmaxScan`), otherwise `math.max`/`math.min`.
+    */
+  private[gale] def streamedExtremes(axis: Axis, largest: Boolean, out: DoubleArray, scan: Boolean): Unit =
+    if scan then
+      if largest then scanExtremes(axis, out)(_ <= _) else scanExtremes(axis, out)(_ >= _)
+    else if largest then streamExtremes(axis, out)(math.max)
+    else streamExtremes(axis, out)(math.min)
+
+  // In-order streamed pass: an entry replaces its line's extreme only when it
+  // is strictly better or NaN, and a NaN extreme is never replaced. Slices are
+  // read in order, so ties, signed zeros and NaNs keep their first occurrence
+  // with no resolution pass. `noBetter(v, o)` is an ordered comparison.
+  private inline def scanExtremes(axis: Axis, out: DoubleArray)(inline noBetter: (Double, Double) => Boolean): Unit =
+    val lines = axisLines(axis)
+    val length = axisLength(axis)
+    val elementStep = axisElementStep(axis)
+    val base = offset.value
+    var line = 0
+    while line < lines do
+      out(line) = data(base + line)
+      line += 1
+    var k = 1
+    while k < length do
+      val start = base + k * elementStep
+      line = 0
+      while line < lines do
+        val v = data(start + line)
+        val o = out(line)
+        if !noBetter(v, o) && o == o then out(line) = v
+        line += 1
+      k += 1
 
   // The streamed pass is a branch-free `math.max`/`math.min` per slice, which C2
-  // vectorizes. It can differ from the first-occurrence value only in which
-  // signed zero or NaN payload it keeps, so lines ending at zero or NaN are
+  // vectorizes on AArch64. It can differ from the first-occurrence value only in
+  // which signed zero or NaN payload it keeps, so lines ending at zero or NaN are
   // resolved by `resolveFirstZeroOrNaN`.
   private inline def streamExtremes(axis: Axis, out: DoubleArray)(inline pick: (Double, Double) => Double): Unit =
     val lines = axisLines(axis)

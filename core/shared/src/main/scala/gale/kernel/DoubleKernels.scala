@@ -2,6 +2,7 @@ package gale.kernel
 
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.platform.PlatformMath
 import gale.platform.PlatformMath.fma
 
 private[gale] object DoubleKernels:
@@ -1128,18 +1129,86 @@ private[gale] object DoubleKernels:
       m
 
   /** The value at [[dmaxIndex]]: the first NaN if any, else the first
-    * maximum. Requires `n > 0` (callers raise `EmptyInput` first). The pass is
-    * a branch-free `math.max` reduction, which C2 vectorizes when contiguous.
-    * `math.max` differs from the first-occurrence value only in which of
-    * `0.0`/`-0.0` or of several NaNs it returns, so a zero or NaN result is
-    * resolved by [[firstZeroOrNaN]].
+    * maximum. Requires `n > 0` (callers raise `EmptyInput` first). Uses
+    * [[dmaxScan]] where `PlatformMath.scanExtremes` (x86 JVM), else
+    * [[dmaxReduce]]; both return the same bits.
     */
   def dmax(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
-    extremeValue(n, x, xOffset, xStride, Double.NegativeInfinity)(math.max)
+    if PlatformMath.scanExtremes then dmaxScan(n, x, xOffset, xStride)
+    else dmaxReduce(n, x, xOffset, xStride)
 
   /** The value at [[dminIndex]] (`n > 0`), as [[dmax]]. */
   def dmin(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    if PlatformMath.scanExtremes then dminScan(n, x, xOffset, xStride)
+    else dminReduce(n, x, xOffset, xStride)
+
+  /** [[dmax]] as a branch-free `math.max` reduction (a single `fmax` per
+    * element on AArch64). `math.max` differs from the first-occurrence value
+    * only in which of `0.0`/`-0.0` or of several NaNs it returns, so a zero or
+    * NaN result is resolved by [[firstZeroOrNaN]].
+    */
+  private[gale] def dmaxReduce(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    extremeValue(n, x, xOffset, xStride, Double.NegativeInfinity)(math.max)
+
+  private[gale] def dminReduce(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
     extremeValue(n, x, xOffset, xStride, Double.PositiveInfinity)(math.min)
+
+  /** [[dmax]] as an in-order scan. The common `v <= m` path takes no branch on
+    * x86, where `math.max` is a compare-and-branch ladder. Ties, including
+    * `0.0` against `-0.0`, keep the first occurrence and the first NaN returns
+    * at once, so the result is exact without a rescan.
+    */
+  // The scans are written out (not shared through an inline helper) so the
+  // first NaN can `return`: ending the loop by assigning its index would stop
+  // C2 from treating it as a counted loop, losing unrolling and range-check
+  // elimination. `!(v <= m)` is true for a strictly larger `v` or a NaN.
+  private[gale] def dmaxScan(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    assert(n > 0, "extreme value of an empty line")
+    var m = Double.NegativeInfinity
+    if xStride == 1 then
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        val v = x(i)
+        if !(v <= m) then
+          if v != v then return v
+          m = v
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        val v = x(xi)
+        if !(v <= m) then
+          if v != v then return v
+          m = v
+        xi += xStride
+        i += 1
+    m
+
+  private[gale] def dminScan(n: Int, x: DoubleArray, xOffset: Int, xStride: Int): Double =
+    assert(n > 0, "extreme value of an empty line")
+    var m = Double.PositiveInfinity
+    if xStride == 1 then
+      var i = xOffset
+      val end = xOffset + n
+      while i < end do
+        val v = x(i)
+        if !(v >= m) then
+          if v != v then return v
+          m = v
+        i += 1
+    else
+      var i = 0
+      var xi = xOffset
+      while i < n do
+        val v = x(xi)
+        if !(v >= m) then
+          if v != v then return v
+          m = v
+        xi += xStride
+        i += 1
+    m
 
   private inline def extremeValue(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, worst: Double)(
       inline pick: (Double, Double) => Double
