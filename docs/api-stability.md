@@ -187,3 +187,25 @@ lower triangle of the input, or a copy of the SVD input), so it is unaffected
 by later mutation of a borrowed input view. The first read pays the two matrix
 products; iterative, generalized and nonsymmetric solvers still report values
 computed during the solve.
+
+## Divide-and-conquer dense symmetric eigenvectors
+
+From order 48, `Eigen.eigSymmetric` and `Eigen.eigSymmetricWith` with
+eigenvectors solve the tridiagonal problem by divide and conquer (Cuppen with
+`dlaed`-style deflation, a safeguarded secular solver and Gu–Eisenstat
+vectors), then form `V = Q Z`. Below order 48, for values only, and for the
+Lanczos and block-Krylov projected problems, the implicit QL solver is
+unchanged. This changes result bits at those orders: eigenvalues agree with
+QL to a few ulps of `‖A‖`, and residuals and orthogonality are at least as
+good on the regression probes. Both routes still run one kernel and agree
+exactly, and the JVM and Scala.js agree because the merge products use
+unfused arithmetic.
+
+`Eigen.symmetricScratchRequirement(n, EigenVectors.Right)` therefore grows
+for `n ≥ 48` from `n` doubles to `n + 2n² + 105n` doubles and `7n` indices
+(the transposed tridiagonal eigenvectors, a packing region and per-merge
+vectors and panels — the same order as LAPACK `dsyevd`). Callers that size a
+`DenseWorkspace` from this requirement need no change; callers that
+hard-coded the former `n` must re-query it. Values-only requirements are
+unchanged. Non-finite input keeps the QL path and its `DidNotConverge`
+behaviour.

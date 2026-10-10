@@ -76,7 +76,7 @@ private[spectral] object BlockSymmetricEigen:
     while restart < maxRestarts && !done && failure.isEmpty do
       val basis = buildBasis(op, n, subspaceSize, blockWidth, seeds, restart)
       val projected = projectedMatrix(basis)
-      DenseSpectralKernels.symmetricEigen(projected, wantVectors = true) match
+      DenseSpectralKernels.symmetricEigen(projected, wantVectors = true, divideAndConquer = false) match
         case Left(DenseSpectralKernels.SpectralKernelFailure.DidNotConverge(iterations)) =>
           failure = Some(LinAlgError.DidNotConverge(iterations, 0.0))
         case Right(eigen) =>

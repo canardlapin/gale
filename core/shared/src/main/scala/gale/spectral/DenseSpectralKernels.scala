@@ -7,6 +7,7 @@ import gale.linalg.LinAlgError
 import gale.linalg.ScratchRequirement
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
+import gale.platform.IndexArray
 
 /** Internal dense spectral kernels — the numerical foundation every v0.3.5
   * spectral feature builds on (`docs/spectral-parity.md`, fixed constraint 5).
@@ -20,7 +21,9 @@ import gale.platform.DoubleArray.*
   *     solver accumulates eigenvectors into a provided basis, so it composes both
   *     with the tridiagonalization `Q` (dense symmetric eigen, [[symmetricEigen]])
   *     and with an identity (the standalone tridiagonal problem the Lanczos
-  *     projected problems need). Eigenvalues come out '''ascending-algebraic''',
+  *     projected problems need). Dense eigenvectors from order
+  *     [[TridiagonalDivideConquer.MinOrder]] use divide and conquer on `T`
+  *     instead, followed by `V = Q Z`. Eigenvalues come out '''ascending-algebraic''',
   *     eigenvector columns permuted to match.
   *
   *   - '''Nonsymmetric.''' Householder reduction to upper Hessenberg form
@@ -150,9 +153,12 @@ private[gale] object DenseSpectralKernels:
     solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
   /** Primitive scratch required by [[symmetricEigenWith]]. Values-only execution
-    * reuses the n² reduction matrix plus the length-n off-diagonal; when vectors
-    * are returned, the n² matrix is result storage and only the off-diagonal is
-    * scratch.
+    * reuses the n² reduction matrix plus the length-n off-diagonal. When vectors
+    * are returned the n² matrix is result storage; below
+    * [[TridiagonalDivideConquer.MinOrder]] only the off-diagonal is scratch,
+    * and from that order on the divide-and-conquer solve adds an n² vector
+    * region, its n² packing region, `105·n` doubles of per-merge vectors and
+    * panels, and `7·n` indices.
     */
   def symmetricEigenRequirement(
       order: Int,
@@ -160,6 +166,11 @@ private[gale] object DenseSpectralKernels:
   ): Either[LinAlgError, ScratchRequirement] =
     if order < 0 then
       Left(LinAlgError.InvalidArgument(s"symmetric eigen order must be non-negative, got $order"))
+    else if wantVectors && order >= TridiagonalDivideConquer.MinOrder then
+      ScratchRequirement.checked(
+        order.toLong + order.toLong * order.toLong + TridiagonalDivideConquer.doubleScratch(order),
+        TridiagonalDivideConquer.indexScratch(order)
+      )
     else
       val doubles =
         if wantVectors then order.toLong
@@ -168,28 +179,42 @@ private[gale] object DenseSpectralKernels:
 
   /** Dense symmetric eigendecomposition `A V = V diag(λ)` with `λ` ascending and
     * `V` orthonormal (columns aligned with `values`). Composes
-    * [[tridiagonalize]] with the tridiagonal QL/QR solver, accumulating
-    * eigenvectors through the tridiagonalization `Q` when `wantVectors`. Reads
-    * only the lower triangle of `A`.
+    * [[tridiagonalize]] with a tridiagonal eigensolver: with `wantVectors`, at
+    * order [[TridiagonalDivideConquer.MinOrder]] or more and finite `T`,
+    * divide and conquer followed by the back-transform `V = Q Z`; otherwise
+    * the QL/QR solver accumulating eigenvectors through the tridiagonalization
+    * `Q`. `divideAndConquer = false` forces QL (the block Krylov projected
+    * problems keep it). Reads only the lower triangle of `A`. Scratch is laid
+    * out exactly as in [[symmetricEigenWith]], so both routes return the same
+    * bits.
     */
   def symmetricEigen(
       a: DMat,
       wantVectors: Boolean,
-      maxSweepsPerValue: Int = 30
+      maxSweepsPerValue: Int = 30,
+      divideAndConquer: Boolean = true
   ): Either[SpectralKernelFailure, SymmetricEigen] =
     val n = a.rows
     require(a.cols == n, "symmetricEigen requires a square matrix")
     val work = symmetrizedLowerRowMajor(a, n)
     val d = DoubleArray.alloc(n)
-    val e = DoubleArray.alloc(n)
-    tred2(n, work, 0, d, e, 0, wantVectors)
-    // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
-    val z = if wantVectors then Some(work) else None
-    solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
+    if wantVectors && divideAndConquer && n >= TridiagonalDivideConquer.MinOrder then
+      val requirement = symmetricEigenRequirement(n, wantVectors = true) match
+        case Left(error)  => throw error
+        case Right(value) => value
+      val scratch = DoubleArray.alloc(requirement.doubleElements)
+      val indices = IndexArray.alloc(requirement.indexElements)
+      symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
+    else
+      val e = DoubleArray.alloc(n)
+      tred2(n, work, 0, d, e, 0, wantVectors)
+      // `work` now holds Qᵀ (when accumulating); tql2 rotates it into Vᵀ.
+      val z = if wantVectors then Some(work) else None
+      solveTridiagonal(n, d, e, 0, z, maxSweepsPerValue)
 
   /** Allocation-controlled pure symmetric eigensolver. Result values/vectors own
-    * their storage; reduction and off-diagonal scratch come from `workspace` and
-    * are safe to overwrite on the next call.
+    * their storage; reduction, off-diagonal and divide-and-conquer scratch come
+    * from `workspace` and are safe to overwrite on the next call.
     */
   def symmetricEigenWith(
       a: DMat,
@@ -203,14 +228,165 @@ private[gale] object DenseSpectralKernels:
       case Left(error)  => throw error
       case Right(value) => value
     val scratch = workspace.doubles(requirement)
-    val work = if wantVectors then DoubleArray.alloc(n * n) else scratch
-    val workOffset = 0
-    val eOffset = if wantVectors then 0 else n * n
-    symmetrizeLowerInto(a, n, work, workOffset)
     val d = DoubleArray.alloc(n)
-    tred2(n, work, workOffset, d, scratch, eOffset, wantVectors)
-    val z = if wantVectors then Some(work) else None
-    solveTridiagonal(n, d, scratch, eOffset, z, maxSweepsPerValue)
+    if wantVectors then
+      val work = DoubleArray.alloc(n * n)
+      symmetrizeLowerInto(a, n, work, 0)
+      val indices = workspace.indices(requirement)
+      symmetricEigenVectors(n, work, d, scratch, indices, maxSweepsPerValue, divideAndConquer = true)
+    else
+      val eOffset = n * n
+      symmetrizeLowerInto(a, n, scratch, 0)
+      tred2(n, scratch, 0, d, scratch, eOffset, accumulate = false)
+      solveTridiagonal(n, d, scratch, eOffset, None, maxSweepsPerValue)
+
+  /** The vector route shared by [[symmetricEigen]] and [[symmetricEigenWith]].
+    * `work` holds the mirrored input and becomes the eigenvector result;
+    * `scratch` is laid out as off-diagonal (`n`), then, at divide-and-conquer
+    * orders, the transposed tridiagonal eigenvectors `Zᵀ` (`n²`) and the
+    * [[TridiagonalDivideConquer]] region (whose first `n²` block also receives
+    * `Vᵀ = Zᵀ Qᵀ` before it is transposed into `work`).
+    */
+  private def symmetricEigenVectors(
+      n: Int,
+      work: DoubleArray,
+      d: DoubleArray,
+      scratch: DoubleArray,
+      indices: IndexArray,
+      maxSweeps: Int,
+      divideAndConquer: Boolean
+  ): Either[SpectralKernelFailure, SymmetricEigen] =
+    tred2(n, work, 0, d, scratch, 0, accumulate = true)
+    if !divideAndConquer || n < TridiagonalDivideConquer.MinOrder || !finiteTridiagonal(n, d, scratch) then
+      solveTridiagonal(n, d, scratch, 0, Some(work), maxSweeps)
+    else
+      // EISPACK e(i) = T(i-1, i) becomes off(i) = T(i, i+1).
+      var i = 1
+      while i < n do
+        scratch(i - 1) = scratch(i)
+        i += 1
+      scratch(n - 1) = 0.0
+      val ztOffset = n
+      val dcOffset = n + n * n
+      val failure = TridiagonalDivideConquer.solve(
+        n, d, scratch, 0, scratch, ztOffset, scratch, dcOffset, indices, 0, maxSweeps
+      )
+      if failure != 0 then Left(SpectralKernelFailure.DidNotConverge(failure))
+      else
+        // Vᵀ = Zᵀ Qᵀ (rows are eigenvectors), then V into the result storage.
+        multiplyRowMajor(n, n, n, scratch, ztOffset, n, work, 0, n, scratch, dcOffset, n)
+        var r = 0
+        while r < n do
+          var c = 0
+          while c < n do
+            work(r * n + c) = scratch(dcOffset + c * n + r)
+            c += 1
+          r += 1
+        Right(SymmetricEigen(DVec.fromDoubleArrayOwned(d), Some(DMat.fromDoubleArrayOwned(n, n, work))))
+
+  /** True when the tridiagonal from [[tred2]] (`d`, EISPACK `e(1..n-1)`) is
+    * finite; non-finite input keeps the QL path and its failure semantics.
+    */
+  private def finiteTridiagonal(n: Int, d: DoubleArray, e: DoubleArray): Boolean =
+    var i = 0
+    while i < n do
+      if !d(i).isFinite || !e(i).isFinite then return false
+      i += 1
+    true
+
+  /** `C = A·B` for row-major blocks (`rows × inner` times `inner × cols`, each
+    * with its own row stride). Every entry is one ascending-`k` chain of
+    * unfused multiply-adds, so the result is identical on the JVM and
+    * Scala.js; `4 × 4` register tiles over 64-row bands keep `A` in cache and
+    * reuse each `B` load four times.
+    */
+  private[spectral] def multiplyRowMajor(
+      rows: Int,
+      cols: Int,
+      inner: Int,
+      a: DoubleArray,
+      aOffset: Int,
+      aStride: Int,
+      b: DoubleArray,
+      bOffset: Int,
+      bStride: Int,
+      c: DoubleArray,
+      cOffset: Int,
+      cStride: Int
+  ): Unit =
+    var band = 0
+    while band < rows do
+      val bandEnd = math.min(band + 64, rows)
+      var j = 0
+      while j + 4 <= cols do
+        var i = band
+        while i + 4 <= bandEnd do
+          val a0 = aOffset + i * aStride
+          val a1 = a0 + aStride
+          val a2 = a1 + aStride
+          val a3 = a2 + aStride
+          var c00 = 0.0; var c01 = 0.0; var c02 = 0.0; var c03 = 0.0
+          var c10 = 0.0; var c11 = 0.0; var c12 = 0.0; var c13 = 0.0
+          var c20 = 0.0; var c21 = 0.0; var c22 = 0.0; var c23 = 0.0
+          var c30 = 0.0; var c31 = 0.0; var c32 = 0.0; var c33 = 0.0
+          var bRow = bOffset + j
+          var k = 0
+          while k < inner do
+            val b0 = b(bRow)
+            val b1 = b(bRow + 1)
+            val b2 = b(bRow + 2)
+            val b3 = b(bRow + 3)
+            val x0 = a(a0 + k)
+            val x1 = a(a1 + k)
+            val x2 = a(a2 + k)
+            val x3 = a(a3 + k)
+            c00 += x0 * b0; c01 += x0 * b1; c02 += x0 * b2; c03 += x0 * b3
+            c10 += x1 * b0; c11 += x1 * b1; c12 += x1 * b2; c13 += x1 * b3
+            c20 += x2 * b0; c21 += x2 * b1; c22 += x2 * b2; c23 += x2 * b3
+            c30 += x3 * b0; c31 += x3 * b1; c32 += x3 * b2; c33 += x3 * b3
+            bRow += bStride
+            k += 1
+          val r0 = cOffset + i * cStride + j
+          val r1 = r0 + cStride
+          val r2 = r1 + cStride
+          val r3 = r2 + cStride
+          c(r0) = c00; c(r0 + 1) = c01; c(r0 + 2) = c02; c(r0 + 3) = c03
+          c(r1) = c10; c(r1 + 1) = c11; c(r1 + 2) = c12; c(r1 + 3) = c13
+          c(r2) = c20; c(r2 + 1) = c21; c(r2 + 2) = c22; c(r2 + 3) = c23
+          c(r3) = c30; c(r3 + 1) = c31; c(r3 + 2) = c32; c(r3 + 3) = c33
+          i += 4
+        while i < bandEnd do
+          val a0 = aOffset + i * aStride
+          var c0 = 0.0; var c1 = 0.0; var c2 = 0.0; var c3 = 0.0
+          var bRow = bOffset + j
+          var k = 0
+          while k < inner do
+            val x = a(a0 + k)
+            c0 += x * b(bRow)
+            c1 += x * b(bRow + 1)
+            c2 += x * b(bRow + 2)
+            c3 += x * b(bRow + 3)
+            bRow += bStride
+            k += 1
+          val r0 = cOffset + i * cStride + j
+          c(r0) = c0; c(r0 + 1) = c1; c(r0 + 2) = c2; c(r0 + 3) = c3
+          i += 1
+        j += 4
+      while j < cols do
+        var i = band
+        while i < bandEnd do
+          val a0 = aOffset + i * aStride
+          var sum = 0.0
+          var bRow = bOffset + j
+          var k = 0
+          while k < inner do
+            sum += a(a0 + k) * b(bRow)
+            bRow += bStride
+            k += 1
+          c(cOffset + i * cStride + j) = sum
+          i += 1
+        j += 1
+      band = bandEnd
 
   /** Symmetric Householder tridiagonalization (EISPACK `tred2`), in place on the
     * `n x n` row-major `a`.

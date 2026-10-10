@@ -43,6 +43,12 @@ class DenseSymmetricWorkspaceSuite extends munit.FunSuite:
       Eigen.symmetricScratchRequirement(7, EigenVectors.Right).map(_.doubleElements),
       Right(7)
     )
+    // From the divide-and-conquer order the vector route also needs Zᵀ, the
+    // packing region, 105·n per-merge doubles and 7·n indices.
+    assertEquals(
+      Eigen.symmetricScratchRequirement(48, EigenVectors.Right).map(r => (r.doubleElements, r.indexElements)),
+      Right((48 + 2 * 48 * 48 + 105 * 48, 7 * 48))
+    )
     assertEquals(Eigen.symmetricScratchRequirement(0, EigenVectors.ValuesOnly).map(_.doubleElements), Right(0))
     assert(Eigen.symmetricScratchRequirement(-1, EigenVectors.ValuesOnly).isLeft)
     assert(Eigen.symmetricScratchRequirement(50000, EigenVectors.ValuesOnly).isLeft)
