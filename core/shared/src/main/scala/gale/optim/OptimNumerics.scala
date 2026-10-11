@@ -1,8 +1,23 @@
 package gale.optim
 
-import gale.linalg.DMat
+import gale.linalg.{DMat, value}
+import gale.platform.DoubleArray
+import gale.platform.DoubleArray.*
 
+/** Shared numerics for the optimization solvers.
+  *
+  * Every elementwise reduction visits logical elements in row-major order. Matrices whose storage is contiguous
+  * row-major (every owned matrix, including the `n × 1` columns the solvers pass around) take a flat-index fast path
+  * that visits the same elements in the same order, so both paths produce identical bits.
+  */
 private[optim] object OptimNumerics:
+  /** Logical row-major element `i` of `value` is `value.data(value.offset.value + i)`. */
+  private inline def packed(value: DMat): Boolean = value.isContiguousRowMajor
+
+  /** Equal shapes, both [[packed]]: flat index `i` addresses the same logical element of each. */
+  private inline def packedPair(left: DMat, right: DMat): Boolean =
+    left.rows == right.rows && left.cols == right.cols && packed(left) && packed(right)
+
   def validate(value: DMat, rows: Int): Either[FirstOrderError, Unit] =
     if rows <= 0 || value.cols <= 0 then
       Left(FirstOrderError.InvalidConfiguration("optimization variables must be nonempty"))
@@ -19,6 +34,16 @@ private[optim] object OptimNumerics:
     else finiteMatrix(value)
 
   def finiteMatrix(value: DMat): Either[FirstOrderError, Unit] =
+    if packed(value) then
+      val data = value.data
+      val base = value.offset.value
+      val size = value.rows * value.cols
+      var i = 0
+      while i < size do
+        val x = data(base + i)
+        if !x.isFinite then return Left(FirstOrderError.NonFiniteValue("numerical value", i, x))
+        i += 1
+      return Right(())
     var r = 0
     while r < value.rows do
       var c = 0
@@ -54,16 +79,40 @@ private[optim] object OptimNumerics:
       i += 1
     true
 
+  /** `at + step * direction`, failing on the first non-finite element in row-major order. */
   def affine(at: DMat, direction: DMat, step: Double): Either[FirstOrderError, DMat] =
-    val result = DMat.tabulate(at.rows, at.cols)((r, c) => at(r, c) + step * direction(r, c))
-    finiteMatrix(result).map(_ => result)
+    if packedPair(at, direction) then
+      val size = at.rows * at.cols
+      val out = DoubleArray.alloc(size)
+      val a = at.data
+      val aBase = at.offset.value
+      val d = direction.data
+      val dBase = direction.offset.value
+      var i = 0
+      while i < size do
+        val x = a(aBase + i) + step * d(dBase + i)
+        if !x.isFinite then return Left(FirstOrderError.NonFiniteValue("numerical value", i, x))
+        out(i) = x
+        i += 1
+      Right(DMat.fromDoubleArrayOwned(at.rows, at.cols, out))
+    else
+      val result = DMat.tabulate(at.rows, at.cols)((r, c) => at(r, c) + step * direction(r, c))
+      finiteMatrix(result).map(_ => result)
 
   def difference(left: DMat, right: DMat): Array[Double] =
     val result = array(left)
-    var i = 0
-    while i < result.length do
-      result(i) -= right(i / left.cols, i % left.cols)
-      i += 1
+    if packedPair(left, right) then
+      val data = right.data
+      val base = right.offset.value
+      var i = 0
+      while i < result.length do
+        result(i) -= data(base + i)
+        i += 1
+    else
+      var i = 0
+      while i < result.length do
+        result(i) -= right(i / left.cols, i % left.cols)
+        i += 1
     result
 
   /** Streaming scaled sum of squares, avoiding both squared-value overflow and a sqrt per element. */
@@ -101,6 +150,17 @@ private[optim] object OptimNumerics:
 
   def dot(left: DMat, right: DMat): Double =
     var sum = 0.0
+    if packedPair(left, right) then
+      val l = left.data
+      val lBase = left.offset.value
+      val rData = right.data
+      val rBase = right.offset.value
+      val size = left.rows * left.cols
+      var i = 0
+      while i < size do
+        sum += l(lBase + i) * rData(rBase + i)
+        i += 1
+      return sum
     var r = 0
     while r < left.rows do
       var c = 0
@@ -112,6 +172,15 @@ private[optim] object OptimNumerics:
 
   def normInf(value: DMat): Double =
     var result = 0.0
+    if packed(value) then
+      val data = value.data
+      val base = value.offset.value
+      val size = value.rows * value.cols
+      var i = 0
+      while i < size do
+        result = Math.max(result, Math.abs(data(base + i)))
+        i += 1
+      return result
     var r = 0
     while r < value.rows do
       var c = 0
@@ -122,18 +191,27 @@ private[optim] object OptimNumerics:
     result
 
   def identical(left: DMat, right: DMat): Boolean =
-    left.rows == right.rows && left.cols == right.cols &&
-      (left.eq(right) || {
-        var same = true
-        var r = 0
-        while r < left.rows && same do
-          var c = 0
-          while c < left.cols && same do
-            same = left(r, c) == right(r, c)
-            c += 1
-          r += 1
-        same
-      })
+    if left.rows != right.rows || left.cols != right.cols then false
+    else if left.eq(right) then true
+    else if packedPair(left, right) then
+      val l = left.data
+      val lBase = left.offset.value
+      val rData = right.data
+      val rBase = right.offset.value
+      val size = left.rows * left.cols
+      var i = 0
+      while i < size && l(lBase + i) == rData(rBase + i) do i += 1
+      i == size
+    else
+      var same = true
+      var r = 0
+      while r < left.rows && same do
+        var c = 0
+        while c < left.cols && same do
+          same = left(r, c) == right(r, c)
+          c += 1
+        r += 1
+      same
 
   def mapping(at: DMat, next: DMat, step: Double): Either[FirstOrderError, (Double, Double)] =
     var residual = 0.0

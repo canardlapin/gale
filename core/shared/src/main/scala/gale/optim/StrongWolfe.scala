@@ -30,8 +30,43 @@ private[optim] object StrongWolfe:
       approximateWolfe: Boolean = false,
       onApproximateAcceptance: () => Unit = ignoreApproximateAcceptance
   ): Either[FirstOrderError, Accepted] =
+    searchFrom(
+      objective,
+      origin,
+      originEvaluation,
+      direction,
+      OptimNumerics.dot(originEvaluation.gradient, direction),
+      execution,
+      c1,
+      c2,
+      maxTrials,
+      maximumStep,
+      feasibleBoundary,
+      bounds,
+      interpolate,
+      approximateWolfe,
+      onApproximateAcceptance
+    )
+
+  /** [[search]] from a caller that already holds `initialDerivative = dot(originEvaluation.gradient, direction)`. */
+  def searchFrom(
+      objective: DifferentiableObjective,
+      origin: DMat,
+      originEvaluation: ObjectiveEvaluation,
+      direction: DMat,
+      initialDerivative: Double,
+      execution: OptimizationExecution,
+      c1: Double,
+      c2: Double,
+      maxTrials: Int,
+      maximumStep: Double,
+      feasibleBoundary: Boolean = false,
+      bounds: Option[MatrixBoxBounds] = None,
+      interpolate: Boolean = false,
+      approximateWolfe: Boolean = false,
+      onApproximateAcceptance: () => Unit = ignoreApproximateAcceptance
+  ): Either[FirstOrderError, Accepted] =
     import OptimNumerics.*
-    val initialDerivative = dot(originEvaluation.gradient, direction)
     if !initialDerivative.isFinite || initialDerivative >= 0.0 then
       Left(FirstOrderError.NumericalFailure("strong-Wolfe search requires a finite descent direction"))
     else
