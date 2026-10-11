@@ -22,7 +22,7 @@ import jdk.incubator.vector.VectorSpecies
   * and handles only fully row-major inputs. Any other strided operand falls back
   * verbatim to the pure kernel — correctness over cleverness.
   *
-  * `syrk` packs the columns of `A` and reuses the GEMM tile on the upper triangle.
+  * `syrk` packs the columns of `A` and runs the GEMM's tile shape on the upper triangle.
   *
   * The row-major GEMV, the GEMM and the `syrk` reassociate (SIMD lane order, FMA),
   * so they are law-equivalent to the pure kernel within a small tolerance, NOT bit-identical.
@@ -407,13 +407,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     while start == 0 || start < m do
       val length = math.min(SyrkChunk, m - start)
       packColumnsInto(length, k, a, aOffset + start * aRowStride, aRowStride, panel)
-      packedDotTiles(
-        k, k, length, 1.0,
-        panel, 0, length,
-        panel, 0, length,
-        if start == 0 then 0.0 else 1.0, c, cOffset, cRowStride,
-        upperOnly = true
-      )
+      syrkUpperTiles(k, length, panel, if start == 0 then 0.0 else 1.0, c, cOffset, cRowStride)
       start += math.max(length, 1)
     var i = 1
     while i < k do
@@ -487,14 +481,119 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       cRowStride: Int
   ): Unit =
     val packedB = new Array[Double](cols * shared)
-    packColumnsInto(shared, cols, b, bOffset, bRowStride, packedB)
-    packedDotTiles(
-      rows, cols, shared, alpha,
-      a, aOffset, aRowStride,
-      packedB, 0, shared,
-      beta, c, cOffset, cRowStride,
-      upperOnly = false
-    )
+    val PackBlock = 32
+    var kb = 0
+    while kb < shared do
+      val kend = math.min(kb + PackBlock, shared)
+      var jb = 0
+      while jb < cols do
+        val jend = math.min(jb + PackBlock, cols)
+        var k = kb
+        while k < kend do
+          val bRow = bOffset + k * bRowStride
+          var j = jb
+          while j < jend do
+            packedB(j * shared + k) = b(bRow + j)
+            j += 1
+          k += 1
+        jb += PackBlock
+      kb += PackBlock
+
+    val species = Species
+    val sharedBound = species.loopBound(shared)
+    val rowBound = rows - rows % 3
+    val colBound = cols - cols % 3
+    var i = 0
+    while i < rowBound do
+      val a0 = aOffset + i * aRowStride
+      val a1 = a0 + aRowStride
+      val a2 = a1 + aRowStride
+      var j = 0
+      while j < colBound do
+        val b0 = j * shared
+        val b1 = b0 + shared
+        val b2 = b1 + shared
+        var s00 = DoubleVector.zero(species)
+        var s01 = DoubleVector.zero(species)
+        var s02 = DoubleVector.zero(species)
+        var s10 = DoubleVector.zero(species)
+        var s11 = DoubleVector.zero(species)
+        var s12 = DoubleVector.zero(species)
+        var s20 = DoubleVector.zero(species)
+        var s21 = DoubleVector.zero(species)
+        var s22 = DoubleVector.zero(species)
+        var k = 0
+        while k < sharedBound do
+          val av0 = DoubleVector.fromArray(species, a, a0 + k)
+          val av1 = DoubleVector.fromArray(species, a, a1 + k)
+          val av2 = DoubleVector.fromArray(species, a, a2 + k)
+          val bv0 = DoubleVector.fromArray(species, packedB, b0 + k)
+          val bv1 = DoubleVector.fromArray(species, packedB, b1 + k)
+          val bv2 = DoubleVector.fromArray(species, packedB, b2 + k)
+          s00 = av0.fma(bv0, s00)
+          s01 = av0.fma(bv1, s01)
+          s02 = av0.fma(bv2, s02)
+          s10 = av1.fma(bv0, s10)
+          s11 = av1.fma(bv1, s11)
+          s12 = av1.fma(bv2, s12)
+          s20 = av2.fma(bv0, s20)
+          s21 = av2.fma(bv1, s21)
+          s22 = av2.fma(bv2, s22)
+          k += species.length()
+        var x00 = s00.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x01 = s01.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x02 = s02.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x10 = s10.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x11 = s11.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x12 = s12.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x20 = s20.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x21 = s21.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x22 = s22.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        while k < shared do
+          val av0 = a(a0 + k)
+          val av1 = a(a1 + k)
+          val av2 = a(a2 + k)
+          val bv0 = packedB(b0 + k)
+          val bv1 = packedB(b1 + k)
+          val bv2 = packedB(b2 + k)
+          x00 = Math.fma(av0, bv0, x00)
+          x01 = Math.fma(av0, bv1, x01)
+          x02 = Math.fma(av0, bv2, x02)
+          x10 = Math.fma(av1, bv0, x10)
+          x11 = Math.fma(av1, bv1, x11)
+          x12 = Math.fma(av1, bv2, x12)
+          x20 = Math.fma(av2, bv0, x20)
+          x21 = Math.fma(av2, bv1, x21)
+          x22 = Math.fma(av2, bv2, x22)
+          k += 1
+        val c0 = cOffset + i * cRowStride + j
+        val c1 = c0 + cRowStride
+        val c2 = c1 + cRowStride
+        c(c0) = combine(alpha, x00, beta, c(c0))
+        c(c0 + 1) = combine(alpha, x01, beta, c(c0 + 1))
+        c(c0 + 2) = combine(alpha, x02, beta, c(c0 + 2))
+        c(c1) = combine(alpha, x10, beta, c(c1))
+        c(c1 + 1) = combine(alpha, x11, beta, c(c1 + 1))
+        c(c1 + 2) = combine(alpha, x12, beta, c(c1 + 2))
+        c(c2) = combine(alpha, x20, beta, c(c2))
+        c(c2 + 1) = combine(alpha, x21, beta, c(c2 + 1))
+        c(c2 + 2) = combine(alpha, x22, beta, c(c2 + 2))
+        j += 3
+      i += 3
+
+    // Edge rows/columns are a small fraction of large products. Keep them on a
+    // vector dot against the already-packed B rather than complicating the 3×3 tile.
+    i = 0
+    while i < rows do
+      val jStart = if i < rowBound then colBound else 0
+      val aRow = aOffset + i * aRowStride
+      var j = jStart
+      while j < cols do
+        val sum = vectorDot(shared, a, aRow, packedB, j * shared)
+        val cij = cOffset + i * cRowStride + j
+        c(cij) = combine(alpha, sum, beta, c(cij))
+        j += 1
+      i += 1
 
   /** Copy the columns of the row-major `rows × cols` matrix at `b` into `packed`,
     * column `j` contiguous at `j * rows`, in 32×32 blocks.
@@ -525,43 +624,36 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         jb += PackBlock
       kb += PackBlock
 
-  /** `C(i, j) := alpha · ⟨a_i, p_j⟩ + beta · C(i, j)` over `length`-long contiguous
-    * rows `a_i` (at `aOffset + i·aRowStride`) and `p_j` (at `pOffset + j·pRowStride`),
-    * as 3×3 tiles of nine independent SIMD dot products. With `upperOnly`, tiles and
-    * edge cells strictly below the diagonal are skipped (diagonal tiles are written
-    * whole); the caller owns the lower triangle.
+  /** The `syrk` panel product, upper triangle only:
+    * `C(i, j) := ⟨p_i, p_j⟩ + beta · C(i, j)` for `j ≥ i` over the `length`-long
+    * contiguous panel rows `p_i` (at `i·length`), as 3×3 tiles of nine independent
+    * SIMD dot products (diagonal tiles are written whole). The GEMM's tile shape in
+    * a separate loop: `4cdf0f3` ran the GEMM through one generalized loop shared
+    * with `syrk` and measured 12–15% slower 256³ products on Zen 5, so the GEMM
+    * keeps its own.
     */
-  private def packedDotTiles(
-      rows: Int,
-      cols: Int,
+  private def syrkUpperTiles(
+      k: Int,
       length: Int,
-      alpha: Double,
-      a: Array[Double],
-      aOffset: Int,
-      aRowStride: Int,
       p: Array[Double],
-      pOffset: Int,
-      pRowStride: Int,
       beta: Double,
       c: Array[Double],
       cOffset: Int,
-      cRowStride: Int,
-      upperOnly: Boolean
+      cRowStride: Int
   ): Unit =
     val species = Species
     val sharedBound = species.loopBound(length)
-    val rowBound = rows - rows % 3
-    val colBound = cols - cols % 3
+    val tileBound = k - k % 3
     var i = 0
-    while i < rowBound do
-      val a0 = aOffset + i * aRowStride
-      val a1 = a0 + aRowStride
-      val a2 = a1 + aRowStride
-      var j = if upperOnly then i else 0
-      while j < colBound do
-        val b0 = pOffset + j * pRowStride
-        val b1 = b0 + pRowStride
-        val b2 = b1 + pRowStride
+    while i < tileBound do
+      val a0 = i * length
+      val a1 = a0 + length
+      val a2 = a1 + length
+      var j = i
+      while j < tileBound do
+        val b0 = j * length
+        val b1 = b0 + length
+        val b2 = b1 + length
         var s00 = DoubleVector.zero(species)
         var s01 = DoubleVector.zero(species)
         var s02 = DoubleVector.zero(species)
@@ -573,9 +665,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         var s22 = DoubleVector.zero(species)
         var k = 0
         while k < sharedBound do
-          val av0 = DoubleVector.fromArray(species, a, a0 + k)
-          val av1 = DoubleVector.fromArray(species, a, a1 + k)
-          val av2 = DoubleVector.fromArray(species, a, a2 + k)
+          val av0 = DoubleVector.fromArray(species, p, a0 + k)
+          val av1 = DoubleVector.fromArray(species, p, a1 + k)
+          val av2 = DoubleVector.fromArray(species, p, a2 + k)
           val bv0 = DoubleVector.fromArray(species, p, b0 + k)
           val bv1 = DoubleVector.fromArray(species, p, b1 + k)
           val bv2 = DoubleVector.fromArray(species, p, b2 + k)
@@ -599,9 +691,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         var x21 = s21.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         var x22 = s22.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         while k < length do
-          val av0 = a(a0 + k)
-          val av1 = a(a1 + k)
-          val av2 = a(a2 + k)
+          val av0 = p(a0 + k)
+          val av1 = p(a1 + k)
+          val av2 = p(a2 + k)
           val bv0 = p(b0 + k)
           val bv1 = p(b1 + k)
           val bv2 = p(b2 + k)
@@ -618,30 +710,26 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         val c0 = cOffset + i * cRowStride + j
         val c1 = c0 + cRowStride
         val c2 = c1 + cRowStride
-        c(c0) = combine(alpha, x00, beta, c(c0))
-        c(c0 + 1) = combine(alpha, x01, beta, c(c0 + 1))
-        c(c0 + 2) = combine(alpha, x02, beta, c(c0 + 2))
-        c(c1) = combine(alpha, x10, beta, c(c1))
-        c(c1 + 1) = combine(alpha, x11, beta, c(c1 + 1))
-        c(c1 + 2) = combine(alpha, x12, beta, c(c1 + 2))
-        c(c2) = combine(alpha, x20, beta, c(c2))
-        c(c2 + 1) = combine(alpha, x21, beta, c(c2 + 1))
-        c(c2 + 2) = combine(alpha, x22, beta, c(c2 + 2))
+        c(c0) = combine(1.0, x00, beta, c(c0))
+        c(c0 + 1) = combine(1.0, x01, beta, c(c0 + 1))
+        c(c0 + 2) = combine(1.0, x02, beta, c(c0 + 2))
+        c(c1) = combine(1.0, x10, beta, c(c1))
+        c(c1 + 1) = combine(1.0, x11, beta, c(c1 + 1))
+        c(c1 + 2) = combine(1.0, x12, beta, c(c1 + 2))
+        c(c2) = combine(1.0, x20, beta, c(c2))
+        c(c2 + 1) = combine(1.0, x21, beta, c(c2 + 1))
+        c(c2 + 2) = combine(1.0, x22, beta, c(c2 + 2))
         j += 3
       i += 3
 
-    // Edge rows/columns are a small fraction of large products. Keep them on a
-    // vector dot against the already-packed B rather than complicating the 3×3 tile.
+    // Edge rows/columns (upper part only) on a vector dot.
     i = 0
-    while i < rows do
-      val tileEnd = if i < rowBound then colBound else 0
-      val jStart = if upperOnly then math.max(tileEnd, i) else tileEnd
-      val aRow = aOffset + i * aRowStride
-      var j = jStart
-      while j < cols do
-        val sum = vectorDot(length, a, aRow, p, pOffset + j * pRowStride)
+    while i < k do
+      var j = if i < tileBound then tileBound else i
+      while j < k do
+        val sum = vectorDot(length, p, i * length, p, j * length)
         val cij = cOffset + i * cRowStride + j
-        c(cij) = combine(alpha, sum, beta, c(cij))
+        c(cij) = combine(1.0, sum, beta, c(cij))
         j += 1
       i += 1
 
@@ -707,3 +795,4 @@ object VectorBackend extends Backend:
   * a multi-backend user can `Backend.compose` the values and declare one composite given.
   */
 given vectorBackend: Backend = VectorBackend
+
