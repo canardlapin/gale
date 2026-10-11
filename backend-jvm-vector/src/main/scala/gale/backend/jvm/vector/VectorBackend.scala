@@ -12,23 +12,31 @@ import jdk.incubator.vector.DoubleVector
 import jdk.incubator.vector.VectorSpecies
 
 /** SIMD dense-`Double` kernels built on the JDK Vector API
-  * ([[jdk.incubator.vector.DoubleVector]]). Contiguous row-major `gemv` and `gemm`
-  * have explicit SIMD kernels; every other operation forwards to
+  * ([[jdk.incubator.vector.DoubleVector]]). Contiguous row-major `gemv`, `gemm` and
+  * `syrk` have explicit SIMD kernels; every other operation forwards to
   * [[gale.backend.PureDenseDoubleKernel]], the portable reference.
   *
-  * GEMV has two SIMD layouts: a four-output row tile for row-major `A`, and a
-  * four-column axpy sweep for column-contiguous `A` (the transpose view of a
+  * GEMV has two SIMD layouts: a four-output row tile for row-major `A`, and an
+  * eight-column axpy sweep for column-contiguous `A` (the transpose view of a
   * row-major matrix). GEMM packs `B` by columns, uses a 3×3 SIMD dot-product tile,
   * and handles only fully row-major inputs. Any other strided operand falls back
   * verbatim to the pure kernel — correctness over cleverness.
   *
-  * The row-major GEMV and the GEMM reassociate (SIMD lane order, FMA), so they are
-  * law-equivalent to the pure kernel within a small tolerance, NOT bit-identical.
+  * `syrk` packs the columns of `A` and runs the GEMM's tile shape on the upper triangle.
+  *
+  * The row-major GEMV, the GEMM and the `syrk` reassociate (SIMD lane order, FMA),
+  * so they are law-equivalent to the pure kernel within a small tolerance, NOT bit-identical.
   * The column-contiguous GEMV keeps the pure column-major kernel's per-element FMA
   * order and is bit-identical to it.
   */
 object VectorDenseDoubleKernel extends DenseDoubleKernel:
-  private final val Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED
+  // The Vector API intrinsics need a compile-time-constant species, or every vector
+  // is boxed. The JDK's static final species is one; a Scala object `val` (an
+  // instance final) is not, hence an inline accessor. For the same reason a helper
+  // reads `Species` itself rather than taking the species as a parameter: the GEMM
+  // edge `vectorDot` once did, and whenever the JIT compiled it standalone it boxed
+  // (about 10× the allocation and half the throughput of a 64³ product).
+  private inline def Species: VectorSpecies[java.lang.Double] = DoubleVector.SPECIES_PREFERRED
   private[vector] def preferredLaneCount: Int = Species.length()
 
   // --- level 1: forward to the pure reference ---------------------------------------
@@ -204,8 +212,8 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       i += 1
 
   /** Column-contiguous (e.g. the transpose view of a row-major matrix) GEMV as a
-    * sequence of SIMD axpys over `y`, four columns per pass so each `y` chunk is
-    * loaded and stored once per four columns. Per element the FMA order is the
+    * sequence of SIMD axpys over `y`, eight (then four) columns per pass so each
+    * `y` chunk is loaded and stored once per pass. Per element the FMA order is the
     * column order, matching the pure column-major kernel.
     */
   private def gemvColMajorSimd(
@@ -231,8 +239,63 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         y(yOffset + i) = beta * y(yOffset + i)
         i += 1
 
-    val colBound = cols - (cols & 3)
+    // Eight columns per pass halves the `y` load/store traffic of the four-column
+    // pass; a remaining block of four uses the four-column pass.
+    val colBound8 = cols - (cols & 7)
     var j = 0
+    while j < colBound8 do
+      val s0 = alpha * x(xOffset + j * xStride)
+      val s1 = alpha * x(xOffset + (j + 1) * xStride)
+      val s2 = alpha * x(xOffset + (j + 2) * xStride)
+      val s3 = alpha * x(xOffset + (j + 3) * xStride)
+      val s4 = alpha * x(xOffset + (j + 4) * xStride)
+      val s5 = alpha * x(xOffset + (j + 5) * xStride)
+      val s6 = alpha * x(xOffset + (j + 6) * xStride)
+      val s7 = alpha * x(xOffset + (j + 7) * xStride)
+      val col0 = aOffset + j * aColStride
+      val col1 = col0 + aColStride
+      val col2 = col1 + aColStride
+      val col3 = col2 + aColStride
+      val col4 = col3 + aColStride
+      val col5 = col4 + aColStride
+      val col6 = col5 + aColStride
+      val col7 = col6 + aColStride
+      val v0 = DoubleVector.broadcast(species, s0)
+      val v1 = DoubleVector.broadcast(species, s1)
+      val v2 = DoubleVector.broadcast(species, s2)
+      val v3 = DoubleVector.broadcast(species, s3)
+      val v4 = DoubleVector.broadcast(species, s4)
+      val v5 = DoubleVector.broadcast(species, s5)
+      val v6 = DoubleVector.broadcast(species, s6)
+      val v7 = DoubleVector.broadcast(species, s7)
+      i = 0
+      while i < rowBound do
+        var yv = DoubleVector.fromArray(species, y, yOffset + i)
+        yv = DoubleVector.fromArray(species, a, col0 + i).fma(v0, yv)
+        yv = DoubleVector.fromArray(species, a, col1 + i).fma(v1, yv)
+        yv = DoubleVector.fromArray(species, a, col2 + i).fma(v2, yv)
+        yv = DoubleVector.fromArray(species, a, col3 + i).fma(v3, yv)
+        yv = DoubleVector.fromArray(species, a, col4 + i).fma(v4, yv)
+        yv = DoubleVector.fromArray(species, a, col5 + i).fma(v5, yv)
+        yv = DoubleVector.fromArray(species, a, col6 + i).fma(v6, yv)
+        yv = DoubleVector.fromArray(species, a, col7 + i).fma(v7, yv)
+        yv.intoArray(y, yOffset + i)
+        i += species.length()
+      while i < rows do
+        var yi = y(yOffset + i)
+        yi = Math.fma(s0, a(col0 + i), yi)
+        yi = Math.fma(s1, a(col1 + i), yi)
+        yi = Math.fma(s2, a(col2 + i), yi)
+        yi = Math.fma(s3, a(col3 + i), yi)
+        yi = Math.fma(s4, a(col4 + i), yi)
+        yi = Math.fma(s5, a(col5 + i), yi)
+        yi = Math.fma(s6, a(col6 + i), yi)
+        yi = Math.fma(s7, a(col7 + i), yi)
+        y(yOffset + i) = yi
+        i += 1
+      j += 8
+
+    val colBound = cols - (cols & 3)
     while j < colBound do
       val s0 = alpha * x(xOffset + j * xStride)
       val s1 = alpha * x(xOffset + (j + 1) * xStride)
@@ -285,8 +348,12 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     if beta == 0.0 then alpha * sum
     else Math.fma(beta, prior, alpha * sum)
 
-  /** The coarse `AᵀA` seam can route here, but this first Vector backend has no
-    * independently faster symmetric kernel. Preserve the half-work pure routine.
+  /** `C := AᵀA` for a row-major `A`. Packs the columns of `A` contiguously (the
+    * same transpose-pack as the GEMM's `B`), then runs the packed 3×3 dot tile over
+    * the upper triangle only and mirrors it, so the result is exactly symmetric.
+    * The shared (row) dimension is processed in [[SyrkChunk]]-row slices, each
+    * packed into one reused panel; each later slice accumulates into `C`.
+    * Reassociates like the GEMM.
     */
   def syrk(
       m: Int,
@@ -298,7 +365,63 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
+    if syrkUsesSimd(m, k) then
+      syrkPackedSimd(m, k, DoubleArray.asArray(a), aOffset, aRowStride, DoubleArray.asArray(c), cOffset, cRowStride)
+    else PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
+
+  /** The `syrk`'s own crossover, inside the kernel so direct kernel calls get it
+    * too. Work floor: the GEMM's `64³` element-work (`m·k·k`); on Zen 5 (AVX-512,
+    * eight lanes) the SIMD path beats the half-work pure kernel from `AᵀA` of
+    * `64×64` (1.8×) up to `1024×256` (3×). Row floor: each dot product runs over
+    * the `m` rows of `A`, so short-wide `A` with `m < 2·lanes` (a dot of under two
+    * vectors against nine horizontal reductions per tile) stays pure: on Zen 5
+    * pure wins `4×1024` (1.04×) and `8×4096` (1.6×), SIMD wins from `16×1024` (1.23×);
+    * `8×1024` (SIMD 5% faster) is the one measured shape this leaves on pure.
+    * Measured with `VectorSyrkJmh` (`kernel` vs `simdForced`), JDK 25. On ARM64
+    * (two lanes, Apple M3) SIMD ties or wins on every probed shape (`64×64` and
+    * `96×64` 1.2×; `4×1024`, `6×1024` and `8×4096` within noise), so the same
+    * lane-scaled floors serve both widths.
+    */
+  private[vector] def syrkUsesSimd(m: Int, k: Int): Boolean =
+    val lanes = Species.length()
+    lanes >= 2 && m >= 2 * lanes && m.toLong * k.toLong * k.toLong >= SyrkMinWork
+
+  private final val SyrkMinWork = 64L * 64L * 64L
+
+  /** Shared-dimension slice length for the SIMD `syrk`. A slice of `A` is packed
+    * into a reused contiguous `k × 256` panel (column `j` at `j·256`), so transient
+    * memory is bounded by `256·k` doubles whatever `m` is; the six live packed rows
+    * of a tile (12 KB) stay in L1, and for `k ≤ 256` the whole panel (≤ 512 KB) fits
+    * a 1 MB L2.
+    */
+  private final val SyrkChunk = 256
+
+  private[vector] def syrkPackedSimd(
+      m: Int,
+      k: Int,
+      a: Array[Double],
+      aOffset: Int,
+      aRowStride: Int,
+      c: Array[Double],
+      cOffset: Int,
+      cRowStride: Int
+  ): Unit =
+    val panel = new Array[Double](k * math.min(SyrkChunk, m))
+    // At least one slice, so m = 0 still assigns the zero Gram matrix.
+    var start = 0
+    while start == 0 || start < m do
+      val length = math.min(SyrkChunk, m - start)
+      packColumnsInto(length, k, a, aOffset + start * aRowStride, aRowStride, panel)
+      syrkUpperTiles(k, length, panel, if start == 0 then 0.0 else 1.0, c, cOffset, cRowStride)
+      start += math.max(length, 1)
+    var i = 1
+    while i < k do
+      val cRowI = cOffset + i * cRowStride
+      var j = 0
+      while j < i do
+        c(cRowI + j) = c(cOffset + j * cRowStride + i)
+        j += 1
+      i += 1
 
   // --- level 3: the accelerated lever -----------------------------------------------
 
@@ -471,20 +594,158 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       val aRow = aOffset + i * aRowStride
       var j = jStart
       while j < cols do
-        val sum = vectorDot(species, shared, a, aRow, packedB, j * shared)
+        val sum = vectorDot(shared, a, aRow, packedB, j * shared)
         val cij = cOffset + i * cRowStride + j
         c(cij) = combine(alpha, sum, beta, c(cij))
         j += 1
       i += 1
 
+  /** Copy the columns of the row-major `rows × cols` matrix at `b` into `packed`,
+    * column `j` contiguous at `j * rows`, in 32×32 blocks.
+    */
+  private def packColumnsInto(
+      rows: Int,
+      cols: Int,
+      b: Array[Double],
+      bOffset: Int,
+      bRowStride: Int,
+      packed: Array[Double]
+  ): Unit =
+    val PackBlock = 32
+    var kb = 0
+    while kb < rows do
+      val kend = math.min(kb + PackBlock, rows)
+      var jb = 0
+      while jb < cols do
+        val jend = math.min(jb + PackBlock, cols)
+        var k = kb
+        while k < kend do
+          val bRow = bOffset + k * bRowStride
+          var j = jb
+          while j < jend do
+            packed(j * rows + k) = b(bRow + j)
+            j += 1
+          k += 1
+        jb += PackBlock
+      kb += PackBlock
+
+  /** The `syrk` panel product, upper triangle only:
+    * `C(i, j) := ⟨p_i, p_j⟩ + beta · C(i, j)` for `j ≥ i` over the `length`-long
+    * contiguous panel rows `p_i` (at `i·length`), as 3×3 tiles of nine independent
+    * SIMD dot products (diagonal tiles are written whole). The GEMM's tile shape in
+    * a separate loop: `4cdf0f3` ran the GEMM through one generalized loop shared
+    * with `syrk` and measured 12–15% slower 256³ products on Zen 5, so the GEMM
+    * keeps its own.
+    */
+  private def syrkUpperTiles(
+      k: Int,
+      length: Int,
+      p: Array[Double],
+      beta: Double,
+      c: Array[Double],
+      cOffset: Int,
+      cRowStride: Int
+  ): Unit =
+    val species = Species
+    val sharedBound = species.loopBound(length)
+    val tileBound = k - k % 3
+    var i = 0
+    while i < tileBound do
+      val a0 = i * length
+      val a1 = a0 + length
+      val a2 = a1 + length
+      var j = i
+      while j < tileBound do
+        val b0 = j * length
+        val b1 = b0 + length
+        val b2 = b1 + length
+        var s00 = DoubleVector.zero(species)
+        var s01 = DoubleVector.zero(species)
+        var s02 = DoubleVector.zero(species)
+        var s10 = DoubleVector.zero(species)
+        var s11 = DoubleVector.zero(species)
+        var s12 = DoubleVector.zero(species)
+        var s20 = DoubleVector.zero(species)
+        var s21 = DoubleVector.zero(species)
+        var s22 = DoubleVector.zero(species)
+        var r = 0
+        while r < sharedBound do
+          val av0 = DoubleVector.fromArray(species, p, a0 + r)
+          val av1 = DoubleVector.fromArray(species, p, a1 + r)
+          val av2 = DoubleVector.fromArray(species, p, a2 + r)
+          val bv0 = DoubleVector.fromArray(species, p, b0 + r)
+          val bv1 = DoubleVector.fromArray(species, p, b1 + r)
+          val bv2 = DoubleVector.fromArray(species, p, b2 + r)
+          s00 = av0.fma(bv0, s00)
+          s01 = av0.fma(bv1, s01)
+          s02 = av0.fma(bv2, s02)
+          s10 = av1.fma(bv0, s10)
+          s11 = av1.fma(bv1, s11)
+          s12 = av1.fma(bv2, s12)
+          s20 = av2.fma(bv0, s20)
+          s21 = av2.fma(bv1, s21)
+          s22 = av2.fma(bv2, s22)
+          r += species.length()
+        var x00 = s00.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x01 = s01.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x02 = s02.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x10 = s10.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x11 = s11.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x12 = s12.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x20 = s20.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x21 = s21.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var x22 = s22.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        while r < length do
+          val av0 = p(a0 + r)
+          val av1 = p(a1 + r)
+          val av2 = p(a2 + r)
+          val bv0 = p(b0 + r)
+          val bv1 = p(b1 + r)
+          val bv2 = p(b2 + r)
+          x00 = Math.fma(av0, bv0, x00)
+          x01 = Math.fma(av0, bv1, x01)
+          x02 = Math.fma(av0, bv2, x02)
+          x10 = Math.fma(av1, bv0, x10)
+          x11 = Math.fma(av1, bv1, x11)
+          x12 = Math.fma(av1, bv2, x12)
+          x20 = Math.fma(av2, bv0, x20)
+          x21 = Math.fma(av2, bv1, x21)
+          x22 = Math.fma(av2, bv2, x22)
+          r += 1
+        val c0 = cOffset + i * cRowStride + j
+        val c1 = c0 + cRowStride
+        val c2 = c1 + cRowStride
+        c(c0) = combine(1.0, x00, beta, c(c0))
+        c(c0 + 1) = combine(1.0, x01, beta, c(c0 + 1))
+        c(c0 + 2) = combine(1.0, x02, beta, c(c0 + 2))
+        c(c1) = combine(1.0, x10, beta, c(c1))
+        c(c1 + 1) = combine(1.0, x11, beta, c(c1 + 1))
+        c(c1 + 2) = combine(1.0, x12, beta, c(c1 + 2))
+        c(c2) = combine(1.0, x20, beta, c(c2))
+        c(c2 + 1) = combine(1.0, x21, beta, c(c2 + 1))
+        c(c2 + 2) = combine(1.0, x22, beta, c(c2 + 2))
+        j += 3
+      i += 3
+
+    // Edge rows/columns (upper part only) on a vector dot.
+    i = 0
+    while i < k do
+      var j = if i < tileBound then tileBound else i
+      while j < k do
+        val sum = vectorDot(length, p, i * length, p, j * length)
+        val cij = cOffset + i * cRowStride + j
+        c(cij) = combine(1.0, sum, beta, c(cij))
+        j += 1
+      i += 1
+
   private def vectorDot(
-      species: VectorSpecies[java.lang.Double],
       length: Int,
       x: Array[Double],
       xOffset: Int,
       y: Array[Double],
       yOffset: Int
   ): Double =
+    val species = Species
     val bound = species.loopBound(length)
     var sum = DoubleVector.zero(species)
     var k = 0
@@ -501,15 +762,20 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
 
 end VectorDenseDoubleKernel
 
-/** Measured Vector-API crossovers. On ARM64/JDK 22 the packed GEMM and four-row
-  * GEMV kernels both win from 128 square; narrower-than-two-double runtimes retain
-  * the pure implementation. Factorizations remain on the pure backend.
+/** Measured Vector-API crossovers. On ARM64 (two-double species, JDK 25) the packed
+  * GEMM and `syrk` beat the pure kernels from 64³ element-work (`64×64·64×64`,
+  * `256×64·64×64`, `AᵀA` of `256×64`); the four-row GEMV wins from 128 square.
+  * `syrk` additionally applies its own shape guard (`VectorDenseDoubleKernel.syrkUsesSimd`).
+  * Narrower-than-two-double runtimes retain the pure implementation. Factorizations
+  * themselves stay pure, but blocked QR's trailing updates go through the gemm
+  * seam (`Factorizations.dispatchGemm`), so above this threshold they run on the
+  * SIMD GEMM.
   */
 object VectorThresholds extends BackendThresholds:
   // The preferred species is fixed for the life of the JVM, so the crossovers are
   // values, not per-call re-evaluations on the hot dispatch path.
   private val simdCapable: Boolean = VectorDenseDoubleKernel.preferredLaneCount >= 2
-  val nativeGemmMinFlops: Long = if simdCapable then 128L * 128L * 128L else Long.MaxValue
+  val nativeGemmMinFlops: Long = if simdCapable then 64L * 64L * 64L else Long.MaxValue
   val nativeGemvMinWork: Long = if simdCapable then 128L * 128L else Long.MaxValue
   val nativeFactorizationMinSize: Int = Int.MaxValue
 

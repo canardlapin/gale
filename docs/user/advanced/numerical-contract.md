@@ -237,7 +237,7 @@ current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
 | Need | Choice | Runtime and policy |
 | --- | --- | --- |
 | portability, reproducibility, small/strided work | no import (`PureBackend`) | JVM 21+ and Scala.js; default |
-| faster contiguous GEMV/GEMM on JVM | `import gale.backend.jvm.vector.given` | JDK 21+ with Vector incubator module; measured thresholds |
+| faster contiguous GEMV/GEMM and `AᵀA` (`syrk`) on JVM | `import gale.backend.jvm.vector.given` | JDK 21+ with Vector incubator module; measured thresholds |
 | large native GEMM/LU on a measured library | `import gale.backend.jvm.blas.given` | JDK 22+, native access enabled; runtime discovery and family-specific thresholds |
 | copy-free repeated native GEMM | explicit `NativeDMat` | JDK 22+; caller owns lifetime and conversion |
 | browser/Node | ordinary Scala.js JavaScript | supported cross-platform route |

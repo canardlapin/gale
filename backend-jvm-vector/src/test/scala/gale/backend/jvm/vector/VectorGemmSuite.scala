@@ -281,6 +281,10 @@ class VectorGemmSuite extends munit.FunSuite:
   test("gemvT parity: 64x67, strided x")(checkGemvTransposed(64, 67, 1.0, 0.0, xStride = 3))
   test("gemvT parity: 131x129, strided x, alpha/beta")(checkGemvTransposed(131, 129, 1.5, -2.0, xStride = 2))
 
+  // Eight-column passes followed by a four-column pass and single-column tails.
+  test("gemvT parity: 9x12 (one eight-block, one four-block)")(checkGemvTransposed(9, 12, 1.0, 0.0))
+  test("gemvT parity: 21x15, alpha/beta (eight + four + three)")(checkGemvTransposed(21, 15, 0.5, -1.0))
+
   test("gemvT: beta = 0 ignores a non-finite prior y"):
     val n = 9
     val a = mkA(n, n).t
@@ -299,6 +303,112 @@ class VectorGemmSuite extends munit.FunSuite:
     val viaPure = a.t.*(x)(using PureBackend)
     assertEquals(viaVector.length, n + 3)
     assertArrayBits(viaVector.toSeq.toArray, viaPure.toSeq.toArray)
+
+  /** `syrk` on an interior row-major view of a NaN-padded parent into a padded `C`
+    * prefilled with `prior`, whose surround must survive: the routed kernel and the
+    * forced SIMD path (whatever the shape guard says) vs pure within tolerance,
+    * plus an exactly symmetric result. A NaN `prior` checks that the assign-only
+    * `syrk` never reads the old `C`.
+    */
+  private def checkSyrk(m: Int, k: Int, random: Boolean = false, prior: Double = 99.0)(using munit.Location): Unit =
+    val rng = new scala.util.Random(31L * m + k)
+    val parentCols = k + 3
+    val lead = 2
+    val backing = Array.fill(lead + m * parentCols)(Double.NaN)
+    var r = 0
+    while r < m do
+      var col = 0
+      while col < k do
+        backing(lead + r * parentCols + col) =
+          if random then rng.nextDouble() * 2.0 - 1.0 else ((r * 7 + col * 13) % 5 - 2).toDouble
+        col += 1
+      r += 1
+    val cRowStride = k + 2
+    val cOffset = 1
+    def run(syrk: Array[Double] => Unit): Array[Double] =
+      val c = Array.fill(cOffset + k * cRowStride + 1)(prior)
+      syrk(c)
+      c
+    val pure = run(c =>
+      PureDenseDoubleKernel.syrk(m, k, DoubleArray.fromArray(backing), lead, parentCols, DoubleArray.adopt(c), cOffset, cRowStride)
+    )
+    val routed = run(c =>
+      VectorDenseDoubleKernel.syrk(m, k, DoubleArray.fromArray(backing), lead, parentCols, DoubleArray.adopt(c), cOffset, cRowStride)
+    )
+    val simd = run(c => VectorDenseDoubleKernel.syrkPackedSimd(m, k, backing, lead, parentCols, c, cOffset, cRowStride))
+    for (vector, label) <- Seq(routed -> "routed", simd -> "simd") do
+      var i = 0
+      while i < k do
+        var j = 0
+        while j < k do
+          val v = vector(cOffset + i * cRowStride + j)
+          val e = pure(cOffset + i * cRowStride + j)
+          val tolerance = AbsTol + RelTol * math.max(math.abs(v), math.abs(e))
+          assert(math.abs(v - e) <= tolerance, s"$label syrk mismatch at ($i,$j): vector=$v pure=$e")
+          assertEquals(v, vector(cOffset + j * cRowStride + i), s"$label syrk asymmetric at ($i,$j)")
+          j += 1
+        i += 1
+      // Everything outside the k×k block keeps its sentinel.
+      var idx = 0
+      while idx < vector.length do
+        val inside = idx >= cOffset && (idx - cOffset) / cRowStride < k && (idx - cOffset) % cRowStride < k
+        if !inside then
+          assertEquals(
+            java.lang.Double.doubleToRawLongBits(vector(idx)),
+            java.lang.Double.doubleToRawLongBits(prior),
+            s"$label syrk wrote outside C at $idx"
+          )
+        idx += 1
+
+  test("syrk parity: 7x4 (edge-only, below one tile column)")(checkSyrk(7, 4))
+  test("syrk parity: 1x1")(checkSyrk(1, 1))
+  test("syrk parity: 5x2")(checkSyrk(5, 2))
+  test("syrk parity: 40x9 (whole tiles)")(checkSyrk(40, 9))
+  test("syrk parity: 33x17 (tiles plus edges)")(checkSyrk(33, 17))
+  test("syrk parity: 600x13 random (three shared-dimension slices)")(checkSyrk(600, 13, random = true))
+  test("syrk parity: 513x31 random (slice boundary plus one row)")(checkSyrk(513, 31, random = true))
+  test("syrk parity: 512x7 random (two whole slices)")(checkSyrk(512, 7, random = true))
+  test("syrk parity: 600x1 (single column, edge-only)")(checkSyrk(600, 1, random = true))
+  test("syrk parity: 300x2 (k below one tile, two slices)")(checkSyrk(300, 2, random = true))
+  test("syrk parity: 257x3 (one tile, slice boundary plus one row)")(checkSyrk(257, 3, random = true))
+  test("syrk parity: 300x7 over a NaN-filled C (assign-only)")(checkSyrk(300, 7, random = true, prior = Double.NaN))
+  test("syrk parity: 4x40 short-wide")(checkSyrk(4, 40, random = true))
+  test("syrk parity: 8x40 short-wide")(checkSyrk(8, 40, random = true))
+
+  test("syrk: m = 0 assigns the zero Gram matrix over a non-finite C"):
+    val k = 5
+    for simd <- Seq(false, true) do
+      val c = Array.fill(k * k)(Double.NaN)
+      if simd then VectorDenseDoubleKernel.syrkPackedSimd(0, k, new Array[Double](0), 0, k, c, 0, k)
+      else VectorDenseDoubleKernel.syrk(0, k, DoubleArray.alloc(0), 0, k, DoubleArray.adopt(c), 0, k)
+      assert(c.forall(_ == 0.0), s"simd=$simd: " + c.mkString(","))
+
+  test("syrk: k = 0 neither throws nor writes"):
+    val a = Array.fill(5)(1.0)
+    for simd <- Seq(false, true) do
+      val c = Array.fill(3)(7.0)
+      if simd then VectorDenseDoubleKernel.syrkPackedSimd(5, 0, a, 0, 1, c, 1, 1)
+      else VectorDenseDoubleKernel.syrk(5, 0, DoubleArray.fromArray(a), 0, 1, DoubleArray.adopt(c), 1, 1)
+      assertEquals(c.toSeq, Seq(7.0, 7.0, 7.0), s"simd=$simd")
+
+  test("syrk shape guard: 64³ work floor and a two-vector row floor"):
+    if VectorDenseDoubleKernel.preferredLaneCount >= 2 then
+      val lanes = VectorDenseDoubleKernel.preferredLaneCount
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(64, 64))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(63, 64))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(64, 63))
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(1024, 256))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(2 * lanes - 1, 4096))
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(2 * lanes, 4096))
+    else assert(!VectorDenseDoubleKernel.syrkUsesSimd(1024, 256))
+
+  test("seam: threshold-selected AᵀA under VectorBackend matches pure and is symmetric"):
+    val a = Matrix.tabulate(300, 130)((i, j) => ((i * 7 + j * 13) % 11 - 5).toDouble / 3.0)
+    val viaVector = a.t.*(a)(using VectorBackend)
+    val viaPure = a.t.*(a)(using PureBackend)
+    assertClose(viaVector, viaPure)
+    for i <- 0 until viaVector.rows; j <- 0 until i do
+      assertEquals(viaVector(i, j), viaVector(j, i), s"asymmetric at ($i,$j)")
 
   test("gemm parity: transposed (column-strided) B operand falls back to pure"):
     // A row-major matrix's transpose view has non-unit column stride, so the SIMD gemm
@@ -331,7 +441,7 @@ class VectorGemmSuite extends munit.FunSuite:
   // --- end-to-end through the coarse gemm seam (Matrix.*) --------------------------
 
   test("seam: threshold-selected product under VectorBackend matches pure"):
-    // Two-or-more-lane runtimes route 128^3 to the measured packed SIMD kernel.
+    // Two-or-more-lane runtimes route 128^3 (above the 64^3 crossover) to the packed SIMD kernel.
     val n = 128
     val a = mkA(n, n)
     val b = mkB(n, n)
@@ -371,7 +481,7 @@ class VectorGemmSuite extends munit.FunSuite:
 
   test("threshold requires at least two SIMD lanes"):
     if VectorDenseDoubleKernel.preferredLaneCount >= 2 then
-      assertEquals(VectorThresholds.nativeGemmMinFlops, 128L * 128L * 128L)
+      assertEquals(VectorThresholds.nativeGemmMinFlops, 64L * 64L * 64L)
       assertEquals(VectorThresholds.nativeGemvMinWork, 128L * 128L)
     else
       assertEquals(VectorThresholds.nativeGemmMinFlops, Long.MaxValue)
