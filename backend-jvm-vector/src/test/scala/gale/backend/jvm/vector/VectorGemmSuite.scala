@@ -391,13 +391,15 @@ class VectorGemmSuite extends munit.FunSuite:
       else VectorDenseDoubleKernel.syrk(5, 0, DoubleArray.fromArray(a), 0, 1, DoubleArray.adopt(c), 1, 1)
       assertEquals(c.toSeq, Seq(7.0, 7.0, 7.0), s"simd=$simd")
 
-  test("syrk shape guard: small and short-wide AᵀA stay pure, tall goes SIMD"):
+  test("syrk shape guard: 64³ work floor and a two-vector row floor"):
     if VectorDenseDoubleKernel.preferredLaneCount >= 2 then
       val lanes = VectorDenseDoubleKernel.preferredLaneCount
-      assert(!VectorDenseDoubleKernel.syrkUsesSimd(64, 64))
-      assert(VectorDenseDoubleKernel.syrkUsesSimd(math.max(128, 4 * lanes), 64))
-      assert(!VectorDenseDoubleKernel.syrkUsesSimd(4 * lanes - 1, 4096))
-      assert(VectorDenseDoubleKernel.syrkUsesSimd(4 * lanes, 4096))
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(64, 64))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(63, 64))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(64, 63))
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(1024, 256))
+      assert(!VectorDenseDoubleKernel.syrkUsesSimd(2 * lanes - 1, 4096))
+      assert(VectorDenseDoubleKernel.syrkUsesSimd(2 * lanes, 4096))
     else assert(!VectorDenseDoubleKernel.syrkUsesSimd(1024, 256))
 
   test("seam: threshold-selected AᵀA under VectorBackend matches pure and is symmetric"):

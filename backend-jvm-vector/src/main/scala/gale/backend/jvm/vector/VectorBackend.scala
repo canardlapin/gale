@@ -369,19 +369,21 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       syrkPackedSimd(m, k, DoubleArray.asArray(a), aOffset, aRowStride, DoubleArray.asArray(c), cOffset, cRowStride)
     else PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
 
-  /** The `syrk`'s own crossover, inside the kernel because the shared gemm gate
-    * (`m·k·k ≥ 64³`) does not fit it. The pure kernel already does half the work
-    * of a GEMM, so the SIMD path needs twice the GEMM's element-work (`AᵀA` of
-    * `64×64` stays pure, `128×64` goes SIMD). Each dot product runs over the `m`
-    * rows of `A`, so short-wide `A` (`m < 4·lanes`, where a dot is at most a few
-    * vectors or wholly scalar tail against nine horizontal reductions per tile)
-    * also stays pure. Measured on ARM64 (two-double species), JDK 25.
+  /** The `syrk`'s own crossover, inside the kernel so direct kernel calls get it
+    * too. Work floor: the GEMM's `64³` element-work (`m·k·k`); on Zen 5 (AVX-512,
+    * eight lanes) the SIMD path beats the half-work pure kernel from `AᵀA` of
+    * `64×64` (1.8×) up to `1024×256` (3×). Row floor: each dot product runs over
+    * the `m` rows of `A`, so short-wide `A` with `m < 2·lanes` (a dot of under two
+    * vectors against nine horizontal reductions per tile) stays pure: on Zen 5
+    * pure wins `4×1024` and `8×4096` (1.6×), SIMD wins from `16×1024` (1.23×);
+    * `8×1024` (SIMD 5% faster) is the one measured shape this leaves on pure.
+    * Measured with `VectorSyrkJmh` (`kernel` vs `simdForced`), JDK 25.
     */
   private[vector] def syrkUsesSimd(m: Int, k: Int): Boolean =
     val lanes = Species.length()
-    lanes >= 2 && m >= 4 * lanes && m.toLong * k.toLong * k.toLong >= SyrkMinWork
+    lanes >= 2 && m >= 2 * lanes && m.toLong * k.toLong * k.toLong >= SyrkMinWork
 
-  private final val SyrkMinWork = 2L * 64L * 64L * 64L
+  private final val SyrkMinWork = 64L * 64L * 64L
 
   /** Shared-dimension slice length for the SIMD `syrk`. A slice of `A` is packed
     * into a reused contiguous `k × 256` panel (column `j` at `j·256`), so transient
