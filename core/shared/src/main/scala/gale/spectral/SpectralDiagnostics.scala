@@ -36,7 +36,8 @@ enum SpectralConvergenceStatus:
   *     inner linear system; `None` means no inner solves were performed.
   *
   * '''Deferred measurements.''' The dense one-shot facades (dense symmetric
-  * eigen, ordinary and workspace routes, and dense SVD) decide nothing from
+  * eigen, ordinary and workspace routes, dense nonsymmetric eigen, and dense
+  * SVD) decide nothing from
   * `residuals` or `orthogonalityError`, so they measure both '''on first
   * access''' and cache them: a caller that never reads them does not pay for
   * the `A·V` and `VᵀV` products.
@@ -240,6 +241,32 @@ object SpectralDiagnostics:
       converged,
       new Measurement(residuals, alreadyMeasured = false),
       new Measurement(orthogonalityError, alreadyMeasured = false),
+      iterations,
+      rank,
+      extremalityCertified,
+      None
+    )
+
+  /** Diagnostics whose `residuals` are measured on first access and cached,
+    * with an `orthogonalityError` known up front (for example `0.0` for a
+    * nonsymmetric eigenbasis, which is not orthonormal), so it is never shown as
+    * deferred. The residual source must read only snapshots that no caller can
+    * mutate.
+    */
+  private[spectral] def deferredResiduals(
+      requested: Int,
+      converged: Int,
+      residuals: () => DVec,
+      orthogonalityError: Double,
+      iterations: Int,
+      rank: Option[Int],
+      extremalityCertified: Boolean
+  ): SpectralDiagnostics =
+    new SpectralDiagnostics(
+      requested,
+      converged,
+      new Measurement(residuals, alreadyMeasured = false),
+      new Measurement(() => orthogonalityError, alreadyMeasured = true),
       iterations,
       rank,
       extremalityCertified,

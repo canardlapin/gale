@@ -935,7 +935,12 @@ private[gale] object DenseSpectralKernels:
     orthes(n, h, ort)
     // Q must be accumulated from the reflectors stored below the subdiagonal
     // before those cells are cleared to expose a clean Hessenberg H.
-    val q = if wantQ then Some(DMat.fromDoubleArrayOwned(n, n, ortran(n, h, ort))) else None
+    val q =
+      if wantQ then
+        val qt = ortranTransposed(n, h, ort)
+        transposeSquareInPlace(n, qt)
+        Some(DMat.fromDoubleArrayOwned(n, n, qt))
+      else None
     zeroBelowSubdiagonal(n, h)
     Hessenberg(DMat.fromDoubleArrayOwned(n, n, h), q)
 
@@ -958,7 +963,9 @@ private[gale] object DenseSpectralKernels:
     val inputExponent = DenseInputScaling.normalize(h, n * n)
     val ort = DoubleArray.alloc(n)
     orthes(n, h, ort)
-    val z = if wantVectors then ortran(n, h, ort) else DoubleArray.alloc(0)
+    // `z` holds Qᵀ (row-major): each column of Q — the unit the QR sweeps and the
+    // back-transform update — is a contiguous row. It is transposed back once.
+    val z = if wantVectors then ortranTransposed(n, h, ort) else DoubleArray.alloc(0)
     zeroBelowSubdiagonal(n, h)
     val wr = DoubleArray.alloc(n)
     val wi = DoubleArray.alloc(n)
@@ -969,6 +976,7 @@ private[gale] object DenseSpectralKernels:
         val vectors =
           if wantVectors then
             normalizeSchurVectors(n, wr, wi, z)
+            transposeSquareInPlace(n, z)
             // Normalization must not hide a non-finite/overflowed vector norm
             // by returning an all-zero real column or packed complex pair.
             var j = 0
@@ -1008,11 +1016,12 @@ private[gale] object DenseSpectralKernels:
   /** Householder reduction to upper Hessenberg form (EISPACK `orthes`), in place
     * on the `n x n` row-major `h`, with `low = 0`, `high = n - 1`. The Householder
     * vectors are left in the strictly-below-subdiagonal cells (column `m-1`, rows
-    * `m+1..high`) and in `ort(m)`, for [[ortran]] to accumulate `Q`. Norms are
+    * `m+1..high`) and in `ort(m)`, for [[ortranTransposed]] to accumulate `Q`. Norms are
     * formed on the explicitly `scale`-normalized column to avoid overflow.
     */
   private def orthes(n: Int, h: DoubleArray, ort: DoubleArray): Unit =
     val high = n - 1
+    val colDot = DoubleArray.alloc(n)
     var m = 1
     while m <= high - 1 do
       var scale = 0.0
@@ -1032,21 +1041,35 @@ private[gale] object DenseSpectralKernels:
         val g = if ort(m) >= 0.0 then -math.sqrt(hNorm) else math.sqrt(hNorm)
         hNorm -= ort(m) * g
         ort(m) = ort(m) - g
-        // Left transform: H := (I - u uᵀ / hNorm) H over columns m..n-1.
+        // Left transform: H := (I - u uᵀ / hNorm) H over columns m..n-1. The
+        // column dot products accumulate a row at a time (contiguous in the
+        // row-major `h`), each in the descending-`i` order of a column walk.
         var j = m
         while j < n do
-          var f = 0.0
-          i = high
-          while i >= m do
-            f += ort(i) * h(i * n + j)
-            i -= 1
-          f = f / hNorm
-          i = m
-          while i <= high do
-            val idx = i * n + j
-            h(idx) = h(idx) - f * ort(i)
-            i += 1
+          colDot(j) = 0.0
           j += 1
+        i = high
+        while i >= m do
+          val oi = ort(i)
+          val row = i * n
+          j = m
+          while j < n do
+            colDot(j) = colDot(j) + oi * h(row + j)
+            j += 1
+          i -= 1
+        j = m
+        while j < n do
+          colDot(j) = colDot(j) / hNorm
+          j += 1
+        i = m
+        while i <= high do
+          val oi = ort(i)
+          val row = i * n
+          j = m
+          while j < n do
+            h(row + j) = h(row + j) - colDot(j) * oi
+            j += 1
+          i += 1
         // Right transform: H := H (I - u uᵀ / hNorm) over rows 0..high.
         i = 0
         while i <= high do
@@ -1067,12 +1090,13 @@ private[gale] object DenseSpectralKernels:
       m += 1
 
   /** Accumulate the orthogonal `Q` (EISPACK `ortran`) from the reflectors
-    * [[orthes]] left in `h` and `ort`. Returns a fresh `n x n` row-major `Q`.
-    * Must run before the reflector cells in `h` are cleared.
+    * [[orthes]] left in `h` and `ort`. Returns a fresh `n x n` row-major '''`Qᵀ`'''
+    * (row `j` holds column `j` of `Q`), so every column dot product and update
+    * is contiguous. Must run before the reflector cells in `h` are cleared.
     */
-  private def ortran(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
+  private def ortranTransposed(n: Int, h: DoubleArray, ort: DoubleArray): DoubleArray =
     val high = n - 1
-    val z = identityRowMajor(n)
+    val qt = identityRowMajor(n)
     var mp = high - 1
     while mp >= 1 do
       val sub = h(mp * n + (mp - 1))
@@ -1083,21 +1107,21 @@ private[gale] object DenseSpectralKernels:
           i += 1
         var j = mp
         while j <= high do
+          val row = j * n
           var g = 0.0
           i = mp
           while i <= high do
-            g += ort(i) * z(i * n + j)
+            g += ort(i) * qt(row + i)
             i += 1
           // Double division (by ort(mp) then by the subdiagonal) avoids underflow.
           g = (g / ort(mp)) / sub
           i = mp
           while i <= high do
-            val idx = i * n + j
-            z(idx) = z(idx) + g * ort(i)
+            qt(row + i) = qt(row + i) + g * ort(i)
             i += 1
           j += 1
       mp -= 1
-    z
+    qt
 
   /** Zero the strictly-below-subdiagonal cells of an `n x n` row-major matrix,
     * turning the reflector-carrying reduction output into a clean Hessenberg.
@@ -1118,8 +1142,8 @@ private[gale] object DenseSpectralKernels:
     * the eigenvalues in diagonal order — conjugate pairs adjacent, positive-
     * imaginary member first, with exact conjugate symmetry (`wr(j+1) == wr(j)`,
     * `wi(j+1) == -wi(j)`). When `hasVectors` is true, `z` holds the accumulated
-    * `Q` on entry and, on success, the real-Schur packed right eigenvectors on
-    * exit (back-substitution through the quasi-triangular `T` followed by the `Q`
+    * `Qᵀ` on entry and, on success, the transposed real-Schur packed right
+    * eigenvectors on exit (back-substitution through the quasi-triangular `T` followed by the `Q`
     * transform). When false, `z` is untouched and only the eigenvalues are formed.
     *
     * Returns `None` on success or `Some(sweeps)` if the total QR-step budget
@@ -1135,23 +1159,11 @@ private[gale] object DenseSpectralKernels:
       maxSweeps: Int
   ): Option[Int] =
     if n == 0 then return None
-    inline def hv(i: Int, j: Int): Double = h(i * n + j)
-    inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
-    inline def zv(i: Int, j: Int): Double = z(i * n + j)
-    inline def sz(i: Int, j: Int, v: Double): Unit = z(i * n + j) = v
-
-    // Matrix norm over the (upper-Hessenberg) nonzeros, for the back-substitution
-    // tolerances; computed on the input before the iteration destroys h.
-    var norm = 0.0
-    var kNorm = 0
-    var iNorm = 0
-    while iNorm < n do
-      var j = kNorm
-      while j < n do
-        norm += math.abs(hv(iNorm, j))
-        j += 1
-      kNorm = iNorm
-      iNorm += 1
+    // The iteration, the double-QR sweep, the back-substitution and the back-
+    // transform live in separate methods: one combined body exceeds HotSpot's
+    // 8000-byte huge-method limit and would never be JIT-compiled.
+    val norm = hessenbergNorm(n, h)
+    val shift = DoubleArray.alloc(3)
 
     var en = n - 1
     var t = 0.0
@@ -1161,78 +1173,22 @@ private[gale] object DenseSpectralKernels:
       var its = 0
       var deflated = false
       while !deflated && ierr < 0 do
-        // Look for a single small sub-diagonal element to split at (-> l).
-        var l = en
-        var lFound = false
-        while !lFound do
-          if l == 0 then lFound = true
-          else
-            var s0 = math.abs(hv(l - 1, l - 1)) + math.abs(hv(l, l))
-            if s0 == 0.0 then s0 = norm
-            if s0 + math.abs(hv(l, l - 1)) == s0 then lFound = true
-            else l -= 1
-
+        val l = findSplit(n, h, en, norm)
         val na = en - 1
         val enm2 = en - 2
-        var x = hv(en, en)
+        var x = h(en * n + en)
         if l == en then
           // One real root found.
-          sh(en, en, x + t)
+          h(en * n + en) = x + t
           wr(en) = x + t
           wi(en) = 0.0
           en -= 1
           deflated = true
         else
-          var y = hv(na, na)
-          var w = hv(en, na) * hv(na, en)
+          var y = h(na * n + na)
+          var w = h(en * n + na) * h(na * n + en)
           if l == na then
-            // Two roots found (a real pair or a complex conjugate pair).
-            var p = (y - x) / 2.0
-            val q = p * p + w
-            var zz = math.sqrt(math.abs(q))
-            sh(en, en, x + t)
-            val xEn = x + t
-            sh(na, na, y + t)
-            if q >= 0.0 then
-              // Real pair: rotate to make the 2x2 block upper triangular.
-              zz = p + sign(zz, p)
-              wr(na) = xEn + zz
-              wr(en) = wr(na)
-              if zz != 0.0 then wr(en) = xEn - w / zz
-              wi(na) = 0.0
-              wi(en) = 0.0
-              val xx = hv(en, na)
-              val s2 = math.abs(xx) + math.abs(zz)
-              var pRot = xx / s2
-              var qRot = zz / s2
-              val rRot = math.sqrt(pRot * pRot + qRot * qRot)
-              pRot = pRot / rRot
-              qRot = qRot / rRot
-              var j = na
-              while j < n do
-                val zt = hv(na, j)
-                sh(na, j, qRot * zt + pRot * hv(en, j))
-                sh(en, j, qRot * hv(en, j) - pRot * zt)
-                j += 1
-              var i = 0
-              while i <= en do
-                val zt = hv(i, na)
-                sh(i, na, qRot * zt + pRot * hv(i, en))
-                sh(i, en, qRot * hv(i, en) - pRot * zt)
-                i += 1
-              if hasVectors then
-                i = 0
-                while i < n do
-                  val zt = zv(i, na)
-                  sz(i, na, qRot * zt + pRot * zv(i, en))
-                  sz(i, en, qRot * zv(i, en) - pRot * zt)
-                  i += 1
-            else
-              // Complex conjugate pair, positive-imaginary member first.
-              wr(na) = xEn + p
-              wr(en) = xEn + p
-              wi(na) = zz
-              wi(en) = -zz
+            deflateTwo(n, h, wr, wi, z, hasVectors, en, x, y, w, t)
             en -= 2
             deflated = true
           else if itn == 0 then
@@ -1243,124 +1199,16 @@ private[gale] object DenseSpectralKernels:
               t += x
               var i = 0
               while i <= en do
-                sh(i, i, hv(i, i) - x)
+                h(i * n + i) = h(i * n + i) - x
                 i += 1
-              val s2 = math.abs(hv(en, na)) + math.abs(hv(na, enm2))
+              val s2 = math.abs(h(en * n + na)) + math.abs(h(na * n + enm2))
               x = 0.75 * s2
               y = x
               w = -0.4375 * s2 * s2
             its += 1
             itn -= 1
-            // Look for two consecutive small sub-diagonal elements (-> m).
-            var m = enm2
-            var pm = 0.0
-            var qm = 0.0
-            var rm = 0.0
-            var mFound = false
-            while !mFound do
-              val zz0 = hv(m, m)
-              val r0 = x - zz0
-              val s0 = y - zz0
-              pm = (r0 * s0 - w) / hv(m + 1, m) + hv(m, m + 1)
-              qm = hv(m + 1, m + 1) - zz0 - r0 - s0
-              rm = hv(m + 2, m + 1)
-              val ss = math.abs(pm) + math.abs(qm) + math.abs(rm)
-              pm = pm / ss
-              qm = qm / ss
-              rm = rm / ss
-              if m == l then mFound = true
-              else
-                val tst1 = math.abs(pm) * (math.abs(hv(m - 1, m - 1)) + math.abs(zz0) + math.abs(hv(m + 1, m + 1)))
-                val tst2 = tst1 + math.abs(hv(m, m - 1)) * (math.abs(qm) + math.abs(rm))
-                if tst2 == tst1 then mFound = true
-                else m -= 1
-
-            // Clear the fill introduced two and three rows below the diagonal.
-            var i2 = m + 2
-            while i2 <= en do
-              sh(i2, i2 - 2, 0.0)
-              if i2 != m + 2 then sh(i2, i2 - 3, 0.0)
-              i2 += 1
-
-            // Double QR step over rows l..en and columns m..en.
-            var k = m
-            while k <= na do
-              val notlas = k != na
-              var pStep = 0.0
-              var qStep = 0.0
-              var rStep = 0.0
-              var xAbs = 0.0
-              var doStep = true
-              if k == m then
-                pStep = pm
-                qStep = qm
-                rStep = rm
-              else
-                pStep = hv(k, k - 1)
-                qStep = hv(k + 1, k - 1)
-                rStep = if notlas then hv(k + 2, k - 1) else 0.0
-                xAbs = math.abs(pStep) + math.abs(qStep) + math.abs(rStep)
-                if xAbs == 0.0 then doStep = false
-                else
-                  pStep = pStep / xAbs
-                  qStep = qStep / xAbs
-                  rStep = rStep / xAbs
-              if doStep then
-                val sStep = sign(math.sqrt(pStep * pStep + qStep * qStep + rStep * rStep), pStep)
-                if k != m then sh(k, k - 1, -sStep * xAbs)
-                else if l != m then sh(k, k - 1, -hv(k, k - 1))
-                pStep = pStep + sStep
-                val xr = pStep / sStep
-                val yr = qStep / sStep
-                val zzr = rStep / sStep
-                qStep = qStep / pStep
-                rStep = rStep / pStep
-                if notlas then
-                  var j = k
-                  while j < n do
-                    val pp = hv(k, j) + qStep * hv(k + 1, j) + rStep * hv(k + 2, j)
-                    sh(k, j, hv(k, j) - pp * xr)
-                    sh(k + 1, j, hv(k + 1, j) - pp * yr)
-                    sh(k + 2, j, hv(k + 2, j) - pp * zzr)
-                    j += 1
-                  val jmax = math.min(en, k + 3)
-                  var i = 0
-                  while i <= jmax do
-                    val pp = xr * hv(i, k) + yr * hv(i, k + 1) + zzr * hv(i, k + 2)
-                    sh(i, k, hv(i, k) - pp)
-                    sh(i, k + 1, hv(i, k + 1) - pp * qStep)
-                    sh(i, k + 2, hv(i, k + 2) - pp * rStep)
-                    i += 1
-                  if hasVectors then
-                    i = 0
-                    while i < n do
-                      val pp = xr * zv(i, k) + yr * zv(i, k + 1) + zzr * zv(i, k + 2)
-                      sz(i, k, zv(i, k) - pp)
-                      sz(i, k + 1, zv(i, k + 1) - pp * qStep)
-                      sz(i, k + 2, zv(i, k + 2) - pp * rStep)
-                      i += 1
-                else
-                  var j = k
-                  while j < n do
-                    val pp = hv(k, j) + qStep * hv(k + 1, j)
-                    sh(k, j, hv(k, j) - pp * xr)
-                    sh(k + 1, j, hv(k + 1, j) - pp * yr)
-                    j += 1
-                  val jmax = math.min(en, k + 3)
-                  var i = 0
-                  while i <= jmax do
-                    val pp = xr * hv(i, k) + yr * hv(i, k + 1)
-                    sh(i, k, hv(i, k) - pp)
-                    sh(i, k + 1, hv(i, k + 1) - pp * qStep)
-                    i += 1
-                  if hasVectors then
-                    i = 0
-                    while i < n do
-                      val pp = xr * zv(i, k) + yr * zv(i, k + 1)
-                      sz(i, k, zv(i, k) - pp)
-                      sz(i, k + 1, zv(i, k + 1) - pp * qStep)
-                      i += 1
-              k += 1
+            val m = sweepStart(n, h, l, enm2, x, y, w, shift)
+            doubleQrSweep(n, h, z, hasVectors, l, m, na, en, shift(0), shift(1), shift(2))
       // (inner while loops back to recompute l unless a root deflated)
 
     if ierr >= 0 then return Some(maxSweeps - itn)
@@ -1371,143 +1219,436 @@ private[gale] object DenseSpectralKernels:
     if hasVectors && norm != 0.0 then
       var en2 = n - 1
       while en2 >= 0 do
-        val p = wr(en2)
-        val q = wi(en2)
-        val na = en2 - 1
-        if q == 0.0 then
-          // Real eigenvector.
-          var m = en2
-          sh(en2, en2, 1.0)
-          if en2 >= 1 then
-            var zzCarry = 0.0
-            var sCarry = 0.0
-            var i = en2 - 1
-            while i >= 0 do
-              val w = hv(i, i) - p
-              var r = 0.0
-              var j = m
-              while j <= en2 do
-                r += hv(i, j) * hv(j, en2)
-                j += 1
-              if wi(i) < 0.0 then
-                zzCarry = w
-                sCarry = r
-              else
-                m = i
-                if wi(i) == 0.0 then
-                  var tpiv = w
-                  if tpiv == 0.0 then
-                    tpiv = norm
-                    var loop = true
-                    while loop do
-                      tpiv = 0.01 * tpiv
-                      if !(norm + tpiv > norm) then loop = false
-                  sh(i, en2, -r / tpiv)
-                else
-                  val x2 = hv(i, i + 1)
-                  val y2 = hv(i + 1, i)
-                  val q2 = (wr(i) - p) * (wr(i) - p) + wi(i) * wi(i)
-                  val tval = (x2 * sCarry - zzCarry * r) / q2
-                  sh(i, en2, tval)
-                  if math.abs(x2) > math.abs(zzCarry) then
-                    sh(i + 1, en2, (-r - w * tval) / x2)
-                  else
-                    sh(i + 1, en2, (-sCarry - y2 * tval) / zzCarry)
-                val tabs = math.abs(hv(i, en2))
-                if tabs != 0.0 && !(tabs + 1.0 / tabs > tabs) then
-                  var j2 = i
-                  while j2 <= en2 do
-                    sh(j2, en2, hv(j2, en2) / tabs)
-                    j2 += 1
-              i -= 1
-        else if q < 0.0 then
-          // Complex eigenvector; the pair's positive-imaginary member is at na.
-          var m = na
-          if math.abs(hv(en2, na)) > math.abs(hv(na, en2)) then
-            sh(na, na, q / hv(en2, na))
-            sh(na, en2, -(hv(en2, en2) - p) / hv(en2, na))
-          else
-            val (cr, ci) = cdiv(0.0, -hv(na, en2), hv(na, na) - p, q)
-            sh(na, na, cr)
-            sh(na, en2, ci)
-          sh(en2, na, 0.0)
-          sh(en2, en2, 1.0)
-          if en2 >= 2 then
-            var zzCarry = 0.0
-            var rCarry = 0.0
-            var sCarry = 0.0
-            var i = en2 - 2
-            while i >= 0 do
-              val w = hv(i, i) - p
-              var ra = 0.0
-              var sa = 0.0
-              var j = m
-              while j <= en2 do
-                ra += hv(i, j) * hv(j, na)
-                sa += hv(i, j) * hv(j, en2)
-                j += 1
-              if wi(i) < 0.0 then
-                zzCarry = w
-                rCarry = ra
-                sCarry = sa
-              else
-                m = i
-                if wi(i) == 0.0 then
-                  val (cr, ci) = cdiv(-ra, -sa, w, q)
-                  sh(i, na, cr)
-                  sh(i, en2, ci)
-                else
-                  val x2 = hv(i, i + 1)
-                  val y2 = hv(i + 1, i)
-                  var vr = (wr(i) - p) * (wr(i) - p) + wi(i) * wi(i) - q * q
-                  val vi = (wr(i) - p) * 2.0 * q
-                  if vr == 0.0 && vi == 0.0 then
-                    val tst1 =
-                      norm * (math.abs(w) + math.abs(q) + math.abs(x2) + math.abs(y2) + math.abs(zzCarry))
-                    vr = tst1
-                    var loop = true
-                    while loop do
-                      vr = 0.01 * vr
-                      if !(tst1 + vr > tst1) then loop = false
-                  val (cr, ci) =
-                    cdiv(x2 * rCarry - zzCarry * ra + q * sa, x2 * sCarry - zzCarry * sa - q * ra, vr, vi)
-                  sh(i, na, cr)
-                  sh(i, en2, ci)
-                  if math.abs(x2) > math.abs(zzCarry) + math.abs(q) then
-                    sh(i + 1, na, (-ra - w * hv(i, na) + q * hv(i, en2)) / x2)
-                    sh(i + 1, en2, (-sa - w * hv(i, en2) - q * hv(i, na)) / x2)
-                  else
-                    val (cr2, ci2) =
-                      cdiv(-rCarry - y2 * hv(i, na), -sCarry - y2 * hv(i, en2), zzCarry, q)
-                    sh(i + 1, na, cr2)
-                    sh(i + 1, en2, ci2)
-                val tabs = math.max(math.abs(hv(i, na)), math.abs(hv(i, en2)))
-                if tabs != 0.0 && !(tabs + 1.0 / tabs > tabs) then
-                  var j2 = i
-                  while j2 <= en2 do
-                    sh(j2, na, hv(j2, na) / tabs)
-                    sh(j2, en2, hv(j2, en2) / tabs)
-                    j2 += 1
-              i -= 1
+        if wi(en2) == 0.0 then backSubstituteReal(n, h, wr, wi, norm, en2)
+        else if wi(en2) < 0.0 then backSubstituteComplex(n, h, wr, wi, norm, en2)
         en2 -= 1
-
-      // Multiply the accumulated Q by the triangular eigenvector matrix stored in
-      // h's upper triangle, giving eigenvectors of the original matrix. Columns
-      // are formed high-to-low so each read touches only untouched columns.
-      var j = n - 1
-      while j >= 0 do
-        var i = 0
-        while i < n do
-          var zsum = 0.0
-          var kf = 0
-          while kf <= j do
-            zsum += zv(i, kf) * hv(kf, j)
-            kf += 1
-          sz(i, j, zsum)
-          i += 1
-        j -= 1
+      backTransform(n, h, z)
 
     None
+
+  /** Matrix norm over the (upper-Hessenberg) nonzeros of `h`, for the
+    * back-substitution tolerances; computed before the iteration destroys `h`.
+    */
+  private def hessenbergNorm(n: Int, h: DoubleArray): Double =
+    var norm = 0.0
+    var kNorm = 0
+    var iNorm = 0
+    while iNorm < n do
+      var j = kNorm
+      while j < n do
+        norm += math.abs(h(iNorm * n + j))
+        j += 1
+      kNorm = iNorm
+      iNorm += 1
+    norm
+
+  /** The largest `l <= en` whose sub-diagonal `h(l, l-1)` is negligible (or 0). */
+  private def findSplit(n: Int, h: DoubleArray, en: Int, norm: Double): Int =
+    var l = en
+    var lFound = false
+    while !lFound do
+      if l == 0 then lFound = true
+      else
+        var s0 = math.abs(h((l - 1) * n + (l - 1))) + math.abs(h(l * n + l))
+        if s0 == 0.0 then s0 = norm
+        if s0 + math.abs(h(l * n + (l - 1))) == s0 then lFound = true
+        else l -= 1
+    l
+
+  /** Deflate the trailing 2x2 block at `(na, en)`: record a real pair (rotating
+    * the block to upper-triangular form, through `z` when `hasVectors`) or a
+    * complex conjugate pair, positive-imaginary member first.
+    */
+  private def deflateTwo(
+      n: Int,
+      h: DoubleArray,
+      wr: DoubleArray,
+      wi: DoubleArray,
+      z: DoubleArray,
+      hasVectors: Boolean,
+      en: Int,
+      x: Double,
+      y: Double,
+      w: Double,
+      t: Double
+  ): Unit =
+    inline def hv(i: Int, j: Int): Double = h(i * n + j)
+    inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
+    // `z` holds Qᵀ: Q(i, j) lives at row j, column i.
+    inline def zv(i: Int, j: Int): Double = z(j * n + i)
+    inline def sz(i: Int, j: Int, v: Double): Unit = z(j * n + i) = v
+    val na = en - 1
+    var p = (y - x) / 2.0
+    val q = p * p + w
+    var zz = math.sqrt(math.abs(q))
+    sh(en, en, x + t)
+    val xEn = x + t
+    sh(na, na, y + t)
+    if q >= 0.0 then
+      // Real pair: rotate to make the 2x2 block upper triangular.
+      zz = p + sign(zz, p)
+      wr(na) = xEn + zz
+      wr(en) = wr(na)
+      if zz != 0.0 then wr(en) = xEn - w / zz
+      wi(na) = 0.0
+      wi(en) = 0.0
+      val xx = hv(en, na)
+      val s2 = math.abs(xx) + math.abs(zz)
+      var pRot = xx / s2
+      var qRot = zz / s2
+      val rRot = math.sqrt(pRot * pRot + qRot * qRot)
+      pRot = pRot / rRot
+      qRot = qRot / rRot
+      var j = na
+      while j < n do
+        val zt = hv(na, j)
+        sh(na, j, qRot * zt + pRot * hv(en, j))
+        sh(en, j, qRot * hv(en, j) - pRot * zt)
+        j += 1
+      var i = 0
+      while i <= en do
+        val zt = hv(i, na)
+        sh(i, na, qRot * zt + pRot * hv(i, en))
+        sh(i, en, qRot * hv(i, en) - pRot * zt)
+        i += 1
+      if hasVectors then
+        i = 0
+        while i < n do
+          val zt = zv(i, na)
+          sz(i, na, qRot * zt + pRot * zv(i, en))
+          sz(i, en, qRot * zv(i, en) - pRot * zt)
+          i += 1
+    else
+      // Complex conjugate pair, positive-imaginary member first.
+      wr(na) = xEn + p
+      wr(en) = xEn + p
+      wi(na) = zz
+      wi(en) = -zz
+
+  /** Look for two consecutive small sub-diagonal elements, returning the sweep
+    * start `m` and leaving the normalized first Householder column `(p, q, r)` in
+    * `shift(0..2)`.
+    */
+  private def sweepStart(
+      n: Int,
+      h: DoubleArray,
+      l: Int,
+      enm2: Int,
+      x: Double,
+      y: Double,
+      w: Double,
+      shift: DoubleArray
+  ): Int =
+    inline def hv(i: Int, j: Int): Double = h(i * n + j)
+    var m = enm2
+    var pm = 0.0
+    var qm = 0.0
+    var rm = 0.0
+    var mFound = false
+    while !mFound do
+      val zz0 = hv(m, m)
+      val r0 = x - zz0
+      val s0 = y - zz0
+      pm = (r0 * s0 - w) / hv(m + 1, m) + hv(m, m + 1)
+      qm = hv(m + 1, m + 1) - zz0 - r0 - s0
+      rm = hv(m + 2, m + 1)
+      val ss = math.abs(pm) + math.abs(qm) + math.abs(rm)
+      pm = pm / ss
+      qm = qm / ss
+      rm = rm / ss
+      if m == l then mFound = true
+      else
+        val tst1 = math.abs(pm) * (math.abs(hv(m - 1, m - 1)) + math.abs(zz0) + math.abs(hv(m + 1, m + 1)))
+        val tst2 = tst1 + math.abs(hv(m, m - 1)) * (math.abs(qm) + math.abs(rm))
+        if tst2 == tst1 then mFound = true
+        else m -= 1
+    shift(0) = pm
+    shift(1) = qm
+    shift(2) = rm
+    m
+
+  /** One Francis double-shift QR sweep over rows `l..en` and columns `m..en`,
+    * starting from the first Householder column `(pm, qm, rm)`; the
+    * similarity is accumulated into `z` when `hasVectors`.
+    */
+  private def doubleQrSweep(
+      n: Int,
+      h: DoubleArray,
+      z: DoubleArray,
+      hasVectors: Boolean,
+      l: Int,
+      m: Int,
+      na: Int,
+      en: Int,
+      pm: Double,
+      qm: Double,
+      rm: Double
+  ): Unit =
+    inline def hv(i: Int, j: Int): Double = h(i * n + j)
+    inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
+    // `z` holds Qᵀ: Q(i, j) lives at row j, column i.
+    inline def zv(i: Int, j: Int): Double = z(j * n + i)
+    inline def sz(i: Int, j: Int, v: Double): Unit = z(j * n + i) = v
+
+    // Clear the fill introduced two and three rows below the diagonal.
+    var i2 = m + 2
+    while i2 <= en do
+      sh(i2, i2 - 2, 0.0)
+      if i2 != m + 2 then sh(i2, i2 - 3, 0.0)
+      i2 += 1
+
+    var k = m
+    while k <= na do
+      val notlas = k != na
+      var pStep = 0.0
+      var qStep = 0.0
+      var rStep = 0.0
+      var xAbs = 0.0
+      var doStep = true
+      if k == m then
+        pStep = pm
+        qStep = qm
+        rStep = rm
+      else
+        pStep = hv(k, k - 1)
+        qStep = hv(k + 1, k - 1)
+        rStep = if notlas then hv(k + 2, k - 1) else 0.0
+        xAbs = math.abs(pStep) + math.abs(qStep) + math.abs(rStep)
+        if xAbs == 0.0 then doStep = false
+        else
+          pStep = pStep / xAbs
+          qStep = qStep / xAbs
+          rStep = rStep / xAbs
+      if doStep then
+        val sStep = sign(math.sqrt(pStep * pStep + qStep * qStep + rStep * rStep), pStep)
+        if k != m then sh(k, k - 1, -sStep * xAbs)
+        else if l != m then sh(k, k - 1, -hv(k, k - 1))
+        pStep = pStep + sStep
+        val xr = pStep / sStep
+        val yr = qStep / sStep
+        val zzr = rStep / sStep
+        qStep = qStep / pStep
+        rStep = rStep / pStep
+        if notlas then
+          var j = k
+          while j < n do
+            val pp = hv(k, j) + qStep * hv(k + 1, j) + rStep * hv(k + 2, j)
+            sh(k, j, hv(k, j) - pp * xr)
+            sh(k + 1, j, hv(k + 1, j) - pp * yr)
+            sh(k + 2, j, hv(k + 2, j) - pp * zzr)
+            j += 1
+          val jmax = math.min(en, k + 3)
+          var i = 0
+          while i <= jmax do
+            val pp = xr * hv(i, k) + yr * hv(i, k + 1) + zzr * hv(i, k + 2)
+            sh(i, k, hv(i, k) - pp)
+            sh(i, k + 1, hv(i, k + 1) - pp * qStep)
+            sh(i, k + 2, hv(i, k + 2) - pp * rStep)
+            i += 1
+          if hasVectors then
+            i = 0
+            while i < n do
+              val pp = xr * zv(i, k) + yr * zv(i, k + 1) + zzr * zv(i, k + 2)
+              sz(i, k, zv(i, k) - pp)
+              sz(i, k + 1, zv(i, k + 1) - pp * qStep)
+              sz(i, k + 2, zv(i, k + 2) - pp * rStep)
+              i += 1
+        else
+          var j = k
+          while j < n do
+            val pp = hv(k, j) + qStep * hv(k + 1, j)
+            sh(k, j, hv(k, j) - pp * xr)
+            sh(k + 1, j, hv(k + 1, j) - pp * yr)
+            j += 1
+          val jmax = math.min(en, k + 3)
+          var i = 0
+          while i <= jmax do
+            val pp = xr * hv(i, k) + yr * hv(i, k + 1)
+            sh(i, k, hv(i, k) - pp)
+            sh(i, k + 1, hv(i, k + 1) - pp * qStep)
+            i += 1
+          if hasVectors then
+            i = 0
+            while i < n do
+              val pp = xr * zv(i, k) + yr * zv(i, k + 1)
+              sz(i, k, zv(i, k) - pp)
+              sz(i, k + 1, zv(i, k + 1) - pp * qStep)
+              i += 1
+      k += 1
+
+  /** Back-substitute the real eigenvector for the eigenvalue at `en2` through
+    * the quasi-triangular `h`, writing it into column `en2` of `h`.
+    */
+  private def backSubstituteReal(
+      n: Int,
+      h: DoubleArray,
+      wr: DoubleArray,
+      wi: DoubleArray,
+      norm: Double,
+      en2: Int
+  ): Unit =
+    inline def hv(i: Int, j: Int): Double = h(i * n + j)
+    inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
+    val p = wr(en2)
+    var m = en2
+    sh(en2, en2, 1.0)
+    if en2 >= 1 then
+      var zzCarry = 0.0
+      var sCarry = 0.0
+      var i = en2 - 1
+      while i >= 0 do
+        val w = hv(i, i) - p
+        var r = 0.0
+        var j = m
+        while j <= en2 do
+          r += hv(i, j) * hv(j, en2)
+          j += 1
+        if wi(i) < 0.0 then
+          zzCarry = w
+          sCarry = r
+        else
+          m = i
+          if wi(i) == 0.0 then
+            var tpiv = w
+            if tpiv == 0.0 then
+              tpiv = norm
+              var loop = true
+              while loop do
+                tpiv = 0.01 * tpiv
+                if !(norm + tpiv > norm) then loop = false
+            sh(i, en2, -r / tpiv)
+          else
+            val x2 = hv(i, i + 1)
+            val y2 = hv(i + 1, i)
+            val q2 = (wr(i) - p) * (wr(i) - p) + wi(i) * wi(i)
+            val tval = (x2 * sCarry - zzCarry * r) / q2
+            sh(i, en2, tval)
+            if math.abs(x2) > math.abs(zzCarry) then
+              sh(i + 1, en2, (-r - w * tval) / x2)
+            else
+              sh(i + 1, en2, (-sCarry - y2 * tval) / zzCarry)
+          val tabs = math.abs(hv(i, en2))
+          if tabs != 0.0 && !(tabs + 1.0 / tabs > tabs) then
+            var j2 = i
+            while j2 <= en2 do
+              sh(j2, en2, hv(j2, en2) / tabs)
+              j2 += 1
+        i -= 1
+
+  /** Back-substitute the complex eigenvector for the conjugate pair whose
+    * negative-imaginary member is at `en2` (the positive member is at `en2 - 1`),
+    * writing real/imaginary parts into columns `en2 - 1` and `en2` of `h`.
+    */
+  private def backSubstituteComplex(
+      n: Int,
+      h: DoubleArray,
+      wr: DoubleArray,
+      wi: DoubleArray,
+      norm: Double,
+      en2: Int
+  ): Unit =
+    inline def hv(i: Int, j: Int): Double = h(i * n + j)
+    inline def sh(i: Int, j: Int, v: Double): Unit = h(i * n + j) = v
+    val p = wr(en2)
+    val q = wi(en2)
+    val na = en2 - 1
+    var m = na
+    if math.abs(hv(en2, na)) > math.abs(hv(na, en2)) then
+      sh(na, na, q / hv(en2, na))
+      sh(na, en2, -(hv(en2, en2) - p) / hv(en2, na))
+    else
+      val (cr, ci) = cdiv(0.0, -hv(na, en2), hv(na, na) - p, q)
+      sh(na, na, cr)
+      sh(na, en2, ci)
+    sh(en2, na, 0.0)
+    sh(en2, en2, 1.0)
+    if en2 >= 2 then
+      var zzCarry = 0.0
+      var rCarry = 0.0
+      var sCarry = 0.0
+      var i = en2 - 2
+      while i >= 0 do
+        val w = hv(i, i) - p
+        var ra = 0.0
+        var sa = 0.0
+        var j = m
+        while j <= en2 do
+          ra += hv(i, j) * hv(j, na)
+          sa += hv(i, j) * hv(j, en2)
+          j += 1
+        if wi(i) < 0.0 then
+          zzCarry = w
+          rCarry = ra
+          sCarry = sa
+        else
+          m = i
+          if wi(i) == 0.0 then
+            val (cr, ci) = cdiv(-ra, -sa, w, q)
+            sh(i, na, cr)
+            sh(i, en2, ci)
+          else
+            val x2 = hv(i, i + 1)
+            val y2 = hv(i + 1, i)
+            var vr = (wr(i) - p) * (wr(i) - p) + wi(i) * wi(i) - q * q
+            val vi = (wr(i) - p) * 2.0 * q
+            if vr == 0.0 && vi == 0.0 then
+              val tst1 =
+                norm * (math.abs(w) + math.abs(q) + math.abs(x2) + math.abs(y2) + math.abs(zzCarry))
+              vr = tst1
+              var loop = true
+              while loop do
+                vr = 0.01 * vr
+                if !(tst1 + vr > tst1) then loop = false
+            val (cr, ci) =
+              cdiv(x2 * rCarry - zzCarry * ra + q * sa, x2 * sCarry - zzCarry * sa - q * ra, vr, vi)
+            sh(i, na, cr)
+            sh(i, en2, ci)
+            if math.abs(x2) > math.abs(zzCarry) + math.abs(q) then
+              sh(i + 1, na, (-ra - w * hv(i, na) + q * hv(i, en2)) / x2)
+              sh(i + 1, en2, (-sa - w * hv(i, en2) - q * hv(i, na)) / x2)
+            else
+              val (cr2, ci2) =
+                cdiv(-rCarry - y2 * hv(i, na), -sCarry - y2 * hv(i, en2), zzCarry, q)
+              sh(i + 1, na, cr2)
+              sh(i + 1, en2, ci2)
+          val tabs = math.max(math.abs(hv(i, na)), math.abs(hv(i, en2)))
+          if tabs != 0.0 && !(tabs + 1.0 / tabs > tabs) then
+            var j2 = i
+            while j2 <= en2 do
+              sh(j2, na, hv(j2, na) / tabs)
+              sh(j2, en2, hv(j2, en2) / tabs)
+              j2 += 1
+        i -= 1
+
+  /** Multiply the accumulated Q by the triangular eigenvector matrix stored in
+    * `h`'s upper triangle, giving eigenvectors of the original matrix. `z` holds
+    * Qᵀ, so eigenvector `j` is the contiguous row `j`: it is formed in a buffer as
+    * `Σ_{k ≤ j} h(k, j) · row_k`, summed in ascending `k`, and rows are formed
+    * high-to-low so each one reads only rows not yet overwritten.
+    */
+  private def backTransform(n: Int, h: DoubleArray, z: DoubleArray): Unit =
+    val acc = DoubleArray.alloc(n)
+    var j = n - 1
+    while j >= 0 do
+      var i = 0
+      while i < n do
+        acc(i) = 0.0
+        i += 1
+      var kf = 0
+      while kf <= j do
+        val hkj = h(kf * n + j)
+        val zRow = kf * n
+        i = 0
+        while i < n do
+          acc(i) = acc(i) + z(zRow + i) * hkj
+          i += 1
+        kf += 1
+      val outRow = j * n
+      i = 0
+      while i < n do
+        z(outRow + i) = acc(i)
+        i += 1
+      j -= 1
 
   /** Complex division `(ar + ai·i) / (br + bi·i)` via the EISPACK `cdiv`
     * scaled formula (scale by `|br| + |bi|`), avoiding intermediate overflow.
@@ -1521,7 +1662,8 @@ private[gale] object DenseSpectralKernels:
     val d = brs * brs + bis * bis
     ((ars * brs + ais * bis) / d, (ais * brs - ars * bis) / d)
 
-  /** Normalize each real-Schur packed eigenvector to unit 2-norm — a real column
+  /** Normalize each real-Schur packed eigenvector, held as a row of the
+    * transposed `z`, to unit 2-norm — a real column
     * to `‖v‖ = 1`, a conjugate pair's two columns so the complex vector
     * `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair,
     * so the packing invariant and the `A v = λ v` relation are preserved.
@@ -1533,16 +1675,16 @@ private[gale] object DenseSpectralKernels:
         var nrm = 0.0
         var i = 0
         while i < n do
-          val re = z(i * n + col)
-          val im = z(i * n + col + 1)
+          val re = z(col * n + i)
+          val im = z((col + 1) * n + i)
           nrm += re * re + im * im
           i += 1
         nrm = math.sqrt(nrm)
         if nrm > 0.0 then
           i = 0
           while i < n do
-            z(i * n + col) = z(i * n + col) / nrm
-            z(i * n + col + 1) = z(i * n + col + 1) / nrm
+            z(col * n + i) = z(col * n + i) / nrm
+            z((col + 1) * n + i) = z((col + 1) * n + i) / nrm
             i += 1
         col += 2
       else
@@ -1551,14 +1693,14 @@ private[gale] object DenseSpectralKernels:
         var nrm = 0.0
         var i = 0
         while i < n do
-          val v = z(i * n + col)
+          val v = z(col * n + i)
           nrm += v * v
           i += 1
         nrm = math.sqrt(nrm)
         if nrm > 0.0 then
           i = 0
           while i < n do
-            z(i * n + col) = z(i * n + col) / nrm
+            z(col * n + i) = z(col * n + i) / nrm
             i += 1
         col += 1
 

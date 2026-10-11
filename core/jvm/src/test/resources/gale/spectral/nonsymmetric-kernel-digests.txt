@@ -1,0 +1,3617 @@
+# Per-case 64-bit FNV-1a digests of the raw result bits of the dense nonsymmetric kernel
+# (DenseSpectralKernels.nonsymmetricEigen / hessenberg) on the JVM, generated from the
+# breeze/integration 64ba31e kernel. Read by NonsymmetricKernelDigestSuite; key<TAB>digest.
+eig companion n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig companion n=0 vec=false budget=3	f3b31ef57291b2d2
+eig companion n=0 vec=true budget=-1	99b747516dd44dc5
+eig companion n=0 vec=true budget=3	99b747516dd44dc5
+eig companion n=1 vec=false budget=-1	5d8cba67b3514f7d
+eig companion n=1 vec=false budget=3	5d8cba67b3514f7d
+eig companion n=1 vec=true budget=-1	43236e7d81003fc5
+eig companion n=1 vec=true budget=3	43236e7d81003fc5
+eig companion n=10 vec=false budget=-1	fc6db538f3158406
+eig companion n=10 vec=false budget=3	614b75fe37c979f2
+eig companion n=10 vec=true budget=-1	1f6dc9cba2d7626e
+eig companion n=10 vec=true budget=3	614b75fe37c979f2
+eig companion n=11 vec=false budget=-1	850d906d3d290df2
+eig companion n=11 vec=false budget=3	614b75fe37c979f2
+eig companion n=11 vec=true budget=-1	f5d63f5a56472ec0
+eig companion n=11 vec=true budget=3	614b75fe37c979f2
+eig companion n=12 vec=false budget=-1	79ad1b95ef37d75a
+eig companion n=12 vec=false budget=3	614b75fe37c979f2
+eig companion n=12 vec=true budget=-1	0f783e60a06c5adf
+eig companion n=12 vec=true budget=3	614b75fe37c979f2
+eig companion n=13 vec=false budget=-1	4c65d7352819781e
+eig companion n=13 vec=false budget=3	614b75fe37c979f2
+eig companion n=13 vec=true budget=-1	8f193ff4ce177839
+eig companion n=13 vec=true budget=3	614b75fe37c979f2
+eig companion n=14 vec=false budget=-1	02688960ac6a6c72
+eig companion n=14 vec=false budget=3	614b75fe37c979f2
+eig companion n=14 vec=true budget=-1	af78bdeeaca2e5be
+eig companion n=14 vec=true budget=3	614b75fe37c979f2
+eig companion n=15 vec=false budget=-1	9f0e5dd3e7dafff6
+eig companion n=15 vec=false budget=3	614b75fe37c979f2
+eig companion n=15 vec=true budget=-1	a6898a18f8b05756
+eig companion n=15 vec=true budget=3	614b75fe37c979f2
+eig companion n=16 vec=false budget=-1	10bd30fdd6bcf592
+eig companion n=16 vec=false budget=3	614b75fe37c979f2
+eig companion n=16 vec=true budget=-1	5e2683bedcb3e5d6
+eig companion n=16 vec=true budget=3	614b75fe37c979f2
+eig companion n=17 vec=false budget=-1	d1a17fe6c8011897
+eig companion n=17 vec=false budget=3	614b75fe37c979f2
+eig companion n=17 vec=true budget=-1	9326408063d1cde0
+eig companion n=17 vec=true budget=3	614b75fe37c979f2
+eig companion n=18 vec=false budget=-1	9c8b327a9a38b13e
+eig companion n=18 vec=false budget=3	614b75fe37c979f2
+eig companion n=18 vec=true budget=-1	04086dc37da317cf
+eig companion n=18 vec=true budget=3	614b75fe37c979f2
+eig companion n=19 vec=false budget=-1	7be80518a87a913d
+eig companion n=19 vec=false budget=3	614b75fe37c979f2
+eig companion n=19 vec=true budget=-1	a0acbc86b46777e7
+eig companion n=19 vec=true budget=3	614b75fe37c979f2
+eig companion n=2 vec=false budget=-1	02454a0cbefb3b12
+eig companion n=2 vec=false budget=3	02454a0cbefb3b12
+eig companion n=2 vec=true budget=-1	7fb06e956fdaf18a
+eig companion n=2 vec=true budget=3	7fb06e956fdaf18a
+eig companion n=20 vec=false budget=-1	4047c9faf2bc4942
+eig companion n=20 vec=false budget=3	614b75fe37c979f2
+eig companion n=20 vec=true budget=-1	5c4fb2ed517dcb8c
+eig companion n=20 vec=true budget=3	614b75fe37c979f2
+eig companion n=21 vec=false budget=-1	072e66574c27f3e9
+eig companion n=21 vec=false budget=3	614b75fe37c979f2
+eig companion n=21 vec=true budget=-1	1385eeba5c6c3272
+eig companion n=21 vec=true budget=3	614b75fe37c979f2
+eig companion n=22 vec=false budget=-1	f091d1c004f04a5a
+eig companion n=22 vec=false budget=3	614b75fe37c979f2
+eig companion n=22 vec=true budget=-1	e76eef14776e041c
+eig companion n=22 vec=true budget=3	614b75fe37c979f2
+eig companion n=23 vec=false budget=-1	8b800788b8bbbbb5
+eig companion n=23 vec=false budget=3	614b75fe37c979f2
+eig companion n=23 vec=true budget=-1	e6a9397e003bb66e
+eig companion n=23 vec=true budget=3	614b75fe37c979f2
+eig companion n=24 vec=false budget=-1	1103959d75884e76
+eig companion n=24 vec=false budget=3	614b75fe37c979f2
+eig companion n=24 vec=true budget=-1	9fe0d554bb1c668a
+eig companion n=24 vec=true budget=3	614b75fe37c979f2
+eig companion n=25 vec=false budget=-1	5b652f891eddd0ec
+eig companion n=25 vec=false budget=3	614b75fe37c979f2
+eig companion n=25 vec=true budget=-1	e9032d433b740a58
+eig companion n=25 vec=true budget=3	614b75fe37c979f2
+eig companion n=26 vec=false budget=-1	833c913c7f708f5e
+eig companion n=26 vec=false budget=3	614b75fe37c979f2
+eig companion n=26 vec=true budget=-1	b8e8862ff362132e
+eig companion n=26 vec=true budget=3	614b75fe37c979f2
+eig companion n=27 vec=false budget=-1	0364dcc2f66fa9af
+eig companion n=27 vec=false budget=3	614b75fe37c979f2
+eig companion n=27 vec=true budget=-1	91843fe883669395
+eig companion n=27 vec=true budget=3	614b75fe37c979f2
+eig companion n=28 vec=false budget=-1	505932173b871f5a
+eig companion n=28 vec=false budget=3	614b75fe37c979f2
+eig companion n=28 vec=true budget=-1	57c59b48e1743711
+eig companion n=28 vec=true budget=3	614b75fe37c979f2
+eig companion n=29 vec=false budget=-1	9b9d3824d476fa03
+eig companion n=29 vec=false budget=3	614b75fe37c979f2
+eig companion n=29 vec=true budget=-1	0399b1f01f53af83
+eig companion n=29 vec=true budget=3	614b75fe37c979f2
+eig companion n=3 vec=false budget=-1	5085d9fa36b0ba01
+eig companion n=3 vec=false budget=3	614b75fe37c979f2
+eig companion n=3 vec=true budget=-1	e853ec04843f6dba
+eig companion n=3 vec=true budget=3	614b75fe37c979f2
+eig companion n=30 vec=false budget=-1	3ce30795d5e8e76e
+eig companion n=30 vec=false budget=3	614b75fe37c979f2
+eig companion n=30 vec=true budget=-1	ad31513e7bd9ceec
+eig companion n=30 vec=true budget=3	614b75fe37c979f2
+eig companion n=31 vec=false budget=-1	9aa36a47cc444cef
+eig companion n=31 vec=false budget=3	614b75fe37c979f2
+eig companion n=31 vec=true budget=-1	a65c1d0457b028f1
+eig companion n=31 vec=true budget=3	614b75fe37c979f2
+eig companion n=32 vec=false budget=-1	61af37c1a40fc56e
+eig companion n=32 vec=false budget=3	614b75fe37c979f2
+eig companion n=32 vec=true budget=-1	b0a0fcb98fc50581
+eig companion n=32 vec=true budget=3	614b75fe37c979f2
+eig companion n=33 vec=false budget=-1	73f4f596a6559233
+eig companion n=33 vec=false budget=3	614b75fe37c979f2
+eig companion n=33 vec=true budget=-1	ca3e5e96c302f927
+eig companion n=33 vec=true budget=3	614b75fe37c979f2
+eig companion n=34 vec=false budget=-1	79511d8c59fe7086
+eig companion n=34 vec=false budget=3	614b75fe37c979f2
+eig companion n=34 vec=true budget=-1	5230e1aa9a6c9228
+eig companion n=34 vec=true budget=3	614b75fe37c979f2
+eig companion n=35 vec=false budget=-1	1395fdf30211e110
+eig companion n=35 vec=false budget=3	614b75fe37c979f2
+eig companion n=35 vec=true budget=-1	f9ce4cc0fe0ebb50
+eig companion n=35 vec=true budget=3	614b75fe37c979f2
+eig companion n=36 vec=false budget=-1	c98cc66a9c0ce55a
+eig companion n=36 vec=false budget=3	614b75fe37c979f2
+eig companion n=36 vec=true budget=-1	605af3b731413c74
+eig companion n=36 vec=true budget=3	614b75fe37c979f2
+eig companion n=37 vec=false budget=-1	356e042e87aab3ad
+eig companion n=37 vec=false budget=3	614b75fe37c979f2
+eig companion n=37 vec=true budget=-1	54cf6edd8fa684a2
+eig companion n=37 vec=true budget=3	614b75fe37c979f2
+eig companion n=38 vec=false budget=-1	a5f0b90185a89b86
+eig companion n=38 vec=false budget=3	614b75fe37c979f2
+eig companion n=38 vec=true budget=-1	2be28a9a9efbe3d4
+eig companion n=38 vec=true budget=3	614b75fe37c979f2
+eig companion n=39 vec=false budget=-1	9aeba58d490d53e4
+eig companion n=39 vec=false budget=3	614b75fe37c979f2
+eig companion n=39 vec=true budget=-1	b7aa263fe0cda2c3
+eig companion n=39 vec=true budget=3	614b75fe37c979f2
+eig companion n=4 vec=false budget=-1	ce06c3349b0edfae
+eig companion n=4 vec=false budget=3	614b75fe37c979f2
+eig companion n=4 vec=true budget=-1	27e64ac099741db2
+eig companion n=4 vec=true budget=3	614b75fe37c979f2
+eig companion n=40 vec=false budget=-1	1ecb917a45e1fece
+eig companion n=40 vec=false budget=3	614b75fe37c979f2
+eig companion n=40 vec=true budget=-1	d01706c3315b577e
+eig companion n=40 vec=true budget=3	614b75fe37c979f2
+eig companion n=47 vec=false budget=-1	b4d994581d851379
+eig companion n=47 vec=false budget=3	614b75fe37c979f2
+eig companion n=47 vec=true budget=-1	aba299661ed48fae
+eig companion n=47 vec=true budget=3	614b75fe37c979f2
+eig companion n=5 vec=false budget=-1	5b0d4544c97f8b4b
+eig companion n=5 vec=false budget=3	614b75fe37c979f2
+eig companion n=5 vec=true budget=-1	72ce4466e4303117
+eig companion n=5 vec=true budget=3	614b75fe37c979f2
+eig companion n=6 vec=false budget=-1	6da2537b2738c636
+eig companion n=6 vec=false budget=3	614b75fe37c979f2
+eig companion n=6 vec=true budget=-1	e108530c3a25c997
+eig companion n=6 vec=true budget=3	614b75fe37c979f2
+eig companion n=64 vec=false budget=-1	f15ef666acf30882
+eig companion n=64 vec=false budget=3	614b75fe37c979f2
+eig companion n=64 vec=true budget=-1	e14c69066bda122a
+eig companion n=64 vec=true budget=3	614b75fe37c979f2
+eig companion n=65 vec=false budget=-1	a49a27f8e2a8e552
+eig companion n=65 vec=false budget=3	614b75fe37c979f2
+eig companion n=65 vec=true budget=-1	300775d625409420
+eig companion n=65 vec=true budget=3	614b75fe37c979f2
+eig companion n=7 vec=false budget=-1	5ec0f9871e6d98cb
+eig companion n=7 vec=false budget=3	614b75fe37c979f2
+eig companion n=7 vec=true budget=-1	141bf051f61b76ae
+eig companion n=7 vec=true budget=3	614b75fe37c979f2
+eig companion n=8 vec=false budget=-1	39f13a56622ac51a
+eig companion n=8 vec=false budget=3	614b75fe37c979f2
+eig companion n=8 vec=true budget=-1	89ce733fd9f89e25
+eig companion n=8 vec=true budget=3	614b75fe37c979f2
+eig companion n=9 vec=false budget=-1	79d8ccb26bc8891a
+eig companion n=9 vec=false budget=3	614b75fe37c979f2
+eig companion n=9 vec=true budget=-1	22919c3a4df779d1
+eig companion n=9 vec=true budget=3	614b75fe37c979f2
+eig gauss n=0 s=0 vec=false budget=-1	f3b31ef57291b2d2
+eig gauss n=0 s=0 vec=false budget=3	f3b31ef57291b2d2
+eig gauss n=0 s=0 vec=true budget=-1	99b747516dd44dc5
+eig gauss n=0 s=0 vec=true budget=3	99b747516dd44dc5
+eig gauss n=0 s=1 vec=false budget=-1	f3b31ef57291b2d2
+eig gauss n=0 s=1 vec=false budget=3	f3b31ef57291b2d2
+eig gauss n=0 s=1 vec=true budget=-1	99b747516dd44dc5
+eig gauss n=0 s=1 vec=true budget=3	99b747516dd44dc5
+eig gauss n=0 s=2 vec=false budget=-1	f3b31ef57291b2d2
+eig gauss n=0 s=2 vec=false budget=3	f3b31ef57291b2d2
+eig gauss n=0 s=2 vec=true budget=-1	99b747516dd44dc5
+eig gauss n=0 s=2 vec=true budget=3	99b747516dd44dc5
+eig gauss n=0 s=3 vec=false budget=-1	f3b31ef57291b2d2
+eig gauss n=0 s=3 vec=false budget=3	f3b31ef57291b2d2
+eig gauss n=0 s=3 vec=true budget=-1	99b747516dd44dc5
+eig gauss n=0 s=3 vec=true budget=3	99b747516dd44dc5
+eig gauss n=1 s=0 vec=false budget=-1	ff13c7a0ead32e00
+eig gauss n=1 s=0 vec=false budget=3	ff13c7a0ead32e00
+eig gauss n=1 s=0 vec=true budget=-1	58d9832ded04127c
+eig gauss n=1 s=0 vec=true budget=3	58d9832ded04127c
+eig gauss n=1 s=1 vec=false budget=-1	073d7e1afc14ad63
+eig gauss n=1 s=1 vec=false budget=3	073d7e1afc14ad63
+eig gauss n=1 s=1 vec=true budget=-1	dfd4940aad8a317f
+eig gauss n=1 s=1 vec=true budget=3	dfd4940aad8a317f
+eig gauss n=1 s=2 vec=false budget=-1	b19d4507f94609c7
+eig gauss n=1 s=2 vec=false budget=3	b19d4507f94609c7
+eig gauss n=1 s=2 vec=true budget=-1	dd03d9f8c046e65b
+eig gauss n=1 s=2 vec=true budget=3	dd03d9f8c046e65b
+eig gauss n=1 s=3 vec=false budget=-1	5a479bc560d2e910
+eig gauss n=1 s=3 vec=false budget=3	5a479bc560d2e910
+eig gauss n=1 s=3 vec=true budget=-1	c0eb8b463efc618c
+eig gauss n=1 s=3 vec=true budget=3	c0eb8b463efc618c
+eig gauss n=10 s=0 vec=false budget=-1	3bd432530b426f50
+eig gauss n=10 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=10 s=0 vec=true budget=-1	06368d9f19eb1e8d
+eig gauss n=10 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=10 s=1 vec=false budget=-1	c8bd94b74e74cc70
+eig gauss n=10 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=10 s=1 vec=true budget=-1	04c91987b596f1d7
+eig gauss n=10 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=10 s=2 vec=false budget=-1	710fcfee78780a01
+eig gauss n=10 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=10 s=2 vec=true budget=-1	22b6519f33061082
+eig gauss n=10 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=10 s=3 vec=false budget=-1	3d477ad6f9a6c79c
+eig gauss n=10 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=10 s=3 vec=true budget=-1	4d01e4d2f5f54737
+eig gauss n=10 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=11 s=0 vec=false budget=-1	005bd5fe9d005c3b
+eig gauss n=11 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=11 s=0 vec=true budget=-1	ec7bce8d5418cc99
+eig gauss n=11 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=11 s=1 vec=false budget=-1	28b6ea51bd97cff4
+eig gauss n=11 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=11 s=1 vec=true budget=-1	0a26a32e10c7960f
+eig gauss n=11 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=11 s=2 vec=false budget=-1	3d97a9a98e553798
+eig gauss n=11 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=11 s=2 vec=true budget=-1	f41a7bea610db1e4
+eig gauss n=11 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=11 s=3 vec=false budget=-1	1a37c4d048c69465
+eig gauss n=11 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=11 s=3 vec=true budget=-1	436d9d89c2718122
+eig gauss n=11 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=12 s=0 vec=false budget=-1	e45b0c556b5cba2f
+eig gauss n=12 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=12 s=0 vec=true budget=-1	d705dda03d2985a2
+eig gauss n=12 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=12 s=1 vec=false budget=-1	e3a4b9f7303acb40
+eig gauss n=12 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=12 s=1 vec=true budget=-1	d6962005b42fef5b
+eig gauss n=12 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=12 s=2 vec=false budget=-1	fe451b281f9dc4f7
+eig gauss n=12 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=12 s=2 vec=true budget=-1	1197ef00f7211a4e
+eig gauss n=12 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=12 s=3 vec=false budget=-1	1b9e78cd65211dba
+eig gauss n=12 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=12 s=3 vec=true budget=-1	1d6eeb7c4698c234
+eig gauss n=12 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=13 s=0 vec=false budget=-1	36c251fbd176a145
+eig gauss n=13 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=13 s=0 vec=true budget=-1	a2c20a04852ac805
+eig gauss n=13 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=13 s=1 vec=false budget=-1	647032fb7dafb393
+eig gauss n=13 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=13 s=1 vec=true budget=-1	c8fbe640d0d558e5
+eig gauss n=13 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=13 s=2 vec=false budget=-1	8b76303dc425e843
+eig gauss n=13 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=13 s=2 vec=true budget=-1	b645cc03c74f49c1
+eig gauss n=13 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=13 s=3 vec=false budget=-1	46dccbe9320e2d1e
+eig gauss n=13 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=13 s=3 vec=true budget=-1	0ac66b660051577a
+eig gauss n=13 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=14 s=0 vec=false budget=-1	b760b527c1494383
+eig gauss n=14 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=14 s=0 vec=true budget=-1	f0d4a4f6c9f7a2e1
+eig gauss n=14 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=14 s=1 vec=false budget=-1	460b77585de05dfc
+eig gauss n=14 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=14 s=1 vec=true budget=-1	f2e641c91d7df607
+eig gauss n=14 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=14 s=2 vec=false budget=-1	e6e49815260eed15
+eig gauss n=14 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=14 s=2 vec=true budget=-1	18430555f474c3b5
+eig gauss n=14 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=14 s=3 vec=false budget=-1	1f64a0736c80f94a
+eig gauss n=14 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=14 s=3 vec=true budget=-1	5a95ba32cf0c4034
+eig gauss n=14 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=15 s=0 vec=false budget=-1	dce8a485cd59d938
+eig gauss n=15 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=15 s=0 vec=true budget=-1	a85d64f054a4b490
+eig gauss n=15 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=15 s=1 vec=false budget=-1	65a9de850ac2d19f
+eig gauss n=15 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=15 s=1 vec=true budget=-1	825540c89324243c
+eig gauss n=15 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=15 s=2 vec=false budget=-1	7f424a08c99b6720
+eig gauss n=15 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=15 s=2 vec=true budget=-1	987ea5a9ba87eca7
+eig gauss n=15 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=15 s=3 vec=false budget=-1	31001d86b56b76ad
+eig gauss n=15 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=15 s=3 vec=true budget=-1	5aaf1e36cc6b38d1
+eig gauss n=15 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=16 s=0 vec=false budget=-1	3925dbad4104999d
+eig gauss n=16 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=16 s=0 vec=true budget=-1	ae12768ffe3dc431
+eig gauss n=16 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=16 s=1 vec=false budget=-1	579741b558451744
+eig gauss n=16 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=16 s=1 vec=true budget=-1	cfd43eb974a9396b
+eig gauss n=16 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=16 s=2 vec=false budget=-1	ab828e3734e29cf2
+eig gauss n=16 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=16 s=2 vec=true budget=-1	f3479bd6ef85fe1d
+eig gauss n=16 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=16 s=3 vec=false budget=-1	6037191ef7121891
+eig gauss n=16 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=16 s=3 vec=true budget=-1	d774d8821ec0e7ed
+eig gauss n=16 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=17 s=0 vec=false budget=-1	7fc602899e6532b4
+eig gauss n=17 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=17 s=0 vec=true budget=-1	4c7787e0e67cc923
+eig gauss n=17 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=17 s=1 vec=false budget=-1	fc6888b5f0745a26
+eig gauss n=17 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=17 s=1 vec=true budget=-1	87f49e4a819c9a33
+eig gauss n=17 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=17 s=2 vec=false budget=-1	168187e0b2dd7e65
+eig gauss n=17 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=17 s=2 vec=true budget=-1	d4dab3879381082a
+eig gauss n=17 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=17 s=3 vec=false budget=-1	1dfde523de087113
+eig gauss n=17 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=17 s=3 vec=true budget=-1	74421142c0a74f38
+eig gauss n=17 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=18 s=0 vec=false budget=-1	65f97c24b6b15184
+eig gauss n=18 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=18 s=0 vec=true budget=-1	722f718a47d35d4a
+eig gauss n=18 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=18 s=1 vec=false budget=-1	b17c2da46fcdc853
+eig gauss n=18 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=18 s=1 vec=true budget=-1	09d39ed1fc9baf99
+eig gauss n=18 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=18 s=2 vec=false budget=-1	0b62c876eb90316f
+eig gauss n=18 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=18 s=2 vec=true budget=-1	a96fe147aeced534
+eig gauss n=18 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=18 s=3 vec=false budget=-1	a314cd7b1e49fbad
+eig gauss n=18 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=18 s=3 vec=true budget=-1	8a01f428230bc689
+eig gauss n=18 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=19 s=0 vec=false budget=-1	7b620ca12c2f6d0a
+eig gauss n=19 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=19 s=0 vec=true budget=-1	7d3785257aa74906
+eig gauss n=19 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=19 s=1 vec=false budget=-1	f38b54f8b30ba65c
+eig gauss n=19 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=19 s=1 vec=true budget=-1	9c00bb342bf249f6
+eig gauss n=19 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=19 s=2 vec=false budget=-1	47420b87016799da
+eig gauss n=19 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=19 s=2 vec=true budget=-1	20250ed6e9e7e5b9
+eig gauss n=19 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=19 s=3 vec=false budget=-1	238725a0513152e6
+eig gauss n=19 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=19 s=3 vec=true budget=-1	7c8b2246a948c9e9
+eig gauss n=19 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=2 s=0 vec=false budget=-1	403b940921afbd46
+eig gauss n=2 s=0 vec=false budget=3	403b940921afbd46
+eig gauss n=2 s=0 vec=true budget=-1	60adefbbc70084b7
+eig gauss n=2 s=0 vec=true budget=3	60adefbbc70084b7
+eig gauss n=2 s=1 vec=false budget=-1	7809b79ce039dd36
+eig gauss n=2 s=1 vec=false budget=3	7809b79ce039dd36
+eig gauss n=2 s=1 vec=true budget=-1	eda1abae5e52e48c
+eig gauss n=2 s=1 vec=true budget=3	eda1abae5e52e48c
+eig gauss n=2 s=2 vec=false budget=-1	eea679354287441e
+eig gauss n=2 s=2 vec=false budget=3	eea679354287441e
+eig gauss n=2 s=2 vec=true budget=-1	6f968ccb2359008b
+eig gauss n=2 s=2 vec=true budget=3	6f968ccb2359008b
+eig gauss n=2 s=3 vec=false budget=-1	5e8bef8499b9672a
+eig gauss n=2 s=3 vec=false budget=3	5e8bef8499b9672a
+eig gauss n=2 s=3 vec=true budget=-1	183cb099eabd5254
+eig gauss n=2 s=3 vec=true budget=3	183cb099eabd5254
+eig gauss n=20 s=0 vec=false budget=-1	78320d073b1e8480
+eig gauss n=20 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=20 s=0 vec=true budget=-1	1990b02c5599511f
+eig gauss n=20 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=20 s=1 vec=false budget=-1	f6a5a96ef19c5a78
+eig gauss n=20 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=20 s=1 vec=true budget=-1	bb031323369ef1c2
+eig gauss n=20 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=20 s=2 vec=false budget=-1	46390723f07b2a5c
+eig gauss n=20 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=20 s=2 vec=true budget=-1	0079dfbc6ab92bd9
+eig gauss n=20 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=20 s=3 vec=false budget=-1	e1fc5564ab02886e
+eig gauss n=20 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=20 s=3 vec=true budget=-1	df9320314d19e991
+eig gauss n=20 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=21 s=0 vec=false budget=-1	6295ea960a46e3d1
+eig gauss n=21 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=21 s=0 vec=true budget=-1	788cf2bbde68dc8d
+eig gauss n=21 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=21 s=1 vec=false budget=-1	61c3462d3da71bc8
+eig gauss n=21 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=21 s=1 vec=true budget=-1	f0dba822faf50b40
+eig gauss n=21 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=21 s=2 vec=false budget=-1	b3776c62349e0db0
+eig gauss n=21 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=21 s=2 vec=true budget=-1	5685b7f25a209d7e
+eig gauss n=21 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=21 s=3 vec=false budget=-1	98fa62d4b7cb9455
+eig gauss n=21 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=21 s=3 vec=true budget=-1	b4b7cee8ea2ee5be
+eig gauss n=21 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=22 s=0 vec=false budget=-1	c340d61d4c91fe86
+eig gauss n=22 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=22 s=0 vec=true budget=-1	b9c7a3df9ab81af5
+eig gauss n=22 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=22 s=1 vec=false budget=-1	4116019c71046d6f
+eig gauss n=22 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=22 s=1 vec=true budget=-1	51d0866ac7cfa24f
+eig gauss n=22 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=22 s=2 vec=false budget=-1	8f9b6ec319d16607
+eig gauss n=22 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=22 s=2 vec=true budget=-1	2b68543989268409
+eig gauss n=22 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=22 s=3 vec=false budget=-1	9445abe553eeeed8
+eig gauss n=22 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=22 s=3 vec=true budget=-1	06849a735d2c686a
+eig gauss n=22 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=23 s=0 vec=false budget=-1	c348ab635ff74282
+eig gauss n=23 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=23 s=0 vec=true budget=-1	767d341e576982bf
+eig gauss n=23 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=23 s=1 vec=false budget=-1	4d6092cd6f0cd81b
+eig gauss n=23 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=23 s=1 vec=true budget=-1	1cdd123db94b5ce0
+eig gauss n=23 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=23 s=2 vec=false budget=-1	b4243433ca0803f8
+eig gauss n=23 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=23 s=2 vec=true budget=-1	8245a73b2ba641e6
+eig gauss n=23 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=23 s=3 vec=false budget=-1	4dd3fd3a8c8d394e
+eig gauss n=23 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=23 s=3 vec=true budget=-1	c95372efb6f8fd58
+eig gauss n=23 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=24 s=0 vec=false budget=-1	d16c4022da0a4083
+eig gauss n=24 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=24 s=0 vec=true budget=-1	0332a2972359e41e
+eig gauss n=24 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=24 s=1 vec=false budget=-1	b5cd5731b5204ba3
+eig gauss n=24 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=24 s=1 vec=true budget=-1	0029813856d12b01
+eig gauss n=24 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=24 s=2 vec=false budget=-1	3c9037052c7933a6
+eig gauss n=24 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=24 s=2 vec=true budget=-1	6b38bea56bba95a7
+eig gauss n=24 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=24 s=3 vec=false budget=-1	54f260e61b6b65df
+eig gauss n=24 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=24 s=3 vec=true budget=-1	8d9aa47c4914090a
+eig gauss n=24 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=25 s=0 vec=false budget=-1	ed149a7fc4458951
+eig gauss n=25 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=25 s=0 vec=true budget=-1	6926902e287f0f5b
+eig gauss n=25 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=25 s=1 vec=false budget=-1	4a5e70758c2064b2
+eig gauss n=25 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=25 s=1 vec=true budget=-1	e38a7bcaf1aad50a
+eig gauss n=25 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=25 s=2 vec=false budget=-1	187a6a552b40841b
+eig gauss n=25 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=25 s=2 vec=true budget=-1	e343140d387dbc42
+eig gauss n=25 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=25 s=3 vec=false budget=-1	3b2124b2b0b3b5f4
+eig gauss n=25 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=25 s=3 vec=true budget=-1	24a3abacf46f09cb
+eig gauss n=25 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=26 s=0 vec=false budget=-1	2a29b00fead0b9a6
+eig gauss n=26 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=26 s=0 vec=true budget=-1	83fe4f6bf294709a
+eig gauss n=26 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=26 s=1 vec=false budget=-1	bb30d8972dab1d32
+eig gauss n=26 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=26 s=1 vec=true budget=-1	1ac71267a7385595
+eig gauss n=26 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=26 s=2 vec=false budget=-1	43a899611dc14b1b
+eig gauss n=26 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=26 s=2 vec=true budget=-1	656924eafe010326
+eig gauss n=26 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=26 s=3 vec=false budget=-1	ecd9a543d14053da
+eig gauss n=26 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=26 s=3 vec=true budget=-1	b13defe217af9e7d
+eig gauss n=26 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=27 s=0 vec=false budget=-1	755f8b0bb053e8d1
+eig gauss n=27 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=27 s=0 vec=true budget=-1	5882384b57f80c0c
+eig gauss n=27 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=27 s=1 vec=false budget=-1	6b66237d10a72097
+eig gauss n=27 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=27 s=1 vec=true budget=-1	887999a379715ff3
+eig gauss n=27 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=27 s=2 vec=false budget=-1	92e25249d911404d
+eig gauss n=27 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=27 s=2 vec=true budget=-1	5a5da8e6f50f0e7d
+eig gauss n=27 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=27 s=3 vec=false budget=-1	be6eb22cb472a6e1
+eig gauss n=27 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=27 s=3 vec=true budget=-1	65fee886ef1b2538
+eig gauss n=27 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=28 s=0 vec=false budget=-1	276f31224de83032
+eig gauss n=28 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=28 s=0 vec=true budget=-1	4ae1c05ab02640cf
+eig gauss n=28 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=28 s=1 vec=false budget=-1	03c55a6ca2dcb218
+eig gauss n=28 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=28 s=1 vec=true budget=-1	d25d1e01714c858e
+eig gauss n=28 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=28 s=2 vec=false budget=-1	0b94ebec1b5fae74
+eig gauss n=28 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=28 s=2 vec=true budget=-1	ca0a96b64d8cfd3a
+eig gauss n=28 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=28 s=3 vec=false budget=-1	9458e63ded304380
+eig gauss n=28 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=28 s=3 vec=true budget=-1	b8cef461361cf7bb
+eig gauss n=28 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=29 s=0 vec=false budget=-1	94807a95e56f8bcc
+eig gauss n=29 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=29 s=0 vec=true budget=-1	4ecf0456cd6bed47
+eig gauss n=29 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=29 s=1 vec=false budget=-1	fb089c7390214c8f
+eig gauss n=29 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=29 s=1 vec=true budget=-1	ecdb0e5d5e756520
+eig gauss n=29 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=29 s=2 vec=false budget=-1	fdfedf1a2d9392ba
+eig gauss n=29 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=29 s=2 vec=true budget=-1	598c356313acb92e
+eig gauss n=29 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=29 s=3 vec=false budget=-1	761f8655e51d6048
+eig gauss n=29 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=29 s=3 vec=true budget=-1	8a93eb3f574b7b29
+eig gauss n=29 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=3 s=0 vec=false budget=-1	6b385163e8c27202
+eig gauss n=3 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=3 s=0 vec=true budget=-1	e6b857b5bde28c62
+eig gauss n=3 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=3 s=1 vec=false budget=-1	056edf27ad30aec3
+eig gauss n=3 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=3 s=1 vec=true budget=-1	bfe90b327e7f006a
+eig gauss n=3 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=3 s=2 vec=false budget=-1	759098d0cc3bafdc
+eig gauss n=3 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=3 s=2 vec=true budget=-1	bebf7187d6a41307
+eig gauss n=3 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=3 s=3 vec=false budget=-1	0b275d2ff2bf0acd
+eig gauss n=3 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=3 s=3 vec=true budget=-1	55879d50f9363160
+eig gauss n=3 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=30 s=0 vec=false budget=-1	d8fde471ca133949
+eig gauss n=30 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=30 s=0 vec=true budget=-1	18b562cad2c68c96
+eig gauss n=30 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=30 s=1 vec=false budget=-1	7e4603cb3a1a7b76
+eig gauss n=30 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=30 s=1 vec=true budget=-1	b147bebab09cc6b5
+eig gauss n=30 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=30 s=2 vec=false budget=-1	b522179d64fedba2
+eig gauss n=30 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=30 s=2 vec=true budget=-1	0fc4bd3e81fbd85f
+eig gauss n=30 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=30 s=3 vec=false budget=-1	b7564cebfd4cf5f0
+eig gauss n=30 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=30 s=3 vec=true budget=-1	5c26eaeda445e0e2
+eig gauss n=30 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=31 s=0 vec=false budget=-1	9fcb7e8320ea9e6f
+eig gauss n=31 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=31 s=0 vec=true budget=-1	1ab975b55beb2ca9
+eig gauss n=31 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=31 s=1 vec=false budget=-1	988d12b1ad19f509
+eig gauss n=31 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=31 s=1 vec=true budget=-1	e9d92a0fd43c9664
+eig gauss n=31 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=31 s=2 vec=false budget=-1	17965363326ddbc3
+eig gauss n=31 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=31 s=2 vec=true budget=-1	f1c50e3e5d581b6b
+eig gauss n=31 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=31 s=3 vec=false budget=-1	bce0bc89522cc466
+eig gauss n=31 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=31 s=3 vec=true budget=-1	7f57d370968b6d43
+eig gauss n=31 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=32 s=0 vec=false budget=-1	af4daaa0e2fa8021
+eig gauss n=32 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=32 s=0 vec=true budget=-1	b7a9af04955c03fd
+eig gauss n=32 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=32 s=1 vec=false budget=-1	eae6787c547c4652
+eig gauss n=32 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=32 s=1 vec=true budget=-1	07db10a8c3a040d1
+eig gauss n=32 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=32 s=2 vec=false budget=-1	23b88acbd1f04cf2
+eig gauss n=32 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=32 s=2 vec=true budget=-1	71c0717517010a27
+eig gauss n=32 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=32 s=3 vec=false budget=-1	f72559b6229820c5
+eig gauss n=32 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=32 s=3 vec=true budget=-1	0e5e3b2c39e6bf58
+eig gauss n=32 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=33 s=0 vec=false budget=-1	60860044bc287ff4
+eig gauss n=33 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=33 s=0 vec=true budget=-1	050d7be66618dd30
+eig gauss n=33 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=33 s=1 vec=false budget=-1	3c9ae8859eb43a24
+eig gauss n=33 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=33 s=1 vec=true budget=-1	bb73e04cd5e22a8e
+eig gauss n=33 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=33 s=2 vec=false budget=-1	0d3ff0881e2e2bc3
+eig gauss n=33 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=33 s=2 vec=true budget=-1	ef9ba3fc095a882d
+eig gauss n=33 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=33 s=3 vec=false budget=-1	19d513cc1e4b2ef4
+eig gauss n=33 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=33 s=3 vec=true budget=-1	7e136d75aa6b086a
+eig gauss n=33 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=34 s=0 vec=false budget=-1	7f1e4ca8e977e01e
+eig gauss n=34 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=34 s=0 vec=true budget=-1	ce534c19a5f42024
+eig gauss n=34 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=34 s=1 vec=false budget=-1	30b6edd7f2858cd6
+eig gauss n=34 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=34 s=1 vec=true budget=-1	e8cea7b7d6a45489
+eig gauss n=34 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=34 s=2 vec=false budget=-1	6d0e35e7d1f0ea96
+eig gauss n=34 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=34 s=2 vec=true budget=-1	98445c358a1e9db4
+eig gauss n=34 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=34 s=3 vec=false budget=-1	821a77aca9b71df5
+eig gauss n=34 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=34 s=3 vec=true budget=-1	ffe37eb634504fee
+eig gauss n=34 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=35 s=0 vec=false budget=-1	4af7932e78a27214
+eig gauss n=35 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=35 s=0 vec=true budget=-1	26a27f0fe4a4116b
+eig gauss n=35 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=35 s=1 vec=false budget=-1	c8ef97451deb3f6e
+eig gauss n=35 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=35 s=1 vec=true budget=-1	71be2893ada89b29
+eig gauss n=35 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=35 s=2 vec=false budget=-1	51337f976c602aef
+eig gauss n=35 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=35 s=2 vec=true budget=-1	ffbf45213b0f94fd
+eig gauss n=35 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=35 s=3 vec=false budget=-1	98582cfa77a7e159
+eig gauss n=35 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=35 s=3 vec=true budget=-1	aa59844945078309
+eig gauss n=35 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=36 s=0 vec=false budget=-1	1ebfc7ec1b5fae4e
+eig gauss n=36 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=36 s=0 vec=true budget=-1	503f8fd407fb03ce
+eig gauss n=36 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=36 s=1 vec=false budget=-1	b784e9064e507ae1
+eig gauss n=36 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=36 s=1 vec=true budget=-1	e1b25834beb0fd3b
+eig gauss n=36 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=36 s=2 vec=false budget=-1	0a9dff1437236f15
+eig gauss n=36 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=36 s=2 vec=true budget=-1	05d4e1ba7be468e3
+eig gauss n=36 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=36 s=3 vec=false budget=-1	9d49f75e0f7abfe2
+eig gauss n=36 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=36 s=3 vec=true budget=-1	90fbcb595c029569
+eig gauss n=36 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=37 s=0 vec=false budget=-1	87dea54ad6ba47a7
+eig gauss n=37 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=37 s=0 vec=true budget=-1	e5dbcdf2c05416f3
+eig gauss n=37 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=37 s=1 vec=false budget=-1	5784b23af13719c8
+eig gauss n=37 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=37 s=1 vec=true budget=-1	d4319f4021888056
+eig gauss n=37 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=37 s=2 vec=false budget=-1	524c86ac2a5e1850
+eig gauss n=37 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=37 s=2 vec=true budget=-1	7f22c72dcae169d5
+eig gauss n=37 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=37 s=3 vec=false budget=-1	31eaf51a14820030
+eig gauss n=37 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=37 s=3 vec=true budget=-1	36c3443f43d0eccf
+eig gauss n=37 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=38 s=0 vec=false budget=-1	26d877ccd871cb9f
+eig gauss n=38 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=38 s=0 vec=true budget=-1	3d9ff0c584f0b3c8
+eig gauss n=38 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=38 s=1 vec=false budget=-1	f7cfdc61c39f3c47
+eig gauss n=38 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=38 s=1 vec=true budget=-1	a161ecad55828e4e
+eig gauss n=38 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=38 s=2 vec=false budget=-1	641c51a96aed9d28
+eig gauss n=38 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=38 s=2 vec=true budget=-1	367166f846b39b17
+eig gauss n=38 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=38 s=3 vec=false budget=-1	51cfcc38361ac053
+eig gauss n=38 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=38 s=3 vec=true budget=-1	442bd8fe40e127e1
+eig gauss n=38 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=39 s=0 vec=false budget=-1	44c4dd91259a396e
+eig gauss n=39 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=39 s=0 vec=true budget=-1	39f5800043e03ffa
+eig gauss n=39 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=39 s=1 vec=false budget=-1	003588d943cb9d11
+eig gauss n=39 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=39 s=1 vec=true budget=-1	a64a51f03fa5ea29
+eig gauss n=39 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=39 s=2 vec=false budget=-1	982ea039312f2de8
+eig gauss n=39 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=39 s=2 vec=true budget=-1	d7583102245e4dce
+eig gauss n=39 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=39 s=3 vec=false budget=-1	e93bc9a4eaeca37a
+eig gauss n=39 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=39 s=3 vec=true budget=-1	217314cd57bd36af
+eig gauss n=39 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=4 s=0 vec=false budget=-1	b6b0587fae50b2bc
+eig gauss n=4 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=4 s=0 vec=true budget=-1	64802f3d481806be
+eig gauss n=4 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=4 s=1 vec=false budget=-1	4e95d83729a76c75
+eig gauss n=4 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=4 s=1 vec=true budget=-1	18083cfa1594864c
+eig gauss n=4 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=4 s=2 vec=false budget=-1	c9008aa65ad8e82f
+eig gauss n=4 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=4 s=2 vec=true budget=-1	7ffd702f173b0a22
+eig gauss n=4 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=4 s=3 vec=false budget=-1	67838270fe32daf5
+eig gauss n=4 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=4 s=3 vec=true budget=-1	b04f91439498dcb8
+eig gauss n=4 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=40 s=0 vec=false budget=-1	166d0c6aea78d750
+eig gauss n=40 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=40 s=0 vec=true budget=-1	4e3995ce06757dc4
+eig gauss n=40 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=40 s=1 vec=false budget=-1	52070738ec508ec6
+eig gauss n=40 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=40 s=1 vec=true budget=-1	dd7d5faefbaa2eda
+eig gauss n=40 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=40 s=2 vec=false budget=-1	b171f3a4d6e67c48
+eig gauss n=40 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=40 s=2 vec=true budget=-1	8dc92f740bc53ef4
+eig gauss n=40 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=40 s=3 vec=false budget=-1	6a071a467a8d2727
+eig gauss n=40 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=40 s=3 vec=true budget=-1	7d025b48fc5059cf
+eig gauss n=40 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=47 s=0 vec=false budget=-1	2113e5c0c6a2d7bb
+eig gauss n=47 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=47 s=0 vec=true budget=-1	56aa7e2ec98dda44
+eig gauss n=47 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=5 s=0 vec=false budget=-1	b66035cea4d3ee66
+eig gauss n=5 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=5 s=0 vec=true budget=-1	fcab9881dff9c1a9
+eig gauss n=5 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=5 s=1 vec=false budget=-1	e1c44f59a0bf73ac
+eig gauss n=5 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=5 s=1 vec=true budget=-1	c055697df5a9aa7e
+eig gauss n=5 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=5 s=2 vec=false budget=-1	132d5780f2d64315
+eig gauss n=5 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=5 s=2 vec=true budget=-1	fb93ada152766366
+eig gauss n=5 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=5 s=3 vec=false budget=-1	64acc0ebde36c1e0
+eig gauss n=5 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=5 s=3 vec=true budget=-1	2f60ee49599859bf
+eig gauss n=5 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=6 s=0 vec=false budget=-1	a4e6849ed1351245
+eig gauss n=6 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=6 s=0 vec=true budget=-1	bd6ed35ddb30bcc9
+eig gauss n=6 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=6 s=1 vec=false budget=-1	68f41a86bd6514b2
+eig gauss n=6 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=6 s=1 vec=true budget=-1	6627dac211d85df9
+eig gauss n=6 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=6 s=2 vec=false budget=-1	b119c034ad87d5da
+eig gauss n=6 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=6 s=2 vec=true budget=-1	b18666620b2f81ad
+eig gauss n=6 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=6 s=3 vec=false budget=-1	fbb77860a633b88d
+eig gauss n=6 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=6 s=3 vec=true budget=-1	026bf5b762d45628
+eig gauss n=6 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=64 s=0 vec=false budget=-1	54c147a2027ddf1c
+eig gauss n=64 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=64 s=0 vec=true budget=-1	6bdfe54288dfb698
+eig gauss n=64 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=65 s=0 vec=false budget=-1	3282d437841cff3a
+eig gauss n=65 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=65 s=0 vec=true budget=-1	db139654e62e5bfe
+eig gauss n=65 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=7 s=0 vec=false budget=-1	1351d05bfe133069
+eig gauss n=7 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=7 s=0 vec=true budget=-1	52d5b1a111301322
+eig gauss n=7 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=7 s=1 vec=false budget=-1	292f0a37cdcb340c
+eig gauss n=7 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=7 s=1 vec=true budget=-1	825b568bfc288024
+eig gauss n=7 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=7 s=2 vec=false budget=-1	03276ce097a5b909
+eig gauss n=7 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=7 s=2 vec=true budget=-1	32796b1dd5d25cb7
+eig gauss n=7 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=7 s=3 vec=false budget=-1	a30a8a56b3f24a04
+eig gauss n=7 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=7 s=3 vec=true budget=-1	fbaed49caff8cacc
+eig gauss n=7 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=8 s=0 vec=false budget=-1	d596782a0ee07f0c
+eig gauss n=8 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=8 s=0 vec=true budget=-1	54d59c0681fdc343
+eig gauss n=8 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=8 s=1 vec=false budget=-1	17f6702eea37d816
+eig gauss n=8 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=8 s=1 vec=true budget=-1	ae4311467b39eda2
+eig gauss n=8 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=8 s=2 vec=false budget=-1	f802d2562a028d09
+eig gauss n=8 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=8 s=2 vec=true budget=-1	fa5e29215642dd5f
+eig gauss n=8 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=8 s=3 vec=false budget=-1	e8478311dfbddd4c
+eig gauss n=8 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=8 s=3 vec=true budget=-1	0be8dbe533749443
+eig gauss n=8 s=3 vec=true budget=3	614b75fe37c979f2
+eig gauss n=9 s=0 vec=false budget=-1	be462d1390727f5e
+eig gauss n=9 s=0 vec=false budget=3	614b75fe37c979f2
+eig gauss n=9 s=0 vec=true budget=-1	1d04495c755b3847
+eig gauss n=9 s=0 vec=true budget=3	614b75fe37c979f2
+eig gauss n=9 s=1 vec=false budget=-1	fcd435efa694f0fd
+eig gauss n=9 s=1 vec=false budget=3	614b75fe37c979f2
+eig gauss n=9 s=1 vec=true budget=-1	e1beb50e383fc57b
+eig gauss n=9 s=1 vec=true budget=3	614b75fe37c979f2
+eig gauss n=9 s=2 vec=false budget=-1	a75dd0aaac17a0b9
+eig gauss n=9 s=2 vec=false budget=3	614b75fe37c979f2
+eig gauss n=9 s=2 vec=true budget=-1	b957217162604fd7
+eig gauss n=9 s=2 vec=true budget=3	614b75fe37c979f2
+eig gauss n=9 s=3 vec=false budget=-1	9a90a74d6ec56403
+eig gauss n=9 s=3 vec=false budget=3	614b75fe37c979f2
+eig gauss n=9 s=3 vec=true budget=-1	cccc68f2aa324333
+eig gauss n=9 s=3 vec=true budget=3	614b75fe37c979f2
+eig huge n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig huge n=0 vec=false budget=3	f3b31ef57291b2d2
+eig huge n=0 vec=true budget=-1	99b747516dd44dc5
+eig huge n=0 vec=true budget=3	99b747516dd44dc5
+eig huge n=1 vec=false budget=-1	683ce1aa06d3f786
+eig huge n=1 vec=false budget=3	683ce1aa06d3f786
+eig huge n=1 vec=true budget=-1	0970aca903b282d6
+eig huge n=1 vec=true budget=3	0970aca903b282d6
+eig huge n=10 vec=false budget=-1	d6f481b0ab970b7f
+eig huge n=10 vec=false budget=3	614b75fe37c979f2
+eig huge n=10 vec=true budget=-1	291061e790dbe73e
+eig huge n=10 vec=true budget=3	614b75fe37c979f2
+eig huge n=11 vec=false budget=-1	c6d7384aeb334af8
+eig huge n=11 vec=false budget=3	614b75fe37c979f2
+eig huge n=11 vec=true budget=-1	027ea9b0f0605e71
+eig huge n=11 vec=true budget=3	614b75fe37c979f2
+eig huge n=12 vec=false budget=-1	e2b8c07e75409c2e
+eig huge n=12 vec=false budget=3	614b75fe37c979f2
+eig huge n=12 vec=true budget=-1	07dcf10ccc126060
+eig huge n=12 vec=true budget=3	614b75fe37c979f2
+eig huge n=13 vec=false budget=-1	e5a4d4327ea82dd5
+eig huge n=13 vec=false budget=3	614b75fe37c979f2
+eig huge n=13 vec=true budget=-1	92c0a5280132b132
+eig huge n=13 vec=true budget=3	614b75fe37c979f2
+eig huge n=14 vec=false budget=-1	b4b44fa86a08db94
+eig huge n=14 vec=false budget=3	614b75fe37c979f2
+eig huge n=14 vec=true budget=-1	53a9c91a2e4742db
+eig huge n=14 vec=true budget=3	614b75fe37c979f2
+eig huge n=15 vec=false budget=-1	3142dbd0ef66ee3e
+eig huge n=15 vec=false budget=3	614b75fe37c979f2
+eig huge n=15 vec=true budget=-1	6d2dbef1ddd8c29c
+eig huge n=15 vec=true budget=3	614b75fe37c979f2
+eig huge n=16 vec=false budget=-1	a4ac3efd3d33ed05
+eig huge n=16 vec=false budget=3	614b75fe37c979f2
+eig huge n=16 vec=true budget=-1	512dfc704c4cef70
+eig huge n=16 vec=true budget=3	614b75fe37c979f2
+eig huge n=17 vec=false budget=-1	eb717afdbfd73ac5
+eig huge n=17 vec=false budget=3	614b75fe37c979f2
+eig huge n=17 vec=true budget=-1	2027fc39bb3f7ff3
+eig huge n=17 vec=true budget=3	614b75fe37c979f2
+eig huge n=18 vec=false budget=-1	cc7829b08d763f4e
+eig huge n=18 vec=false budget=3	614b75fe37c979f2
+eig huge n=18 vec=true budget=-1	b1f3137c288ec66f
+eig huge n=18 vec=true budget=3	614b75fe37c979f2
+eig huge n=19 vec=false budget=-1	e5de9498b24de506
+eig huge n=19 vec=false budget=3	614b75fe37c979f2
+eig huge n=19 vec=true budget=-1	61c9ab9bca814bef
+eig huge n=19 vec=true budget=3	614b75fe37c979f2
+eig huge n=2 vec=false budget=-1	ad0be701c60edfff
+eig huge n=2 vec=false budget=3	ad0be701c60edfff
+eig huge n=2 vec=true budget=-1	04f3e75a52644154
+eig huge n=2 vec=true budget=3	04f3e75a52644154
+eig huge n=20 vec=false budget=-1	d03a70b9c3e9a121
+eig huge n=20 vec=false budget=3	614b75fe37c979f2
+eig huge n=20 vec=true budget=-1	e4348084a9b66e0b
+eig huge n=20 vec=true budget=3	614b75fe37c979f2
+eig huge n=21 vec=false budget=-1	62bf1c786d33a753
+eig huge n=21 vec=false budget=3	614b75fe37c979f2
+eig huge n=21 vec=true budget=-1	df34581da97b61de
+eig huge n=21 vec=true budget=3	614b75fe37c979f2
+eig huge n=22 vec=false budget=-1	ccd68f60e39e2160
+eig huge n=22 vec=false budget=3	614b75fe37c979f2
+eig huge n=22 vec=true budget=-1	b1093f39908f2447
+eig huge n=22 vec=true budget=3	614b75fe37c979f2
+eig huge n=23 vec=false budget=-1	c2a1e5bbe21e3e2d
+eig huge n=23 vec=false budget=3	614b75fe37c979f2
+eig huge n=23 vec=true budget=-1	8fc5a1114461db6b
+eig huge n=23 vec=true budget=3	614b75fe37c979f2
+eig huge n=24 vec=false budget=-1	a34adfcc70810852
+eig huge n=24 vec=false budget=3	614b75fe37c979f2
+eig huge n=24 vec=true budget=-1	a3b74042f82b8e5e
+eig huge n=24 vec=true budget=3	614b75fe37c979f2
+eig huge n=25 vec=false budget=-1	cfbfad36112faf89
+eig huge n=25 vec=false budget=3	614b75fe37c979f2
+eig huge n=25 vec=true budget=-1	238952e82f7e883d
+eig huge n=25 vec=true budget=3	614b75fe37c979f2
+eig huge n=26 vec=false budget=-1	71c71afdb742074a
+eig huge n=26 vec=false budget=3	614b75fe37c979f2
+eig huge n=26 vec=true budget=-1	1dbc9876efb13087
+eig huge n=26 vec=true budget=3	614b75fe37c979f2
+eig huge n=27 vec=false budget=-1	04cff22c74c772da
+eig huge n=27 vec=false budget=3	614b75fe37c979f2
+eig huge n=27 vec=true budget=-1	c8fef7d66735eb8f
+eig huge n=27 vec=true budget=3	614b75fe37c979f2
+eig huge n=28 vec=false budget=-1	dd6baf4c4d48fcfa
+eig huge n=28 vec=false budget=3	614b75fe37c979f2
+eig huge n=28 vec=true budget=-1	e3077d45266bf776
+eig huge n=28 vec=true budget=3	614b75fe37c979f2
+eig huge n=29 vec=false budget=-1	12ce285bf169c787
+eig huge n=29 vec=false budget=3	614b75fe37c979f2
+eig huge n=29 vec=true budget=-1	a4e4a72c0e320ed6
+eig huge n=29 vec=true budget=3	614b75fe37c979f2
+eig huge n=3 vec=false budget=-1	5af4704ef7fa199c
+eig huge n=3 vec=false budget=3	614b75fe37c979f2
+eig huge n=3 vec=true budget=-1	8355c8f3ea3ab9c8
+eig huge n=3 vec=true budget=3	614b75fe37c979f2
+eig huge n=30 vec=false budget=-1	65aabafde6e70b46
+eig huge n=30 vec=false budget=3	614b75fe37c979f2
+eig huge n=30 vec=true budget=-1	371f13369e703d2f
+eig huge n=30 vec=true budget=3	614b75fe37c979f2
+eig huge n=31 vec=false budget=-1	f553e8d3380ecaba
+eig huge n=31 vec=false budget=3	614b75fe37c979f2
+eig huge n=31 vec=true budget=-1	60b5381c4359421e
+eig huge n=31 vec=true budget=3	614b75fe37c979f2
+eig huge n=32 vec=false budget=-1	bfa5c908c1294147
+eig huge n=32 vec=false budget=3	614b75fe37c979f2
+eig huge n=32 vec=true budget=-1	d4e09e3b71255350
+eig huge n=32 vec=true budget=3	614b75fe37c979f2
+eig huge n=33 vec=false budget=-1	748bd471934fd128
+eig huge n=33 vec=false budget=3	614b75fe37c979f2
+eig huge n=33 vec=true budget=-1	d1eda0b3b5526e9a
+eig huge n=33 vec=true budget=3	614b75fe37c979f2
+eig huge n=34 vec=false budget=-1	8cf83ecbe3643429
+eig huge n=34 vec=false budget=3	614b75fe37c979f2
+eig huge n=34 vec=true budget=-1	c70c8b403c958772
+eig huge n=34 vec=true budget=3	614b75fe37c979f2
+eig huge n=35 vec=false budget=-1	24cb66a14ada34d4
+eig huge n=35 vec=false budget=3	614b75fe37c979f2
+eig huge n=35 vec=true budget=-1	244476c217d8e32f
+eig huge n=35 vec=true budget=3	614b75fe37c979f2
+eig huge n=36 vec=false budget=-1	0e0a9ec565e2b758
+eig huge n=36 vec=false budget=3	614b75fe37c979f2
+eig huge n=36 vec=true budget=-1	19ca5c8dae2275b1
+eig huge n=36 vec=true budget=3	614b75fe37c979f2
+eig huge n=37 vec=false budget=-1	7ceddeadc19866cf
+eig huge n=37 vec=false budget=3	614b75fe37c979f2
+eig huge n=37 vec=true budget=-1	39b824b7b756a9f0
+eig huge n=37 vec=true budget=3	614b75fe37c979f2
+eig huge n=38 vec=false budget=-1	cfede0c53dc42432
+eig huge n=38 vec=false budget=3	614b75fe37c979f2
+eig huge n=38 vec=true budget=-1	4f9b0acd8fdb3790
+eig huge n=38 vec=true budget=3	614b75fe37c979f2
+eig huge n=39 vec=false budget=-1	2453f0aec28118a9
+eig huge n=39 vec=false budget=3	614b75fe37c979f2
+eig huge n=39 vec=true budget=-1	f97f22aceadc0b54
+eig huge n=39 vec=true budget=3	614b75fe37c979f2
+eig huge n=4 vec=false budget=-1	3142588a9354a894
+eig huge n=4 vec=false budget=3	614b75fe37c979f2
+eig huge n=4 vec=true budget=-1	6f8febad5dc2e970
+eig huge n=4 vec=true budget=3	614b75fe37c979f2
+eig huge n=40 vec=false budget=-1	54245179d1b92a2c
+eig huge n=40 vec=false budget=3	614b75fe37c979f2
+eig huge n=40 vec=true budget=-1	a73793b23af5ac4f
+eig huge n=40 vec=true budget=3	614b75fe37c979f2
+eig huge n=47 vec=false budget=-1	480b150224c687b5
+eig huge n=47 vec=false budget=3	614b75fe37c979f2
+eig huge n=47 vec=true budget=-1	041f381b50cfcab1
+eig huge n=47 vec=true budget=3	614b75fe37c979f2
+eig huge n=5 vec=false budget=-1	899f9db5d6f06d34
+eig huge n=5 vec=false budget=3	614b75fe37c979f2
+eig huge n=5 vec=true budget=-1	ca93baa8e5278eca
+eig huge n=5 vec=true budget=3	614b75fe37c979f2
+eig huge n=6 vec=false budget=-1	7930f2c0428ee2a4
+eig huge n=6 vec=false budget=3	614b75fe37c979f2
+eig huge n=6 vec=true budget=-1	d0c413b7bd709f4b
+eig huge n=6 vec=true budget=3	614b75fe37c979f2
+eig huge n=64 vec=false budget=-1	fa0eff5b75ce8944
+eig huge n=64 vec=false budget=3	614b75fe37c979f2
+eig huge n=64 vec=true budget=-1	736931b934243642
+eig huge n=64 vec=true budget=3	614b75fe37c979f2
+eig huge n=65 vec=false budget=-1	8348adc78f61dbdc
+eig huge n=65 vec=false budget=3	614b75fe37c979f2
+eig huge n=65 vec=true budget=-1	b49cde2f0265853f
+eig huge n=65 vec=true budget=3	614b75fe37c979f2
+eig huge n=7 vec=false budget=-1	717e8239468985e0
+eig huge n=7 vec=false budget=3	614b75fe37c979f2
+eig huge n=7 vec=true budget=-1	620502daa83ac4e3
+eig huge n=7 vec=true budget=3	614b75fe37c979f2
+eig huge n=8 vec=false budget=-1	2643b8547982926e
+eig huge n=8 vec=false budget=3	614b75fe37c979f2
+eig huge n=8 vec=true budget=-1	8ab98066a00fd29a
+eig huge n=8 vec=true budget=3	614b75fe37c979f2
+eig huge n=9 vec=false budget=-1	0cac1e6cb5cb5c22
+eig huge n=9 vec=false budget=3	614b75fe37c979f2
+eig huge n=9 vec=true budget=-1	a19fe14d9cb997a5
+eig huge n=9 vec=true budget=3	614b75fe37c979f2
+eig ints n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig ints n=0 vec=false budget=3	f3b31ef57291b2d2
+eig ints n=0 vec=true budget=-1	99b747516dd44dc5
+eig ints n=0 vec=true budget=3	99b747516dd44dc5
+eig ints n=1 vec=false budget=-1	0a876b41b543dcd2
+eig ints n=1 vec=false budget=3	0a876b41b543dcd2
+eig ints n=1 vec=true budget=-1	c81fc1fa610920aa
+eig ints n=1 vec=true budget=3	c81fc1fa610920aa
+eig ints n=10 vec=false budget=-1	8076ce45e2cc9b12
+eig ints n=10 vec=false budget=3	614b75fe37c979f2
+eig ints n=10 vec=true budget=-1	bbe8221d90220160
+eig ints n=10 vec=true budget=3	614b75fe37c979f2
+eig ints n=11 vec=false budget=-1	9c4f592956ac1906
+eig ints n=11 vec=false budget=3	614b75fe37c979f2
+eig ints n=11 vec=true budget=-1	1352f72a07a48c30
+eig ints n=11 vec=true budget=3	614b75fe37c979f2
+eig ints n=12 vec=false budget=-1	1690fc1815dadb1d
+eig ints n=12 vec=false budget=3	614b75fe37c979f2
+eig ints n=12 vec=true budget=-1	5f7a7975ce4c4040
+eig ints n=12 vec=true budget=3	614b75fe37c979f2
+eig ints n=13 vec=false budget=-1	8c5f1a7caaf6db5e
+eig ints n=13 vec=false budget=3	614b75fe37c979f2
+eig ints n=13 vec=true budget=-1	78e723f77ab1f265
+eig ints n=13 vec=true budget=3	614b75fe37c979f2
+eig ints n=14 vec=false budget=-1	16f20cb2288f1d83
+eig ints n=14 vec=false budget=3	614b75fe37c979f2
+eig ints n=14 vec=true budget=-1	59d39b077e07907a
+eig ints n=14 vec=true budget=3	614b75fe37c979f2
+eig ints n=15 vec=false budget=-1	95b4e6faf691affd
+eig ints n=15 vec=false budget=3	614b75fe37c979f2
+eig ints n=15 vec=true budget=-1	5dd8c94befa56735
+eig ints n=15 vec=true budget=3	614b75fe37c979f2
+eig ints n=16 vec=false budget=-1	1a89d9e3183db429
+eig ints n=16 vec=false budget=3	614b75fe37c979f2
+eig ints n=16 vec=true budget=-1	6f45b3c7866b8525
+eig ints n=16 vec=true budget=3	614b75fe37c979f2
+eig ints n=17 vec=false budget=-1	1eb3cff7d655492d
+eig ints n=17 vec=false budget=3	614b75fe37c979f2
+eig ints n=17 vec=true budget=-1	af618c43a729dfb1
+eig ints n=17 vec=true budget=3	614b75fe37c979f2
+eig ints n=18 vec=false budget=-1	bc9ac5ee89a244e5
+eig ints n=18 vec=false budget=3	614b75fe37c979f2
+eig ints n=18 vec=true budget=-1	dfeb29cf64b06311
+eig ints n=18 vec=true budget=3	614b75fe37c979f2
+eig ints n=19 vec=false budget=-1	39728da975bee870
+eig ints n=19 vec=false budget=3	614b75fe37c979f2
+eig ints n=19 vec=true budget=-1	d80c6795585b3097
+eig ints n=19 vec=true budget=3	614b75fe37c979f2
+eig ints n=2 vec=false budget=-1	af2e2a31bd741bb2
+eig ints n=2 vec=false budget=3	af2e2a31bd741bb2
+eig ints n=2 vec=true budget=-1	1e753cdfff390885
+eig ints n=2 vec=true budget=3	1e753cdfff390885
+eig ints n=20 vec=false budget=-1	a2de918751a3735a
+eig ints n=20 vec=false budget=3	614b75fe37c979f2
+eig ints n=20 vec=true budget=-1	7630d7a18cfc6866
+eig ints n=20 vec=true budget=3	614b75fe37c979f2
+eig ints n=21 vec=false budget=-1	042c9f678daaa2aa
+eig ints n=21 vec=false budget=3	614b75fe37c979f2
+eig ints n=21 vec=true budget=-1	3c427962e1d91c7f
+eig ints n=21 vec=true budget=3	614b75fe37c979f2
+eig ints n=22 vec=false budget=-1	2f4cbc387401b8b0
+eig ints n=22 vec=false budget=3	614b75fe37c979f2
+eig ints n=22 vec=true budget=-1	dbee2e6e88f1e30d
+eig ints n=22 vec=true budget=3	614b75fe37c979f2
+eig ints n=23 vec=false budget=-1	c2162b6da0e7f272
+eig ints n=23 vec=false budget=3	614b75fe37c979f2
+eig ints n=23 vec=true budget=-1	3572e1946678b254
+eig ints n=23 vec=true budget=3	614b75fe37c979f2
+eig ints n=24 vec=false budget=-1	7d5d77f55245cc2b
+eig ints n=24 vec=false budget=3	614b75fe37c979f2
+eig ints n=24 vec=true budget=-1	0b2fb6ae0c0fb51b
+eig ints n=24 vec=true budget=3	614b75fe37c979f2
+eig ints n=25 vec=false budget=-1	a8307a9d963ada7c
+eig ints n=25 vec=false budget=3	614b75fe37c979f2
+eig ints n=25 vec=true budget=-1	e3bae368a44b81f4
+eig ints n=25 vec=true budget=3	614b75fe37c979f2
+eig ints n=26 vec=false budget=-1	b7cb27a95af883a3
+eig ints n=26 vec=false budget=3	614b75fe37c979f2
+eig ints n=26 vec=true budget=-1	15b20e0ce91002fe
+eig ints n=26 vec=true budget=3	614b75fe37c979f2
+eig ints n=27 vec=false budget=-1	33f78ada23f5926f
+eig ints n=27 vec=false budget=3	614b75fe37c979f2
+eig ints n=27 vec=true budget=-1	eb8b9ee7a97697d3
+eig ints n=27 vec=true budget=3	614b75fe37c979f2
+eig ints n=28 vec=false budget=-1	fe67446e918786b7
+eig ints n=28 vec=false budget=3	614b75fe37c979f2
+eig ints n=28 vec=true budget=-1	80f2903778197c88
+eig ints n=28 vec=true budget=3	614b75fe37c979f2
+eig ints n=29 vec=false budget=-1	0966e0ab96e736de
+eig ints n=29 vec=false budget=3	614b75fe37c979f2
+eig ints n=29 vec=true budget=-1	c69cd6dcfe8ed00b
+eig ints n=29 vec=true budget=3	614b75fe37c979f2
+eig ints n=3 vec=false budget=-1	75d16cdd57a75269
+eig ints n=3 vec=false budget=3	75d16cdd57a75269
+eig ints n=3 vec=true budget=-1	764d576920b4c082
+eig ints n=3 vec=true budget=3	764d576920b4c082
+eig ints n=30 vec=false budget=-1	582f71cdd5c6ce49
+eig ints n=30 vec=false budget=3	614b75fe37c979f2
+eig ints n=30 vec=true budget=-1	c4a3c47d202263b7
+eig ints n=30 vec=true budget=3	614b75fe37c979f2
+eig ints n=31 vec=false budget=-1	1ce18a5708aa29d1
+eig ints n=31 vec=false budget=3	614b75fe37c979f2
+eig ints n=31 vec=true budget=-1	6a9e14d338d3dd45
+eig ints n=31 vec=true budget=3	614b75fe37c979f2
+eig ints n=32 vec=false budget=-1	19499729d9c4d133
+eig ints n=32 vec=false budget=3	614b75fe37c979f2
+eig ints n=32 vec=true budget=-1	87b36a990d71243a
+eig ints n=32 vec=true budget=3	614b75fe37c979f2
+eig ints n=33 vec=false budget=-1	198e7a41e6a384f6
+eig ints n=33 vec=false budget=3	614b75fe37c979f2
+eig ints n=33 vec=true budget=-1	c0c9e50f613f896c
+eig ints n=33 vec=true budget=3	614b75fe37c979f2
+eig ints n=34 vec=false budget=-1	e3f2dfb5100129bb
+eig ints n=34 vec=false budget=3	614b75fe37c979f2
+eig ints n=34 vec=true budget=-1	ef5543d7d715899b
+eig ints n=34 vec=true budget=3	614b75fe37c979f2
+eig ints n=35 vec=false budget=-1	1a2430b05291918d
+eig ints n=35 vec=false budget=3	614b75fe37c979f2
+eig ints n=35 vec=true budget=-1	4df2664cf55a1bdb
+eig ints n=35 vec=true budget=3	614b75fe37c979f2
+eig ints n=36 vec=false budget=-1	3b68e91bbc743f1b
+eig ints n=36 vec=false budget=3	614b75fe37c979f2
+eig ints n=36 vec=true budget=-1	b2850a27bb103af9
+eig ints n=36 vec=true budget=3	614b75fe37c979f2
+eig ints n=37 vec=false budget=-1	324e748b010cfad0
+eig ints n=37 vec=false budget=3	614b75fe37c979f2
+eig ints n=37 vec=true budget=-1	c144b3fe7c360440
+eig ints n=37 vec=true budget=3	614b75fe37c979f2
+eig ints n=38 vec=false budget=-1	8f346ae7fe3198a5
+eig ints n=38 vec=false budget=3	614b75fe37c979f2
+eig ints n=38 vec=true budget=-1	d2b317a627f99a5e
+eig ints n=38 vec=true budget=3	614b75fe37c979f2
+eig ints n=39 vec=false budget=-1	ad46ecf09977c11b
+eig ints n=39 vec=false budget=3	614b75fe37c979f2
+eig ints n=39 vec=true budget=-1	862d5d188b9914fa
+eig ints n=39 vec=true budget=3	614b75fe37c979f2
+eig ints n=4 vec=false budget=-1	83154082a6dc0849
+eig ints n=4 vec=false budget=3	614b75fe37c979f2
+eig ints n=4 vec=true budget=-1	27edbc58c95e8066
+eig ints n=4 vec=true budget=3	614b75fe37c979f2
+eig ints n=40 vec=false budget=-1	f194dcd63ff738a5
+eig ints n=40 vec=false budget=3	614b75fe37c979f2
+eig ints n=40 vec=true budget=-1	072910ecf2e5458f
+eig ints n=40 vec=true budget=3	614b75fe37c979f2
+eig ints n=47 vec=false budget=-1	4770f4d9c237de50
+eig ints n=47 vec=false budget=3	614b75fe37c979f2
+eig ints n=47 vec=true budget=-1	ea150eb6b390c00b
+eig ints n=47 vec=true budget=3	614b75fe37c979f2
+eig ints n=5 vec=false budget=-1	a53e29ebbcc21bd8
+eig ints n=5 vec=false budget=3	614b75fe37c979f2
+eig ints n=5 vec=true budget=-1	5ce5b49fca5b5822
+eig ints n=5 vec=true budget=3	614b75fe37c979f2
+eig ints n=6 vec=false budget=-1	1262bccea741df52
+eig ints n=6 vec=false budget=3	614b75fe37c979f2
+eig ints n=6 vec=true budget=-1	fbb9bf878beb2145
+eig ints n=6 vec=true budget=3	614b75fe37c979f2
+eig ints n=64 vec=false budget=-1	4b51e0af7f8bc49a
+eig ints n=64 vec=false budget=3	614b75fe37c979f2
+eig ints n=64 vec=true budget=-1	ff435731d071515f
+eig ints n=64 vec=true budget=3	614b75fe37c979f2
+eig ints n=65 vec=false budget=-1	d205da22b2da2cd1
+eig ints n=65 vec=false budget=3	614b75fe37c979f2
+eig ints n=65 vec=true budget=-1	684c9438ae43f3ac
+eig ints n=65 vec=true budget=3	614b75fe37c979f2
+eig ints n=7 vec=false budget=-1	63f393ab4111f0aa
+eig ints n=7 vec=false budget=3	614b75fe37c979f2
+eig ints n=7 vec=true budget=-1	41f4edda239d9ed5
+eig ints n=7 vec=true budget=3	614b75fe37c979f2
+eig ints n=8 vec=false budget=-1	67352490f6ad372d
+eig ints n=8 vec=false budget=3	614b75fe37c979f2
+eig ints n=8 vec=true budget=-1	9185460f910a919d
+eig ints n=8 vec=true budget=3	614b75fe37c979f2
+eig ints n=9 vec=false budget=-1	c8a21d169ccefdb4
+eig ints n=9 vec=false budget=3	614b75fe37c979f2
+eig ints n=9 vec=true budget=-1	4c5740099d1e2f04
+eig ints n=9 vec=true budget=3	614b75fe37c979f2
+eig jordan n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig jordan n=0 vec=false budget=3	f3b31ef57291b2d2
+eig jordan n=0 vec=true budget=-1	99b747516dd44dc5
+eig jordan n=0 vec=true budget=3	99b747516dd44dc5
+eig jordan n=1 vec=false budget=-1	5e2df7f03a239c52
+eig jordan n=1 vec=false budget=3	5e2df7f03a239c52
+eig jordan n=1 vec=true budget=-1	d67872881e2e8b2a
+eig jordan n=1 vec=true budget=3	d67872881e2e8b2a
+eig jordan n=10 vec=false budget=-1	3b329ab3a7556892
+eig jordan n=10 vec=false budget=3	3b329ab3a7556892
+eig jordan n=10 vec=true budget=-1	1a42c18cf9e24b45
+eig jordan n=10 vec=true budget=3	1a42c18cf9e24b45
+eig jordan n=11 vec=false budget=-1	f4e697a6fa439392
+eig jordan n=11 vec=false budget=3	f4e697a6fa439392
+eig jordan n=11 vec=true budget=-1	b6f63be90fd870f7
+eig jordan n=11 vec=true budget=3	b6f63be90fd870f7
+eig jordan n=12 vec=false budget=-1	7aafbe5fd4e84f52
+eig jordan n=12 vec=false budget=3	7aafbe5fd4e84f52
+eig jordan n=12 vec=true budget=-1	7eb775517d612884
+eig jordan n=12 vec=true budget=3	7eb775517d612884
+eig jordan n=13 vec=false budget=-1	8a9144dbf7c0e352
+eig jordan n=13 vec=false budget=3	8a9144dbf7c0e352
+eig jordan n=13 vec=true budget=-1	d83af285b0a52283
+eig jordan n=13 vec=true budget=3	d83af285b0a52283
+eig jordan n=14 vec=false budget=-1	0f0661fb8bcbdd12
+eig jordan n=14 vec=false budget=3	0f0661fb8bcbdd12
+eig jordan n=14 vec=true budget=-1	cac1c46af520b9b4
+eig jordan n=14 vec=true budget=3	cac1c46af520b9b4
+eig jordan n=15 vec=false budget=-1	38908c14b19f7092
+eig jordan n=15 vec=false budget=3	38908c14b19f7092
+eig jordan n=15 vec=true budget=-1	fa3b14e023771ded
+eig jordan n=15 vec=true budget=3	fa3b14e023771ded
+eig jordan n=16 vec=false budget=-1	78550801f1fea4d2
+eig jordan n=16 vec=false budget=3	78550801f1fea4d2
+eig jordan n=16 vec=true budget=-1	84852a23642ea036
+eig jordan n=16 vec=true budget=3	84852a23642ea036
+eig jordan n=17 vec=false budget=-1	7286a71ea26bf652
+eig jordan n=17 vec=false budget=3	7286a71ea26bf652
+eig jordan n=17 vec=true budget=-1	b9856cf05ad85e7c
+eig jordan n=17 vec=true budget=3	b9856cf05ad85e7c
+eig jordan n=18 vec=false budget=-1	657f77284e24b792
+eig jordan n=18 vec=false budget=3	657f77284e24b792
+eig jordan n=18 vec=true budget=-1	b8f11e72b70ecd73
+eig jordan n=18 vec=true budget=3	b8f11e72b70ecd73
+eig jordan n=19 vec=false budget=-1	7872c06461a17892
+eig jordan n=19 vec=false budget=3	7872c06461a17892
+eig jordan n=19 vec=true budget=-1	c0802d38d9cb6aa9
+eig jordan n=19 vec=true budget=3	c0802d38d9cb6aa9
+eig jordan n=2 vec=false budget=-1	c1930f1744823992
+eig jordan n=2 vec=false budget=3	c1930f1744823992
+eig jordan n=2 vec=true budget=-1	43f184984f2ad7ed
+eig jordan n=2 vec=true budget=3	43f184984f2ad7ed
+eig jordan n=20 vec=false budget=-1	7dd65474a4d26052
+eig jordan n=20 vec=false budget=3	7dd65474a4d26052
+eig jordan n=20 vec=true budget=-1	ecab2eba8fc0f744
+eig jordan n=20 vec=true budget=3	ecab2eba8fc0f744
+eig jordan n=21 vec=false budget=-1	ec08b5ab322b4852
+eig jordan n=21 vec=false budget=3	ec08b5ab322b4852
+eig jordan n=21 vec=true budget=-1	54e1c7c256eaf128
+eig jordan n=21 vec=true budget=3	54e1c7c256eaf128
+eig jordan n=22 vec=false budget=-1	9ee5bd1bf9f97c12
+eig jordan n=22 vec=false budget=3	9ee5bd1bf9f97c12
+eig jordan n=22 vec=true budget=-1	2f84d4337a22061d
+eig jordan n=22 vec=true budget=3	2f84d4337a22061d
+eig jordan n=23 vec=false budget=-1	018c123f9637b592
+eig jordan n=23 vec=false budget=3	018c123f9637b592
+eig jordan n=23 vec=true budget=-1	5af071b55e41cdaa
+eig jordan n=23 vec=true budget=3	5af071b55e41cdaa
+eig jordan n=24 vec=false budget=-1	28c8594cf98be5d2
+eig jordan n=24 vec=false budget=3	28c8594cf98be5d2
+eig jordan n=24 vec=true budget=-1	5caf524fd7481288
+eig jordan n=24 vec=true budget=3	5caf524fd7481288
+eig jordan n=25 vec=false budget=-1	3192d5c54a23ead2
+eig jordan n=25 vec=false budget=3	3192d5c54a23ead2
+eig jordan n=25 vec=true budget=-1	248b3409ced4cdce
+eig jordan n=25 vec=true budget=3	248b3409ced4cdce
+eig jordan n=26 vec=false budget=-1	6ea941815cb73692
+eig jordan n=26 vec=false budget=3	6ea941815cb73692
+eig jordan n=26 vec=true budget=-1	c5341bc5140b724b
+eig jordan n=26 vec=true budget=3	c5341bc5140b724b
+eig jordan n=27 vec=false budget=-1	6fa2d2834bb99e12
+eig jordan n=27 vec=false budget=3	6fa2d2834bb99e12
+eig jordan n=27 vec=true budget=-1	3c99702d08bbb71c
+eig jordan n=27 vec=true budget=3	3c99702d08bbb71c
+eig jordan n=28 vec=false budget=-1	b85b077a35f7b352
+eig jordan n=28 vec=false budget=3	b85b077a35f7b352
+eig jordan n=28 vec=true budget=-1	7434c8b50de7a2dd
+eig jordan n=28 vec=true budget=3	7434c8b50de7a2dd
+eig jordan n=29 vec=false budget=-1	2dc201077c951dd2
+eig jordan n=29 vec=false budget=3	2dc201077c951dd2
+eig jordan n=29 vec=true budget=-1	0c0b3db700e1a310
+eig jordan n=29 vec=true budget=3	0c0b3db700e1a310
+eig jordan n=3 vec=false budget=-1	25b7abcd56b4af12
+eig jordan n=3 vec=false budget=3	25b7abcd56b4af12
+eig jordan n=3 vec=true budget=-1	adc2df6579d0d967
+eig jordan n=3 vec=true budget=3	adc2df6579d0d967
+eig jordan n=30 vec=false budget=-1	06b2f9b73ad3bb12
+eig jordan n=30 vec=false budget=3	06b2f9b73ad3bb12
+eig jordan n=30 vec=true budget=-1	2ba4bae394331738
+eig jordan n=30 vec=true budget=3	2ba4bae394331738
+eig jordan n=31 vec=false budget=-1	1b72a76d77d1aa92
+eig jordan n=31 vec=false budget=3	1b72a76d77d1aa92
+eig jordan n=31 vec=true budget=-1	4d1b9587b1f13f27
+eig jordan n=31 vec=true budget=3	4d1b9587b1f13f27
+eig jordan n=32 vec=false budget=-1	436b5d999ed02ed2
+eig jordan n=32 vec=false budget=3	436b5d999ed02ed2
+eig jordan n=32 vec=true budget=-1	7ca7fbd8e708da92
+eig jordan n=32 vec=true budget=3	7ca7fbd8e708da92
+eig jordan n=33 vec=false budget=-1	9a1365598198e052
+eig jordan n=33 vec=false budget=3	9a1365598198e052
+eig jordan n=33 vec=true budget=-1	1a256c8210915ec8
+eig jordan n=33 vec=true budget=3	1a256c8210915ec8
+eig jordan n=34 vec=false budget=-1	c56b23a08e569d92
+eig jordan n=34 vec=false budget=3	c56b23a08e569d92
+eig jordan n=34 vec=true budget=-1	2ce52f058c39626c
+eig jordan n=34 vec=true budget=3	2ce52f058c39626c
+eig jordan n=35 vec=false budget=-1	4370b710f7945292
+eig jordan n=35 vec=false budget=3	4370b710f7945292
+eig jordan n=35 vec=true budget=-1	0820fe5e4dae578f
+eig jordan n=35 vec=true budget=3	0820fe5e4dae578f
+eig jordan n=36 vec=false budget=-1	613d5acac1929a52
+eig jordan n=36 vec=false budget=3	613d5acac1929a52
+eig jordan n=36 vec=true budget=-1	49717d8409cfded6
+eig jordan n=36 vec=true budget=3	49717d8409cfded6
+eig jordan n=37 vec=false budget=-1	653aa97ad11ff252
+eig jordan n=37 vec=false budget=3	653aa97ad11ff252
+eig jordan n=37 vec=true budget=-1	5c16db17dfc68133
+eig jordan n=37 vec=true budget=3	5c16db17dfc68133
+eig jordan n=38 vec=false budget=-1	2d00cf4c11dc8212
+eig jordan n=38 vec=false budget=3	2d00cf4c11dc8212
+eig jordan n=38 vec=true budget=-1	23c4a27dfe934157
+eig jordan n=38 vec=true budget=3	23c4a27dfe934157
+eig jordan n=39 vec=false budget=-1	50f6020c3d6ccf92
+eig jordan n=39 vec=false budget=3	50f6020c3d6ccf92
+eig jordan n=39 vec=true budget=-1	47880ed96b527419
+eig jordan n=39 vec=true budget=3	47880ed96b527419
+eig jordan n=4 vec=false budget=-1	be1e82396fe16e52
+eig jordan n=4 vec=false budget=3	be1e82396fe16e52
+eig jordan n=4 vec=true budget=-1	b2335068b8d51ab1
+eig jordan n=4 vec=true budget=3	b2335068b8d51ab1
+eig jordan n=40 vec=false budget=-1	653f61765c241fd2
+eig jordan n=40 vec=false budget=3	653f61765c241fd2
+eig jordan n=40 vec=true budget=-1	8570b6d2c9ace48e
+eig jordan n=40 vec=true budget=3	8570b6d2c9ace48e
+eig jordan n=47 vec=false budget=-1	57265b5e9a4fa492
+eig jordan n=47 vec=false budget=3	57265b5e9a4fa492
+eig jordan n=47 vec=true budget=-1	0adbf7e56395f6d3
+eig jordan n=47 vec=true budget=3	0adbf7e56395f6d3
+eig jordan n=5 vec=false budget=-1	d5b0cb1d7a82aed2
+eig jordan n=5 vec=false budget=3	d5b0cb1d7a82aed2
+eig jordan n=5 vec=true budget=-1	922fa03a9536a84a
+eig jordan n=5 vec=true budget=3	922fa03a9536a84a
+eig jordan n=6 vec=false budget=-1	08f23ce98b53be12
+eig jordan n=6 vec=false budget=3	08f23ce98b53be12
+eig jordan n=6 vec=true budget=-1	d04802052784db01
+eig jordan n=6 vec=true budget=3	d04802052784db01
+eig jordan n=64 vec=false budget=-1	04fa8131cdbec152
+eig jordan n=64 vec=false budget=3	04fa8131cdbec152
+eig jordan n=64 vec=true budget=-1	385fc5f199372e74
+eig jordan n=64 vec=true budget=3	385fc5f199372e74
+eig jordan n=65 vec=false budget=-1	9ebcb9c45484e3d2
+eig jordan n=65 vec=false budget=3	9ebcb9c45484e3d2
+eig jordan n=65 vec=true budget=-1	a4f9a6a9cba7963b
+eig jordan n=65 vec=true budget=3	a4f9a6a9cba7963b
+eig jordan n=7 vec=false budget=-1	849e2a240e444b12
+eig jordan n=7 vec=false budget=3	849e2a240e444b12
+eig jordan n=7 vec=true budget=-1	f2ca0a05f2b4aa48
+eig jordan n=7 vec=true budget=3	f2ca0a05f2b4aa48
+eig jordan n=8 vec=false budget=-1	b2590a0630354fd2
+eig jordan n=8 vec=false budget=3	b2590a0630354fd2
+eig jordan n=8 vec=true budget=-1	91574952de5181a1
+eig jordan n=8 vec=true budget=3	91574952de5181a1
+eig jordan n=9 vec=false budget=-1	2fcbe9a431f57152
+eig jordan n=9 vec=false budget=3	2fcbe9a431f57152
+eig jordan n=9 vec=true budget=-1	b12eb150566f1152
+eig jordan n=9 vec=true budget=3	b12eb150566f1152
+eig perm n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig perm n=0 vec=false budget=3	f3b31ef57291b2d2
+eig perm n=0 vec=true budget=-1	99b747516dd44dc5
+eig perm n=0 vec=true budget=3	99b747516dd44dc5
+eig perm n=1 vec=false budget=-1	7dd70c4b661e13fd
+eig perm n=1 vec=false budget=3	7dd70c4b661e13fd
+eig perm n=1 vec=true budget=-1	5f7a5970b0e0d945
+eig perm n=1 vec=true budget=3	5f7a5970b0e0d945
+eig perm n=10 vec=false budget=-1	1f7a2bfa5e29d3b2
+eig perm n=10 vec=false budget=3	614b75fe37c979f2
+eig perm n=10 vec=true budget=-1	26378233a30665f5
+eig perm n=10 vec=true budget=3	614b75fe37c979f2
+eig perm n=11 vec=false budget=-1	b96e8bf1b3cf7044
+eig perm n=11 vec=false budget=3	614b75fe37c979f2
+eig perm n=11 vec=true budget=-1	0cc84070ca53bed7
+eig perm n=11 vec=true budget=3	614b75fe37c979f2
+eig perm n=12 vec=false budget=-1	cb1275af6d9f8f10
+eig perm n=12 vec=false budget=3	614b75fe37c979f2
+eig perm n=12 vec=true budget=-1	006ff0222cf36f98
+eig perm n=12 vec=true budget=3	614b75fe37c979f2
+eig perm n=13 vec=false budget=-1	161048d0dcb8cfd5
+eig perm n=13 vec=false budget=3	614b75fe37c979f2
+eig perm n=13 vec=true budget=-1	7ae4d3c4105752b0
+eig perm n=13 vec=true budget=3	614b75fe37c979f2
+eig perm n=14 vec=false budget=-1	ec811beb41421576
+eig perm n=14 vec=false budget=3	614b75fe37c979f2
+eig perm n=14 vec=true budget=-1	246ccd01d6689663
+eig perm n=14 vec=true budget=3	614b75fe37c979f2
+eig perm n=15 vec=false budget=-1	61ac737d2c42a81e
+eig perm n=15 vec=false budget=3	614b75fe37c979f2
+eig perm n=15 vec=true budget=-1	eec0ac5f5257a31a
+eig perm n=15 vec=true budget=3	614b75fe37c979f2
+eig perm n=16 vec=false budget=-1	4d81eef66efdfb86
+eig perm n=16 vec=false budget=3	614b75fe37c979f2
+eig perm n=16 vec=true budget=-1	83f5c272058c8880
+eig perm n=16 vec=true budget=3	614b75fe37c979f2
+eig perm n=17 vec=false budget=-1	17f0282011692fd1
+eig perm n=17 vec=false budget=3	614b75fe37c979f2
+eig perm n=17 vec=true budget=-1	d95384e0badaf3e2
+eig perm n=17 vec=true budget=3	614b75fe37c979f2
+eig perm n=18 vec=false budget=-1	b74aaafc1f77622d
+eig perm n=18 vec=false budget=3	614b75fe37c979f2
+eig perm n=18 vec=true budget=-1	a0d64c750d8eae33
+eig perm n=18 vec=true budget=3	614b75fe37c979f2
+eig perm n=19 vec=false budget=-1	30020608105527fb
+eig perm n=19 vec=false budget=3	614b75fe37c979f2
+eig perm n=19 vec=true budget=-1	4a18879aa0b6ae0d
+eig perm n=19 vec=true budget=3	614b75fe37c979f2
+eig perm n=2 vec=false budget=-1	b334d819e6802312
+eig perm n=2 vec=false budget=3	b334d819e6802312
+eig perm n=2 vec=true budget=-1	fc4b733e0c5e3fd5
+eig perm n=2 vec=true budget=3	fc4b733e0c5e3fd5
+eig perm n=20 vec=false budget=-1	00a916e8b5312d8a
+eig perm n=20 vec=false budget=3	614b75fe37c979f2
+eig perm n=20 vec=true budget=-1	95d41b86c514aeed
+eig perm n=20 vec=true budget=3	614b75fe37c979f2
+eig perm n=21 vec=false budget=-1	b8a928708411b638
+eig perm n=21 vec=false budget=3	614b75fe37c979f2
+eig perm n=21 vec=true budget=-1	3361bfa9859e9383
+eig perm n=21 vec=true budget=3	614b75fe37c979f2
+eig perm n=22 vec=false budget=-1	3f7726f11db2eacc
+eig perm n=22 vec=false budget=3	614b75fe37c979f2
+eig perm n=22 vec=true budget=-1	7a1e8d792268de64
+eig perm n=22 vec=true budget=3	614b75fe37c979f2
+eig perm n=23 vec=false budget=-1	bc04c2e05c767b2f
+eig perm n=23 vec=false budget=3	614b75fe37c979f2
+eig perm n=23 vec=true budget=-1	4af11bfcb6f63744
+eig perm n=23 vec=true budget=3	614b75fe37c979f2
+eig perm n=24 vec=false budget=-1	62012484395c7e26
+eig perm n=24 vec=false budget=3	614b75fe37c979f2
+eig perm n=24 vec=true budget=-1	291f2865eb8285c3
+eig perm n=24 vec=true budget=3	614b75fe37c979f2
+eig perm n=25 vec=false budget=-1	fe6a7c0c7d2d3dcc
+eig perm n=25 vec=false budget=3	614b75fe37c979f2
+eig perm n=25 vec=true budget=-1	96b2562969a5cfcd
+eig perm n=25 vec=true budget=3	614b75fe37c979f2
+eig perm n=26 vec=false budget=-1	779f1904485d23e7
+eig perm n=26 vec=false budget=3	614b75fe37c979f2
+eig perm n=26 vec=true budget=-1	e95925f2b40c4d5d
+eig perm n=26 vec=true budget=3	614b75fe37c979f2
+eig perm n=27 vec=false budget=-1	612e1a5557893b81
+eig perm n=27 vec=false budget=3	614b75fe37c979f2
+eig perm n=27 vec=true budget=-1	cf689f7d0690fb72
+eig perm n=27 vec=true budget=3	614b75fe37c979f2
+eig perm n=28 vec=false budget=-1	614c80597c079b16
+eig perm n=28 vec=false budget=3	614b75fe37c979f2
+eig perm n=28 vec=true budget=-1	cf26eeed6ad11929
+eig perm n=28 vec=true budget=3	614b75fe37c979f2
+eig perm n=29 vec=false budget=-1	d031fcff40f4045f
+eig perm n=29 vec=false budget=3	614b75fe37c979f2
+eig perm n=29 vec=true budget=-1	98a1c80ff4804774
+eig perm n=29 vec=true budget=3	614b75fe37c979f2
+eig perm n=3 vec=false budget=-1	1a0ad0aa422055a7
+eig perm n=3 vec=false budget=3	614b75fe37c979f2
+eig perm n=3 vec=true budget=-1	558d5f16793f871b
+eig perm n=3 vec=true budget=3	614b75fe37c979f2
+eig perm n=30 vec=false budget=-1	ceec3e2fec8f2227
+eig perm n=30 vec=false budget=3	614b75fe37c979f2
+eig perm n=30 vec=true budget=-1	51c9782f1cf324f8
+eig perm n=30 vec=true budget=3	614b75fe37c979f2
+eig perm n=31 vec=false budget=-1	3ec2cc4f2d283c6d
+eig perm n=31 vec=false budget=3	614b75fe37c979f2
+eig perm n=31 vec=true budget=-1	3f0d3cbaae4bc5f7
+eig perm n=31 vec=true budget=3	614b75fe37c979f2
+eig perm n=32 vec=false budget=-1	170039de2f5f1e1e
+eig perm n=32 vec=false budget=3	614b75fe37c979f2
+eig perm n=32 vec=true budget=-1	498e85d94ae07753
+eig perm n=32 vec=true budget=3	614b75fe37c979f2
+eig perm n=33 vec=false budget=-1	d57aa65f2f2c3029
+eig perm n=33 vec=false budget=3	614b75fe37c979f2
+eig perm n=33 vec=true budget=-1	76c994e90456e087
+eig perm n=33 vec=true budget=3	614b75fe37c979f2
+eig perm n=34 vec=false budget=-1	78362900c1bc2586
+eig perm n=34 vec=false budget=3	614b75fe37c979f2
+eig perm n=34 vec=true budget=-1	689c3cdc0289f022
+eig perm n=34 vec=true budget=3	614b75fe37c979f2
+eig perm n=35 vec=false budget=-1	99816b1791ee5a25
+eig perm n=35 vec=false budget=3	614b75fe37c979f2
+eig perm n=35 vec=true budget=-1	9714f13a207399ae
+eig perm n=35 vec=true budget=3	614b75fe37c979f2
+eig perm n=36 vec=false budget=-1	d1fceede8e52b8d0
+eig perm n=36 vec=false budget=3	614b75fe37c979f2
+eig perm n=36 vec=true budget=-1	0bdf0575c299dc72
+eig perm n=36 vec=true budget=3	614b75fe37c979f2
+eig perm n=37 vec=false budget=-1	c3bdd9f05d17d7a6
+eig perm n=37 vec=false budget=3	614b75fe37c979f2
+eig perm n=37 vec=true budget=-1	0c380e4ccfea0da8
+eig perm n=37 vec=true budget=3	614b75fe37c979f2
+eig perm n=38 vec=false budget=-1	8861fa6b852d932c
+eig perm n=38 vec=false budget=3	614b75fe37c979f2
+eig perm n=38 vec=true budget=-1	d6e1d679cc0699ae
+eig perm n=38 vec=true budget=3	614b75fe37c979f2
+eig perm n=39 vec=false budget=-1	dc8146153de0c134
+eig perm n=39 vec=false budget=3	614b75fe37c979f2
+eig perm n=39 vec=true budget=-1	56e3a0411ea6ea65
+eig perm n=39 vec=true budget=3	614b75fe37c979f2
+eig perm n=4 vec=false budget=-1	b4ff304b1dbec2cd
+eig perm n=4 vec=false budget=3	614b75fe37c979f2
+eig perm n=4 vec=true budget=-1	9bc3e3561099c88c
+eig perm n=4 vec=true budget=3	614b75fe37c979f2
+eig perm n=40 vec=false budget=-1	480d634b2bb1cb70
+eig perm n=40 vec=false budget=3	614b75fe37c979f2
+eig perm n=40 vec=true budget=-1	70981eea9eeecaac
+eig perm n=40 vec=true budget=3	614b75fe37c979f2
+eig perm n=47 vec=false budget=-1	39768fe5938b1bfd
+eig perm n=47 vec=false budget=3	614b75fe37c979f2
+eig perm n=47 vec=true budget=-1	81bf91e78fead427
+eig perm n=47 vec=true budget=3	614b75fe37c979f2
+eig perm n=5 vec=false budget=-1	1e0f2fea9af49236
+eig perm n=5 vec=false budget=3	614b75fe37c979f2
+eig perm n=5 vec=true budget=-1	2e2ffe46019f0df9
+eig perm n=5 vec=true budget=3	614b75fe37c979f2
+eig perm n=6 vec=false budget=-1	e95dddc20e5a73ed
+eig perm n=6 vec=false budget=3	614b75fe37c979f2
+eig perm n=6 vec=true budget=-1	601a7d51d61ca06e
+eig perm n=6 vec=true budget=3	614b75fe37c979f2
+eig perm n=64 vec=false budget=-1	498df8c33cdb8e71
+eig perm n=64 vec=false budget=3	614b75fe37c979f2
+eig perm n=64 vec=true budget=-1	a9a0aa02e8f71ae8
+eig perm n=64 vec=true budget=3	614b75fe37c979f2
+eig perm n=65 vec=false budget=-1	883e8199ea233a82
+eig perm n=65 vec=false budget=3	614b75fe37c979f2
+eig perm n=65 vec=true budget=-1	0c89b84849edf750
+eig perm n=65 vec=true budget=3	614b75fe37c979f2
+eig perm n=7 vec=false budget=-1	ad7b8bd9eea48392
+eig perm n=7 vec=false budget=3	614b75fe37c979f2
+eig perm n=7 vec=true budget=-1	eadc56b99722fda0
+eig perm n=7 vec=true budget=3	614b75fe37c979f2
+eig perm n=8 vec=false budget=-1	16acc737722df65a
+eig perm n=8 vec=false budget=3	614b75fe37c979f2
+eig perm n=8 vec=true budget=-1	8d49569d4df30291
+eig perm n=8 vec=true budget=3	614b75fe37c979f2
+eig perm n=9 vec=false budget=-1	677c97c1cf76064f
+eig perm n=9 vec=false budget=3	614b75fe37c979f2
+eig perm n=9 vec=true budget=-1	0e11c1683be8a100
+eig perm n=9 vec=true budget=3	614b75fe37c979f2
+eig rotations n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig rotations n=0 vec=false budget=3	f3b31ef57291b2d2
+eig rotations n=0 vec=true budget=-1	99b747516dd44dc5
+eig rotations n=0 vec=true budget=3	99b747516dd44dc5
+eig rotations n=1 vec=false budget=-1	08013e477c937c12
+eig rotations n=1 vec=false budget=3	08013e477c937c12
+eig rotations n=1 vec=true budget=-1	8b29407d28ee656a
+eig rotations n=1 vec=true budget=3	8b29407d28ee656a
+eig rotations n=10 vec=false budget=-1	f8d3a834a9a79cb2
+eig rotations n=10 vec=false budget=3	f8d3a834a9a79cb2
+eig rotations n=10 vec=true budget=-1	d86cd3e876eb0c41
+eig rotations n=10 vec=true budget=3	d86cd3e876eb0c41
+eig rotations n=11 vec=false budget=-1	874da3dce1b96dc6
+eig rotations n=11 vec=false budget=3	874da3dce1b96dc6
+eig rotations n=11 vec=true budget=-1	839199d41e0cb19a
+eig rotations n=11 vec=true budget=3	839199d41e0cb19a
+eig rotations n=12 vec=false budget=-1	36abd2bf58c91d32
+eig rotations n=12 vec=false budget=3	36abd2bf58c91d32
+eig rotations n=12 vec=true budget=-1	de825df83dda8a8d
+eig rotations n=12 vec=true budget=3	de825df83dda8a8d
+eig rotations n=13 vec=false budget=-1	de68ab7d57fae5fa
+eig rotations n=13 vec=false budget=3	de68ab7d57fae5fa
+eig rotations n=13 vec=true budget=-1	d5b0c72073ace3ba
+eig rotations n=13 vec=true budget=3	d5b0c72073ace3ba
+eig rotations n=14 vec=false budget=-1	d5fddb8e708afcb2
+eig rotations n=14 vec=false budget=3	d5fddb8e708afcb2
+eig rotations n=14 vec=true budget=-1	afaa0ec03c789c59
+eig rotations n=14 vec=true budget=3	afaa0ec03c789c59
+eig rotations n=15 vec=false budget=-1	f8f987728efb5a8e
+eig rotations n=15 vec=false budget=3	f8f987728efb5a8e
+eig rotations n=15 vec=true budget=-1	fcbeb45a59b9bcba
+eig rotations n=15 vec=true budget=3	fcbeb45a59b9bcba
+eig rotations n=16 vec=false budget=-1	5e636f78bf713802
+eig rotations n=16 vec=false budget=3	5e636f78bf713802
+eig rotations n=16 vec=true budget=-1	571c108698d1d715
+eig rotations n=16 vec=true budget=3	571c108698d1d715
+eig rotations n=17 vec=false budget=-1	f446217cbb516f52
+eig rotations n=17 vec=false budget=3	f446217cbb516f52
+eig rotations n=17 vec=true budget=-1	4dd89b0fa7fde04a
+eig rotations n=17 vec=true budget=3	4dd89b0fa7fde04a
+eig rotations n=18 vec=false budget=-1	923e1df354b642f2
+eig rotations n=18 vec=false budget=3	923e1df354b642f2
+eig rotations n=18 vec=true budget=-1	a3df6d523463ce31
+eig rotations n=18 vec=true budget=3	a3df6d523463ce31
+eig rotations n=19 vec=false budget=-1	c8291d4b5362732c
+eig rotations n=19 vec=false budget=3	c8291d4b5362732c
+eig rotations n=19 vec=true budget=-1	b53f5cafed468a5c
+eig rotations n=19 vec=true budget=3	b53f5cafed468a5c
+eig rotations n=2 vec=false budget=-1	221755eacbec5992
+eig rotations n=2 vec=false budget=3	221755eacbec5992
+eig rotations n=2 vec=true budget=-1	ab0898aee1ac5d31
+eig rotations n=2 vec=true budget=3	ab0898aee1ac5d31
+eig rotations n=20 vec=false budget=-1	fd6d3a3ec038e3b2
+eig rotations n=20 vec=false budget=3	fd6d3a3ec038e3b2
+eig rotations n=20 vec=true budget=-1	fb4f6dea7d5cf17d
+eig rotations n=20 vec=true budget=3	fb4f6dea7d5cf17d
+eig rotations n=21 vec=false budget=-1	34fae1d998053d56
+eig rotations n=21 vec=false budget=3	34fae1d998053d56
+eig rotations n=21 vec=true budget=-1	ea2e131eac5052ce
+eig rotations n=21 vec=true budget=3	ea2e131eac5052ce
+eig rotations n=22 vec=false budget=-1	9ae15e12fa189b32
+eig rotations n=22 vec=false budget=3	9ae15e12fa189b32
+eig rotations n=22 vec=true budget=-1	cf627bec89e73a49
+eig rotations n=22 vec=true budget=3	cf627bec89e73a49
+eig rotations n=23 vec=false budget=-1	dd8de876a0b2a5c0
+eig rotations n=23 vec=false budget=3	dd8de876a0b2a5c0
+eig rotations n=23 vec=true budget=-1	87ec20406ce3ee80
+eig rotations n=23 vec=true budget=3	87ec20406ce3ee80
+eig rotations n=24 vec=false budget=-1	1017745cfa7e4d22
+eig rotations n=24 vec=false budget=3	1017745cfa7e4d22
+eig rotations n=24 vec=true budget=-1	ae1181b275af6ae5
+eig rotations n=24 vec=true budget=3	ae1181b275af6ae5
+eig rotations n=25 vec=false budget=-1	b97ffd0f85213dba
+eig rotations n=25 vec=false budget=3	b97ffd0f85213dba
+eig rotations n=25 vec=true budget=-1	c4494e9488a70d72
+eig rotations n=25 vec=true budget=3	c4494e9488a70d72
+eig rotations n=26 vec=false budget=-1	5126f8dce719b672
+eig rotations n=26 vec=false budget=3	5126f8dce719b672
+eig rotations n=26 vec=true budget=-1	a4e2b3e94ccbb521
+eig rotations n=26 vec=true budget=3	a4e2b3e94ccbb521
+eig rotations n=27 vec=false budget=-1	4b9946bda38f7034
+eig rotations n=27 vec=false budget=3	4b9946bda38f7034
+eig rotations n=27 vec=true budget=-1	8148207a60c16584
+eig rotations n=27 vec=true budget=3	8148207a60c16584
+eig rotations n=28 vec=false budget=-1	cac98af7607afd32
+eig rotations n=28 vec=false budget=3	cac98af7607afd32
+eig rotations n=28 vec=true budget=-1	01c45375092b3aad
+eig rotations n=28 vec=true budget=3	01c45375092b3aad
+eig rotations n=29 vec=false budget=-1	09b4c2b734754d5e
+eig rotations n=29 vec=false budget=3	09b4c2b734754d5e
+eig rotations n=29 vec=true budget=-1	e9e886e20d41ad16
+eig rotations n=29 vec=true budget=3	e9e886e20d41ad16
+eig rotations n=3 vec=false budget=-1	b784f77a09339419
+eig rotations n=3 vec=false budget=3	b784f77a09339419
+eig rotations n=3 vec=true budget=-1	7aa7e6e6d02de1dd
+eig rotations n=3 vec=true budget=3	7aa7e6e6d02de1dd
+eig rotations n=30 vec=false budget=-1	10def212e9383132
+eig rotations n=30 vec=false budget=3	10def212e9383132
+eig rotations n=30 vec=true budget=-1	4e79aa66c2e601f9
+eig rotations n=30 vec=true budget=3	4e79aa66c2e601f9
+eig rotations n=31 vec=false budget=-1	124699478efedec8
+eig rotations n=31 vec=false budget=3	124699478efedec8
+eig rotations n=31 vec=true budget=-1	5d131eab2a734ce8
+eig rotations n=31 vec=true budget=3	5d131eab2a734ce8
+eig rotations n=32 vec=false budget=-1	358947b8b2c521a2
+eig rotations n=32 vec=false budget=3	358947b8b2c521a2
+eig rotations n=32 vec=true budget=-1	10e060a326953615
+eig rotations n=32 vec=true budget=3	10e060a326953615
+eig rotations n=33 vec=false budget=-1	acf85cdda100a162
+eig rotations n=33 vec=false budget=3	acf85cdda100a162
+eig rotations n=33 vec=true budget=-1	337c01cf0a1442fa
+eig rotations n=33 vec=true budget=3	337c01cf0a1442fa
+eig rotations n=34 vec=false budget=-1	cab21ad4bcb617f2
+eig rotations n=34 vec=false budget=3	cab21ad4bcb617f2
+eig rotations n=34 vec=true budget=-1	69ca08084b421291
+eig rotations n=34 vec=true budget=3	69ca08084b421291
+eig rotations n=35 vec=false budget=-1	3b03fca41db165fd
+eig rotations n=35 vec=false budget=3	3b03fca41db165fd
+eig rotations n=35 vec=true budget=-1	f69dfcc12e257e29
+eig rotations n=35 vec=true budget=3	f69dfcc12e257e29
+eig rotations n=36 vec=false budget=-1	3cb7f082cdac37d2
+eig rotations n=36 vec=false budget=3	3cb7f082cdac37d2
+eig rotations n=36 vec=true budget=-1	4f99dfdbe19645fd
+eig rotations n=36 vec=true budget=3	4f99dfdbe19645fd
+eig rotations n=37 vec=false budget=-1	f4768f9044b6333c
+eig rotations n=37 vec=false budget=3	f4768f9044b6333c
+eig rotations n=37 vec=true budget=-1	cfeea378c0e3cab8
+eig rotations n=37 vec=true budget=3	cfeea378c0e3cab8
+eig rotations n=38 vec=false budget=-1	005b18d301b74e12
+eig rotations n=38 vec=false budget=3	005b18d301b74e12
+eig rotations n=38 vec=true budget=-1	ca8ef5652f4a3a89
+eig rotations n=38 vec=true budget=3	ca8ef5652f4a3a89
+eig rotations n=39 vec=false budget=-1	5ef331d9bcf22b47
+eig rotations n=39 vec=false budget=3	5ef331d9bcf22b47
+eig rotations n=39 vec=true budget=-1	fbd332aab5b512cf
+eig rotations n=39 vec=true budget=3	fbd332aab5b512cf
+eig rotations n=4 vec=false budget=-1	af21807202f6fc32
+eig rotations n=4 vec=false budget=3	af21807202f6fc32
+eig rotations n=4 vec=true budget=-1	de4ab5321a308b5d
+eig rotations n=4 vec=true budget=3	de4ab5321a308b5d
+eig rotations n=40 vec=false budget=-1	fb6bff798bbe0e02
+eig rotations n=40 vec=false budget=3	fb6bff798bbe0e02
+eig rotations n=40 vec=true budget=-1	d375c0ed8dcc31a5
+eig rotations n=40 vec=true budget=3	d375c0ed8dcc31a5
+eig rotations n=47 vec=false budget=-1	963bf69c3d0fa9cb
+eig rotations n=47 vec=false budget=3	963bf69c3d0fa9cb
+eig rotations n=47 vec=true budget=-1	961358402f69970b
+eig rotations n=47 vec=true budget=3	961358402f69970b
+eig rotations n=5 vec=false budget=-1	8fc5e694b0cf35d5
+eig rotations n=5 vec=false budget=3	8fc5e694b0cf35d5
+eig rotations n=5 vec=true budget=-1	936c13ff9762f825
+eig rotations n=5 vec=true budget=3	936c13ff9762f825
+eig rotations n=6 vec=false budget=-1	db9761c460949032
+eig rotations n=6 vec=false budget=3	db9761c460949032
+eig rotations n=6 vec=true budget=-1	484e6620bfd09529
+eig rotations n=6 vec=true budget=3	484e6620bfd09529
+eig rotations n=64 vec=false budget=-1	9efe16bc0a30d262
+eig rotations n=64 vec=false budget=3	9efe16bc0a30d262
+eig rotations n=64 vec=true budget=-1	da4f590503cc99d5
+eig rotations n=64 vec=true budget=3	da4f590503cc99d5
+eig rotations n=65 vec=false budget=-1	c1ee3f2cffcc2e12
+eig rotations n=65 vec=false budget=3	c1ee3f2cffcc2e12
+eig rotations n=65 vec=true budget=-1	9787aa615230516a
+eig rotations n=65 vec=true budget=3	9787aa615230516a
+eig rotations n=7 vec=false budget=-1	4ab6583620bf1981
+eig rotations n=7 vec=false budget=3	4ab6583620bf1981
+eig rotations n=7 vec=true budget=-1	a90d1ccd93b66c4d
+eig rotations n=7 vec=true budget=3	a90d1ccd93b66c4d
+eig rotations n=8 vec=false budget=-1	08b1929e12c3e5c2
+eig rotations n=8 vec=false budget=3	08b1929e12c3e5c2
+eig rotations n=8 vec=true budget=-1	b279aaa2013c7165
+eig rotations n=8 vec=true budget=3	b279aaa2013c7165
+eig rotations n=9 vec=false budget=-1	bc93298110fb7ee2
+eig rotations n=9 vec=false budget=3	bc93298110fb7ee2
+eig rotations n=9 vec=true budget=-1	b52715faebbdc8ea
+eig rotations n=9 vec=true budget=3	b52715faebbdc8ea
+eig scaled n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig scaled n=0 vec=false budget=3	f3b31ef57291b2d2
+eig scaled n=0 vec=true budget=-1	99b747516dd44dc5
+eig scaled n=0 vec=true budget=3	99b747516dd44dc5
+eig scaled n=1 vec=false budget=-1	e54ca15be9452c74
+eig scaled n=1 vec=false budget=3	e54ca15be9452c74
+eig scaled n=1 vec=true budget=-1	3e03396305c32e48
+eig scaled n=1 vec=true budget=3	3e03396305c32e48
+eig scaled n=10 vec=false budget=-1	8befd7e8e2b15f7a
+eig scaled n=10 vec=false budget=3	614b75fe37c979f2
+eig scaled n=10 vec=true budget=-1	41baa7c00eb2c865
+eig scaled n=10 vec=true budget=3	614b75fe37c979f2
+eig scaled n=11 vec=false budget=-1	94320b7965675f3e
+eig scaled n=11 vec=false budget=3	614b75fe37c979f2
+eig scaled n=11 vec=true budget=-1	2d2ab67aab066ee7
+eig scaled n=11 vec=true budget=3	614b75fe37c979f2
+eig scaled n=12 vec=false budget=-1	82c6aa6bc35f4c54
+eig scaled n=12 vec=false budget=3	614b75fe37c979f2
+eig scaled n=12 vec=true budget=-1	7817650a8ea7f8b9
+eig scaled n=12 vec=true budget=3	614b75fe37c979f2
+eig scaled n=13 vec=false budget=-1	255268a2d09d88a2
+eig scaled n=13 vec=false budget=3	614b75fe37c979f2
+eig scaled n=13 vec=true budget=-1	fc7bacd4b4eb7979
+eig scaled n=13 vec=true budget=3	614b75fe37c979f2
+eig scaled n=14 vec=false budget=-1	8083a283c96718aa
+eig scaled n=14 vec=false budget=3	614b75fe37c979f2
+eig scaled n=14 vec=true budget=-1	b2acc97b5b0d0101
+eig scaled n=14 vec=true budget=3	614b75fe37c979f2
+eig scaled n=15 vec=false budget=-1	bb867dae02104ef2
+eig scaled n=15 vec=false budget=3	614b75fe37c979f2
+eig scaled n=15 vec=true budget=-1	3643edb5624ed384
+eig scaled n=15 vec=true budget=3	614b75fe37c979f2
+eig scaled n=16 vec=false budget=-1	a93ab8a0877cb7f3
+eig scaled n=16 vec=false budget=3	614b75fe37c979f2
+eig scaled n=16 vec=true budget=-1	1576c4fffc7b58ac
+eig scaled n=16 vec=true budget=3	614b75fe37c979f2
+eig scaled n=17 vec=false budget=-1	caa65094d26f7db1
+eig scaled n=17 vec=false budget=3	614b75fe37c979f2
+eig scaled n=17 vec=true budget=-1	d809601e87e6dbf8
+eig scaled n=17 vec=true budget=3	614b75fe37c979f2
+eig scaled n=18 vec=false budget=-1	2e0beb0ced6fcd28
+eig scaled n=18 vec=false budget=3	614b75fe37c979f2
+eig scaled n=18 vec=true budget=-1	e9521337bac92012
+eig scaled n=18 vec=true budget=3	614b75fe37c979f2
+eig scaled n=19 vec=false budget=-1	7311a25f5b736165
+eig scaled n=19 vec=false budget=3	614b75fe37c979f2
+eig scaled n=19 vec=true budget=-1	6bdd2530ffb386ce
+eig scaled n=19 vec=true budget=3	614b75fe37c979f2
+eig scaled n=2 vec=false budget=-1	51fd463fb2d9f70c
+eig scaled n=2 vec=false budget=3	51fd463fb2d9f70c
+eig scaled n=2 vec=true budget=-1	9371cb18989b6756
+eig scaled n=2 vec=true budget=3	9371cb18989b6756
+eig scaled n=20 vec=false budget=-1	c12e2c32045bcdc4
+eig scaled n=20 vec=false budget=3	614b75fe37c979f2
+eig scaled n=20 vec=true budget=-1	69169a652cb20334
+eig scaled n=20 vec=true budget=3	614b75fe37c979f2
+eig scaled n=21 vec=false budget=-1	c406ccd8395e4220
+eig scaled n=21 vec=false budget=3	614b75fe37c979f2
+eig scaled n=21 vec=true budget=-1	aab1f71bfcab161d
+eig scaled n=21 vec=true budget=3	614b75fe37c979f2
+eig scaled n=22 vec=false budget=-1	cc09c320598d7344
+eig scaled n=22 vec=false budget=3	614b75fe37c979f2
+eig scaled n=22 vec=true budget=-1	e71aab127ceb7971
+eig scaled n=22 vec=true budget=3	614b75fe37c979f2
+eig scaled n=23 vec=false budget=-1	462e9d496a25be81
+eig scaled n=23 vec=false budget=3	614b75fe37c979f2
+eig scaled n=23 vec=true budget=-1	58ef8a01793e8bc9
+eig scaled n=23 vec=true budget=3	614b75fe37c979f2
+eig scaled n=24 vec=false budget=-1	b6b4d890abd2c166
+eig scaled n=24 vec=false budget=3	614b75fe37c979f2
+eig scaled n=24 vec=true budget=-1	f83b3c63b9cdac32
+eig scaled n=24 vec=true budget=3	614b75fe37c979f2
+eig scaled n=25 vec=false budget=-1	333f1b9d9efdcd04
+eig scaled n=25 vec=false budget=3	614b75fe37c979f2
+eig scaled n=25 vec=true budget=-1	711a1b901f2659b3
+eig scaled n=25 vec=true budget=3	614b75fe37c979f2
+eig scaled n=26 vec=false budget=-1	97d6069cb45ac081
+eig scaled n=26 vec=false budget=3	614b75fe37c979f2
+eig scaled n=26 vec=true budget=-1	19e6b40845acef92
+eig scaled n=26 vec=true budget=3	614b75fe37c979f2
+eig scaled n=27 vec=false budget=-1	5ef7f053e04448a8
+eig scaled n=27 vec=false budget=3	614b75fe37c979f2
+eig scaled n=27 vec=true budget=-1	f2ecabc993b637ba
+eig scaled n=27 vec=true budget=3	614b75fe37c979f2
+eig scaled n=28 vec=false budget=-1	75dd781a7c41dd72
+eig scaled n=28 vec=false budget=3	614b75fe37c979f2
+eig scaled n=28 vec=true budget=-1	6385c212d6151310
+eig scaled n=28 vec=true budget=3	614b75fe37c979f2
+eig scaled n=29 vec=false budget=-1	603b5bf8ed456d29
+eig scaled n=29 vec=false budget=3	614b75fe37c979f2
+eig scaled n=29 vec=true budget=-1	9bedf529be62d3ba
+eig scaled n=29 vec=true budget=3	614b75fe37c979f2
+eig scaled n=3 vec=false budget=-1	4e59b20a9602d2ef
+eig scaled n=3 vec=false budget=3	614b75fe37c979f2
+eig scaled n=3 vec=true budget=-1	4862f9dddfa5b309
+eig scaled n=3 vec=true budget=3	614b75fe37c979f2
+eig scaled n=30 vec=false budget=-1	6aa551dfbac65850
+eig scaled n=30 vec=false budget=3	614b75fe37c979f2
+eig scaled n=30 vec=true budget=-1	a02951e2f0bd3254
+eig scaled n=30 vec=true budget=3	614b75fe37c979f2
+eig scaled n=31 vec=false budget=-1	98f76b629d8e6370
+eig scaled n=31 vec=false budget=3	614b75fe37c979f2
+eig scaled n=31 vec=true budget=-1	37446f8026391891
+eig scaled n=31 vec=true budget=3	614b75fe37c979f2
+eig scaled n=32 vec=false budget=-1	b2698153441b9cc2
+eig scaled n=32 vec=false budget=3	614b75fe37c979f2
+eig scaled n=32 vec=true budget=-1	3c5938f97533a403
+eig scaled n=32 vec=true budget=3	614b75fe37c979f2
+eig scaled n=33 vec=false budget=-1	4b28aab482d1a2b4
+eig scaled n=33 vec=false budget=3	614b75fe37c979f2
+eig scaled n=33 vec=true budget=-1	34a72740b8a2ba1d
+eig scaled n=33 vec=true budget=3	614b75fe37c979f2
+eig scaled n=34 vec=false budget=-1	9d3dc3ea494004aa
+eig scaled n=34 vec=false budget=3	614b75fe37c979f2
+eig scaled n=34 vec=true budget=-1	d9fcb044f948b7aa
+eig scaled n=34 vec=true budget=3	614b75fe37c979f2
+eig scaled n=35 vec=false budget=-1	49a5dd8bb75f9ab6
+eig scaled n=35 vec=false budget=3	614b75fe37c979f2
+eig scaled n=35 vec=true budget=-1	3d1cdae44a3023a2
+eig scaled n=35 vec=true budget=3	614b75fe37c979f2
+eig scaled n=36 vec=false budget=-1	61710de8daf1afb7
+eig scaled n=36 vec=false budget=3	614b75fe37c979f2
+eig scaled n=36 vec=true budget=-1	5f19ad61f8465eb6
+eig scaled n=36 vec=true budget=3	614b75fe37c979f2
+eig scaled n=37 vec=false budget=-1	63774cc631732725
+eig scaled n=37 vec=false budget=3	614b75fe37c979f2
+eig scaled n=37 vec=true budget=-1	46d50bdc863bc156
+eig scaled n=37 vec=true budget=3	614b75fe37c979f2
+eig scaled n=38 vec=false budget=-1	ac5cdbbbde719599
+eig scaled n=38 vec=false budget=3	614b75fe37c979f2
+eig scaled n=38 vec=true budget=-1	66e5bcbc4475f831
+eig scaled n=38 vec=true budget=3	614b75fe37c979f2
+eig scaled n=39 vec=false budget=-1	4805124c76e0acbf
+eig scaled n=39 vec=false budget=3	614b75fe37c979f2
+eig scaled n=39 vec=true budget=-1	73f4390fa97845ea
+eig scaled n=39 vec=true budget=3	614b75fe37c979f2
+eig scaled n=4 vec=false budget=-1	6ee913580ae4de4b
+eig scaled n=4 vec=false budget=3	614b75fe37c979f2
+eig scaled n=4 vec=true budget=-1	f8cdb537ede6de45
+eig scaled n=4 vec=true budget=3	614b75fe37c979f2
+eig scaled n=40 vec=false budget=-1	50b06217919d4cc4
+eig scaled n=40 vec=false budget=3	614b75fe37c979f2
+eig scaled n=40 vec=true budget=-1	61d38fcda1881a18
+eig scaled n=40 vec=true budget=3	614b75fe37c979f2
+eig scaled n=47 vec=false budget=-1	b5b3814206d2355a
+eig scaled n=47 vec=false budget=3	614b75fe37c979f2
+eig scaled n=47 vec=true budget=-1	8ea16f90a2d01c21
+eig scaled n=47 vec=true budget=3	614b75fe37c979f2
+eig scaled n=5 vec=false budget=-1	d4020e7ff6750df5
+eig scaled n=5 vec=false budget=3	614b75fe37c979f2
+eig scaled n=5 vec=true budget=-1	f59393ce5ba083ea
+eig scaled n=5 vec=true budget=3	614b75fe37c979f2
+eig scaled n=6 vec=false budget=-1	2030f651b5a8d9e1
+eig scaled n=6 vec=false budget=3	614b75fe37c979f2
+eig scaled n=6 vec=true budget=-1	22e8c37386044caf
+eig scaled n=6 vec=true budget=3	614b75fe37c979f2
+eig scaled n=64 vec=false budget=-1	1a4d464f116ee17b
+eig scaled n=64 vec=false budget=3	614b75fe37c979f2
+eig scaled n=64 vec=true budget=-1	5cb46b87eb508630
+eig scaled n=64 vec=true budget=3	614b75fe37c979f2
+eig scaled n=65 vec=false budget=-1	72b0b9b2855adc37
+eig scaled n=65 vec=false budget=3	614b75fe37c979f2
+eig scaled n=65 vec=true budget=-1	a057a5fafd4d3d3a
+eig scaled n=65 vec=true budget=3	614b75fe37c979f2
+eig scaled n=7 vec=false budget=-1	0c9f82a227c044dc
+eig scaled n=7 vec=false budget=3	614b75fe37c979f2
+eig scaled n=7 vec=true budget=-1	a0483df9b86ea90f
+eig scaled n=7 vec=true budget=3	614b75fe37c979f2
+eig scaled n=8 vec=false budget=-1	7123684e5b629183
+eig scaled n=8 vec=false budget=3	614b75fe37c979f2
+eig scaled n=8 vec=true budget=-1	2f6ddcf680d50156
+eig scaled n=8 vec=true budget=3	614b75fe37c979f2
+eig scaled n=9 vec=false budget=-1	d94299d88ad1a249
+eig scaled n=9 vec=false budget=3	614b75fe37c979f2
+eig scaled n=9 vec=true budget=-1	0c5c4687e0533ed9
+eig scaled n=9 vec=true budget=3	614b75fe37c979f2
+eig tiny n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig tiny n=0 vec=false budget=3	f3b31ef57291b2d2
+eig tiny n=0 vec=true budget=-1	99b747516dd44dc5
+eig tiny n=0 vec=true budget=3	99b747516dd44dc5
+eig tiny n=1 vec=false budget=-1	2f6d3fe7f2ae0098
+eig tiny n=1 vec=false budget=3	2f6d3fe7f2ae0098
+eig tiny n=1 vec=true budget=-1	f2c48f499b4ab0c4
+eig tiny n=1 vec=true budget=3	f2c48f499b4ab0c4
+eig tiny n=10 vec=false budget=-1	d43e77282801634f
+eig tiny n=10 vec=false budget=3	614b75fe37c979f2
+eig tiny n=10 vec=true budget=-1	74a9ac913bdf820b
+eig tiny n=10 vec=true budget=3	614b75fe37c979f2
+eig tiny n=11 vec=false budget=-1	55b7436021ada89a
+eig tiny n=11 vec=false budget=3	614b75fe37c979f2
+eig tiny n=11 vec=true budget=-1	e9b15a3303a2a1e9
+eig tiny n=11 vec=true budget=3	614b75fe37c979f2
+eig tiny n=12 vec=false budget=-1	01186b6bd17d9603
+eig tiny n=12 vec=false budget=3	614b75fe37c979f2
+eig tiny n=12 vec=true budget=-1	b410d0321ec39fef
+eig tiny n=12 vec=true budget=3	614b75fe37c979f2
+eig tiny n=13 vec=false budget=-1	ae142cd8b739682c
+eig tiny n=13 vec=false budget=3	614b75fe37c979f2
+eig tiny n=13 vec=true budget=-1	4b3534d7ee2a7e7f
+eig tiny n=13 vec=true budget=3	614b75fe37c979f2
+eig tiny n=14 vec=false budget=-1	17a51fa77c52799a
+eig tiny n=14 vec=false budget=3	614b75fe37c979f2
+eig tiny n=14 vec=true budget=-1	0aedb5570bdb03f1
+eig tiny n=14 vec=true budget=3	614b75fe37c979f2
+eig tiny n=15 vec=false budget=-1	632c88774682bea2
+eig tiny n=15 vec=false budget=3	614b75fe37c979f2
+eig tiny n=15 vec=true budget=-1	841fd5e8bbdec067
+eig tiny n=15 vec=true budget=3	614b75fe37c979f2
+eig tiny n=16 vec=false budget=-1	406fb4d9d30ebf21
+eig tiny n=16 vec=false budget=3	614b75fe37c979f2
+eig tiny n=16 vec=true budget=-1	ca490b411ce40873
+eig tiny n=16 vec=true budget=3	614b75fe37c979f2
+eig tiny n=17 vec=false budget=-1	b00765e6df3b616e
+eig tiny n=17 vec=false budget=3	614b75fe37c979f2
+eig tiny n=17 vec=true budget=-1	09fd5eaece3bd3db
+eig tiny n=17 vec=true budget=3	614b75fe37c979f2
+eig tiny n=18 vec=false budget=-1	8a6d21976adc1c44
+eig tiny n=18 vec=false budget=3	614b75fe37c979f2
+eig tiny n=18 vec=true budget=-1	3311e47ae1272cce
+eig tiny n=18 vec=true budget=3	614b75fe37c979f2
+eig tiny n=19 vec=false budget=-1	214c8a85224cd2b8
+eig tiny n=19 vec=false budget=3	614b75fe37c979f2
+eig tiny n=19 vec=true budget=-1	a1c0ed7b27d9140c
+eig tiny n=19 vec=true budget=3	614b75fe37c979f2
+eig tiny n=2 vec=false budget=-1	51150fc6e4b3ea92
+eig tiny n=2 vec=false budget=3	51150fc6e4b3ea92
+eig tiny n=2 vec=true budget=-1	09ef99757f7dedcd
+eig tiny n=2 vec=true budget=3	09ef99757f7dedcd
+eig tiny n=20 vec=false budget=-1	c7182d2469be4ec0
+eig tiny n=20 vec=false budget=3	614b75fe37c979f2
+eig tiny n=20 vec=true budget=-1	43f0eab197b9b778
+eig tiny n=20 vec=true budget=3	614b75fe37c979f2
+eig tiny n=21 vec=false budget=-1	b4afa616c94e908d
+eig tiny n=21 vec=false budget=3	614b75fe37c979f2
+eig tiny n=21 vec=true budget=-1	53d3de754f6d1243
+eig tiny n=21 vec=true budget=3	614b75fe37c979f2
+eig tiny n=22 vec=false budget=-1	4bffc5d9c3c5a44d
+eig tiny n=22 vec=false budget=3	614b75fe37c979f2
+eig tiny n=22 vec=true budget=-1	73a417dade56b35d
+eig tiny n=22 vec=true budget=3	614b75fe37c979f2
+eig tiny n=23 vec=false budget=-1	d270c6ef432dd147
+eig tiny n=23 vec=false budget=3	614b75fe37c979f2
+eig tiny n=23 vec=true budget=-1	2d2e26b7276e13fb
+eig tiny n=23 vec=true budget=3	614b75fe37c979f2
+eig tiny n=24 vec=false budget=-1	edfcf2c431c069cc
+eig tiny n=24 vec=false budget=3	614b75fe37c979f2
+eig tiny n=24 vec=true budget=-1	d34cbf526245c34c
+eig tiny n=24 vec=true budget=3	614b75fe37c979f2
+eig tiny n=25 vec=false budget=-1	c0fe65134da7be09
+eig tiny n=25 vec=false budget=3	614b75fe37c979f2
+eig tiny n=25 vec=true budget=-1	c5b75335d3c5f4bb
+eig tiny n=25 vec=true budget=3	614b75fe37c979f2
+eig tiny n=26 vec=false budget=-1	c4f8112b91b732f8
+eig tiny n=26 vec=false budget=3	614b75fe37c979f2
+eig tiny n=26 vec=true budget=-1	c3223825cca16b41
+eig tiny n=26 vec=true budget=3	614b75fe37c979f2
+eig tiny n=27 vec=false budget=-1	a83e0832854a5bf8
+eig tiny n=27 vec=false budget=3	614b75fe37c979f2
+eig tiny n=27 vec=true budget=-1	a7d57f2a78f3ee4d
+eig tiny n=27 vec=true budget=3	614b75fe37c979f2
+eig tiny n=28 vec=false budget=-1	d2136a2da537a7f9
+eig tiny n=28 vec=false budget=3	614b75fe37c979f2
+eig tiny n=28 vec=true budget=-1	606e133e27d60685
+eig tiny n=28 vec=true budget=3	614b75fe37c979f2
+eig tiny n=29 vec=false budget=-1	00fb17f1e683d2eb
+eig tiny n=29 vec=false budget=3	614b75fe37c979f2
+eig tiny n=29 vec=true budget=-1	e87f207be7179fe7
+eig tiny n=29 vec=true budget=3	614b75fe37c979f2
+eig tiny n=3 vec=false budget=-1	8914d9a7ff0c93b0
+eig tiny n=3 vec=false budget=3	614b75fe37c979f2
+eig tiny n=3 vec=true budget=-1	246ed402165c4dd0
+eig tiny n=3 vec=true budget=3	614b75fe37c979f2
+eig tiny n=30 vec=false budget=-1	943c9a7c9a6eae15
+eig tiny n=30 vec=false budget=3	614b75fe37c979f2
+eig tiny n=30 vec=true budget=-1	175d0f9ec6d55207
+eig tiny n=30 vec=true budget=3	614b75fe37c979f2
+eig tiny n=31 vec=false budget=-1	13b2de7ddd2199c1
+eig tiny n=31 vec=false budget=3	614b75fe37c979f2
+eig tiny n=31 vec=true budget=-1	7dd0e1b4bd618660
+eig tiny n=31 vec=true budget=3	614b75fe37c979f2
+eig tiny n=32 vec=false budget=-1	933eecb6184187af
+eig tiny n=32 vec=false budget=3	614b75fe37c979f2
+eig tiny n=32 vec=true budget=-1	8e80ca55a4a88484
+eig tiny n=32 vec=true budget=3	614b75fe37c979f2
+eig tiny n=33 vec=false budget=-1	9ce6357458807654
+eig tiny n=33 vec=false budget=3	614b75fe37c979f2
+eig tiny n=33 vec=true budget=-1	27ae8beb3aa913b7
+eig tiny n=33 vec=true budget=3	614b75fe37c979f2
+eig tiny n=34 vec=false budget=-1	8cbd28d0dafd9bdf
+eig tiny n=34 vec=false budget=3	614b75fe37c979f2
+eig tiny n=34 vec=true budget=-1	b920cc46bb4002ce
+eig tiny n=34 vec=true budget=3	614b75fe37c979f2
+eig tiny n=35 vec=false budget=-1	be6f688e38e386b5
+eig tiny n=35 vec=false budget=3	614b75fe37c979f2
+eig tiny n=35 vec=true budget=-1	0c8557bc2ceddd82
+eig tiny n=35 vec=true budget=3	614b75fe37c979f2
+eig tiny n=36 vec=false budget=-1	086e017a92a49abe
+eig tiny n=36 vec=false budget=3	614b75fe37c979f2
+eig tiny n=36 vec=true budget=-1	e655f5929018e8e3
+eig tiny n=36 vec=true budget=3	614b75fe37c979f2
+eig tiny n=37 vec=false budget=-1	45e20a9f81d5a74a
+eig tiny n=37 vec=false budget=3	614b75fe37c979f2
+eig tiny n=37 vec=true budget=-1	4caedb23b8b0bba3
+eig tiny n=37 vec=true budget=3	614b75fe37c979f2
+eig tiny n=38 vec=false budget=-1	7005ee18b1e7075c
+eig tiny n=38 vec=false budget=3	614b75fe37c979f2
+eig tiny n=38 vec=true budget=-1	c51a211924ac571c
+eig tiny n=38 vec=true budget=3	614b75fe37c979f2
+eig tiny n=39 vec=false budget=-1	82935dd4204fa0a6
+eig tiny n=39 vec=false budget=3	614b75fe37c979f2
+eig tiny n=39 vec=true budget=-1	039d6d96c1dfc2d7
+eig tiny n=39 vec=true budget=3	614b75fe37c979f2
+eig tiny n=4 vec=false budget=-1	0026f1eb1c84759d
+eig tiny n=4 vec=false budget=3	614b75fe37c979f2
+eig tiny n=4 vec=true budget=-1	75c9dc3a2d85b775
+eig tiny n=4 vec=true budget=3	614b75fe37c979f2
+eig tiny n=40 vec=false budget=-1	7d14532c0028a58a
+eig tiny n=40 vec=false budget=3	614b75fe37c979f2
+eig tiny n=40 vec=true budget=-1	274dea5ce32ccc3d
+eig tiny n=40 vec=true budget=3	614b75fe37c979f2
+eig tiny n=47 vec=false budget=-1	4d316a0c3bb5366c
+eig tiny n=47 vec=false budget=3	614b75fe37c979f2
+eig tiny n=47 vec=true budget=-1	1ebfd224e14db89e
+eig tiny n=47 vec=true budget=3	614b75fe37c979f2
+eig tiny n=5 vec=false budget=-1	dd43d4fd852bfd3e
+eig tiny n=5 vec=false budget=3	614b75fe37c979f2
+eig tiny n=5 vec=true budget=-1	1602ebcafcd825c2
+eig tiny n=5 vec=true budget=3	614b75fe37c979f2
+eig tiny n=6 vec=false budget=-1	ade7730e42c79a9e
+eig tiny n=6 vec=false budget=3	614b75fe37c979f2
+eig tiny n=6 vec=true budget=-1	09d974d8954adfd1
+eig tiny n=6 vec=true budget=3	614b75fe37c979f2
+eig tiny n=64 vec=false budget=-1	5817b7b09127e9af
+eig tiny n=64 vec=false budget=3	614b75fe37c979f2
+eig tiny n=64 vec=true budget=-1	22172e51cc0979a7
+eig tiny n=64 vec=true budget=3	614b75fe37c979f2
+eig tiny n=65 vec=false budget=-1	3ddd49eb21045f13
+eig tiny n=65 vec=false budget=3	614b75fe37c979f2
+eig tiny n=65 vec=true budget=-1	cef1e1621aa6b999
+eig tiny n=65 vec=true budget=3	614b75fe37c979f2
+eig tiny n=7 vec=false budget=-1	1c200bd5021cbfff
+eig tiny n=7 vec=false budget=3	614b75fe37c979f2
+eig tiny n=7 vec=true budget=-1	779a992f2d99eecd
+eig tiny n=7 vec=true budget=3	614b75fe37c979f2
+eig tiny n=8 vec=false budget=-1	12005d47c82fdb53
+eig tiny n=8 vec=false budget=3	614b75fe37c979f2
+eig tiny n=8 vec=true budget=-1	06307c853762830a
+eig tiny n=8 vec=true budget=3	614b75fe37c979f2
+eig tiny n=9 vec=false budget=-1	ba5ee29f0314f6f4
+eig tiny n=9 vec=false budget=3	614b75fe37c979f2
+eig tiny n=9 vec=true budget=-1	74ce03af0dbbd537
+eig tiny n=9 vec=true budget=3	614b75fe37c979f2
+eig upper n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig upper n=0 vec=false budget=3	f3b31ef57291b2d2
+eig upper n=0 vec=true budget=-1	99b747516dd44dc5
+eig upper n=0 vec=true budget=3	99b747516dd44dc5
+eig upper n=1 vec=false budget=-1	7dd70c4b661e13fd
+eig upper n=1 vec=false budget=3	7dd70c4b661e13fd
+eig upper n=1 vec=true budget=-1	5f7a5970b0e0d945
+eig upper n=1 vec=true budget=3	5f7a5970b0e0d945
+eig upper n=10 vec=false budget=-1	35ea5644c1f97ff3
+eig upper n=10 vec=false budget=3	35ea5644c1f97ff3
+eig upper n=10 vec=true budget=-1	16d63458fe41f373
+eig upper n=10 vec=true budget=3	16d63458fe41f373
+eig upper n=11 vec=false budget=-1	e531a5170a517ca2
+eig upper n=11 vec=false budget=3	e531a5170a517ca2
+eig upper n=11 vec=true budget=-1	25be8edc52c2b4cc
+eig upper n=11 vec=true budget=3	25be8edc52c2b4cc
+eig upper n=12 vec=false budget=-1	41b06cf711d73741
+eig upper n=12 vec=false budget=3	41b06cf711d73741
+eig upper n=12 vec=true budget=-1	ed35d8c156f030ee
+eig upper n=12 vec=true budget=3	ed35d8c156f030ee
+eig upper n=13 vec=false budget=-1	2c5637fe3619b5fb
+eig upper n=13 vec=false budget=3	2c5637fe3619b5fb
+eig upper n=13 vec=true budget=-1	8993534da2da255d
+eig upper n=13 vec=true budget=3	8993534da2da255d
+eig upper n=14 vec=false budget=-1	87b6e2d3992cd1ab
+eig upper n=14 vec=false budget=3	87b6e2d3992cd1ab
+eig upper n=14 vec=true budget=-1	c688e3aae81f1193
+eig upper n=14 vec=true budget=3	c688e3aae81f1193
+eig upper n=15 vec=false budget=-1	9f13d23469d61b2c
+eig upper n=15 vec=false budget=3	9f13d23469d61b2c
+eig upper n=15 vec=true budget=-1	d2cff4d767071e0d
+eig upper n=15 vec=true budget=3	d2cff4d767071e0d
+eig upper n=16 vec=false budget=-1	9d863697c6ffccd5
+eig upper n=16 vec=false budget=3	9d863697c6ffccd5
+eig upper n=16 vec=true budget=-1	1bf447d56504197c
+eig upper n=16 vec=true budget=3	1bf447d56504197c
+eig upper n=17 vec=false budget=-1	e94ae0c75d51b63d
+eig upper n=17 vec=false budget=3	e94ae0c75d51b63d
+eig upper n=17 vec=true budget=-1	610901e4b08cdf76
+eig upper n=17 vec=true budget=3	610901e4b08cdf76
+eig upper n=18 vec=false budget=-1	e97cad347bf0e63b
+eig upper n=18 vec=false budget=3	e97cad347bf0e63b
+eig upper n=18 vec=true budget=-1	9a75f1d21bbea28b
+eig upper n=18 vec=true budget=3	9a75f1d21bbea28b
+eig upper n=19 vec=false budget=-1	c52a618edd00c71e
+eig upper n=19 vec=false budget=3	c52a618edd00c71e
+eig upper n=19 vec=true budget=-1	412920036cce0c06
+eig upper n=19 vec=true budget=3	412920036cce0c06
+eig upper n=2 vec=false budget=-1	458f4394bccffd99
+eig upper n=2 vec=false budget=3	458f4394bccffd99
+eig upper n=2 vec=true budget=-1	8f1c1ddd1a348dd5
+eig upper n=2 vec=true budget=3	8f1c1ddd1a348dd5
+eig upper n=20 vec=false budget=-1	dfa0424b9ff26251
+eig upper n=20 vec=false budget=3	dfa0424b9ff26251
+eig upper n=20 vec=true budget=-1	08368bebb1082570
+eig upper n=20 vec=true budget=3	08368bebb1082570
+eig upper n=21 vec=false budget=-1	db115802b4f16e5f
+eig upper n=21 vec=false budget=3	db115802b4f16e5f
+eig upper n=21 vec=true budget=-1	c4c51117cb9fe929
+eig upper n=21 vec=true budget=3	c4c51117cb9fe929
+eig upper n=22 vec=false budget=-1	da5eb926055e4723
+eig upper n=22 vec=false budget=3	da5eb926055e4723
+eig upper n=22 vec=true budget=-1	2fe6cb6b1da7bf29
+eig upper n=22 vec=true budget=3	2fe6cb6b1da7bf29
+eig upper n=23 vec=false budget=-1	a6bf08029989b953
+eig upper n=23 vec=false budget=3	a6bf08029989b953
+eig upper n=23 vec=true budget=-1	1b17b7e712084723
+eig upper n=23 vec=true budget=3	1b17b7e712084723
+eig upper n=24 vec=false budget=-1	2d0f72a8ac239d0c
+eig upper n=24 vec=false budget=3	2d0f72a8ac239d0c
+eig upper n=24 vec=true budget=-1	4a254625ac081049
+eig upper n=24 vec=true budget=3	4a254625ac081049
+eig upper n=25 vec=false budget=-1	76cee231926fed82
+eig upper n=25 vec=false budget=3	76cee231926fed82
+eig upper n=25 vec=true budget=-1	8f361ae0cff1f61a
+eig upper n=25 vec=true budget=3	8f361ae0cff1f61a
+eig upper n=26 vec=false budget=-1	5210f84803b11953
+eig upper n=26 vec=false budget=3	5210f84803b11953
+eig upper n=26 vec=true budget=-1	b3fa8f88f6ca4147
+eig upper n=26 vec=true budget=3	b3fa8f88f6ca4147
+eig upper n=27 vec=false budget=-1	f5134499bd74191e
+eig upper n=27 vec=false budget=3	f5134499bd74191e
+eig upper n=27 vec=true budget=-1	640dc4da6915f91f
+eig upper n=27 vec=true budget=3	640dc4da6915f91f
+eig upper n=28 vec=false budget=-1	4d5ea11adc6211be
+eig upper n=28 vec=false budget=3	4d5ea11adc6211be
+eig upper n=28 vec=true budget=-1	b82771227f880124
+eig upper n=28 vec=true budget=3	b82771227f880124
+eig upper n=29 vec=false budget=-1	65381888d048b945
+eig upper n=29 vec=false budget=3	65381888d048b945
+eig upper n=29 vec=true budget=-1	649d01dbf431b478
+eig upper n=29 vec=true budget=3	649d01dbf431b478
+eig upper n=3 vec=false budget=-1	40a5cea8f80ae10d
+eig upper n=3 vec=false budget=3	40a5cea8f80ae10d
+eig upper n=3 vec=true budget=-1	f993a1600f9c4937
+eig upper n=3 vec=true budget=3	f993a1600f9c4937
+eig upper n=30 vec=false budget=-1	ac8ea97a3e3b923f
+eig upper n=30 vec=false budget=3	ac8ea97a3e3b923f
+eig upper n=30 vec=true budget=-1	9a2092ff5262c98d
+eig upper n=30 vec=true budget=3	9a2092ff5262c98d
+eig upper n=31 vec=false budget=-1	40b2726b458f8459
+eig upper n=31 vec=false budget=3	40b2726b458f8459
+eig upper n=31 vec=true budget=-1	83c92effb2984e94
+eig upper n=31 vec=true budget=3	83c92effb2984e94
+eig upper n=32 vec=false budget=-1	1807fd9306c538f0
+eig upper n=32 vec=false budget=3	1807fd9306c538f0
+eig upper n=32 vec=true budget=-1	f2279a61a28f9b3b
+eig upper n=32 vec=true budget=3	f2279a61a28f9b3b
+eig upper n=33 vec=false budget=-1	840343b6694bea98
+eig upper n=33 vec=false budget=3	840343b6694bea98
+eig upper n=33 vec=true budget=-1	30c01fd3936afcd1
+eig upper n=33 vec=true budget=3	30c01fd3936afcd1
+eig upper n=34 vec=false budget=-1	5d993e4b4f1daecf
+eig upper n=34 vec=false budget=3	5d993e4b4f1daecf
+eig upper n=34 vec=true budget=-1	60085626bc5c3028
+eig upper n=34 vec=true budget=3	60085626bc5c3028
+eig upper n=35 vec=false budget=-1	c0e8bba822733fac
+eig upper n=35 vec=false budget=3	c0e8bba822733fac
+eig upper n=35 vec=true budget=-1	bbf00226a2cb315c
+eig upper n=35 vec=true budget=3	bbf00226a2cb315c
+eig upper n=36 vec=false budget=-1	02873a9c075aa15e
+eig upper n=36 vec=false budget=3	02873a9c075aa15e
+eig upper n=36 vec=true budget=-1	850f402edb16778a
+eig upper n=36 vec=true budget=3	850f402edb16778a
+eig upper n=37 vec=false budget=-1	415b35d9ef7f54cb
+eig upper n=37 vec=false budget=3	415b35d9ef7f54cb
+eig upper n=37 vec=true budget=-1	df5905a421c4a5dc
+eig upper n=37 vec=true budget=3	df5905a421c4a5dc
+eig upper n=38 vec=false budget=-1	e2004f132b727663
+eig upper n=38 vec=false budget=3	e2004f132b727663
+eig upper n=38 vec=true budget=-1	eef4b6b4e1ece20b
+eig upper n=38 vec=true budget=3	eef4b6b4e1ece20b
+eig upper n=39 vec=false budget=-1	d82e095fb3ea0917
+eig upper n=39 vec=false budget=3	d82e095fb3ea0917
+eig upper n=39 vec=true budget=-1	ed8ff924b08bc526
+eig upper n=39 vec=true budget=3	ed8ff924b08bc526
+eig upper n=4 vec=false budget=-1	b2fef27cbb6b527d
+eig upper n=4 vec=false budget=3	b2fef27cbb6b527d
+eig upper n=4 vec=true budget=-1	627a1cd2ea415f17
+eig upper n=4 vec=true budget=3	627a1cd2ea415f17
+eig upper n=40 vec=false budget=-1	b8d6729db1fbab2c
+eig upper n=40 vec=false budget=3	b8d6729db1fbab2c
+eig upper n=40 vec=true budget=-1	fece3391833d22b5
+eig upper n=40 vec=true budget=3	fece3391833d22b5
+eig upper n=47 vec=false budget=-1	3f33942b7054a2e2
+eig upper n=47 vec=false budget=3	3f33942b7054a2e2
+eig upper n=47 vec=true budget=-1	ef8dec82b4aca784
+eig upper n=47 vec=true budget=3	ef8dec82b4aca784
+eig upper n=5 vec=false budget=-1	384b729d8fdbfbff
+eig upper n=5 vec=false budget=3	384b729d8fdbfbff
+eig upper n=5 vec=true budget=-1	d1539c00c5209adf
+eig upper n=5 vec=true budget=3	d1539c00c5209adf
+eig upper n=6 vec=false budget=-1	62b67b3bdd0cdfe3
+eig upper n=6 vec=false budget=3	62b67b3bdd0cdfe3
+eig upper n=6 vec=true budget=-1	0deaf3dfd457fc3d
+eig upper n=6 vec=true budget=3	0deaf3dfd457fc3d
+eig upper n=64 vec=false budget=-1	eb1902828f990cb5
+eig upper n=64 vec=false budget=3	eb1902828f990cb5
+eig upper n=64 vec=true budget=-1	78ad4ef1f8679e9a
+eig upper n=64 vec=true budget=3	78ad4ef1f8679e9a
+eig upper n=65 vec=false budget=-1	6980e34443a1973d
+eig upper n=65 vec=false budget=3	6980e34443a1973d
+eig upper n=65 vec=true budget=-1	7cc417bf0789f369
+eig upper n=65 vec=true budget=3	7cc417bf0789f369
+eig upper n=7 vec=false budget=-1	8ed106aba60dfbde
+eig upper n=7 vec=false budget=3	8ed106aba60dfbde
+eig upper n=7 vec=true budget=-1	12c44a9313d93732
+eig upper n=7 vec=true budget=3	12c44a9313d93732
+eig upper n=8 vec=false budget=-1	228c4a928588b0e0
+eig upper n=8 vec=false budget=3	228c4a928588b0e0
+eig upper n=8 vec=true budget=-1	0062ecfcc5520350
+eig upper n=8 vec=true budget=3	0062ecfcc5520350
+eig upper n=9 vec=false budget=-1	214c9f4a01961583
+eig upper n=9 vec=false budget=3	214c9f4a01961583
+eig upper n=9 vec=true budget=-1	5e9476c601867503
+eig upper n=9 vec=true budget=3	5e9476c601867503
+eig zero n=0 vec=false budget=-1	f3b31ef57291b2d2
+eig zero n=0 vec=false budget=3	f3b31ef57291b2d2
+eig zero n=0 vec=true budget=-1	99b747516dd44dc5
+eig zero n=0 vec=true budget=3	99b747516dd44dc5
+eig zero n=1 vec=false budget=-1	08013e477c937c12
+eig zero n=1 vec=false budget=3	08013e477c937c12
+eig zero n=1 vec=true budget=-1	8b29407d28ee656a
+eig zero n=1 vec=true budget=3	8b29407d28ee656a
+eig zero n=10 vec=false budget=-1	3580fd08b643c092
+eig zero n=10 vec=false budget=3	3580fd08b643c092
+eig zero n=10 vec=true budget=-1	bd9672d2f7fcb425
+eig zero n=10 vec=true budget=3	bd9672d2f7fcb425
+eig zero n=11 vec=false budget=-1	73a9d3d5e5dc7bd2
+eig zero n=11 vec=false budget=3	73a9d3d5e5dc7bd2
+eig zero n=11 vec=true budget=-1	189ab1a8985af5ea
+eig zero n=11 vec=true budget=3	189ab1a8985af5ea
+eig zero n=12 vec=false budget=-1	2364b867a8139c52
+eig zero n=12 vec=false budget=3	2364b867a8139c52
+eig zero n=12 vec=true budget=-1	d1ac330fdaad1c85
+eig zero n=12 vec=true budget=3	d1ac330fdaad1c85
+eig zero n=13 vec=false budget=-1	8477df1dba476392
+eig zero n=13 vec=false budget=3	8477df1dba476392
+eig zero n=13 vec=true budget=-1	ba42ef3b63b3b4ea
+eig zero n=13 vec=true budget=3	ba42ef3b63b3b4ea
+eig zero n=14 vec=false budget=-1	e2cb8a48c4692512
+eig zero n=14 vec=false budget=3	e2cb8a48c4692512
+eig zero n=14 vec=true budget=-1	02c48f9f2831ef65
+eig zero n=14 vec=true budget=3	02c48f9f2831ef65
+eig zero n=15 vec=false budget=-1	2cc7373522a46852
+eig zero n=15 vec=false budget=3	2cc7373522a46852
+eig zero n=15 vec=true budget=-1	8e8a346aa027a16a
+eig zero n=15 vec=true budget=3	8e8a346aa027a16a
+eig zero n=16 vec=false budget=-1	d744c9396e0560d2
+eig zero n=16 vec=false budget=3	d744c9396e0560d2
+eig zero n=16 vec=true budget=-1	f74a0d04615282c5
+eig zero n=16 vec=true budget=3	f74a0d04615282c5
+eig zero n=17 vec=false budget=-1	c8e0ca99b692d612
+eig zero n=17 vec=false budget=3	c8e0ca99b692d612
+eig zero n=17 vec=true budget=-1	1745ce3a9116176a
+eig zero n=17 vec=true budget=3	1745ce3a9116176a
+eig zero n=18 vec=false budget=-1	00404998dad8ef92
+eig zero n=18 vec=false budget=3	00404998dad8ef92
+eig zero n=18 vec=true budget=-1	77b35cfa0a6daaa5
+eig zero n=18 vec=true budget=3	77b35cfa0a6daaa5
+eig zero n=19 vec=false budget=-1	7d50c2db062340d2
+eig zero n=19 vec=false budget=3	7d50c2db062340d2
+eig zero n=19 vec=true budget=-1	21d65737ca27d6ea
+eig zero n=19 vec=true budget=3	21d65737ca27d6ea
+eig zero n=2 vec=false budget=-1	58fb834f99b9c192
+eig zero n=2 vec=false budget=3	58fb834f99b9c192
+eig zero n=2 vec=true budget=-1	115e3691550239a5
+eig zero n=2 vec=true budget=3	115e3691550239a5
+eig zero n=20 vec=false budget=-1	0aa51cc8795b0b52
+eig zero n=20 vec=false budget=3	0aa51cc8795b0b52
+eig zero n=20 vec=true budget=-1	6e07735914046705
+eig zero n=20 vec=true budget=3	6e07735914046705
+eig zero n=21 vec=false budget=-1	3ec96ba1d9b6a892
+eig zero n=21 vec=false budget=3	3ec96ba1d9b6a892
+eig zero n=21 vec=true budget=-1	f8fbad9bdbb11dea
+eig zero n=21 vec=true budget=3	f8fbad9bdbb11dea
+eig zero n=22 vec=false budget=-1	688991d2cac65412
+eig zero n=22 vec=false budget=3	688991d2cac65412
+eig zero n=22 vec=true budget=-1	8f4d7ce034cb61e5
+eig zero n=22 vec=true budget=3	8f4d7ce034cb61e5
+eig zero n=23 vec=false budget=-1	724f89db369fad52
+eig zero n=23 vec=false budget=3	724f89db369fad52
+eig zero n=23 vec=true budget=-1	03c83c7211d4526a
+eig zero n=23 vec=true budget=3	03c83c7211d4526a
+eig zero n=24 vec=false budget=-1	ce65d1ddb87cffd2
+eig zero n=24 vec=false budget=3	ce65d1ddb87cffd2
+eig zero n=24 vec=true budget=-1	320b0ba3eb1d3945
+eig zero n=24 vec=true budget=3	320b0ba3eb1d3945
+eig zero n=25 vec=false budget=-1	50b480610530cb12
+eig zero n=25 vec=false budget=3	50b480610530cb12
+eig zero n=25 vec=true budget=-1	253970bebf076c6a
+eig zero n=25 vec=true budget=3	253970bebf076c6a
+eig zero n=26 vec=false budget=-1	dab583e4a0d14e92
+eig zero n=26 vec=false budget=3	dab583e4a0d14e92
+eig zero n=26 vec=true budget=-1	b100657177a87525
+eig zero n=26 vec=true budget=3	b100657177a87525
+eig zero n=27 vec=false budget=-1	941e5326a83835d2
+eig zero n=27 vec=false budget=3	941e5326a83835d2
+eig zero n=27 vec=true budget=-1	82ee27ebb9835fea
+eig zero n=27 vec=true budget=3	82ee27ebb9835fea
+eig zero n=28 vec=false budget=-1	8c48b5a7f877aa52
+eig zero n=28 vec=false budget=3	8c48b5a7f877aa52
+eig zero n=28 vec=true budget=-1	f2bb1b8fecd19985
+eig zero n=28 vec=true budget=3	f2bb1b8fecd19985
+eig zero n=29 vec=false budget=-1	dbb828d3bde61d92
+eig zero n=29 vec=false budget=3	dbb828d3bde61d92
+eig zero n=29 vec=true budget=-1	71eba593f3a02eea
+eig zero n=29 vec=true budget=3	71eba593f3a02eea
+eig zero n=3 vec=false budget=-1	1b1851ed4a0be6d2
+eig zero n=3 vec=false budget=3	1b1851ed4a0be6d2
+eig zero n=3 vec=true budget=-1	14254b458b38bcea
+eig zero n=3 vec=true budget=3	14254b458b38bcea
+eig zero n=30 vec=false budget=-1	90709c6a4b6ab312
+eig zero n=30 vec=false budget=3	90709c6a4b6ab312
+eig zero n=30 vec=true budget=-1	b5f80e6f46daa865
+eig zero n=30 vec=true budget=3	b5f80e6f46daa865
+eig zero n=31 vec=false budget=-1	9fd9777de24d2252
+eig zero n=31 vec=false budget=3	9fd9777de24d2252
+eig zero n=31 vec=true budget=-1	16bc50f0d255ab6a
+eig zero n=31 vec=true budget=3	16bc50f0d255ab6a
+eig zero n=32 vec=false budget=-1	74b463dd2c5ab6d2
+eig zero n=32 vec=false budget=3	74b463dd2c5ab6d2
+eig zero n=32 vec=true budget=-1	d8ff6ba147d0ac85
+eig zero n=32 vec=true budget=3	d8ff6ba147d0ac85
+eig zero n=33 vec=false budget=-1	8b99b52b3376c012
+eig zero n=33 vec=false budget=3	8b99b52b3376c012
+eig zero n=33 vec=true budget=-1	c1f49c14ad7e396a
+eig zero n=33 vec=true budget=3	c1f49c14ad7e396a
+eig zero n=34 vec=false budget=-1	8aa18c36e3769592
+eig zero n=34 vec=false budget=3	8aa18c36e3769592
+eig zero n=34 vec=true budget=-1	f83d42e01f1c2665
+eig zero n=34 vec=true budget=3	f83d42e01f1c2665
+eig zero n=35 vec=false budget=-1	4b95da48f169fad2
+eig zero n=35 vec=false budget=3	4b95da48f169fad2
+eig zero n=35 vec=true budget=-1	7da66b6c442430ea
+eig zero n=35 vec=true budget=3	7da66b6c442430ea
+eig zero n=36 vec=false budget=-1	efe82d8e61a40152
+eig zero n=36 vec=false budget=3	efe82d8e61a40152
+eig zero n=36 vec=true budget=-1	653b32b428ec88c5
+eig zero n=36 vec=true budget=3	653b32b428ec88c5
+eig zero n=37 vec=false budget=-1	cc42ce2cd0433292
+eig zero n=37 vec=false budget=3	cc42ce2cd0433292
+eig zero n=37 vec=true budget=-1	4f518d7cb50457ea
+eig zero n=37 vec=true budget=3	4f518d7cb50457ea
+eig zero n=38 vec=false budget=-1	1ee6e67a789d9a12
+eig zero n=38 vec=false budget=3	1ee6e67a789d9a12
+eig zero n=38 vec=true budget=-1	1609e6a5bf5e8ba5
+eig zero n=38 vec=true budget=3	1609e6a5bf5e8ba5
+eig zero n=39 vec=false budget=-1	8d5f60f79dd50752
+eig zero n=39 vec=false budget=3	8d5f60f79dd50752
+eig zero n=39 vec=true budget=-1	26804e0fb997ec6a
+eig zero n=39 vec=true budget=3	26804e0fb997ec6a
+eig zero n=4 vec=false budget=-1	3f1dd7e917495d52
+eig zero n=4 vec=false budget=3	3f1dd7e917495d52
+eig zero n=4 vec=true budget=-1	0f307c8603aa3a05
+eig zero n=4 vec=true budget=3	0f307c8603aa3a05
+eig zero n=40 vec=false budget=-1	44437cb284b7f5d2
+eig zero n=40 vec=false budget=3	44437cb284b7f5d2
+eig zero n=40 vec=true budget=-1	66abb8802d8af305
+eig zero n=40 vec=true budget=3	66abb8802d8af305
+eig zero n=47 vec=false budget=-1	2f147db499f21c52
+eig zero n=47 vec=false budget=3	2f147db499f21c52
+eig zero n=47 vec=true budget=-1	9182a9253889d56a
+eig zero n=47 vec=true budget=3	9182a9253889d56a
+eig zero n=5 vec=false budget=-1	ce25ee0fce404e92
+eig zero n=5 vec=false budget=3	ce25ee0fce404e92
+eig zero n=5 vec=true budget=-1	ba93d7f8def3f3ea
+eig zero n=5 vec=true budget=3	ba93d7f8def3f3ea
+eig zero n=6 vec=false budget=-1	9dd4c6e976fb2612
+eig zero n=6 vec=false budget=3	9dd4c6e976fb2612
+eig zero n=6 vec=true budget=-1	23078bf085fef8e5
+eig zero n=6 vec=true budget=3	23078bf085fef8e5
+eig zero n=64 vec=false budget=-1	84da5212dc49b152
+eig zero n=64 vec=false budget=3	84da5212dc49b152
+eig zero n=64 vec=true budget=-1	79874f3fe4a03ec5
+eig zero n=64 vec=true budget=3	79874f3fe4a03ec5
+eig zero n=65 vec=false budget=-1	6cf122b95ccfca92
+eig zero n=65 vec=false budget=3	6cf122b95ccfca92
+eig zero n=65 vec=true budget=-1	eef5407eeab1cd6a
+eig zero n=65 vec=true budget=3	eef5407eeab1cd6a
+eig zero n=7 vec=false budget=-1	b064681801035352
+eig zero n=7 vec=false budget=3	b064681801035352
+eig zero n=7 vec=true budget=-1	e7e9a64298cb986a
+eig zero n=7 vec=true budget=3	e7e9a64298cb986a
+eig zero n=8 vec=false budget=-1	8a6c70d5187ef1d2
+eig zero n=8 vec=false budget=3	8a6c70d5187ef1d2
+eig zero n=8 vec=true budget=-1	2d1b30ba6b68b445
+eig zero n=8 vec=true budget=3	2d1b30ba6b68b445
+eig zero n=9 vec=false budget=-1	332e8354d6d11112
+eig zero n=9 vec=false budget=3	332e8354d6d11112
+eig zero n=9 vec=true budget=-1	df992bbb98b46a6a
+eig zero n=9 vec=true budget=3	df992bbb98b46a6a
+hessenberg companion n=1 wantQ=false	e31653c01868868a
+hessenberg companion n=1 wantQ=true	7aa304610d70f832
+hessenberg companion n=10 wantQ=false	c9eb40007929c242
+hessenberg companion n=10 wantQ=true	f8345b59976190d5
+hessenberg companion n=11 wantQ=false	7888a463af1277e7
+hessenberg companion n=11 wantQ=true	17527155fabfb25b
+hessenberg companion n=12 wantQ=false	cdd661199cb8679a
+hessenberg companion n=12 wantQ=true	11a5aecd86c94b8d
+hessenberg companion n=13 wantQ=false	e2071396f4938edc
+hessenberg companion n=13 wantQ=true	c6691b61bf9371c0
+hessenberg companion n=14 wantQ=false	381bc1cf04749208
+hessenberg companion n=14 wantQ=true	a7bfb55059828d3b
+hessenberg companion n=15 wantQ=false	1497ec01912ce3d1
+hessenberg companion n=15 wantQ=true	ca10964112bc5bb1
+hessenberg companion n=16 wantQ=false	055cfe2272d547f1
+hessenberg companion n=16 wantQ=true	32fa31e9b75332be
+hessenberg companion n=17 wantQ=false	602d5833ac4554af
+hessenberg companion n=17 wantQ=true	b8988addec170873
+hessenberg companion n=18 wantQ=false	96528d57b9ce232b
+hessenberg companion n=18 wantQ=true	81f09469ea3ff378
+hessenberg companion n=19 wantQ=false	49b6b6cea7b8f4f9
+hessenberg companion n=19 wantQ=true	336d1ff6762e2a49
+hessenberg companion n=2 wantQ=false	7e9c363bdd25aa1a
+hessenberg companion n=2 wantQ=true	26e033eebce7944d
+hessenberg companion n=20 wantQ=false	c9c2b58102cda115
+hessenberg companion n=20 wantQ=true	87f72d9281403b62
+hessenberg companion n=21 wantQ=false	770409a4235ee40f
+hessenberg companion n=21 wantQ=true	cf53413a59653f13
+hessenberg companion n=22 wantQ=false	a352695413bebede
+hessenberg companion n=22 wantQ=true	eca888f283b4c291
+hessenberg companion n=23 wantQ=false	332cf99512f7a89f
+hessenberg companion n=23 wantQ=true	29362177c61f0003
+hessenberg companion n=24 wantQ=false	116112e31f989762
+hessenberg companion n=24 wantQ=true	ee406957ad14c8d5
+hessenberg companion n=25 wantQ=false	89912302ac1db14b
+hessenberg companion n=25 wantQ=true	4c6a41d55cb4e837
+hessenberg companion n=26 wantQ=false	be74a2ee026420a1
+hessenberg companion n=26 wantQ=true	d9adaea4859dea6e
+hessenberg companion n=27 wantQ=false	18e36dbd76968418
+hessenberg companion n=27 wantQ=true	0058ba3ead7be8a4
+hessenberg companion n=28 wantQ=false	7fcc4935730ad014
+hessenberg companion n=28 wantQ=true	e99451af90a44c87
+hessenberg companion n=29 wantQ=false	dee771f3caf24a39
+hessenberg companion n=29 wantQ=true	a683b6304d88e9e9
+hessenberg companion n=3 wantQ=false	4f8ca0a20c11dd87
+hessenberg companion n=3 wantQ=true	620c49963122f3fb
+hessenberg companion n=30 wantQ=false	68097a1de9c27000
+hessenberg companion n=30 wantQ=true	3b622447e0e068b3
+hessenberg companion n=31 wantQ=false	dcc8f91f57da7499
+hessenberg companion n=31 wantQ=true	eba1574f87bb9e29
+hessenberg companion n=32 wantQ=false	d8dbf046099755a9
+hessenberg companion n=32 wantQ=true	9610483cd3a36376
+hessenberg companion n=33 wantQ=false	5190e508aa12f57b
+hessenberg companion n=33 wantQ=true	5c8be2f5aa4ccaa7
+hessenberg companion n=34 wantQ=false	9c825b113e471ae5
+hessenberg companion n=34 wantQ=true	7619c3c379643d32
+hessenberg companion n=35 wantQ=false	6a77843b729cf346
+hessenberg companion n=35 wantQ=true	834a388ae37dfe76
+hessenberg companion n=36 wantQ=false	0f501769a9c99d36
+hessenberg companion n=36 wantQ=true	73cf174bc4bbb6e9
+hessenberg companion n=37 wantQ=false	20e29587310fb161
+hessenberg companion n=37 wantQ=true	4ea4724af51e3821
+hessenberg companion n=38 wantQ=false	50cc9ef15e90a687
+hessenberg companion n=38 wantQ=true	935badcd92e61454
+hessenberg companion n=39 wantQ=false	ffdb6a53613295e3
+hessenberg companion n=39 wantQ=true	541f831880469bdf
+hessenberg companion n=4 wantQ=false	2fdcc0ebb5182a07
+hessenberg companion n=4 wantQ=true	90b95bc222f215d4
+hessenberg companion n=40 wantQ=false	8e034d4b48e2218b
+hessenberg companion n=40 wantQ=true	18dacd655f592ad8
+hessenberg companion n=47 wantQ=false	9512402cbe3597a7
+hessenberg companion n=47 wantQ=true	99d6e804615b701b
+hessenberg companion n=5 wantQ=false	050f783053db1ea3
+hessenberg companion n=5 wantQ=true	4320cb572e163c7f
+hessenberg companion n=6 wantQ=false	9508368f645fe24e
+hessenberg companion n=6 wantQ=true	d616b25afa27ca01
+hessenberg companion n=64 wantQ=false	c976520469d29c6f
+hessenberg companion n=64 wantQ=true	fa0498600f867cbc
+hessenberg companion n=65 wantQ=false	3350568b82662a6b
+hessenberg companion n=65 wantQ=true	13ee0f7641b337d7
+hessenberg companion n=7 wantQ=false	d2dd3dec89794416
+hessenberg companion n=7 wantQ=true	65a24db9ac937806
+hessenberg companion n=8 wantQ=false	dfe9268931927d86
+hessenberg companion n=8 wantQ=true	f331b582932bc579
+hessenberg companion n=9 wantQ=false	bc7ed6c21f93d0ba
+hessenberg companion n=9 wantQ=true	a23a7c27ec85e0e2
+hessenberg gauss n=1 s=0 wantQ=false	8ffd7435c697afb3
+hessenberg gauss n=1 s=0 wantQ=true	33c0aa14678a6d4f
+hessenberg gauss n=1 s=1 wantQ=false	ccee2fda2e373af0
+hessenberg gauss n=1 s=1 wantQ=true	87b0d2a316aa8b6c
+hessenberg gauss n=1 s=2 wantQ=false	ffeb46de141a5e54
+hessenberg gauss n=1 s=2 wantQ=true	4f886111ae2402a8
+hessenberg gauss n=1 s=3 wantQ=false	71461ce1630026c3
+hessenberg gauss n=1 s=3 wantQ=true	09042a3f1f09f85f
+hessenberg gauss n=10 s=0 wantQ=false	b74ec0e11fc6ee50
+hessenberg gauss n=10 s=0 wantQ=true	8ada3ac88677f000
+hessenberg gauss n=10 s=1 wantQ=false	8a281d074f0604d7
+hessenberg gauss n=10 s=1 wantQ=true	b3a7c76277e65569
+hessenberg gauss n=10 s=2 wantQ=false	ad03e34882fd485c
+hessenberg gauss n=10 s=2 wantQ=true	b496d71e0036942d
+hessenberg gauss n=10 s=3 wantQ=false	e44a22c1e6b9cd79
+hessenberg gauss n=10 s=3 wantQ=true	4b571052f574d1e6
+hessenberg gauss n=11 s=0 wantQ=false	d966a61715c0f852
+hessenberg gauss n=11 s=0 wantQ=true	978402f790a05f1f
+hessenberg gauss n=11 s=1 wantQ=false	e29b497c3ce6e52c
+hessenberg gauss n=11 s=1 wantQ=true	bf20807ea2563899
+hessenberg gauss n=11 s=2 wantQ=false	fd375a257989bd54
+hessenberg gauss n=11 s=2 wantQ=true	293158cc8f628720
+hessenberg gauss n=11 s=3 wantQ=false	6e3bcbea2cf91d6f
+hessenberg gauss n=11 s=3 wantQ=true	39fad5a74343648a
+hessenberg gauss n=12 s=0 wantQ=false	33c8e8738054979a
+hessenberg gauss n=12 s=0 wantQ=true	2ae6540f19fe6a17
+hessenberg gauss n=12 s=1 wantQ=false	4a3388e157c9c908
+hessenberg gauss n=12 s=1 wantQ=true	8bf2bcc9042d44e7
+hessenberg gauss n=12 s=2 wantQ=false	9afe511125078542
+hessenberg gauss n=12 s=2 wantQ=true	f50c2b248181d796
+hessenberg gauss n=12 s=3 wantQ=false	2ef1cfc6ea4720ab
+hessenberg gauss n=12 s=3 wantQ=true	ad7fd9a3636075b9
+hessenberg gauss n=13 s=0 wantQ=false	72e0df6bde735d60
+hessenberg gauss n=13 s=0 wantQ=true	b0dcacaef6f59862
+hessenberg gauss n=13 s=1 wantQ=false	756320e965711dc8
+hessenberg gauss n=13 s=1 wantQ=true	fc6383973b5d8e03
+hessenberg gauss n=13 s=2 wantQ=false	f4f5df3b95cf8156
+hessenberg gauss n=13 s=2 wantQ=true	9c898f670d7eadcf
+hessenberg gauss n=13 s=3 wantQ=false	586e1dd6b8b3c04d
+hessenberg gauss n=13 s=3 wantQ=true	602a65dd126e656b
+hessenberg gauss n=14 s=0 wantQ=false	d1b4e0b47763fafb
+hessenberg gauss n=14 s=0 wantQ=true	ac0ad959e75b93fa
+hessenberg gauss n=14 s=1 wantQ=false	ea2d41a04973405c
+hessenberg gauss n=14 s=1 wantQ=true	81b9d3d38e9f43c5
+hessenberg gauss n=14 s=2 wantQ=false	a39cf5dd3654d4bd
+hessenberg gauss n=14 s=2 wantQ=true	7ec541c78c0a94fe
+hessenberg gauss n=14 s=3 wantQ=false	67ca65470d7c33a3
+hessenberg gauss n=14 s=3 wantQ=true	675e019a8a4c4828
+hessenberg gauss n=15 s=0 wantQ=false	20f494220304a37e
+hessenberg gauss n=15 s=0 wantQ=true	3870e2178a3d3e0c
+hessenberg gauss n=15 s=1 wantQ=false	132fdb47b32b671b
+hessenberg gauss n=15 s=1 wantQ=true	83f1c09d67fd3783
+hessenberg gauss n=15 s=2 wantQ=false	1abd8e30614f625a
+hessenberg gauss n=15 s=2 wantQ=true	29ec62378bb630de
+hessenberg gauss n=15 s=3 wantQ=false	c73a033e7328fb35
+hessenberg gauss n=15 s=3 wantQ=true	f6df23ba03f2380d
+hessenberg gauss n=16 s=0 wantQ=false	b1ec28add8e7c6f6
+hessenberg gauss n=16 s=0 wantQ=true	566c7a6d726b8bd5
+hessenberg gauss n=16 s=1 wantQ=false	50eb2f4ba8e24d75
+hessenberg gauss n=16 s=1 wantQ=true	f12af6bacdbfaf12
+hessenberg gauss n=16 s=2 wantQ=false	c7f5199215887b1a
+hessenberg gauss n=16 s=2 wantQ=true	d3e8b7a7c863cb6b
+hessenberg gauss n=16 s=3 wantQ=false	0c2e6fd1d83e976a
+hessenberg gauss n=16 s=3 wantQ=true	10aa58a22fdaa3e8
+hessenberg gauss n=17 s=0 wantQ=false	1d085c2692cd6957
+hessenberg gauss n=17 s=0 wantQ=true	1fbdbe97ac7c28ae
+hessenberg gauss n=17 s=1 wantQ=false	a242a49d8952c413
+hessenberg gauss n=17 s=1 wantQ=true	3330a98a12953c26
+hessenberg gauss n=17 s=2 wantQ=false	7099c911a0f25034
+hessenberg gauss n=17 s=2 wantQ=true	10663388a8623eab
+hessenberg gauss n=17 s=3 wantQ=false	68a29819e89a4d0b
+hessenberg gauss n=17 s=3 wantQ=true	9e440ecfb83a5f98
+hessenberg gauss n=18 s=0 wantQ=false	cce2c428f2c0d148
+hessenberg gauss n=18 s=0 wantQ=true	9ea202fe8038c7f4
+hessenberg gauss n=18 s=1 wantQ=false	781703c4fec0d86f
+hessenberg gauss n=18 s=1 wantQ=true	46ca659e2ebd469e
+hessenberg gauss n=18 s=2 wantQ=false	dcf8ccf730a5e758
+hessenberg gauss n=18 s=2 wantQ=true	0342965cf61ceedc
+hessenberg gauss n=18 s=3 wantQ=false	d09788215e31669d
+hessenberg gauss n=18 s=3 wantQ=true	5a1c33f380eec3f4
+hessenberg gauss n=19 s=0 wantQ=false	4f75083c5eaded18
+hessenberg gauss n=19 s=0 wantQ=true	4393c9c52d0072da
+hessenberg gauss n=19 s=1 wantQ=false	629d3ee26e8c8020
+hessenberg gauss n=19 s=1 wantQ=true	6d5f443d8a1ac76e
+hessenberg gauss n=19 s=2 wantQ=false	8f1658555dcfdb43
+hessenberg gauss n=19 s=2 wantQ=true	98f61702ac2186cb
+hessenberg gauss n=19 s=3 wantQ=false	04adb337e480c026
+hessenberg gauss n=19 s=3 wantQ=true	63ac8c8a59565713
+hessenberg gauss n=2 s=0 wantQ=false	957b2759d640c8ca
+hessenberg gauss n=2 s=0 wantQ=true	62998f05b0072a7d
+hessenberg gauss n=2 s=1 wantQ=false	526ab1a9d36f0fab
+hessenberg gauss n=2 s=1 wantQ=true	89ea1349d98321f8
+hessenberg gauss n=2 s=2 wantQ=false	4b30e69ea143bbef
+hessenberg gauss n=2 s=2 wantQ=true	a9cab566d64c713c
+hessenberg gauss n=2 s=3 wantQ=false	306e61ff27132797
+hessenberg gauss n=2 s=3 wantQ=true	3ea52bb5211f5a64
+hessenberg gauss n=20 s=0 wantQ=false	f82008c75330d532
+hessenberg gauss n=20 s=0 wantQ=true	b337aa4fe67fea95
+hessenberg gauss n=20 s=1 wantQ=false	3dc117707e50e171
+hessenberg gauss n=20 s=1 wantQ=true	2568b5efa9cff572
+hessenberg gauss n=20 s=2 wantQ=false	29ba74c29cf38e9b
+hessenberg gauss n=20 s=2 wantQ=true	9773a4e5a034bbe1
+hessenberg gauss n=20 s=3 wantQ=false	bdc4cb8c307f7735
+hessenberg gauss n=20 s=3 wantQ=true	510daf9fd2d28355
+hessenberg gauss n=21 s=0 wantQ=false	cead5de105978d0f
+hessenberg gauss n=21 s=0 wantQ=true	55f52853acf9b227
+hessenberg gauss n=21 s=1 wantQ=false	d49b782e7eb6f41b
+hessenberg gauss n=21 s=1 wantQ=true	e2f75127293db882
+hessenberg gauss n=21 s=2 wantQ=false	bf7810bd94b25e6f
+hessenberg gauss n=21 s=2 wantQ=true	67609d5c53cf72ff
+hessenberg gauss n=21 s=3 wantQ=false	528df4d1135dd184
+hessenberg gauss n=21 s=3 wantQ=true	3cca1ad9658b172a
+hessenberg gauss n=22 s=0 wantQ=false	cb2dec38a165fd3e
+hessenberg gauss n=22 s=0 wantQ=true	9802424fe7aca4ac
+hessenberg gauss n=22 s=1 wantQ=false	1ac6877b21e1ea19
+hessenberg gauss n=22 s=1 wantQ=true	a227096700da2eea
+hessenberg gauss n=22 s=2 wantQ=false	732a86d31e35d4c2
+hessenberg gauss n=22 s=2 wantQ=true	35d16d7780a9213f
+hessenberg gauss n=22 s=3 wantQ=false	dac173806e59a326
+hessenberg gauss n=22 s=3 wantQ=true	6fcc253422e7c51d
+hessenberg gauss n=23 s=0 wantQ=false	b98ecf5df331296e
+hessenberg gauss n=23 s=0 wantQ=true	4d97331be9ebe9e6
+hessenberg gauss n=23 s=1 wantQ=false	b203227bcf552fc8
+hessenberg gauss n=23 s=1 wantQ=true	b6df3a01eb253428
+hessenberg gauss n=23 s=2 wantQ=false	1636be3eb290c35f
+hessenberg gauss n=23 s=2 wantQ=true	f67da069733edd78
+hessenberg gauss n=23 s=3 wantQ=false	d7c309baf832d22e
+hessenberg gauss n=23 s=3 wantQ=true	71a5a544cd6e8b5f
+hessenberg gauss n=24 s=0 wantQ=false	b5ad515c3e1f8cf8
+hessenberg gauss n=24 s=0 wantQ=true	2c00f3af6c631aa8
+hessenberg gauss n=24 s=1 wantQ=false	e7c8138eb585bce5
+hessenberg gauss n=24 s=1 wantQ=true	3f34a6f1e67634ab
+hessenberg gauss n=24 s=2 wantQ=false	1236bf83c6f4e7cb
+hessenberg gauss n=24 s=2 wantQ=true	95ee618008b3f8d8
+hessenberg gauss n=24 s=3 wantQ=false	f28fc8751b126741
+hessenberg gauss n=24 s=3 wantQ=true	baf89d212e51b050
+hessenberg gauss n=25 s=0 wantQ=false	a5ba86e008d005d4
+hessenberg gauss n=25 s=0 wantQ=true	84d3de49dcb45275
+hessenberg gauss n=25 s=1 wantQ=false	ad6222ebdd3a0628
+hessenberg gauss n=25 s=1 wantQ=true	a2c2e9e5e113dae1
+hessenberg gauss n=25 s=2 wantQ=false	c57a5e20f26b18c5
+hessenberg gauss n=25 s=2 wantQ=true	128a1de63b722e13
+hessenberg gauss n=25 s=3 wantQ=false	ac881eb2ac0945f5
+hessenberg gauss n=25 s=3 wantQ=true	feeb6b020c619980
+hessenberg gauss n=26 s=0 wantQ=false	8c08e89b5233e557
+hessenberg gauss n=26 s=0 wantQ=true	099d4a11c52f4937
+hessenberg gauss n=26 s=1 wantQ=false	ad2ef6de82982124
+hessenberg gauss n=26 s=1 wantQ=true	c31e5c8a957beec8
+hessenberg gauss n=26 s=2 wantQ=false	657963c453e67326
+hessenberg gauss n=26 s=2 wantQ=true	d1bace71db0587a3
+hessenberg gauss n=26 s=3 wantQ=false	797c9cc581f35e87
+hessenberg gauss n=26 s=3 wantQ=true	f040426f0f03a83d
+hessenberg gauss n=27 s=0 wantQ=false	18e719ab9a563e1d
+hessenberg gauss n=27 s=0 wantQ=true	21a86ce5936e6876
+hessenberg gauss n=27 s=1 wantQ=false	4475cdde7a704b1d
+hessenberg gauss n=27 s=1 wantQ=true	7aed34e396176a2f
+hessenberg gauss n=27 s=2 wantQ=false	f0fe27227c06a2a2
+hessenberg gauss n=27 s=2 wantQ=true	659511c8abffd8e0
+hessenberg gauss n=27 s=3 wantQ=false	64be94c2359afd57
+hessenberg gauss n=27 s=3 wantQ=true	0f864c4bee1eeda0
+hessenberg gauss n=28 s=0 wantQ=false	12ef1ec5ff953b01
+hessenberg gauss n=28 s=0 wantQ=true	7616d51cd1ff6621
+hessenberg gauss n=28 s=1 wantQ=false	11f6daa075e89258
+hessenberg gauss n=28 s=1 wantQ=true	3fe30b30b25cd676
+hessenberg gauss n=28 s=2 wantQ=false	f52f196a02fa0f00
+hessenberg gauss n=28 s=2 wantQ=true	c6920c43f9f79b05
+hessenberg gauss n=28 s=3 wantQ=false	f44e55b3ca0ebf57
+hessenberg gauss n=28 s=3 wantQ=true	02066300075a578e
+hessenberg gauss n=29 s=0 wantQ=false	1798044c7b48fd91
+hessenberg gauss n=29 s=0 wantQ=true	16641edb466daa44
+hessenberg gauss n=29 s=1 wantQ=false	adc30cd49664d056
+hessenberg gauss n=29 s=1 wantQ=true	a9cb504f3483fb55
+hessenberg gauss n=29 s=2 wantQ=false	83ca79f455b3436e
+hessenberg gauss n=29 s=2 wantQ=true	4f13302687d8dd2b
+hessenberg gauss n=29 s=3 wantQ=false	6575637c8860eb06
+hessenberg gauss n=29 s=3 wantQ=true	7280f1990fdc4a08
+hessenberg gauss n=3 s=0 wantQ=false	42c76914050d109f
+hessenberg gauss n=3 s=0 wantQ=true	d9e012a83913e856
+hessenberg gauss n=3 s=1 wantQ=false	2abd828a149f42bc
+hessenberg gauss n=3 s=1 wantQ=true	f8c25dbae4feeccc
+hessenberg gauss n=3 s=2 wantQ=false	b4d0ee94a77940b5
+hessenberg gauss n=3 s=2 wantQ=true	598fa39a56a4fbfb
+hessenberg gauss n=3 s=3 wantQ=false	b87528002bcaf2dc
+hessenberg gauss n=3 s=3 wantQ=true	b20551fd1bda93de
+hessenberg gauss n=30 s=0 wantQ=false	3be61de2f091d76f
+hessenberg gauss n=30 s=0 wantQ=true	d7b8054d46c20f9f
+hessenberg gauss n=30 s=1 wantQ=false	124c1e625367a297
+hessenberg gauss n=30 s=1 wantQ=true	c4c8fd537ad2de24
+hessenberg gauss n=30 s=2 wantQ=false	627a2b7258082ddf
+hessenberg gauss n=30 s=2 wantQ=true	48b17ddb3e04101e
+hessenberg gauss n=30 s=3 wantQ=false	325eefe99d2d771a
+hessenberg gauss n=30 s=3 wantQ=true	d98691f3eec56341
+hessenberg gauss n=31 s=0 wantQ=false	ef18d9f6146f1661
+hessenberg gauss n=31 s=0 wantQ=true	f56ec5b92193a8cc
+hessenberg gauss n=31 s=1 wantQ=false	39c8781bf0451cc4
+hessenberg gauss n=31 s=1 wantQ=true	b2a3e19de9a648d9
+hessenberg gauss n=31 s=2 wantQ=false	d5f44c9fd2f0b8f6
+hessenberg gauss n=31 s=2 wantQ=true	b803d1edd5bf6b12
+hessenberg gauss n=31 s=3 wantQ=false	bc6536cb9342b34d
+hessenberg gauss n=31 s=3 wantQ=true	1d7f649aa4edb935
+hessenberg gauss n=32 s=0 wantQ=false	37adb4ad5d07cb5a
+hessenberg gauss n=32 s=0 wantQ=true	80dd8d864377e9e8
+hessenberg gauss n=32 s=1 wantQ=false	cef25e82695994a5
+hessenberg gauss n=32 s=1 wantQ=true	4a86643dbb5c9ae3
+hessenberg gauss n=32 s=2 wantQ=false	6ecd4c022c1230e9
+hessenberg gauss n=32 s=2 wantQ=true	b8320c6eeb1b00eb
+hessenberg gauss n=32 s=3 wantQ=false	7d58b8c8b95d4499
+hessenberg gauss n=32 s=3 wantQ=true	4722c78d62b79e11
+hessenberg gauss n=33 s=0 wantQ=false	9c5b2f33f04af197
+hessenberg gauss n=33 s=0 wantQ=true	75c73465d372220e
+hessenberg gauss n=33 s=1 wantQ=false	8d4072326a621845
+hessenberg gauss n=33 s=1 wantQ=true	c0de478646672141
+hessenberg gauss n=33 s=2 wantQ=false	3158ad494b439207
+hessenberg gauss n=33 s=2 wantQ=true	a39ac452e2ebaf3a
+hessenberg gauss n=33 s=3 wantQ=false	6f1716a89c68b06b
+hessenberg gauss n=33 s=3 wantQ=true	f89167fa12e225fa
+hessenberg gauss n=34 s=0 wantQ=false	12850dd568bb2d05
+hessenberg gauss n=34 s=0 wantQ=true	487a857649b8b965
+hessenberg gauss n=34 s=1 wantQ=false	3340347fb6528148
+hessenberg gauss n=34 s=1 wantQ=true	7c193000b1c9163c
+hessenberg gauss n=34 s=2 wantQ=false	8466df6ef193143a
+hessenberg gauss n=34 s=2 wantQ=true	5609323bd8d79bba
+hessenberg gauss n=34 s=3 wantQ=false	a7751f42eb2d23c6
+hessenberg gauss n=34 s=3 wantQ=true	19486b92a0334623
+hessenberg gauss n=35 s=0 wantQ=false	8bac1a0da9609a98
+hessenberg gauss n=35 s=0 wantQ=true	40008dab838d3bfd
+hessenberg gauss n=35 s=1 wantQ=false	003cff2b25bedea7
+hessenberg gauss n=35 s=1 wantQ=true	19d9b97fb3285293
+hessenberg gauss n=35 s=2 wantQ=false	f6283718132142cc
+hessenberg gauss n=35 s=2 wantQ=true	206168be6dfc55da
+hessenberg gauss n=35 s=3 wantQ=false	9fcf8ad1e1fd5b44
+hessenberg gauss n=35 s=3 wantQ=true	49bc5f2ef1e5eba3
+hessenberg gauss n=36 s=0 wantQ=false	b03229f1d348d325
+hessenberg gauss n=36 s=0 wantQ=true	7076e700cfef5bc8
+hessenberg gauss n=36 s=1 wantQ=false	a91b09639c0dfa85
+hessenberg gauss n=36 s=1 wantQ=true	a1b936ca9b29187a
+hessenberg gauss n=36 s=2 wantQ=false	22dc8e8ffa78c183
+hessenberg gauss n=36 s=2 wantQ=true	600d0f05fe351140
+hessenberg gauss n=36 s=3 wantQ=false	d6c022ca9013f3b1
+hessenberg gauss n=36 s=3 wantQ=true	7018324e053f2a1e
+hessenberg gauss n=37 s=0 wantQ=false	06a508699db62cc3
+hessenberg gauss n=37 s=0 wantQ=true	651d977abfc22fb2
+hessenberg gauss n=37 s=1 wantQ=false	b05053c6b13ca441
+hessenberg gauss n=37 s=1 wantQ=true	87cd01f0b0dd4580
+hessenberg gauss n=37 s=2 wantQ=false	0a13133bd2abea13
+hessenberg gauss n=37 s=2 wantQ=true	ea486a0a26442ca2
+hessenberg gauss n=37 s=3 wantQ=false	c5380b7ea37bd13c
+hessenberg gauss n=37 s=3 wantQ=true	12d2d320c08be0a7
+hessenberg gauss n=38 s=0 wantQ=false	24d06137b2a840ea
+hessenberg gauss n=38 s=0 wantQ=true	41e9bdbb62d226e9
+hessenberg gauss n=38 s=1 wantQ=false	010591e06f8d2264
+hessenberg gauss n=38 s=1 wantQ=true	253d2a8936566ab3
+hessenberg gauss n=38 s=2 wantQ=false	3b351e9069fd7f66
+hessenberg gauss n=38 s=2 wantQ=true	2facbb2a0b4a417e
+hessenberg gauss n=38 s=3 wantQ=false	1b0309d56712498e
+hessenberg gauss n=38 s=3 wantQ=true	35e95fbb2891a801
+hessenberg gauss n=39 s=0 wantQ=false	6e612090d821ffcb
+hessenberg gauss n=39 s=0 wantQ=true	4c9c1bf3d8e96f19
+hessenberg gauss n=39 s=1 wantQ=false	445741b9c5bc5cfa
+hessenberg gauss n=39 s=1 wantQ=true	51b7db47d79de218
+hessenberg gauss n=39 s=2 wantQ=false	243764d4d1283ef4
+hessenberg gauss n=39 s=2 wantQ=true	4dd2bef5f4caded7
+hessenberg gauss n=39 s=3 wantQ=false	1b4d1c764f18696b
+hessenberg gauss n=39 s=3 wantQ=true	ee99e84c22622f35
+hessenberg gauss n=4 s=0 wantQ=false	fc7fb26e046772fb
+hessenberg gauss n=4 s=0 wantQ=true	aeb92037b7c8f8dc
+hessenberg gauss n=4 s=1 wantQ=false	750831e778f6c7f1
+hessenberg gauss n=4 s=1 wantQ=true	b68e571c00ce5d0e
+hessenberg gauss n=4 s=2 wantQ=false	ffe5e37c9b21a925
+hessenberg gauss n=4 s=2 wantQ=true	188a54b2772d06b8
+hessenberg gauss n=4 s=3 wantQ=false	59ff8ebfa8f6c37e
+hessenberg gauss n=4 s=3 wantQ=true	d3871667b2604958
+hessenberg gauss n=40 s=0 wantQ=false	7256c326ff90bd5f
+hessenberg gauss n=40 s=0 wantQ=true	299cd33197a71d07
+hessenberg gauss n=40 s=1 wantQ=false	b8b0f3f436468a26
+hessenberg gauss n=40 s=1 wantQ=true	304c21eb79753942
+hessenberg gauss n=40 s=2 wantQ=false	d2190ba03bff9d26
+hessenberg gauss n=40 s=2 wantQ=true	428b294a426d9cf2
+hessenberg gauss n=40 s=3 wantQ=false	0c7b4d261bb72567
+hessenberg gauss n=40 s=3 wantQ=true	ff5e2290905dd598
+hessenberg gauss n=47 s=0 wantQ=false	8382cc97e1f14bcc
+hessenberg gauss n=47 s=0 wantQ=true	e8f71c68e8feb44d
+hessenberg gauss n=5 s=0 wantQ=false	e4423a85b8a70647
+hessenberg gauss n=5 s=0 wantQ=true	d1a227111b5d1cc8
+hessenberg gauss n=5 s=1 wantQ=false	8c399699665b899e
+hessenberg gauss n=5 s=1 wantQ=true	139f06e2ec3e6f52
+hessenberg gauss n=5 s=2 wantQ=false	f6476e31400bb0fc
+hessenberg gauss n=5 s=2 wantQ=true	aa48110e44d6aac7
+hessenberg gauss n=5 s=3 wantQ=false	939a4b797170bfe0
+hessenberg gauss n=5 s=3 wantQ=true	7a4284c93d2acdbd
+hessenberg gauss n=6 s=0 wantQ=false	b4351e7d63b65f90
+hessenberg gauss n=6 s=0 wantQ=true	eaef7b41b054d620
+hessenberg gauss n=6 s=1 wantQ=false	f755ee2ad62be3da
+hessenberg gauss n=6 s=1 wantQ=true	4873f88358a778ad
+hessenberg gauss n=6 s=2 wantQ=false	104736f1dc39199a
+hessenberg gauss n=6 s=2 wantQ=true	3fed23049b21a7f7
+hessenberg gauss n=6 s=3 wantQ=false	164675928a8ac6ca
+hessenberg gauss n=6 s=3 wantQ=true	4ea7e218402077ab
+hessenberg gauss n=64 s=0 wantQ=false	73fac5ffe319e75c
+hessenberg gauss n=64 s=0 wantQ=true	a0b40576de60eecb
+hessenberg gauss n=65 s=0 wantQ=false	d2a5b47e3ec25eb6
+hessenberg gauss n=65 s=0 wantQ=true	817cd054c9b9913f
+hessenberg gauss n=7 s=0 wantQ=false	bfa75b422d128a2e
+hessenberg gauss n=7 s=0 wantQ=true	01a9a044e009ade2
+hessenberg gauss n=7 s=1 wantQ=false	9fd20b22ffe390e8
+hessenberg gauss n=7 s=1 wantQ=true	52d9d22ae89d1b78
+hessenberg gauss n=7 s=2 wantQ=false	a86177b0c4ab3e20
+hessenberg gauss n=7 s=2 wantQ=true	bd2fd66324cf7327
+hessenberg gauss n=7 s=3 wantQ=false	b4c5e41476a91e90
+hessenberg gauss n=7 s=3 wantQ=true	214a65b1ca469fc3
+hessenberg gauss n=8 s=0 wantQ=false	8d0dd6abd88ab927
+hessenberg gauss n=8 s=0 wantQ=true	1e2db846f2e9247f
+hessenberg gauss n=8 s=1 wantQ=false	eb726b576321d4c8
+hessenberg gauss n=8 s=1 wantQ=true	e266582040c52e62
+hessenberg gauss n=8 s=2 wantQ=false	cef6508120f13ca9
+hessenberg gauss n=8 s=2 wantQ=true	25a83301aa66e649
+hessenberg gauss n=8 s=3 wantQ=false	61786c4a7641e3a7
+hessenberg gauss n=8 s=3 wantQ=true	7ae46602bac6d6fe
+hessenberg gauss n=9 s=0 wantQ=false	bfb5244a79a5a8d1
+hessenberg gauss n=9 s=0 wantQ=true	e88c0b20180b43ab
+hessenberg gauss n=9 s=1 wantQ=false	c071de41132ba011
+hessenberg gauss n=9 s=1 wantQ=true	7dbf1ff6dda2215a
+hessenberg gauss n=9 s=2 wantQ=false	cb7663d46c3d342e
+hessenberg gauss n=9 s=2 wantQ=true	01e6be6c68b8b139
+hessenberg gauss n=9 s=3 wantQ=false	319d21e23c2bcb47
+hessenberg gauss n=9 s=3 wantQ=true	1972b694d42d58b5
+hessenberg huge n=1 wantQ=false	e8efc25925cbe7b9
+hessenberg huge n=1 wantQ=true	9f6888caf663e129
+hessenberg huge n=10 wantQ=false	658816810c36585f
+hessenberg huge n=10 wantQ=true	683015ecc2b6122f
+hessenberg huge n=11 wantQ=false	3c76dd7979bd872d
+hessenberg huge n=11 wantQ=true	4e3ad46e3886309a
+hessenberg huge n=12 wantQ=false	e7c16c5cc8224df3
+hessenberg huge n=12 wantQ=true	34d8202cfec2b4b9
+hessenberg huge n=13 wantQ=false	cf73d1a34d1055e4
+hessenberg huge n=13 wantQ=true	b47c8bf66e768e4d
+hessenberg huge n=14 wantQ=false	72ed8c5980ae468e
+hessenberg huge n=14 wantQ=true	11b006866575e662
+hessenberg huge n=15 wantQ=false	56b676dc495e76df
+hessenberg huge n=15 wantQ=true	d4ce73c4946a1d72
+hessenberg huge n=16 wantQ=false	df99bdcc751723cf
+hessenberg huge n=16 wantQ=true	1ec392b10c7f33a9
+hessenberg huge n=17 wantQ=false	fc3eca5d974381e8
+hessenberg huge n=17 wantQ=true	cdef1b1a2c40126c
+hessenberg huge n=18 wantQ=false	5ca51f060bbb0fc0
+hessenberg huge n=18 wantQ=true	4a4cbdf0cfa2733f
+hessenberg huge n=19 wantQ=false	99f9281fd5b2b47e
+hessenberg huge n=19 wantQ=true	a0d334c5ee079037
+hessenberg huge n=2 wantQ=false	5c7590c3d9ecfc33
+hessenberg huge n=2 wantQ=true	0df5ba0bc0218980
+hessenberg huge n=20 wantQ=false	31c98ab1257445a2
+hessenberg huge n=20 wantQ=true	839da5f27cd0e0c6
+hessenberg huge n=21 wantQ=false	b09f379a9578f0ac
+hessenberg huge n=21 wantQ=true	3029383f391c1872
+hessenberg huge n=22 wantQ=false	1863042e3d20f7f8
+hessenberg huge n=22 wantQ=true	6ec6c0483a3e9385
+hessenberg huge n=23 wantQ=false	004fcf5111c8d7d2
+hessenberg huge n=23 wantQ=true	b43521a9bf26ab21
+hessenberg huge n=24 wantQ=false	0385c78a9702d1f8
+hessenberg huge n=24 wantQ=true	cbf1afe437d6d191
+hessenberg huge n=25 wantQ=false	b0befd54e5610bbb
+hessenberg huge n=25 wantQ=true	30068ac06774949d
+hessenberg huge n=26 wantQ=false	fbd76ac5cf8101e0
+hessenberg huge n=26 wantQ=true	47a67c5e132d6494
+hessenberg huge n=27 wantQ=false	472bb4448c7f56fe
+hessenberg huge n=27 wantQ=true	c3c19a40a2315897
+hessenberg huge n=28 wantQ=false	bc866f837b65fc26
+hessenberg huge n=28 wantQ=true	92e17604698f2b05
+hessenberg huge n=29 wantQ=false	12d6af4ffff4c1ea
+hessenberg huge n=29 wantQ=true	9ab826e127ea70c9
+hessenberg huge n=3 wantQ=false	1e98ea4d76b1ebab
+hessenberg huge n=3 wantQ=true	afc63ebd661db8e1
+hessenberg huge n=30 wantQ=false	2e5b724418716290
+hessenberg huge n=30 wantQ=true	1361e33ba4593f31
+hessenberg huge n=31 wantQ=false	7ac6089a9ec35fe4
+hessenberg huge n=31 wantQ=true	e4c987a5035f0bcd
+hessenberg huge n=32 wantQ=false	34a0d992c142dcf9
+hessenberg huge n=32 wantQ=true	9da4c0b572590657
+hessenberg huge n=33 wantQ=false	59adadebbb87bf3b
+hessenberg huge n=33 wantQ=true	34bcabf3a3032188
+hessenberg huge n=34 wantQ=false	b76c8ffe44d970c6
+hessenberg huge n=34 wantQ=true	683ff631d3fa138e
+hessenberg huge n=35 wantQ=false	5277c2f8472bd341
+hessenberg huge n=35 wantQ=true	2fd5144c77066896
+hessenberg huge n=36 wantQ=false	48360bce011cf439
+hessenberg huge n=36 wantQ=true	68407e2d611161e5
+hessenberg huge n=37 wantQ=false	6e9884f354c8acf1
+hessenberg huge n=37 wantQ=true	54e3ade48966d9d7
+hessenberg huge n=38 wantQ=false	e9afe6b701a8c12b
+hessenberg huge n=38 wantQ=true	2391b7c93488e4f0
+hessenberg huge n=39 wantQ=false	d18adf0c8e51fcd3
+hessenberg huge n=39 wantQ=true	47bab66a74b81866
+hessenberg huge n=4 wantQ=false	31b4e91c0b7bdc57
+hessenberg huge n=4 wantQ=true	2cea06d993c9f3f9
+hessenberg huge n=40 wantQ=false	8a5d2233dc52be20
+hessenberg huge n=40 wantQ=true	2c64b0231a537576
+hessenberg huge n=47 wantQ=false	c366d8f94b12ef1c
+hessenberg huge n=47 wantQ=true	ebc46f310fefc099
+hessenberg huge n=5 wantQ=false	f648ce0b315fa8b9
+hessenberg huge n=5 wantQ=true	f195a8b862deee0b
+hessenberg huge n=6 wantQ=false	d1814ee9aff028d7
+hessenberg huge n=6 wantQ=true	e48e7f01fe2901bb
+hessenberg huge n=64 wantQ=false	a8c307cbbacbf72c
+hessenberg huge n=64 wantQ=true	2e71e91ef257e5d6
+hessenberg huge n=65 wantQ=false	b53c7f89d5d5b971
+hessenberg huge n=65 wantQ=true	4837b4e227a1af96
+hessenberg huge n=7 wantQ=false	254eb25224a36425
+hessenberg huge n=7 wantQ=true	09d41821bbb060a7
+hessenberg huge n=8 wantQ=false	992a28acaf4ac17a
+hessenberg huge n=8 wantQ=true	4920bd2bba5f436a
+hessenberg huge n=9 wantQ=false	211b8beebad8f167
+hessenberg huge n=9 wantQ=true	7153d71665728bb6
+hessenberg ints n=1 wantQ=false	811ab8fc2f3c1a05
+hessenberg ints n=1 wantQ=true	29333eea1765069d
+hessenberg ints n=10 wantQ=false	3dd84a628c6d479a
+hessenberg ints n=10 wantQ=true	5f9f09e335aa4c05
+hessenberg ints n=11 wantQ=false	5556474469d302a1
+hessenberg ints n=11 wantQ=true	1c59437ef0ed357d
+hessenberg ints n=12 wantQ=false	a7406597e87336db
+hessenberg ints n=12 wantQ=true	7458964b5023ab6f
+hessenberg ints n=13 wantQ=false	019d3c5d0edf5f2e
+hessenberg ints n=13 wantQ=true	e7ef76ba763fc5a4
+hessenberg ints n=14 wantQ=false	5696c1e18ba82c5a
+hessenberg ints n=14 wantQ=true	5180936196c4e491
+hessenberg ints n=15 wantQ=false	eda19bbde780d6e8
+hessenberg ints n=15 wantQ=true	abbd38795b72de81
+hessenberg ints n=16 wantQ=false	6a2c92ac8f93f8e5
+hessenberg ints n=16 wantQ=true	7e2dad38e419453e
+hessenberg ints n=17 wantQ=false	f7e705951224c876
+hessenberg ints n=17 wantQ=true	6c650f2049876019
+hessenberg ints n=18 wantQ=false	9d493a0548232adc
+hessenberg ints n=18 wantQ=true	1f5170b0eee30a98
+hessenberg ints n=19 wantQ=false	99539553a278f2b9
+hessenberg ints n=19 wantQ=true	0e9c50e0cc4f5f65
+hessenberg ints n=2 wantQ=false	762dcdb1d2a334ea
+hessenberg ints n=2 wantQ=true	4a03b1a0ea0dd11d
+hessenberg ints n=20 wantQ=false	54c5747af7583b50
+hessenberg ints n=20 wantQ=true	75346b69af09ceb4
+hessenberg ints n=21 wantQ=false	7cba3b2be884f0d7
+hessenberg ints n=21 wantQ=true	60ad2c23b324467b
+hessenberg ints n=22 wantQ=false	42665849d437c2a0
+hessenberg ints n=22 wantQ=true	ab1d607419dc5774
+hessenberg ints n=23 wantQ=false	0f8b10bddb292786
+hessenberg ints n=23 wantQ=true	18ad5474031e4aad
+hessenberg ints n=24 wantQ=false	b69f8267a421e217
+hessenberg ints n=24 wantQ=true	43079b18f42cfecb
+hessenberg ints n=25 wantQ=false	9f9f7ef97ce03801
+hessenberg ints n=25 wantQ=true	f09f167f35f9f35b
+hessenberg ints n=26 wantQ=false	11889aed29d7efae
+hessenberg ints n=26 wantQ=true	eb0298be385d35ff
+hessenberg ints n=27 wantQ=false	96fc9a7862a9ba4f
+hessenberg ints n=27 wantQ=true	dd4994d2fca69617
+hessenberg ints n=28 wantQ=false	a08fa436d834e7e1
+hessenberg ints n=28 wantQ=true	da901e24447d26a6
+hessenberg ints n=29 wantQ=false	da83ff2016e55f2a
+hessenberg ints n=29 wantQ=true	9b77e42d51b87d47
+hessenberg ints n=3 wantQ=false	a5c4cf38fce7c5c4
+hessenberg ints n=3 wantQ=true	0a685579d40fcad6
+hessenberg ints n=30 wantQ=false	7f424cf5ef3ec0a8
+hessenberg ints n=30 wantQ=true	58953a15015856a9
+hessenberg ints n=31 wantQ=false	f3cb5504067ad83f
+hessenberg ints n=31 wantQ=true	3ea0bb9ab8a01093
+hessenberg ints n=32 wantQ=false	2271401ba8c68abf
+hessenberg ints n=32 wantQ=true	f0fa3af3e7ff479b
+hessenberg ints n=33 wantQ=false	27b84f76078bb111
+hessenberg ints n=33 wantQ=true	d9bde99dcd0e2300
+hessenberg ints n=34 wantQ=false	69cae0ac6f209fc5
+hessenberg ints n=34 wantQ=true	0eaf08c16cba4c54
+hessenberg ints n=35 wantQ=false	2bb19dcf172e966d
+hessenberg ints n=35 wantQ=true	0268f7ff37bd998f
+hessenberg ints n=36 wantQ=false	d89ecd9decbda15b
+hessenberg ints n=36 wantQ=true	a0df7de082cb9a78
+hessenberg ints n=37 wantQ=false	1bc36d2133f5d99a
+hessenberg ints n=37 wantQ=true	4e90bce3c685dad2
+hessenberg ints n=38 wantQ=false	608b20741934a0e3
+hessenberg ints n=38 wantQ=true	b9874966d13665af
+hessenberg ints n=39 wantQ=false	f778bcb42536d337
+hessenberg ints n=39 wantQ=true	79f2ca87a4a6c27c
+hessenberg ints n=4 wantQ=false	f5dd5115913279ef
+hessenberg ints n=4 wantQ=true	bb7a17077071371f
+hessenberg ints n=40 wantQ=false	1c99860376bab1bd
+hessenberg ints n=40 wantQ=true	b2edeb35d49a3664
+hessenberg ints n=47 wantQ=false	0ed144316e8791e0
+hessenberg ints n=47 wantQ=true	8f6bdafb7392bf3d
+hessenberg ints n=5 wantQ=false	f75c93c136499ba1
+hessenberg ints n=5 wantQ=true	821d5a09371d3dc5
+hessenberg ints n=6 wantQ=false	f9fca877e37e2c2f
+hessenberg ints n=6 wantQ=true	02dc694476c7fe44
+hessenberg ints n=64 wantQ=false	ad9ee0a4ac18b55e
+hessenberg ints n=64 wantQ=true	df1d7a67b5d12ed8
+hessenberg ints n=65 wantQ=false	7137e02af38fa02c
+hessenberg ints n=65 wantQ=true	1d31e3fd05632868
+hessenberg ints n=7 wantQ=false	f1c51effe8f50bf1
+hessenberg ints n=7 wantQ=true	afb02bdc7b338bd7
+hessenberg ints n=8 wantQ=false	c44527173c6e55a0
+hessenberg ints n=8 wantQ=true	a173cdbc48d11536
+hessenberg ints n=9 wantQ=false	a824beac6a28b595
+hessenberg ints n=9 wantQ=true	dbcd83ea3e210463
+hessenberg jordan n=1 wantQ=false	020fd4f2a4aff985
+hessenberg jordan n=1 wantQ=true	88b34f5eda44db1d
+hessenberg jordan n=10 wantQ=false	0dfc8199b4502dca
+hessenberg jordan n=10 wantQ=true	253817cab97bdd7d
+hessenberg jordan n=11 wantQ=false	448f7b0dbda708c5
+hessenberg jordan n=11 wantQ=true	29f8ad2718ec423d
+hessenberg jordan n=12 wantQ=false	5457f6355010c5ea
+hessenberg jordan n=12 wantQ=true	d82378f2b2089cdd
+hessenberg jordan n=13 wantQ=false	ac206d20c0913085
+hessenberg jordan n=13 wantQ=true	7df087160791ad5d
+hessenberg jordan n=14 wantQ=false	16451349829fa78a
+hessenberg jordan n=14 wantQ=true	d186c14569652b3d
+hessenberg jordan n=15 wantQ=false	99ad9686e50940c5
+hessenberg jordan n=15 wantQ=true	13268a6f966946fd
+hessenberg jordan n=16 wantQ=false	de75884ae8c8f5aa
+hessenberg jordan n=16 wantQ=true	7619330080b0969d
+hessenberg jordan n=17 wantQ=false	cff4c26ebe695185
+hessenberg jordan n=17 wantQ=true	6cacd3b61fcfe61d
+hessenberg jordan n=18 wantQ=false	03a6b4cb320a664a
+hessenberg jordan n=18 wantQ=true	69b57de8cb6727fd
+hessenberg jordan n=19 wantQ=false	8529292ea1362cc5
+hessenberg jordan n=19 wantQ=true	fbf3ccc4bdb899bd
+hessenberg jordan n=2 wantQ=false	58dc1d788d4be34a
+hessenberg jordan n=2 wantQ=true	8f81c556eb9244fd
+hessenberg jordan n=20 wantQ=false	a367203ca34a1c6a
+hessenberg jordan n=20 wantQ=true	77b38c6a350e195d
+hessenberg jordan n=21 wantQ=false	2d3af1ad41fcd485
+hessenberg jordan n=21 wantQ=true	b4a401493fd458dd
+hessenberg jordan n=22 wantQ=false	2570e3cd9e0bdc0a
+hessenberg jordan n=22 wantQ=true	eb850956cf0e6dbd
+hessenberg jordan n=23 wantQ=false	b92b2a15d6968cc5
+hessenberg jordan n=23 wantQ=true	b50f3173f26f027d
+hessenberg jordan n=24 wantQ=false	2a5baeb51499482a
+hessenberg jordan n=24 wantQ=true	9ad07146b6b1ff1d
+hessenberg jordan n=25 wantQ=false	5c15b3506bb03185
+hessenberg jordan n=25 wantQ=true	7d0bc2cad48e9d9d
+hessenberg jordan n=26 wantQ=false	3a8d5bb6fe1ca0ca
+hessenberg jordan n=26 wantQ=true	ee0ad2ca8881a07d
+hessenberg jordan n=27 wantQ=false	a509a401e479c8c5
+hessenberg jordan n=27 wantQ=true	1e600e43c8fde13d
+hessenberg jordan n=28 wantQ=false	3f7aff335716f4ea
+hessenberg jordan n=28 wantQ=true	03d90de9b04e03dd
+hessenberg jordan n=29 wantQ=false	856736b99773f085
+hessenberg jordan n=29 wantQ=true	473afbfa3404885d
+hessenberg jordan n=3 wantQ=false	4dc564d841505cc5
+hessenberg jordan n=3 wantQ=true	e95682b07744dabd
+hessenberg jordan n=30 wantQ=false	42c0b2d35fce128a
+hessenberg jordan n=30 wantQ=true	125d70d7f2e05e3d
+hessenberg jordan n=31 wantQ=false	55435b91e64a50c5
+hessenberg jordan n=31 wantQ=true	e5db92ae30b1adfd
+hessenberg jordan n=32 wantQ=false	bb9c98edff3ded6a
+hessenberg jordan n=32 wantQ=true	5ee622994fbfdb1d
+hessenberg jordan n=33 wantQ=false	00253855b9757185
+hessenberg jordan n=33 wantQ=true	4fc5d1a3178869dd
+hessenberg jordan n=34 wantQ=false	227d9baa53d3de0a
+hessenberg jordan n=34 wantQ=true	d18c52c6c4228afd
+hessenberg jordan n=35 wantQ=false	7a142b2a42d2c4c5
+hessenberg jordan n=35 wantQ=true	721ee7851c421b7d
+hessenberg jordan n=36 wantQ=false	c3a185e795a38d2a
+hessenberg jordan n=36 wantQ=true	e252c15f6c6acedd
+hessenberg jordan n=37 wantQ=false	9a22c95940776c85
+hessenberg jordan n=37 wantQ=true	db2b61540f864c9d
+hessenberg jordan n=38 wantQ=false	5f5f8031fa4fd6ca
+hessenberg jordan n=38 wantQ=true	65f17912a2880bbd
+hessenberg jordan n=39 wantQ=false	6694d40c226d74c5
+hessenberg jordan n=39 wantQ=true	431e1e49d1ccb83d
+hessenberg jordan n=4 wantQ=false	fe548c014ef7dd6a
+hessenberg jordan n=4 wantQ=true	41e1d10237fa925d
+hessenberg jordan n=40 wantQ=false	6c66eaa84522f9ea
+hessenberg jordan n=40 wantQ=true	fac010c632756d9d
+hessenberg jordan n=47 wantQ=false	c920d9a969f228c5
+hessenberg jordan n=47 wantQ=true	0878bf82102d8dbd
+hessenberg jordan n=5 wantQ=false	e971d8e482e50485
+hessenberg jordan n=5 wantQ=true	b1689499cdb95ddd
+hessenberg jordan n=6 wantQ=false	8fc50d261d0f610a
+hessenberg jordan n=6 wantQ=true	68b8f74604041abd
+hessenberg jordan n=64 wantQ=false	f16008e2782a0aaa
+hessenberg jordan n=64 wantQ=true	32ef70046893351d
+hessenberg jordan n=65 wantQ=false	3f1a36ca741bd305
+hessenberg jordan n=65 wantQ=true	6d9eb36650422b9d
+hessenberg jordan n=7 wantQ=false	801048bc91c66cc5
+hessenberg jordan n=7 wantQ=true	d46eb83f6b487b7d
+hessenberg jordan n=8 wantQ=false	908af01b8bb2112a
+hessenberg jordan n=8 wantQ=true	bb7bbc7b03c8081d
+hessenberg jordan n=9 wantQ=false	c710152ff317e985
+hessenberg jordan n=9 wantQ=true	e6a939b7c62bb29d
+hessenberg perm n=1 wantQ=false	7ed14286d7602b0a
+hessenberg perm n=1 wantQ=true	25e1441491f627b2
+hessenberg perm n=10 wantQ=false	9ed9aa0d25997365
+hessenberg perm n=10 wantQ=true	513bdd44dc2972b2
+hessenberg perm n=11 wantQ=false	e9f75ae50563608a
+hessenberg perm n=11 wantQ=true	c3ebe2a5863938d2
+hessenberg perm n=12 wantQ=false	4a9337ee7f0826c5
+hessenberg perm n=12 wantQ=true	6debe5b4138f5592
+hessenberg perm n=13 wantQ=false	ea2b09df9191ba8a
+hessenberg perm n=13 wantQ=true	7b64ff5db6a905f2
+hessenberg perm n=14 wantQ=false	31cfedd7166f1ea5
+hessenberg perm n=14 wantQ=true	5cf383533991b072
+hessenberg perm n=15 wantQ=false	40c16b754d13790a
+hessenberg perm n=15 wantQ=true	dac5fe5405922e12
+hessenberg perm n=16 wantQ=false	d661cd29e3fc9c05
+hessenberg perm n=16 wantQ=true	f65951499c312e52
+hessenberg perm n=17 wantQ=false	bcabaaf90d9a2f0a
+hessenberg perm n=17 wantQ=true	e8505d460f916832
+hessenberg perm n=18 wantQ=false	7e085911671036e5
+hessenberg perm n=18 wantQ=true	9bbf87bf78b4ff32
+hessenberg perm n=19 wantQ=false	1de30898d038c38a
+hessenberg perm n=19 wantQ=true	1ada4eb35f517e52
+hessenberg perm n=2 wantQ=false	c68859e782def1e5
+hessenberg perm n=2 wantQ=true	a4fd7d23c702b032
+hessenberg perm n=20 wantQ=false	e7e506e22907c245
+hessenberg perm n=20 wantQ=true	08b76ffaeab2a512
+hessenberg perm n=21 wantQ=false	d699a8664dae518a
+hessenberg perm n=21 wantQ=true	06d314b795350b72
+hessenberg perm n=22 wantQ=false	b1f8bebdab305b25
+hessenberg perm n=22 wantQ=true	1923da190ad557f2
+hessenberg perm n=23 wantQ=false	516f3a8564beac0a
+hessenberg perm n=23 wantQ=true	68a4cdb1e0e3ff92
+hessenberg perm n=24 wantQ=false	196da0fb66c8af85
+hessenberg perm n=24 wantQ=true	86122cd84337dbd2
+hessenberg perm n=25 wantQ=false	e7ca43e8777c820a
+hessenberg perm n=25 wantQ=true	4a2b59550ea061b2
+hessenberg perm n=26 wantQ=false	dbc075596db91b65
+hessenberg perm n=26 wantQ=true	db9e124e392604b2
+hessenberg perm n=27 wantQ=false	b83a637a1c2d9e8a
+hessenberg perm n=27 wantQ=true	db4338597b6c9fd2
+hessenberg perm n=28 wantQ=false	b8fb6c3c7f8392c5
+hessenberg perm n=28 wantQ=true	0225db0a9e02e392
+hessenberg perm n=29 wantQ=false	b0528ca339b7608a
+hessenberg perm n=29 wantQ=true	6a24f08efcc910f2
+hessenberg perm n=3 wantQ=false	37a11858b0c1758a
+hessenberg perm n=3 wantQ=true	f61d1792daf1f752
+hessenberg perm n=30 wantQ=false	97926b6d557c7ea5
+hessenberg perm n=30 wantQ=true	569fa0aa03731a72
+hessenberg perm n=31 wantQ=false	47a12af34e7f570a
+hessenberg perm n=31 wantQ=true	0e1683ae9e52ad12
+hessenberg perm n=32 wantQ=false	e02c199df2d7eb45
+hessenberg perm n=32 wantQ=true	89c7e484531cc592
+hessenberg perm n=33 wantQ=false	f94311775be6350a
+hessenberg perm n=33 wantQ=true	6ac7e715a5393332
+hessenberg perm n=34 wantQ=false	0828fe730c59c025
+hessenberg perm n=34 wantQ=true	b2dfa23cc465c072
+hessenberg perm n=35 wantQ=false	be981b027712d98a
+hessenberg perm n=35 wantQ=true	094c1beaa8fc9552
+hessenberg perm n=36 wantQ=false	19e1e2b4f1407b85
+hessenberg perm n=36 wantQ=true	8ab81413583c7452
+hessenberg perm n=37 wantQ=false	abc8820dad7dcf8a
+hessenberg perm n=37 wantQ=true	bbd4b26dda7ec672
+hessenberg perm n=38 wantQ=false	0ccb4ed4ab60f465
+hessenberg perm n=38 wantQ=true	49f46006106fca32
+hessenberg perm n=39 wantQ=false	dc1015f4f4ce620a
+hessenberg perm n=39 wantQ=true	5813b29523182e92
+hessenberg perm n=4 wantQ=false	379bf165920d4c45
+hessenberg perm n=4 wantQ=true	9dee4028f9ce7d12
+hessenberg perm n=40 wantQ=false	1106955e6c976fc5
+hessenberg perm n=40 wantQ=true	9d1fbdd659c75412
+hessenberg perm n=47 wantQ=false	059d67f392cdfd0a
+hessenberg perm n=47 wantQ=true	b4ab9422d2bebc12
+hessenberg perm n=5 wantQ=false	d0f8192dfcc59b8a
+hessenberg perm n=5 wantQ=true	7bc8be6ea252e072
+hessenberg perm n=6 wantQ=false	fd7934f5b9d9eb25
+hessenberg perm n=6 wantQ=true	809c5ad7bdb2cdf2
+hessenberg perm n=64 wantQ=false	2942537348b00205
+hessenberg perm n=64 wantQ=true	c60c5488e1c930d2
+hessenberg perm n=65 wantQ=false	dd385dfdf25b118a
+hessenberg perm n=65 wantQ=true	4fc9681b21f5bb32
+hessenberg perm n=7 wantQ=false	cb9c3e042b71be0a
+hessenberg perm n=7 wantQ=true	829f97923e3b6092
+hessenberg perm n=8 wantQ=false	49a7182f4f5d7185
+hessenberg perm n=8 wantQ=true	bd65709c660773d2
+hessenberg perm n=9 wantQ=false	ec2d842e5f66540a
+hessenberg perm n=9 wantQ=true	716977755e3646b2
+hessenberg rotations n=1 wantQ=false	428a62eddf69e945
+hessenberg rotations n=1 wantQ=true	387357993bb4c55d
+hessenberg rotations n=10 wantQ=false	8c618b2c3cf55535
+hessenberg rotations n=10 wantQ=true	38801202b0685702
+hessenberg rotations n=11 wantQ=false	58db78df437d4209
+hessenberg rotations n=11 wantQ=true	d685a3cfb280a5d9
+hessenberg rotations n=12 wantQ=false	b62594b1f96f08f5
+hessenberg rotations n=12 wantQ=true	eb3639923d2235c2
+hessenberg rotations n=13 wantQ=false	43644814aee97c7d
+hessenberg rotations n=13 wantQ=true	1ee8ddb74f1369c5
+hessenberg rotations n=14 wantQ=false	92a88e52a1f3f735
+hessenberg rotations n=14 wantQ=true	3b5e353f94a2eb82
+hessenberg rotations n=15 wantQ=false	8d05ccc364337771
+hessenberg rotations n=15 wantQ=true	6ad510b753954a51
+hessenberg rotations n=16 wantQ=false	2c5578a18e22d175
+hessenberg rotations n=16 wantQ=true	cd1606ba71f141c2
+hessenberg rotations n=17 wantQ=false	67e0365b064c31c5
+hessenberg rotations n=17 wantQ=true	cdcf4eaf5945cbdd
+hessenberg rotations n=18 wantQ=false	d6403d5037965795
+hessenberg rotations n=18 wantQ=true	13f160f5e3114fe2
+hessenberg rotations n=19 wantQ=false	4c07756945e7250f
+hessenberg rotations n=19 wantQ=true	1502523f569cceb3
+hessenberg rotations n=2 wantQ=false	772aa53851fb5c65
+hessenberg rotations n=2 wantQ=true	da77d172789adab2
+hessenberg rotations n=20 wantQ=false	55e83e004eb81715
+hessenberg rotations n=20 wantQ=true	c123f343cbd683e2
+hessenberg rotations n=21 wantQ=false	950f3732d21e9779
+hessenberg rotations n=21 wantQ=true	6d1a438a9a245da9
+hessenberg rotations n=22 wantQ=false	75d67e9bf923d755
+hessenberg rotations n=22 wantQ=true	fb795a2c9b1a1722
+hessenberg rotations n=23 wantQ=false	580445ee67da51e3
+hessenberg rotations n=23 wantQ=true	7247d1c0ccbf969f
+hessenberg rotations n=24 wantQ=false	e9eac5ecf66177d5
+hessenberg rotations n=24 wantQ=true	3e30ea69f9f1ba22
+hessenberg rotations n=25 wantQ=false	96ab9f39f6a6334d
+hessenberg rotations n=25 wantQ=true	b8e508b7e948c415
+hessenberg rotations n=26 wantQ=false	0b05f7e6f39b8515
+hessenberg rotations n=26 wantQ=true	9cc906e3f2259e62
+hessenberg rotations n=27 wantQ=false	aff2dfab678f3737
+hessenberg rotations n=27 wantQ=true	17c429affa5c7bab
+hessenberg rotations n=28 wantQ=false	77f887eb3c71ac15
+hessenberg rotations n=28 wantQ=true	5249e595090db7e2
+hessenberg rotations n=29 wantQ=false	114ff754544df021
+hessenberg rotations n=29 wantQ=true	ed82bd1d9d537621
+hessenberg rotations n=3 wantQ=false	6a70d42e98da2c5a
+hessenberg rotations n=3 wantQ=true	a510cdb0ada27f62
+hessenberg rotations n=30 wantQ=false	9fc951745983f6d5
+hessenberg rotations n=30 wantQ=true	4174a6430b274ba2
+hessenberg rotations n=31 wantQ=false	954c753b154b090b
+hessenberg rotations n=31 wantQ=true	bce3392b3e087597
+hessenberg rotations n=32 wantQ=false	18c9badc18f61815
+hessenberg rotations n=32 wantQ=true	4ad01fbe7d50ae62
+hessenberg rotations n=33 wantQ=false	21edf0c5d3c0f7d5
+hessenberg rotations n=33 wantQ=true	3aaee9175ab329ad
+hessenberg rotations n=34 wantQ=false	bc27a2830bfc64b5
+hessenberg rotations n=34 wantQ=true	94640ea207239982
+hessenberg rotations n=35 wantQ=false	c4a948c6d6465dda
+hessenberg rotations n=35 wantQ=true	90f08e1e969e06e2
+hessenberg rotations n=36 wantQ=false	eeba637d7c56e4f5
+hessenberg rotations n=36 wantQ=true	2bffa43c042b2ec2
+hessenberg rotations n=37 wantQ=false	957e4afdd10aac1f
+hessenberg rotations n=37 wantQ=true	8f264991e5ebbee3
+hessenberg rotations n=38 wantQ=false	785807f9810406f5
+hessenberg rotations n=38 wantQ=true	567d77b421cb9742
+hessenberg rotations n=39 wantQ=false	c6532cb36b549384
+hessenberg rotations n=39 wantQ=true	7cf7c234efcafd78
+hessenberg rotations n=4 wantQ=false	116655eee32266a5
+hessenberg rotations n=4 wantQ=true	5ff45ea0f18ce672
+hessenberg rotations n=40 wantQ=false	4eef289b35d99c15
+hessenberg rotations n=40 wantQ=true	a05ced204ba45762
+hessenberg rotations n=47 wantQ=false	452211f785b7a698
+hessenberg rotations n=47 wantQ=true	cc3546be10c14e64
+hessenberg rotations n=5 wantQ=false	237614b556c98a4a
+hessenberg rotations n=5 wantQ=true	38b21900b6e6ebb2
+hessenberg rotations n=6 wantQ=false	56474e93289a9b65
+hessenberg rotations n=6 wantQ=true	c7a3db34a2376b32
+hessenberg rotations n=64 wantQ=false	a2aef3aaf5fd5595
+hessenberg rotations n=64 wantQ=true	c3ddc1c65461a662
+hessenberg rotations n=65 wantQ=false	9e8ee1aededab7c5
+hessenberg rotations n=65 wantQ=true	8a25ac82eca8badd
+hessenberg rotations n=7 wantQ=false	f4c3be7bc578bd32
+hessenberg rotations n=7 wantQ=true	fede0cca9ca890ca
+hessenberg rotations n=8 wantQ=false	7986803326fb9595
+hessenberg rotations n=8 wantQ=true	7eca03a9a0a471e2
+hessenberg rotations n=9 wantQ=false	6913d3bba1994fb5
+hessenberg rotations n=9 wantQ=true	63f5b8db71f4464d
+hessenberg scaled n=1 wantQ=false	eff72f2a01b27127
+hessenberg scaled n=1 wantQ=true	197101507eff10bb
+hessenberg scaled n=10 wantQ=false	5e694f284d02e15c
+hessenberg scaled n=10 wantQ=true	e85c4d263258a104
+hessenberg scaled n=11 wantQ=false	84bfd190233d3915
+hessenberg scaled n=11 wantQ=true	09cfd894b3b27b46
+hessenberg scaled n=12 wantQ=false	56a8f7bac4313482
+hessenberg scaled n=12 wantQ=true	aa748eba928fcdb6
+hessenberg scaled n=13 wantQ=false	d0942b92c2aa51c8
+hessenberg scaled n=13 wantQ=true	00044642c6ccdc85
+hessenberg scaled n=14 wantQ=false	14d08566ea46ccb8
+hessenberg scaled n=14 wantQ=true	6d6b4405c1af55e3
+hessenberg scaled n=15 wantQ=false	6678f5bb5f8f899a
+hessenberg scaled n=15 wantQ=true	2b0245c366709dee
+hessenberg scaled n=16 wantQ=false	4b6c0b241057e978
+hessenberg scaled n=16 wantQ=true	9f1d4cd05af37610
+hessenberg scaled n=17 wantQ=false	ceb6a57094dd72d7
+hessenberg scaled n=17 wantQ=true	868758108539f9b7
+hessenberg scaled n=18 wantQ=false	27d12f3eefe2d06f
+hessenberg scaled n=18 wantQ=true	ae372ce14c16e06e
+hessenberg scaled n=19 wantQ=false	58a3e12af4e946d7
+hessenberg scaled n=19 wantQ=true	85736901d5995e30
+hessenberg scaled n=2 wantQ=false	f90baf6b43464fc3
+hessenberg scaled n=2 wantQ=true	ddd94049065a0510
+hessenberg scaled n=20 wantQ=false	eb939760d60dd09d
+hessenberg scaled n=20 wantQ=true	7cfe0046107fc76e
+hessenberg scaled n=21 wantQ=false	cd74b2fcad6dfa9e
+hessenberg scaled n=21 wantQ=true	7320d1872d47b322
+hessenberg scaled n=22 wantQ=false	026ceed3b95ca631
+hessenberg scaled n=22 wantQ=true	0090fea3e380869d
+hessenberg scaled n=23 wantQ=false	c69aee8ca70996b8
+hessenberg scaled n=23 wantQ=true	5881010a41f64f6b
+hessenberg scaled n=24 wantQ=false	e87253c645a2738e
+hessenberg scaled n=24 wantQ=true	524a76ed7f4892b8
+hessenberg scaled n=25 wantQ=false	a985a92c61cb7bf9
+hessenberg scaled n=25 wantQ=true	d50cd0d7c07a79d0
+hessenberg scaled n=26 wantQ=false	282151ca80ab8e93
+hessenberg scaled n=26 wantQ=true	7d6924dde6121a67
+hessenberg scaled n=27 wantQ=false	9b19ce46ff8643a0
+hessenberg scaled n=27 wantQ=true	1deb09966ebb25d8
+hessenberg scaled n=28 wantQ=false	01f3234bb438a85a
+hessenberg scaled n=28 wantQ=true	6160bdd5732b4756
+hessenberg scaled n=29 wantQ=false	7258b6ce3b71a687
+hessenberg scaled n=29 wantQ=true	c81aac0e0ec1a18b
+hessenberg scaled n=3 wantQ=false	24a59740b86b3d64
+hessenberg scaled n=3 wantQ=true	62202142f75a397c
+hessenberg scaled n=30 wantQ=false	a7a7ee14cc40ccd2
+hessenberg scaled n=30 wantQ=true	d08de0a40b3242d4
+hessenberg scaled n=31 wantQ=false	e36d4f0670cdfe0c
+hessenberg scaled n=31 wantQ=true	f9a5418f54c51fa8
+hessenberg scaled n=32 wantQ=false	1c60319736e58a09
+hessenberg scaled n=32 wantQ=true	f43700e1f3c12007
+hessenberg scaled n=33 wantQ=false	a739498168f09782
+hessenberg scaled n=33 wantQ=true	19dba6c3c94e0a4f
+hessenberg scaled n=34 wantQ=false	3b4a2472cef3a6f2
+hessenberg scaled n=34 wantQ=true	322a328bad5c1b60
+hessenberg scaled n=35 wantQ=false	1fbcb2395046a912
+hessenberg scaled n=35 wantQ=true	65ad22b8a7b59e1b
+hessenberg scaled n=36 wantQ=false	f483358f6c0a2f9c
+hessenberg scaled n=36 wantQ=true	1dc3ae65ae8ea0be
+hessenberg scaled n=37 wantQ=false	279aeac1fb4db62c
+hessenberg scaled n=37 wantQ=true	6c2e25d7a3692393
+hessenberg scaled n=38 wantQ=false	c1fa97d13b2b26b0
+hessenberg scaled n=38 wantQ=true	12a0a677395bb221
+hessenberg scaled n=39 wantQ=false	481a899b6e82c0e5
+hessenberg scaled n=39 wantQ=true	e3ce730a3354bc4d
+hessenberg scaled n=4 wantQ=false	8ebd1d68b21781e0
+hessenberg scaled n=4 wantQ=true	e98ff5a1ec368c71
+hessenberg scaled n=40 wantQ=false	146ab8d51ce612ae
+hessenberg scaled n=40 wantQ=true	006ee59a66e3c23f
+hessenberg scaled n=47 wantQ=false	8596cb810a3866a5
+hessenberg scaled n=47 wantQ=true	f67affd6f3450eef
+hessenberg scaled n=5 wantQ=false	7bbfefea86ae500a
+hessenberg scaled n=5 wantQ=true	508f300f0c729280
+hessenberg scaled n=6 wantQ=false	f89ae299394d8e91
+hessenberg scaled n=6 wantQ=true	23f206744b2fe011
+hessenberg scaled n=64 wantQ=false	2b4248549fceafe9
+hessenberg scaled n=64 wantQ=true	b83690f2e4906a7a
+hessenberg scaled n=65 wantQ=false	ab0abab48900f673
+hessenberg scaled n=65 wantQ=true	d7b4ea47f36ab20e
+hessenberg scaled n=7 wantQ=false	815485430ded2c8c
+hessenberg scaled n=7 wantQ=true	e1622e701a339be1
+hessenberg scaled n=8 wantQ=false	908add4ffc8fb834
+hessenberg scaled n=8 wantQ=true	4e8051637d33145f
+hessenberg scaled n=9 wantQ=false	c61f7728cf751790
+hessenberg scaled n=9 wantQ=true	c8e68d3aa2b25980
+hessenberg tiny n=1 wantQ=false	0ca7358385711c4b
+hessenberg tiny n=1 wantQ=true	0fba97d514930a37
+hessenberg tiny n=10 wantQ=false	13273e44dca26b08
+hessenberg tiny n=10 wantQ=true	eb0886553b9be96f
+hessenberg tiny n=11 wantQ=false	4050a5d18620074d
+hessenberg tiny n=11 wantQ=true	a2c428a29b58b81f
+hessenberg tiny n=12 wantQ=false	7e7d1e530509fca7
+hessenberg tiny n=12 wantQ=true	391c70d50265389d
+hessenberg tiny n=13 wantQ=false	5d16ed399b1ce4ac
+hessenberg tiny n=13 wantQ=true	752673d2337be0b1
+hessenberg tiny n=14 wantQ=false	8fab5179aa6d6fbe
+hessenberg tiny n=14 wantQ=true	af9f9e56b81494b9
+hessenberg tiny n=15 wantQ=false	61ade2e7685963d5
+hessenberg tiny n=15 wantQ=true	d0d052d423fdef5e
+hessenberg tiny n=16 wantQ=false	71b4953903db2078
+hessenberg tiny n=16 wantQ=true	a07279575b35c2e8
+hessenberg tiny n=17 wantQ=false	511484045742b21d
+hessenberg tiny n=17 wantQ=true	4f0ca0e78077e6b0
+hessenberg tiny n=18 wantQ=false	087417b2fbd3f6a6
+hessenberg tiny n=18 wantQ=true	f28797934e885bba
+hessenberg tiny n=19 wantQ=false	368d00af5a532690
+hessenberg tiny n=19 wantQ=true	6cb87e54064f12fa
+hessenberg tiny n=2 wantQ=false	1edc8a4f6608a666
+hessenberg tiny n=2 wantQ=true	109f48dcc91f0b19
+hessenberg tiny n=20 wantQ=false	12cfe9c70451c40d
+hessenberg tiny n=20 wantQ=true	cdc16f7f74f54ee6
+hessenberg tiny n=21 wantQ=false	6368f780ca925c3d
+hessenberg tiny n=21 wantQ=true	d4af06741d179708
+hessenberg tiny n=22 wantQ=false	f6b4729f2c95429e
+hessenberg tiny n=22 wantQ=true	26055c4a2a574bca
+hessenberg tiny n=23 wantQ=false	5111c6dd4cf23166
+hessenberg tiny n=23 wantQ=true	d5099d72f5a22510
+hessenberg tiny n=24 wantQ=false	176c4a88152e0ad5
+hessenberg tiny n=24 wantQ=true	38b7f77620c1f60d
+hessenberg tiny n=25 wantQ=false	24e510d309cf0961
+hessenberg tiny n=25 wantQ=true	d00e18de5c07e70e
+hessenberg tiny n=26 wantQ=false	48fc819467273b3c
+hessenberg tiny n=26 wantQ=true	323f2cc423a50e35
+hessenberg tiny n=27 wantQ=false	634339e3ebfddbf9
+hessenberg tiny n=27 wantQ=true	86b5f0b3596e4b66
+hessenberg tiny n=28 wantQ=false	fa95518eb17d4053
+hessenberg tiny n=28 wantQ=true	9cf4be26db6681f3
+hessenberg tiny n=29 wantQ=false	c9d2bdbb88870390
+hessenberg tiny n=29 wantQ=true	9d1430ee8b3f6fe0
+hessenberg tiny n=3 wantQ=false	c376a274414d8287
+hessenberg tiny n=3 wantQ=true	b682870ff2121a45
+hessenberg tiny n=30 wantQ=false	be5da03a5ebbbe48
+hessenberg tiny n=30 wantQ=true	e23ffaeb3005c5e9
+hessenberg tiny n=31 wantQ=false	d8ab59f24e750dc8
+hessenberg tiny n=31 wantQ=true	37dbaa7cafad9627
+hessenberg tiny n=32 wantQ=false	b09c812976d31e91
+hessenberg tiny n=32 wantQ=true	bcecc02bc1c298b5
+hessenberg tiny n=33 wantQ=false	bf60e59c7e4e6b32
+hessenberg tiny n=33 wantQ=true	140db4b05abc0000
+hessenberg tiny n=34 wantQ=false	793298d77390062b
+hessenberg tiny n=34 wantQ=true	d472de1cca5b8a20
+hessenberg tiny n=35 wantQ=false	8da034b279475b8c
+hessenberg tiny n=35 wantQ=true	e649071166a73a09
+hessenberg tiny n=36 wantQ=false	e2619ce799b3f5d9
+hessenberg tiny n=36 wantQ=true	bc8d0454a2574ec9
+hessenberg tiny n=37 wantQ=false	0879a03f24141559
+hessenberg tiny n=37 wantQ=true	ef06077dade2fece
+hessenberg tiny n=38 wantQ=false	2f069f7be1f80d04
+hessenberg tiny n=38 wantQ=true	d7cdefe5a27e803e
+hessenberg tiny n=39 wantQ=false	26ee8648963334ee
+hessenberg tiny n=39 wantQ=true	3a3da2f6b1507733
+hessenberg tiny n=4 wantQ=false	d6548fedba19428e
+hessenberg tiny n=4 wantQ=true	8ee30c83b90dc816
+hessenberg tiny n=40 wantQ=false	0cf021c0ad4725b8
+hessenberg tiny n=40 wantQ=true	e55974167a9a72d2
+hessenberg tiny n=47 wantQ=false	7701ae4b22166d3d
+hessenberg tiny n=47 wantQ=true	6de8b809c3f26753
+hessenberg tiny n=5 wantQ=false	99a508c9e5e4cf95
+hessenberg tiny n=5 wantQ=true	607b97bcf029bb3e
+hessenberg tiny n=6 wantQ=false	863c2002b47720ca
+hessenberg tiny n=6 wantQ=true	777ca858ce5bac10
+hessenberg tiny n=64 wantQ=false	07ae071f9549fd4a
+hessenberg tiny n=64 wantQ=true	6fa7c1390139d16d
+hessenberg tiny n=65 wantQ=false	ee02317006daa085
+hessenberg tiny n=65 wantQ=true	0d1f91c412a39b3b
+hessenberg tiny n=7 wantQ=false	6bec12c656feca81
+hessenberg tiny n=7 wantQ=true	65780d6bb301c416
+hessenberg tiny n=8 wantQ=false	e4b451a5f5225c59
+hessenberg tiny n=8 wantQ=true	5a77c91ecbd923f7
+hessenberg tiny n=9 wantQ=false	bc5af9e81ef8db60
+hessenberg tiny n=9 wantQ=true	01847f8d86c43c99
+hessenberg upper n=1 wantQ=false	7ed14286d7602b0a
+hessenberg upper n=1 wantQ=true	25e1441491f627b2
+hessenberg upper n=10 wantQ=false	f61e0eefa4070aed
+hessenberg upper n=10 wantQ=true	77e204dc8bd1e89a
+hessenberg upper n=11 wantQ=false	00839ef364fcc8f1
+hessenberg upper n=11 wantQ=true	153d73baa6527691
+hessenberg upper n=12 wantQ=false	8b3f266ea8d9e037
+hessenberg upper n=12 wantQ=true	c972a9fb85aa5c04
+hessenberg upper n=13 wantQ=false	0a0fea88203d60ff
+hessenberg upper n=13 wantQ=true	7b002253ea416103
+hessenberg upper n=14 wantQ=false	7ece0abed0124906
+hessenberg upper n=14 wantQ=true	2bb8162d4fbcc2b9
+hessenberg upper n=15 wantQ=false	373a2c6c6968973a
+hessenberg upper n=15 wantQ=true	732d813390416282
+hessenberg upper n=16 wantQ=false	e391c96a834beaf2
+hessenberg upper n=16 wantQ=true	2690386ff30494e5
+hessenberg upper n=17 wantQ=false	8700d89223b92132
+hessenberg upper n=17 wantQ=true	44b6edc7e67e100a
+hessenberg upper n=18 wantQ=false	aa2b5b08aba266cf
+hessenberg upper n=18 wantQ=true	1e3dd8b5a9c9ec9c
+hessenberg upper n=19 wantQ=false	4b063c2d99100385
+hessenberg upper n=19 wantQ=true	07c03ee3a5c254fd
+hessenberg upper n=2 wantQ=false	b49a1f3fe5b6b762
+hessenberg upper n=2 wantQ=true	439b47336705d775
+hessenberg upper n=20 wantQ=false	bc177b8a7b24914b
+hessenberg upper n=20 wantQ=true	50eb2bb4377d7818
+hessenberg upper n=21 wantQ=false	a18d868bbe14f6b7
+hessenberg upper n=21 wantQ=true	c8f484abe1fc4d0b
+hessenberg upper n=22 wantQ=false	af5fae2ba3342ba0
+hessenberg upper n=22 wantQ=true	0aae33eb76bb67d3
+hessenberg upper n=23 wantQ=false	fc887d018ae6f9e2
+hessenberg upper n=23 wantQ=true	061e29bc5f3dddfa
+hessenberg upper n=24 wantQ=false	db78648727c2f0d0
+hessenberg upper n=24 wantQ=true	0b35fc44c9b3ab43
+hessenberg upper n=25 wantQ=false	e4642c37d9c65888
+hessenberg upper n=25 wantQ=true	45de5fc5eb133e34
+hessenberg upper n=26 wantQ=false	1db377eb480eec96
+hessenberg upper n=26 wantQ=true	452a280858c39b49
+hessenberg upper n=27 wantQ=false	8d5aafaff0075df8
+hessenberg upper n=27 wantQ=true	e6bd0ef65478c104
+hessenberg upper n=28 wantQ=false	753d7545ff0fc7ad
+hessenberg upper n=28 wantQ=true	b976d3c9f22c18ba
+hessenberg upper n=29 wantQ=false	bd71a95566cf8619
+hessenberg upper n=29 wantQ=true	fc3dca83f1914a49
+hessenberg upper n=3 wantQ=false	e91e36c4e92abdb2
+hessenberg upper n=3 wantQ=true	fc750d435a535fca
+hessenberg upper n=30 wantQ=false	103dc891d94c24a0
+hessenberg upper n=30 wantQ=true	8f70d08ce3db00d3
+hessenberg upper n=31 wantQ=false	662fa5e65595c67a
+hessenberg upper n=31 wantQ=true	4e4fadcc63aa4442
+hessenberg upper n=32 wantQ=false	12ac99e65425f0b2
+hessenberg upper n=32 wantQ=true	c88eaf1af0cd6ce5
+hessenberg upper n=33 wantQ=false	a5e7f332fd65fea2
+hessenberg upper n=33 wantQ=true	02feea173c6df8fa
+hessenberg upper n=34 wantQ=false	09dbf18b5172e395
+hessenberg upper n=34 wantQ=true	9237a3b22e4535e2
+hessenberg upper n=35 wantQ=false	3ceac33d91544cca
+hessenberg upper n=35 wantQ=true	616cd1b7f9372452
+hessenberg upper n=36 wantQ=false	25dfdbd6c7144217
+hessenberg upper n=36 wantQ=true	8214a0b084fee9e4
+hessenberg upper n=37 wantQ=false	fa0c11278a811dfd
+hessenberg upper n=37 wantQ=true	894f78ac4be47085
+hessenberg upper n=38 wantQ=false	bd50f20f8c7782d3
+hessenberg upper n=38 wantQ=true	e37cfd9e36813c20
+hessenberg upper n=39 wantQ=false	f6fbbc92091c6dbe
+hessenberg upper n=39 wantQ=true	ac8e5b91f166e15e
+hessenberg upper n=4 wantQ=false	495be5fe18e6fb24
+hessenberg upper n=4 wantQ=true	063acb61c9859c97
+hessenberg upper n=40 wantQ=false	00169c0313aa767c
+hessenberg upper n=40 wantQ=true	24ed6d872d37e72f
+hessenberg upper n=47 wantQ=false	0bb85fdd63a8a60f
+hessenberg upper n=47 wantQ=true	7350817fe53d9933
+hessenberg upper n=5 wantQ=false	d86019d40c51c19a
+hessenberg upper n=5 wantQ=true	b318a131f04cd482
+hessenberg upper n=6 wantQ=false	11140822d0b532c8
+hessenberg upper n=6 wantQ=true	9aa6a47ff7ade2fb
+hessenberg upper n=64 wantQ=false	6c6ba005db7677b3
+hessenberg upper n=64 wantQ=true	9b5b1777d5a90e00
+hessenberg upper n=65 wantQ=false	ccea66617284d573
+hessenberg upper n=65 wantQ=true	98f3ef2190b9b18f
+hessenberg upper n=7 wantQ=false	95cbb3167e55c130
+hessenberg upper n=7 wantQ=true	ada51629f827d74c
+hessenberg upper n=8 wantQ=false	6d14197b169009b3
+hessenberg upper n=8 wantQ=true	6be5bc2cd5998700
+hessenberg upper n=9 wantQ=false	0cd38542e4b7a908
+hessenberg upper n=9 wantQ=true	a13fc91210298cb4
+hessenberg zero n=1 wantQ=false	428a62eddf69e945
+hessenberg zero n=1 wantQ=true	387357993bb4c55d
+hessenberg zero n=10 wantQ=false	c098eb85d581c3c5
+hessenberg zero n=10 wantQ=true	c1e368d81755bb92
+hessenberg zero n=11 wantQ=false	2710b7a601be3e85
+hessenberg zero n=11 wantQ=true	394efc4fca95b27d
+hessenberg zero n=12 wantQ=false	b3aef1f43d3afe85
+hessenberg zero n=12 wantQ=true	b7c7cc41ec642cd2
+hessenberg zero n=13 wantQ=false	8b7b2054f76503c5
+hessenberg zero n=13 wantQ=true	6f65550ab78e5c1d
+hessenberg zero n=14 wantQ=false	2b5b6ca266bc3e45
+hessenberg zero n=14 wantQ=true	25688ce1dfafff92
+hessenberg zero n=15 wantQ=false	3f16c82bd8bf8e05
+hessenberg zero n=15 wantQ=true	9b2698edddaa79bd
+hessenberg zero n=16 wantQ=false	212923b9ded8c905
+hessenberg zero n=16 wantQ=true	449396c937196dd2
+hessenberg zero n=17 wantQ=false	a7bc116e96256345
+hessenberg zero n=17 wantQ=true	415d860ab233b25d
+hessenberg zero n=18 wantQ=false	db320f75fe29d2c5
+hessenberg zero n=18 wantQ=true	c63bca53fd4f4192
+hessenberg zero n=19 wantQ=false	72cf7a22d5b8b785
+hessenberg zero n=19 wantQ=true	ff46d2013a5a88fd
+hessenberg zero n=2 wantQ=false	e6d0f7f9317204c5
+hessenberg zero n=2 wantQ=true	66d8a8690e00fd92
+hessenberg zero n=20 wantQ=false	b34c7afb68b3a185
+hessenberg zero n=20 wantQ=true	1ef86e37b56144d2
+hessenberg zero n=21 wantQ=false	3a2aca48d07f10c5
+hessenberg zero n=21 wantQ=true	e8233659b8a29a9d
+hessenberg zero n=22 wantQ=false	bd2787aa43e27545
+hessenberg zero n=22 wantQ=true	44427c9fee8fe992
+hessenberg zero n=23 wantQ=false	78a19a802e542f05
+hessenberg zero n=23 wantQ=true	13fd10f230f3203d
+hessenberg zero n=24 wantQ=false	29e716bba5359405
+hessenberg zero n=24 wantQ=true	9b93ae35eb5f3dd2
+hessenberg zero n=25 wantQ=false	89a64f5b21c79845
+hessenberg zero n=25 wantQ=true	f1f4d9e5d90b54dd
+hessenberg zero n=26 wantQ=false	d5c52808723a31c5
+hessenberg zero n=26 wantQ=true	83f2c65a02ed8f92
+hessenberg zero n=27 wantQ=false	f3bbc116b4d78085
+hessenberg zero n=27 wantQ=true	2c158051b67e937d
+hessenberg zero n=28 wantQ=false	7f28ca3253889485
+hessenberg zero n=28 wantQ=true	79f0c60a7a8924d2
+hessenberg zero n=29 wantQ=false	dedb2a303ba96dc5
+hessenberg zero n=29 wantQ=true	25bfb9dc881da11d
+hessenberg zero n=3 wantQ=false	fba7c3045a381585
+hessenberg zero n=3 wantQ=true	ae90f6ed306137fd
+hessenberg zero n=30 wantQ=false	3376843cb948fc45
+hessenberg zero n=30 wantQ=true	9caacae212549b92
+hessenberg zero n=31 wantQ=false	f617844e15d52005
+hessenberg zero n=31 wantQ=true	10fbd54a3d5422bd
+hessenberg zero n=32 wantQ=false	95ae880c91991245
+hessenberg zero n=32 wantQ=true	5e5b665434965112
+hessenberg zero n=33 wantQ=false	39baea13437f0545
+hessenberg zero n=33 wantQ=true	01a2b8ea4e6f781d
+hessenberg zero n=34 wantQ=false	aeed1dcdc9cae405
+hessenberg zero n=34 wantQ=true	d556ef13206410d2
+hessenberg zero n=35 wantQ=false	18a86124a92f8185
+hessenberg zero n=35 wantQ=true	82a001ff515168bd
+hessenberg zero n=36 wantQ=false	79d96089242abac5
+hessenberg zero n=36 wantQ=true	cf56c62a36e70812
+hessenberg zero n=37 wantQ=false	41ec4a07eb0902c5
+hessenberg zero n=37 wantQ=true	e01f515acc24bc5d
+hessenberg zero n=38 wantQ=false	86294e32ba3cd685
+hessenberg zero n=38 wantQ=true	b3bf3da86e4b20d2
+hessenberg zero n=39 wantQ=false	a469fcdb0c5f4905
+hessenberg zero n=39 wantQ=true	4ae4009f6d64a5fd
+hessenberg zero n=4 wantQ=false	047ec5714e8eab85
+hessenberg zero n=4 wantQ=true	2c61ce8a94b1dcd2
+hessenberg zero n=40 wantQ=false	5be5b4449c587d45
+hessenberg zero n=40 wantQ=true	abe7d33746d64912
+hessenberg zero n=47 wantQ=false	2363de016838da05
+hessenberg zero n=47 wantQ=true	c7f92f0ae71aee7d
+hessenberg zero n=5 wantQ=false	ab072e35a5eb46c5
+hessenberg zero n=5 wantQ=true	daea3e878ce2e59d
+hessenberg zero n=6 wantQ=false	d116212a53865745
+hessenberg zero n=6 wantQ=true	f2c8261284f4dd92
+hessenberg zero n=64 wantQ=false	a8d71ead40163b05
+hessenberg zero n=64 wantQ=true	ede051a65d199f52
+hessenberg zero n=65 wantQ=false	f6accfa7e6d28ac5
+hessenberg zero n=65 wantQ=true	551ef18ea44daddd
+hessenberg zero n=7 wantQ=false	9daf8140eee73d05
+hessenberg zero n=7 wantQ=true	2210fa5980fd073d
+hessenberg zero n=8 wantQ=false	ed6116e0f0e04e05
+hessenberg zero n=8 wantQ=true	2d47e94657ae65d2
+hessenberg zero n=9 wantQ=false	edd363c8cbab7e45
+hessenberg zero n=9 wantQ=true	1805c0cd91e4d7dd

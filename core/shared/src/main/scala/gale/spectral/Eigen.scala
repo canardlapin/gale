@@ -1,5 +1,6 @@
 package gale.spectral
 
+import gale.kernel.DoubleKernels
 import gale.linalg.Cols
 import gale.linalg.DMat
 import gale.linalg.DVec
@@ -14,6 +15,8 @@ import gale.linalg.ScratchRequirement
 import gale.linalg.Shape
 import gale.linalg.Symmetric
 import gale.linalg.TriangularSolve
+import gale.linalg.value
+import gale.platform.DoubleArray
 import gale.solvers.Preconditioner
 
 /** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric
@@ -1285,34 +1288,79 @@ object Eigen:
   // ===========================================================================
 
   /** Per-eigenvalue residual `‖A v − λ v‖` in real arithmetic for a packed
-    * nonsymmetric result. A real eigenvalue uses its single column; a conjugate
-    * pair uses its two adjacent columns `(v_re, v_im)` and both members share the
-    * one residual. Returns zeros when no vectors are present.
+    * nonsymmetric result, given the product `av = A · packed` (one matrix product
+    * rather than a matrix-vector product per column). A real eigenvalue uses its
+    * single column; a conjugate pair uses its two adjacent columns `(v_re, v_im)`
+    * and both members share the one residual. The residual columns
+    * `A V − V Λ` are formed in place in `av` (a fresh product owned here; copied
+    * first only if it is not contiguous row-major), reading `packed` through its
+    * strides, and then reduced per column with overflow-safe norms. Returns zeros
+    * when no vectors are present.
     */
-  private def nonsymResiduals(applyOp: DVec => DVec, re: DVec, im: DVec, packed: DMat): DVec =
+  private def nonsymResiduals(av: DMat, re: DVec, im: DVec, packed: DMat): DVec =
     val cnt = re.length
     if packed.cols == 0 then DVec.zeros(cnt)
     else
+      val n = packed.rows
+      val reA = re.toArray
+      val imA = im.toArray
+      // r := A V − V Λ, with Λ in real 2x2-block form for a conjugate pair.
+      val (r, rOff) =
+        if av.isContiguousRowMajor then (av.data, av.offsetValue.value)
+        else (av.toDoubleArrayCopyRowMajor, 0)
+      val v = packed.data
+      val vOff = packed.offsetValue.value
+      val vRs = packed.rowStride.value
+      val vCs = packed.colStride.value
+      var i = 0
+      while i < n do
+        val row = rOff + i * cnt
+        val vRow = vOff + i * vRs
+        var j = 0
+        while j < cnt do
+          val a = reA(j)
+          val b = imA(j)
+          if b == 0.0 then
+            r(row + j) = r(row + j) - v(vRow + j * vCs) * a
+            j += 1
+          else
+            // Positive-imaginary member at j; its conjugate is at j+1.
+            val vr = v(vRow + j * vCs)
+            val vi = v(vRow + (j + 1) * vCs)
+            r(row + j) = r(row + j) - (vr * a - vi * b)
+            r(row + j + 1) = r(row + j + 1) - (vi * a + vr * b)
+            j += 2
+        i += 1
       val out = new Array[Double](cnt)
       var j = 0
       while j < cnt do
-        val b = im(j)
-        if b == 0.0 then
-          val v = packed.col(j)
-          out(j) = (applyOp(v) - v * re(j)).norm2
+        if imA(j) == 0.0 then
+          out(j) = DoubleKernels.dnrm2(n, r, rOff + j, cnt)
           j += 1
         else
-          // Positive-imaginary member at j; its conjugate is at j+1 (shared residual).
-          val vr = packed.col(j)
-          val vi = packed.col(j + 1)
-          val a = re(j)
-          val realPart = applyOp(vr) - (vr * a - vi * b)
-          val imagPart = applyOp(vi) - (vi * a + vr * b)
-          val res = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
+          val res = pairResidualNorm(n, r, rOff + j, cnt)
           out(j) = res
           out(j + 1) = res
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
+
+  /** Sum-of-squares floor below which [[pairResidualNorm]] (like
+    * `DoubleKernels.dnrm2`) distrusts the plain sum and rescans with scaling.
+    */
+  private inline val PairNormTrustedMin = 1e-280
+
+  /** `sqrt(‖r_j‖² + ‖r_{j+1}‖²)` for the adjacent row-major columns starting at
+    * `offset` (row stride `stride`). The plain sum of squares is used when it is
+    * finite and above [[PairNormTrustedMin]]; otherwise the two columns are
+    * rescanned with max scaling, so entries near `1e300` do not overflow and
+    * tiny ones do not underflow to zero.
+    */
+  private def pairResidualNorm(n: Int, r: DoubleArray, offset: Int, stride: Int): Double =
+    val ssq =
+      DoubleKernels.ddot(n, r, offset, stride, r, offset, stride) +
+        DoubleKernels.ddot(n, r, offset + 1, stride, r, offset + 1, stride)
+    if ssq.isFinite && ssq >= PairNormTrustedMin then math.sqrt(ssq)
+    else DoubleKernels.dnrmFrobenius(n, 2, r, offset, stride, 1)
 
   /** Per-eigenvalue '''left''' residual `‖wᴴ A − λ wᴴ‖` in real arithmetic, using
     * `at = Aᵀ`. For `λ = a + b·i` and `w = w_re + i·w_im` the (transposed) residual
@@ -1369,25 +1417,39 @@ object Eigen:
     val leftSel =
       if wantLeft then Some(DMat.tabulate(n, cnt)((r, c) => leftFull.get(r, outIdx(c))))
       else None
-    val residuals =
+    // Nothing here is decided by the residuals, so they are measured on first
+    // access (SpectralDiagnostics, "Deferred measurements"). The thunk retains
+    // the immutable input and the freshly built result columns only.
+    def residuals(): DVec =
       (wantRight, wantLeft) match
         case (true, true) =>
-          val rr = nonsymResiduals(v => a * v, re, im, rightSel)
+          val rr = nonsymResiduals(a * rightSel, re, im, rightSel)
           val lr = nonsymLeftResiduals(a.t, re, im, leftSel.get)
           DVec.tabulate(cnt)(i => math.max(rr(i), lr(i)))
-        case (true, false) => nonsymResiduals(v => a * v, re, im, rightSel)
+        case (true, false) => nonsymResiduals(a * rightSel, re, im, rightSel)
         case (false, true) => nonsymLeftResiduals(a.t, re, im, leftSel.get)
         case (false, false) => DVec.zeros(cnt)
     val diagnostics =
-      SpectralDiagnostics(
-        requested = cnt,
-        converged = cnt,
-        residuals = residuals,
-        orthogonalityError = 0.0,
-        iterations = 0,
-        rank = None,
-        extremalityCertified = true
-      )
+      if wantRight || wantLeft then
+        SpectralDiagnostics.deferredResiduals(
+          requested = cnt,
+          converged = cnt,
+          residuals = () => residuals(),
+          orthogonalityError = 0.0,
+          iterations = 0,
+          rank = None,
+          extremalityCertified = true
+        )
+      else
+        SpectralDiagnostics(
+          requested = cnt,
+          converged = cnt,
+          residuals = DVec.zeros(cnt),
+          orthogonalityError = 0.0,
+          iterations = 0,
+          rank = None,
+          extremalityCertified = true
+        )
     new NonsymmetricEigenDecomposition(re, im, rightSel, leftSel, diagnostics)
 
   /** Relative pivot floor for the left-vector conditioning guard: reject when the
