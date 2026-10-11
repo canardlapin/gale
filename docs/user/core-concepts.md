@@ -57,7 +57,9 @@ one capability from another.
 
 With only `gale-core`, Gale uses its portable implementation on the JVM and
 Scala.js. An optional backend import can accelerate eligible JVM operations,
-but it does not take over every shape or layout.
+but it does not take over every shape or layout. Nothing is selected
+automatically; [Enabling SIMD](advanced/numerical-contract.md#enabling-simd)
+shows the Vector API import.
 
 Explicit numerical policy and allocation control can pin a portable route. For
 example, `a.qr(options)` preserves one pivot/rank policy across platforms, and

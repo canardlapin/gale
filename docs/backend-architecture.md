@@ -190,6 +190,52 @@ otherwise it runs the pure blocked path with backend-routed internal gemm. A
 `Vectorized`-only backend never takes the first branch (it has no `luFactor`), only
 the second, and only for a blocked driver.
 
+### A.2.2 W2.2 decision — SIMD stays an explicit import
+
+**Decision (2026-10-11).** SIMD acceleration is selected only by the caller:
+`import gale.backend.jvm.vector.given` (or an explicit `using VectorBackend` /
+`Backend.compose`). Gale never selects the Vector backend automatically: there is
+no `ServiceLoader`, no probe of `jdk.incubator.vector`, and no default that changes
+when the module is present. A-2's explicit-selection rule and A-2b's L1/L2 non-seam
+both stand unchanged. This record changes documentation and benchmark tooling
+only; no dispatch behaviour changes.
+
+**Rationale.**
+
+1. **Results must not depend on JVM flags.** The Vector kernels reassociate (SIMD
+   lane order and FMA), so row-major GEMV, GEMM and `syrk` are law-equivalent to the
+   pure kernels within tolerance, not bit-identical, and the lane order follows the
+   machine's preferred species width
+   ([numerical contract](user/advanced/numerical-contract.md)). If adding
+   `--add-modules=jdk.incubator.vector` silently switched backends, the same source
+   and data would give different bits depending on a launch flag. With an explicit
+   import, the pure path stays deterministic unless the source says otherwise.
+2. **The module is an incubator.** `jdk.incubator.vector` must be added at launch,
+   prints an incubator warning, and is not guaranteed to keep its API across JDKs.
+   An application that does not ask for it must never need it.
+
+**Evidence (Zen 5, trillium, lane B: gale vs Breeze 2.1 on `VectorBLAS`).**
+
+- [`2026-10-11-hc-gemm-vec-fix-trillium.md`](../benchmarks/results/2026-10-11-hc-gemm-vec-fix-trillium.md)
+  (`7a90fb7`, two rounds): gale vector is ahead of Breeze `VectorBLAS` on GEMM at
+  n = 64 (2.78–2.86×) and n = 256 (1.36–1.41×), tall GEMM at n = 64 (1.70–1.73×) and
+  n = 256 (1.59–1.61×), `AᵀA` at n = 256 (1.83×) and QR at n = 256 (1.83×). gale pure
+  is behind on the same rows at n = 256 (GEMM 0.45–0.46×, `AᵀA` 0.60–0.61×).
+- [`2026-10-10-breeze-milestone2-trillium-laneB.md`](../benchmarks/results/2026-10-10-breeze-milestone2-trillium-laneB.md)
+  (`0ff6440`, before the GEMM fix): with the scoreboard headline split introduced
+  for W2.2, gale vector (plus backend-insensitive rows) vs `VectorBLAS` is 114
+  ahead, 16 tie, 11 behind and 10 withheld of 151 pairs; gale pure vs `VectorBLAS`
+  is 45 ahead, 0 tie, 12 behind and 1 withheld of 58 pairs.
+
+The speed is available to users who opt in; the decision is only about who chooses.
+
+**Known remaining gaps.** GEMV-bound work still trails `VectorBLAS`. The L-BFGS
+logistic objective at a fixed 20-iteration budget is 0.68× with gale pure and
+0.93–0.94× with gale vector
+([`2026-10-11-hc-lbfgs-trillium.md`](../benchmarks/results/2026-10-11-hc-lbfgs-trillium.md),
+`16d8712`); standalone GEMV/GEMVᵀ with gale vector is 0.89–1.00× in the GEMM-fix run.
+Routing L1 or reduction ops ([competitiveness plan](breeze-competitiveness-plan.md), item 5) remains a separate decision gated by A-R1.
+
 ### A.3 The contract types
 
 ```scala
@@ -657,6 +703,7 @@ including copies**. Consequences fixed here:
 | A-1 | Kernel seam at coarse L3/driver facades only; L1/L2 stay static-pure | §A.2 — pure JVM wins on memory-bound L1/L2 (PRD); keeps the hot path indirection-free |
 | A-2 | Per-call `(using Backend)` on coarse ops; **no** mutable global install | §A.2 — Registry rejected (Doctrine 8, spectral doc precedent) |
 | A-2b | Vector-API backend does **not** seam L1/L2; install-once kernel table in `DoubleKernels` rejected (Doctrine 8) — bandwidth-bound upside doesn't justify it; lever is `gemm`/`syrk` at the coarse seam | §A.2.1 |
+| A-2c | W2.2: SIMD is enabled only by `import gale.backend.jvm.vector.given`; no `ServiceLoader`, no auto-selection when `jdk.incubator.vector` is present, so results do not depend on JVM flags | §A.2.2 |
 | A-3 | `given Backend = Backend.pure` fallback (computes) + `compose`; mirrors `SpectralBackend.none`/`compose` | §A.4 — `pure` vs `none` naming is intentional (compute vs unsupported) |
 | A-4 | Full `DenseDoubleKernel` surface declared; **dispatch policy** routes only coarse ops (gemm/syrk/standalone gemv/factorization drivers); loop-called L1/L2 never routes | §A.3, §A.2.1 — Vector-API lever is `gemm`, not memory-bound L1; no `nativeDotMinLength` |
 | A-5 | `Backend.spectral: Option[SpectralBackend]` bridge; `NativeLapack ⇒ spectral.isDefined` | §A.5 — composes with spectral doc §2.3 without nesting |

@@ -94,7 +94,9 @@ ordinary builds. The adapter is outside the 0.1 published artifact set.
 - Opt into allocation-controlled builders, destinations, and workspaces while
   keeping ordinary returned results owned.
 - Add JVM Vector API or FFM BLAS/LAPACK acceleration explicitly; the portable
-  core remains the default and Scala.js stays independent.
+  core remains the default and Scala.js stays independent. SIMD needs
+  `--add-modules=jdk.incubator.vector` plus `import gale.backend.jvm.vector.given`
+  (see [Enabling SIMD](docs/user/advanced/numerical-contract.md#enabling-simd)).
 - Accumulate exact double sums with `gale.numeric.ExactSum`, preserving
   finite-input results across input permutations and merge trees.
 

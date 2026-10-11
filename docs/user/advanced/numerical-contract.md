@@ -231,8 +231,8 @@ JVM and Scala.js. `import gale.sparse.direct.pure.given` enables portable
 sparse Cholesky only (minimum-degree `ProviderDefault`, exact-zero-style
 `NotPositiveDefinite`, fill guard). Do not infer sparse LU or QR from the
 types or from that import. Sparse QR, pivoting LU, and C Wasm each need
-their own spec in a [future version](../../sparse-direct-future.md). The
-current plan is [Scala.js sparse-direct](../../sparse-direct-js.md).
+their own spec in a [future version](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md). The
+current plan is [Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-js.md).
 
 ## Choosing a backend
 
@@ -257,3 +257,48 @@ symbol; otherwise loading fails rather than silently oversubscribing the JVM.
 
 The current thresholds and rejected routes are recorded in the
 [backend dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).
+
+### Enabling SIMD
+
+Gale never turns SIMD on by itself, even when the JVM could support it. To use
+the JDK Vector API backend on JDK 21 or later:
+
+1. Depend on the `vectorBackend` project (intended artifact
+   `gale-backend-jvm-vector`; see [Modules and platforms](../reference/modules-and-platforms.md)).
+2. Start every JVM that runs the code with `--add-modules=jdk.incubator.vector`.
+   In sbt that means `run / fork := true` and `Test / fork := true` with the flag
+   in `javaOptions`. Gale's own build also puts it in `.jvmopts`, because sbt
+   compiles and runs some code in its own JVM. Without the flag, the backend
+   classes cannot load. The JVM prints `WARNING: Using incubator modules`; that is
+   expected.
+3. Import the backend where the calls are written:
+
+```scala
+import gale.linalg.*
+import gale.backend.jvm.vector.given
+
+val gram = a.t * a // routed to the SIMD syrk above its threshold
+val c = a * b      // routed to the SIMD GEMM above its threshold
+```
+
+The import is an ordinary `given`, so it applies to calls compiled in its
+lexical scope. Code elsewhere, including library methods that take no
+`(using Backend)`, keeps the pure route.
+
+**What gets faster.** Row-major `A * B` above about 64³ multiply-adds, `A.t * A`
+(via `syrk`, with its own shape guard), contiguous `A * x` above about 128×128,
+and the trailing updates of blocked QR, so `qr` and QR-based `leastSquares` at
+larger sizes. Below the thresholds, and for strided operands, the pure kernels
+run. Level-1 operations (`dot`, `norm2`, `axpy`), reductions, LU, Cholesky,
+eigen and SVD are unchanged. On the recorded Zen 5 run, GEMM-class products were
+1.4–2.9× faster than Breeze using `VectorBLAS`, while GEMV-bound work such as a
+logistic L-BFGS objective was still slightly slower; see the
+[recorded run](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-10-11-hc-gemm-vec-fix-trillium.md).
+Measure your own shapes and machine.
+
+**Numerical caveat.** The SIMD GEMM, `syrk` and row-major GEMV reassociate
+(lane order and FMA). Their results satisfy the conformance tolerances but are
+not bit-identical to the pure backend, and they can differ between machines
+with different vector widths. Gale requires the import for this reason: adding a
+JVM flag alone never changes your results. Keep the pure backend where bit
+reproducibility matters.
