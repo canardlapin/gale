@@ -36,7 +36,8 @@ enum SpectralConvergenceStatus:
   *     inner linear system; `None` means no inner solves were performed.
   *
   * '''Deferred measurements.''' The dense one-shot facades (dense symmetric
-  * eigen, ordinary and workspace routes, and dense SVD) decide nothing from
+  * eigen, ordinary and workspace routes, dense nonsymmetric eigen, and dense
+  * SVD) decide nothing from
   * `residuals` or `orthogonalityError`, so they measure both '''on first
   * access''' and cache them: a caller that never reads them does not pay for
   * the `A·V` and `VᵀV` products.

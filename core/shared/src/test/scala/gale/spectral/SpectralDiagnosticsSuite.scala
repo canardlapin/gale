@@ -229,3 +229,39 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     assert(svd.diagnostics.worstResidual < 1e-12)
     assert(svd.diagnostics.orthogonalityError < 1e-13)
   }
+
+  test("dense nonsymmetric eigen measures residuals on access against per-column products") {
+    // Rotation blocks give complex pairs; the diagonal ramp gives real eigenvalues.
+    val n = 9
+    val a = Matrix.tabulate(n, n)((r, c) =>
+      if r == c then 0.5 * r
+      else if r < 4 && c < 4 && r / 2 == c / 2 then (if r < c then 2.0 else -2.0)
+      else 0.1 * math.sin(1.0 + r * n + c)
+    )
+    val eig = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.Right).toOption.get
+    assert(eig.diagnostics.toString.contains("<deferred>"), eig.diagnostics.toString)
+    val re = eig.re
+    val im = eig.im
+    val v = eig.rightVectorsPacked
+    assert((0 until n).exists(j => im(j) != 0.0) && (0 until n).exists(j => im(j) == 0.0))
+    var j = 0
+    while j < n do
+      if im(j) == 0.0 then
+        val r = (a * v.col(j) - v.col(j) * re(j)).norm2
+        assertEqualsDouble(eig.diagnostics.residuals(j), r, 1e-15)
+        j += 1
+      else
+        val vr = v.col(j)
+        val vi = v.col(j + 1)
+        val realPart = a * vr - (vr * re(j) - vi * im(j))
+        val imagPart = a * vi - (vi * re(j) + vr * im(j))
+        val r = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
+        assertEqualsDouble(eig.diagnostics.residuals(j), r, 1e-15)
+        assertEqualsDouble(eig.diagnostics.residuals(j + 1), r, 0.0)
+        j += 2
+    assert(eig.diagnostics.worstResidual < 1e-13)
+    assertEqualsDouble(eig.diagnostics.orthogonalityError, 0.0, 0.0)
+
+    val valuesOnly = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get
+    assertEquals(valuesOnly.diagnostics.residuals.toSeq, Seq.fill(n)(0.0))
+  }

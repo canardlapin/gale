@@ -206,12 +206,16 @@ cache them, instead of forming `A·V` and `VᵀV` (and, for SVD, `AᵀU`) on eve
 call. No convergence or certification decision reads either value on these
 paths, so `converged`, `requireConverged` and `requireExtremeCertified` are
 unchanged, and the measured values are bit-identical to the former eager ones.
-The first read pays the two matrix products; iterative, generalized and
-nonsymmetric solvers still report values computed during the solve.
+The first read pays the two matrix products. The dense
+`Eigen.eigNonsymmetric` path does the same for its residuals (its
+orthogonality error is always `0.0`): the right residuals are now measured
+from one `A·V` product rather than one matrix-vector product per column, so
+they can differ from the former eager values in the last bits. Iterative and
+generalized solvers still report values computed during the solve.
 
 Retention: until both values are read, a result's diagnostics keep the
 returned vectors (owned by the result anyway) and the decomposed matrix
-alive. The ordinary routes (`eigSymmetric`, dense `svd`) keep a reference to
+alive. The ordinary routes (`eigSymmetric`, `eigNonsymmetric`, dense `svd`) keep a reference to
 the immutable input `DMat`, with no copy; the workspace route
 (`eigSymmetricWith`) keeps a packed copy of the input's lower triangle
 (`n(n+1)/2` doubles). Each source is released once its value is measured. An
