@@ -155,7 +155,9 @@ separate evidence from the caller.
 ## Smooth minimization without a Lipschitz bound
 
 L-BFGS uses a fused value/analytic-gradient callback, bounded strong-Wolfe line
-search, and limited curvature history. It supports a whole matrix variable;
+search, and limited curvature history. While it has no curvature pair, its
+direction is `−∇f` and the first trial step is `1/‖∇f‖₂`, a unit-length move;
+afterwards the history scales the direction and the first trial step is 1. It supports a whole matrix variable;
 `DifferentiableObjective.vector` adapts a single-column `DVec` callback.
 It is unconstrained: use a proximal/projected method for bounds. For nonconvex
 objectives its gradient test establishes local stationarity, not a global optimum.

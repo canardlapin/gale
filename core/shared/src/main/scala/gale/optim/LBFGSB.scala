@@ -365,6 +365,9 @@ object LBFGSB:
       val maximum = Math.min(1e20, feasibleStep)
       if maximum <= 0.0 then
         return execution.finish(Right(latest.copy(status = FirstOrderStoppingStatus.NumericalStagnation)))
+      // The first trial step stays 1, as in Breeze `LBFGSB`: the direction ends at the box-clipped model minimizer,
+      // and the feasible cap bounds the search. Fortran L-BFGS-B tries `1 / ‖d‖₂` on its first, unboxed iteration;
+      // that is not adopted here, so bounded solves and their parity with Breeze are unchanged.
       StrongWolfe.search(
         objective,
         point,

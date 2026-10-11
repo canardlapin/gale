@@ -598,6 +598,7 @@ solvers in `gale.optim` (`AcceleratedProximal`, `LevenbergMarquardt`, `CMAES`,
 | `new LBFGSB(l, u, maxIter, m, tolerance)` | `LBFGSBConfig(...)` with `MatrixBoxBounds.from(l, u)` | Breeze defaults: `maxIter = 100`, `m = 5`, `tolerance = 1e-8`. |
 | `StrongWolfeLineSearch` with `c1 = 1e-4`, `c2 = 0.9` (fixed) | `c1`, `c2` in the config | Same defaults; Gale lets them be changed. |
 | `maxZoomIter`, `maxLineSearchIter` (10 each in `LBFGS`, 64 in `LBFGSB`) | `maxLineSearch` (default 40) | One trial budget per line search. `LBFGSConfig.maximumStep` caps the step. |
+| first trial step: `1/‖d‖₂` on iteration 0 in `LBFGS`, else 1; always 1 in `LBFGSB` | the same rule, fixed | Gale `LBFGS` also uses `1/‖d‖₂` after a history reset, whenever `d = −∇f` is unscaled. |
 | evaluation count (wrap the `DiffFunction`) | `solution.evaluations.callbacks` | Gale counts every callback, including rejected trials. |
 | `minimizeAndReturnState(f, x0).convergenceReason` | `solution.status` | `Converged`, `IterationLimit`, `LineSearchFailed`, `EvaluationLimit`, `Cancelled`, `NumericalStagnation`. |
 
