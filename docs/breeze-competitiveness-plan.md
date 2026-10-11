@@ -10,6 +10,24 @@ The original context below describes the October 8 baseline. The
 sets the next execution order after the first hill-climbs.
 
 
+## Status 2026-10-11
+
+Milestone 3 receipts (`90c74a3`) measure source `96c95e5` on trillium (Zen 5,
+JDK 25), with every scoreboard run under `--validation --strict`:
+
+- Lane A, gale pure vs Breeze `Java11BLAS`: 124 ahead, 13 tie, 4 behind,
+  10 withheld of 151 pairs (Milestone 2: 122/12/7/10).
+- Lane B headline, gale vector vs Breeze `VectorBLAS`: 118 ahead, 14 tie,
+  9 behind, 10 withheld (Milestone 2 re-scored: 114/16/11/10). Secondary, gale
+  pure vs `VectorBLAS`: 46/0/11/1 of 58.
+
+Merged on 2026-10-11: hc-gemm-vec (`c3ceeb5`), hc-lbfgs (`c9e2b14`),
+hc-lstsq16 (`51d74c9`), W2.2 docs (`96c95e5`, ADR A-2c), all measured by
+Milestone 3; and hc-sigmoid2 (`6066cdb`), which merged after the receipts but
+changes only tests, benchmarks and a comment in the kernel. In flight:
+hc-max2, hc-gemv-vec and hc-lbfgs-step. The remaining gaps and their owners are
+in [`benchmarks/dashboard.md`](../benchmarks/dashboard.md).
+
 ## Context
 
 Breeze 2.1.0 is gale's main competitor: it is mostly retired and JVM-only, but battle-tested through Spark. The last full head-to-head (`benchmarks/results/2026-07-11-breeze-release-grade.md`) had gale ahead on 23/42 pairs. Since then none of the gap kernels has improved. An audit on 2026-10-08 found five problems:
@@ -370,6 +388,36 @@ this follow-up. Preserve unrelated main-worktree files and stage only owned path
 
 Next action: implement step 1 on an isolated branch from current integration,
 while coordinating benchmark-sized eig validation with the existing HC-1 owner.
+
+## Before the final two-lane receipt
+
+Do not cut `benchmarks/results/2026-1x-xx-breeze-two-lane-final.{json,md}`
+until all of the following hold:
+
+1. **In-flight work has merged or been dropped:** hc-max2, hc-gemv-vec and
+   hc-lbfgs-step.
+2. **Every Milestone 3 gap is closed or documented here with its cause**
+   (see the dashboard's "Still behind" list):
+   - lane A `max` at n = 1M, 0.76× (HC-3, `bd-01M4GY1QTAE17DV1A1990V88B8`).
+     This one fails an epic criterion: a new op family below 1.0× at n ≥ 1K;
+   - lane B vector `gemv`/`gemvT` (0.95–0.96×) and the gemv-bound L-BFGS
+     logistic objective at a fixed budget (0.96×) (HC-4,
+     `bd-01M4PAPJGS4EF4DXMEAS8NVY01`);
+   - `dot` at n = 64K, 0.97× in both lanes: the paired rerun
+     (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) decides whether this is a kernel gap;
+   - lane B sparse `dot` with a dense vector, 0.96× (no tracker item yet);
+   - `sigmoid` at n = 1K and 64K is already documented below for lane A;
+     lane B measures 0.95–0.96× for the same backend-insensitive kernel.
+3. **The new op families are settled at ≥ 1.0×.** Several lane-A rows are
+   ties at 1.00× (`exp`, `logSumExp`, sparse `dot` with a dense vector). The
+   reviewer must decide whether a CI-overlapping tie meets the bar.
+4. **A fresh sweep of the final source SHA:** both lanes plus the eig16 and
+   lane-A hugemethods supplements, on the reviewed runner, with validation
+   sidecars bound to that SHA and scoreboards run with `--validation --strict`
+   and zero unpaired rows.
+5. **W5 suites are green on CI** for that SHA, and `docsCheck` passes.
+6. **A fresh-context reviewer signs off** on the final receipt; then
+   regenerate the dashboard from it and close W6 and the epic.
 
 ## Documented gaps
 
