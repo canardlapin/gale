@@ -284,6 +284,7 @@ PREFLIGHT_CLASSES = {
     "DenseDecompositionBreezeJmh", "SmallDenseBreezeJmh",
     "FactorizationBreezeJmh", "LeastSquaresBreezeJmh",
     "FactorizationLargeBreezeJmh", "MultiRhsBreezeJmh", "SymEigenBreezeJmh",
+    "LbfgsBreezeJmh",
 }
 
 
@@ -546,7 +547,7 @@ def render(
         f"- Breeze netlib BLAS: `{blas}`",
         f"- Breeze netlib LAPACK: `{lapack}`",
         f"- Commit: `{commit}`",
-        (f"- Numerical preflight: {validated} decomposition/factorization result rows validated on this SHA."
+        (f"- Numerical preflight: {validated} decomposition/factorization/optimizer result rows validated on this SHA."
          if validated is not None else "- Numerical preflight: not supplied (legacy receipt; successful numerical completion unverified by this tool)."),
     ]
     if machine:
@@ -595,7 +596,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--validation", action="append", type=Path,
-        help="numerical preflight JSONL (repeatable; required for new decomposition/factorization receipts)",
+        help="numerical preflight JSONL (repeatable; required for new decomposition/factorization/optimizer receipts)",
     )
     parser.add_argument(
         "--machine", help="free-text machine description for the header"

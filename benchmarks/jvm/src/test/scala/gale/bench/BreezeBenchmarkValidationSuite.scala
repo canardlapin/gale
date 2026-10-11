@@ -83,3 +83,22 @@ class BreezeBenchmarkValidationSuite extends munit.FunSuite:
     assert(validate("Inv", diagonallyDominant(64, 2100L), backend = vector).nonEmpty)
     assert(validate("LuSolve", diagonallyDominant(64, 1700L), matrixData(64, 16, 1900L), vector).nonEmpty)
   }
+
+  test("L-BFGS fixtures validate converged and fixed-budget solves from both libraries") {
+    val rosenbrock = validate("Rosenbrock", column(LbfgsBreezeJmh.rosenbrockStartPoint()))
+    assert(rosenbrock.exists(_.name == "gale Rosenbrock distance to x*=1"), rosenbrock.map(_.name))
+    assert(rosenbrock.exists(_.name == "breeze Rosenbrock fixed-budget descent f/f0"), rosenbrock.map(_.name))
+    val (design, labels) = LbfgsBreezeJmh.logisticData()
+    for backend <- Seq(gale.backend.PureBackend, gale.backend.jvm.vector.VectorBackend) do
+      val logistic = validate("Logistic", design, column(labels), backend)
+      assert(logistic.exists(_.name == "logistic solution agreement"), logistic.map(_.name))
+  }
+
+  test("the Rosenbrock curvature bound matches the closed form and rejects another stationary point") {
+    // n = 2 at x* = 1: H = [[802, -400], [-400, 200]], so lambda_min = (1002 - sqrt(1002^2 - 1600)) / 2.
+    val expected = (1002.0 - math.sqrt(1002.0 * 1002.0 - 1600.0)) / 2.0
+    assertEqualsDouble(rosenbrockHessianMin(Array(1.0, 1.0)), expected, 1e-9 * expected)
+    // From x_0 = -1 both solvers settle at the chained function's local minimum (f ~ 3.98), not at x* = 1.
+    val local = Array.tabulate(LbfgsBreezeJmh.RosenbrockSize)(i => if i == 0 then -1.0 else 1.0)
+    intercept[IllegalArgumentException](validate("Rosenbrock", column(local)))
+  }
