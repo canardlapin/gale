@@ -1667,10 +1667,15 @@ private[gale] object DoubleKernels:
     */
   inline def sigmoid(v: Double): Double =
     val t = math.exp(-math.abs(v))
-    // Select the numerator, not the whole expression: one division either way,
-    // and C2 emits a conditional move instead of a branch on the sign of `v`
-    // (unpredictable for mixed-sign data).
-    val numerator = if v >= 0.0 then 1.0 else t
+    // The numerator is 1 for `v >= 0` and `t` otherwise, selected arithmetically
+    // so no branch depends on the sign of `v` (unpredictable for mixed-sign data;
+    // x86 C2 lowers a `Double` conditional move to a branch). With `h = ±1/2`,
+    // `(1/2 + h) + (1/2 - h) * t` is exactly `1 + 0*t = 1` or `0 + 1*t = t`, since
+    // `0 <= t <= 1`; a NaN `v` gives a NaN `t` and so a NaN result. `-0.0` takes
+    // the negative side, where `t = 1` gives the same numerator. The result is
+    // bit-identical to the branching form.
+    val h = math.copySign(0.5, v)
+    val numerator = (0.5 + h) + (0.5 - h) * t
     numerator / (1.0 + t)
 
   def dsigmoidInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =

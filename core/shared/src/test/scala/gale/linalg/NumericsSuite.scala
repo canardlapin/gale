@@ -92,6 +92,27 @@ class NumericsSuite extends ScalaCheckSuite:
       )
   }
 
+  /** The textbook branching form of the overflow-free sigmoid; the kernel selects
+    * its numerator arithmetically and must agree with this bit for bit.
+    */
+  private def branchingSigmoid(v: Double): Double =
+    val t = math.exp(-math.abs(v))
+    if v >= 0.0 then 1.0 / (1.0 + t) else t / (1.0 + t)
+
+  test("sigmoid's branch-free numerator is bit-identical to the branching form at special values") {
+    val xs = specials ++ Seq(Double.MinPositiveValue, -Double.MinPositiveValue, Double.MaxValue, -Double.MaxValue,
+      java.lang.Double.MIN_NORMAL, -java.lang.Double.MIN_NORMAL, 36.7, -36.7, 37.5, -37.5, 744.0, -744.0, 1e-17,
+      -1e-17)
+    for (layout, x) <- vectorLayouts(xs) do assertBits(Numerics.sigmoid(x).toSeq, xs.map(branchingSigmoid), layout)
+  }
+
+  property("sigmoid's branch-free numerator is bit-identical to the branching form on mixed-sign data") {
+    val wide = Gen.oneOf(Gen.choose(-40.0, 40.0), Gen.choose(-800.0, 800.0), Gen.choose(-1e-6, 1e-6))
+    forAll(Gen.listOfN(97, wide)) { xs =>
+      assertBits(Numerics.sigmoid(Vec(xs*)).toSeq, xs.map(branchingSigmoid), "random mixed-sign")
+    }
+  }
+
   test("logSumExp is stable for large magnitudes and follows the documented special-value rules") {
     assertClose(Numerics.logSumExp(Vec(1000.0, 1000.0)), 1000.0 + math.log(2.0))
     assertClose(Numerics.logSumExp(Vec(-1000.0, -1000.0)), -1000.0 + math.log(2.0))
