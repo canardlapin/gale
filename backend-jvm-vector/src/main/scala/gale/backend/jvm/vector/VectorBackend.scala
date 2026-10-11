@@ -375,9 +375,12 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     * `64×64` (1.8×) up to `1024×256` (3×). Row floor: each dot product runs over
     * the `m` rows of `A`, so short-wide `A` with `m < 2·lanes` (a dot of under two
     * vectors against nine horizontal reductions per tile) stays pure: on Zen 5
-    * pure wins `4×1024` and `8×4096` (1.6×), SIMD wins from `16×1024` (1.23×);
+    * pure wins `4×1024` (1.04×) and `8×4096` (1.6×), SIMD wins from `16×1024` (1.23×);
     * `8×1024` (SIMD 5% faster) is the one measured shape this leaves on pure.
-    * Measured with `VectorSyrkJmh` (`kernel` vs `simdForced`), JDK 25.
+    * Measured with `VectorSyrkJmh` (`kernel` vs `simdForced`), JDK 25. On ARM64
+    * (two lanes, Apple M3) SIMD ties or wins on every probed shape (`64×64` and
+    * `96×64` 1.2×; `4×1024`, `6×1024` and `8×4096` within noise), so the same
+    * lane-scaled floors serve both widths.
     */
   private[vector] def syrkUsesSimd(m: Int, k: Int): Boolean =
     val lanes = Species.length()
@@ -665,14 +668,14 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         var s20 = DoubleVector.zero(species)
         var s21 = DoubleVector.zero(species)
         var s22 = DoubleVector.zero(species)
-        var k = 0
-        while k < sharedBound do
-          val av0 = DoubleVector.fromArray(species, p, a0 + k)
-          val av1 = DoubleVector.fromArray(species, p, a1 + k)
-          val av2 = DoubleVector.fromArray(species, p, a2 + k)
-          val bv0 = DoubleVector.fromArray(species, p, b0 + k)
-          val bv1 = DoubleVector.fromArray(species, p, b1 + k)
-          val bv2 = DoubleVector.fromArray(species, p, b2 + k)
+        var r = 0
+        while r < sharedBound do
+          val av0 = DoubleVector.fromArray(species, p, a0 + r)
+          val av1 = DoubleVector.fromArray(species, p, a1 + r)
+          val av2 = DoubleVector.fromArray(species, p, a2 + r)
+          val bv0 = DoubleVector.fromArray(species, p, b0 + r)
+          val bv1 = DoubleVector.fromArray(species, p, b1 + r)
+          val bv2 = DoubleVector.fromArray(species, p, b2 + r)
           s00 = av0.fma(bv0, s00)
           s01 = av0.fma(bv1, s01)
           s02 = av0.fma(bv2, s02)
@@ -682,7 +685,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
           s20 = av2.fma(bv0, s20)
           s21 = av2.fma(bv1, s21)
           s22 = av2.fma(bv2, s22)
-          k += species.length()
+          r += species.length()
         var x00 = s00.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         var x01 = s01.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         var x02 = s02.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
@@ -692,13 +695,13 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         var x20 = s20.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         var x21 = s21.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
         var x22 = s22.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
-        while k < length do
-          val av0 = p(a0 + k)
-          val av1 = p(a1 + k)
-          val av2 = p(a2 + k)
-          val bv0 = p(b0 + k)
-          val bv1 = p(b1 + k)
-          val bv2 = p(b2 + k)
+        while r < length do
+          val av0 = p(a0 + r)
+          val av1 = p(a1 + r)
+          val av2 = p(a2 + r)
+          val bv0 = p(b0 + r)
+          val bv1 = p(b1 + r)
+          val bv2 = p(b2 + r)
           x00 = Math.fma(av0, bv0, x00)
           x01 = Math.fma(av0, bv1, x01)
           x02 = Math.fma(av0, bv2, x02)
@@ -708,7 +711,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
           x20 = Math.fma(av2, bv0, x20)
           x21 = Math.fma(av2, bv1, x21)
           x22 = Math.fma(av2, bv2, x22)
-          k += 1
+          r += 1
         val c0 = cOffset + i * cRowStride + j
         val c1 = c0 + cRowStride
         val c2 = c1 + cRowStride
@@ -797,4 +800,3 @@ object VectorBackend extends Backend:
   * a multi-backend user can `Backend.compose` the values and declare one composite given.
   */
 given vectorBackend: Backend = VectorBackend
-
