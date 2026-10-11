@@ -51,16 +51,19 @@ final class CenteredMomentsSummary private[numeric] (
     val covariance: DMat
 )
 
-/** Worker-local exact finite-input moments. Inputs/merge sources are not retained or mutated. Each x is stored in
-  * integer units 2^-1074 and products in units 2^-2148. Exact centered covariance is
-  * (W*sum(w*x*y)-sum(w*x)*sum(w*y))/(W*(W-ddof)); the apparently subtractive formula uses exact integers, so
-  * cancellation never discards bits. Mean/covariance round once, ties to even. Frequency <= MaxFrequency bounds every
-  * limb, independently of traversal/partitions. This is a correctness primitive, not a cheap-loop/RSS claim.
+/** Worker-local exact finite-input moments. Inputs/merge sources are not retained or mutated. Exact dyadics retain a
+  * separate power-of-two shift instead of repeatedly allocating low zero-padding. Their absolute units remain 2^-1074
+  * for sums and 2^-2148 for products. Exact centered covariance is (W*sum(w*x*y)-sum(w*x)*sum(w*y))/(W*(W-ddof)); the
+  * apparently subtractive formula uses exact integers, so cancellation never discards bits. Mean/covariance round once,
+  * ties to even. Frequency <= MaxFrequency bounds every limb, independently of traversal/partitions. This is a
+  * correctness primitive, not a cheap-loop/RSS claim.
   */
 final class CenteredMoments private (
     val dimension: Int,
     private var sums: Array[BigInt],
     private var products: Array[BigInt],
+    private var sumShifts: Array[Int],
+    private var productShifts: Array[Int],
     private var mass: Long,
     private var occurrences: Long
 ):
@@ -80,29 +83,81 @@ final class CenteredMoments private (
         row += 1
       if frequency == 0 then Right(())
       else
-        val exact = values.map(ExactDyadic.units)
+        val exact = new Array[BigInt](dimension)
+        val shifts = new Array[Int](dimension)
+        row = 0
+        while row < dimension do
+          val bits = java.lang.Double.doubleToRawLongBits(values(row))
+          val exponent = ((bits >>> 52) & 0x7ffL).toInt
+          val fraction = bits & 0xfffffffffffffL
+          val mantissa = if exponent == 0 then fraction else fraction | (1L << 52)
+          val trailing = if mantissa == 0 then 0 else java.lang.Long.numberOfTrailingZeros(mantissa)
+          val compact = mantissa >>> trailing
+          exact(row) = BigInt(if bits < 0L then -compact else compact)
+          shifts(row) = (if exponent == 0 then 0 else exponent - 1) + trailing
+          row += 1
         val weight = BigInt(frequency)
         val nextSums = new Array[BigInt](dimension)
         val nextProducts = new Array[BigInt](products.length)
+        val nextSumShifts = sumShifts.clone()
+        val nextProductShifts = productShifts.clone()
         row = 0; var cell = 0
         while row < dimension do
-          nextSums(row) = sums(row) + weight * exact(row)
+          val weighted = weight * exact(row)
+          nextSums(row) = combine(sums(row), sumShifts(row), weighted, shifts(row), nextSumShifts, row)
           var column = row
           while column < dimension do
-            nextProducts(cell) = products(cell) + weight * exact(row) * exact(column)
+            nextProducts(cell) = combine(
+              products(cell),
+              productShifts(cell),
+              weighted * exact(column),
+              shifts(row) + shifts(column),
+              nextProductShifts,
+              cell
+            )
             cell += 1; column += 1
           row += 1
-        sums = nextSums; products = nextProducts; mass += frequency; occurrences += 1
+        sums = nextSums; products = nextProducts; sumShifts = nextSumShifts; productShifts = nextProductShifts
+        mass += frequency; occurrences += 1
         Right(())
-  def copy(): CenteredMoments = new CenteredMoments(dimension, sums.clone(), products.clone(), mass, occurrences)
+
+  /** Align only the meaningful bits. A zero operand does not impose an unnecessarily low scale. */
+  private def combine(a: BigInt, aShift: Int, b: BigInt, bShift: Int, outputShifts: Array[Int], index: Int): BigInt =
+    if b == 0 then a
+    else if a == 0 then
+      outputShifts(index) = bShift
+      b
+    else
+      val shift = math.min(aShift, bShift)
+      outputShifts(index) = shift
+      (a << (aShift - shift)) + (b << (bShift - shift))
+  def copy(): CenteredMoments =
+    new CenteredMoments(
+      dimension,
+      sums.clone(),
+      products.clone(),
+      sumShifts.clone(),
+      productShifts.clone(),
+      mass,
+      occurrences
+    )
   def merge(other: CenteredMoments): Either[CenteredMomentsError, Unit] =
     if this eq other then Left(SelfMerge)
     else if dimension != other.dimension then Left(DimensionMismatch(dimension, other.dimension))
     else if other.mass > CenteredMoments.MaxFrequency - mass then Left(CapacityExceeded(mass, other.mass))
     else
-      val nextSums = sums.indices.map(i => sums(i) + other.sums(i)).toArray
-      val nextProducts = products.indices.map(i => products(i) + other.products(i)).toArray
-      sums = nextSums; products = nextProducts; mass += other.mass; occurrences += other.occurrences
+      val nextSumShifts = sumShifts.clone()
+      val nextProductShifts = productShifts.clone()
+      val nextSums = sums.indices
+        .map(i => combine(sums(i), sumShifts(i), other.sums(i), other.sumShifts(i), nextSumShifts, i))
+        .toArray
+      val nextProducts = products.indices
+        .map(i =>
+          combine(products(i), productShifts(i), other.products(i), other.productShifts(i), nextProductShifts, i)
+        )
+        .toArray
+      sums = nextSums; products = nextProducts; sumShifts = nextSumShifts; productShifts = nextProductShifts
+      mass += other.mass; occurrences += other.occurrences
       Right(())
   def finish(degreesRemoved: Int = 1): Either[CenteredMomentsError, CenteredMomentsSummary] =
     if degreesRemoved != 0 && degreesRemoved != 1 then Left(UnsupportedDivisor(degreesRemoved))
@@ -110,14 +165,15 @@ final class CenteredMoments private (
     else
       val weight = BigInt(mass); val meanDenominator = weight << 1074
       val covarianceDenominator = (weight * (mass - degreesRemoved)) << 2148
+      val absoluteSums = sums.indices.map(i => sums(i) << sumShifts(i)).toArray
       val mean = new Array[Double](dimension); val covariance = new Array[Double](dimension * dimension)
       var row = 0; var cell = 0
       while row < dimension do
-        mean(row) = ExactDyadic.roundRatio(sums(row), meanDenominator)
+        mean(row) = ExactDyadic.roundRatio(absoluteSums(row), meanDenominator)
         if !mean(row).isFinite then return Left(NonFiniteReadout(row, -1))
         var column = row
         while column < dimension do
-          val centered = weight * products(cell) - sums(row) * sums(column)
+          val centered = weight * (products(cell) << productShifts(cell)) - absoluteSums(row) * absoluteSums(column)
           val value = ExactDyadic.roundRatio(centered, covarianceDenominator)
           if !value.isFinite then return Left(NonFiniteReadout(row, column))
           covariance(row * dimension + column) = value; covariance(column * dimension + row) = value
@@ -146,16 +202,17 @@ object CenteredMoments:
     else
       val n = BigInt(dimension); val triangle = n * (n + 1) / 2
       def limbs(bits: Int): BigInt = BigInt((bits + 31) / 32) * 4
-      val state = n * limbs(SumBits) + triangle * limbs(ProductBits) + 16
+      val shifts = (n + triangle) * 4
+      val state = n * limbs(SumBits) + triangle * limbs(ProductBits) + shifts + 16
       val scalar = limbs(ReadoutBits)
       val output = 8 * (n + n * n)
       Right(
         CenteredMomentsResources(
           state,
           state,
-          state + n * limbs(2098) + 4096 * scalar,
+          state + n * (limbs(2098) + 4) + 4096 * scalar,
           state + 4096 * scalar,
-          4096 * scalar + 2 * output,
+          4096 * scalar + n * limbs(SumBits) + 2 * output,
           output,
           SumBits,
           ProductBits,
@@ -168,6 +225,8 @@ object CenteredMoments:
         dimension,
         Array.fill(dimension)(BigInt(0)),
         Array.fill((dimension.toLong * (dimension + 1) / 2).toInt)(BigInt(0)),
+        new Array[Int](dimension),
+        new Array[Int]((dimension.toLong * (dimension + 1) / 2).toInt),
         0L,
         0L
       )
