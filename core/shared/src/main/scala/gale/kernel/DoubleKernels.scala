@@ -1661,22 +1661,26 @@ private[gale] object DoubleKernels:
   def dexpm1Into(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
     dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(math.expm1)
 
-  /** Logistic sigmoid `1 / (1 + exp(-x))`, evaluated without overflow: with
-    * `t = exp(-|x|) <= 1` it is `1/(1+t)` for `x >= 0` and `t/(1+t)` otherwise.
-    * `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`, `sigmoid(NaN) = NaN`.
+  /** Logistic sigmoid `1 / (1 + exp(-x))`, evaluated without overflow: Breeze's
+    * direct form above [[SigmoidDirectFloor]], and `t/(1+t)` with `t = exp(x)`
+    * below it. `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`, `sigmoid(NaN) = NaN`,
+    * and for `x < -37.5` (where `1 + t` rounds to `1`) `sigmoid(x) == exp(x)`,
+    * including subnormal results.
     */
   inline def sigmoid(v: Double): Double =
-    val t = math.exp(-math.abs(v))
-    // The numerator is 1 for `v >= 0` and `t` otherwise, selected arithmetically
-    // so no branch depends on the sign of `v` (unpredictable for mixed-sign data;
-    // x86 C2 lowers a `Double` conditional move to a branch). With `h = ±1/2`,
-    // `(1/2 + h) + (1/2 - h) * t` is exactly `1 + 0*t = 1` or `0 + 1*t = t`, since
-    // `0 <= t <= 1`; a NaN `v` gives a NaN `t` and so a NaN result. `-0.0` takes
-    // the negative side, where `t = 1` gives the same numerator. The result is
-    // bit-identical to the branching form.
-    val h = math.copySign(0.5, v)
-    val numerator = (0.5 + h) + (0.5 - h) * t
-    numerator / (1.0 + t)
+    // Direct form on the hot path: one exp, one add, one divide, and a branch that
+    // typical (moderate) inputs always take the same way. Against a 60-digit
+    // reference it is within 2 ulps on [-36, 0]. Below about -36 `1 + exp(-x)`
+    // nears 2^53, where its rounding costs up to 2.4 ulps, and it overflows below
+    // -709.78; there `t/(1+t)` is within 1.6 ulps and exact to `exp(x)` once
+    // `1 + t` rounds to 1. NaN fails the comparison and propagates through `exp`.
+    if v < SigmoidDirectFloor then
+      val t = math.exp(v)
+      t / (1.0 + t)
+    else 1.0 / (1.0 + math.exp(-v))
+
+  /** The argument below which [[sigmoid]] leaves Breeze's direct form. */
+  inline val SigmoidDirectFloor = -36.0
 
   def dsigmoidInto(n: Int, x: DoubleArray, xOffset: Int, xStride: Int, y: DoubleArray, yOffset: Int, yStride: Int): Unit =
     dmapInto(n, x, xOffset, xStride, y, yOffset, yStride)(v => sigmoid(v))

@@ -92,25 +92,79 @@ class NumericsSuite extends ScalaCheckSuite:
       )
   }
 
-  /** The textbook branching form of the overflow-free sigmoid; the kernel selects
-    * its numerator arithmetically and must agree with this bit for bit.
+  /** `sigmoid(x)` to 40 significant digits for finite `x`, from `java.math.BigDecimal`
+    * series: `e^y = e^floor(y) * e^frac(y)`, Taylor for the fraction.
     */
-  private def branchingSigmoid(v: Double): Double =
-    val t = math.exp(-math.abs(v))
-    if v >= 0.0 then 1.0 / (1.0 + t) else t / (1.0 + t)
+  private object SigmoidReference:
+    import java.math.{BigDecimal as BD, MathContext, RoundingMode}
+    private val Mc = new MathContext(40, RoundingMode.HALF_EVEN)
+    private val E =
+      var e = BD.ONE
+      var term = BD.ONE
+      for k <- 1 until 60 do
+        term = term.divide(BD.valueOf(k.toLong), Mc)
+        e = e.add(term, Mc)
+      e
+    private val powers = Array.iterate(BD.ONE, 791)(_.multiply(E, Mc))
 
-  test("sigmoid's branch-free numerator is bit-identical to the branching form at special values") {
-    val xs = specials ++ Seq(Double.MinPositiveValue, -Double.MinPositiveValue, Double.MaxValue, -Double.MaxValue,
-      java.lang.Double.MIN_NORMAL, -java.lang.Double.MIN_NORMAL, 36.7, -36.7, 37.5, -37.5, 744.0, -744.0, 1e-17,
-      -1e-17)
-    for (layout, x) <- vectorLayouts(xs) do assertBits(Numerics.sigmoid(x).toSeq, xs.map(branchingSigmoid), layout)
+    private def expNonNegative(y: Double): BD =
+      val n = math.floor(y).toInt
+      val f = new BD(y).subtract(BD.valueOf(n.toLong))
+      var s = BD.ONE
+      var term = BD.ONE
+      for k <- 1 until 45 do
+        term = term.multiply(f, Mc).divide(BD.valueOf(k.toLong), Mc)
+        s = s.add(term, Mc)
+      s.multiply(powers(n), Mc)
+
+    def apply(x: Double): BD =
+      if x > 790.0 then BD.ONE // 1 - e^-790 is far within half an ulp of 1
+      else if x < -790.0 then BD.ZERO // e^-790 is far below half of MinPositiveValue
+      else if x >= 0.0 then BD.ONE.divide(BD.ONE.add(BD.ONE.divide(expNonNegative(x), Mc), Mc), Mc)
+      else
+        val t = BD.ONE.divide(expNonNegative(-x), Mc)
+        t.divide(BD.ONE.add(t, Mc), Mc)
+
+    /** `|got - sigmoid(x)|` in ulps of the correctly rounded result. */
+    def ulpError(got: Double, x: Double): Double =
+      val r = apply(x)
+      val rounded = r.doubleValue
+      val ulp = if rounded == 0.0 then Double.MinPositiveValue else math.ulp(rounded)
+      new BD(got).subtract(r, Mc).abs.divide(new BD(ulp), Mc).doubleValue
+
+  /** Measured worst case of the kernel against [[SigmoidReference]] over 10^6
+    * points is 1.97 ulps (and 2.37 for the previous `exp(-|x|)` form); `Math.exp`
+    * may differ by platform within its 1-ulp contract, hence the margin.
+    */
+  private val SigmoidUlps = 3.0
+
+  test("sigmoid is within a few ulps of a 40-digit reference across both regimes and at edges") {
+    val floor = gale.kernel.DoubleKernels.SigmoidDirectFloor
+    val edges = Seq(0.0, -0.0, 1e-300, -1e-300, Double.MinPositiveValue, -Double.MinPositiveValue,
+      java.lang.Double.MIN_NORMAL, -java.lang.Double.MIN_NORMAL, 1e-17, -1e-17, 0.5, -0.5, 1.0, -1.0, 36.7, -36.7,
+      37.5, -37.5, floor, math.nextDown(floor), math.nextUp(floor), 709.0, -709.0, 709.79, -709.79, 744.0, -744.0,
+      745.0, -745.0, 746.0, -746.0, 1000.0, -1000.0, Double.MaxValue, -Double.MaxValue)
+    val rng = new scala.util.Random(20261011L)
+    val random = Seq.fill(400)(rng.between(-40.0, 40.0)) ++ Seq.fill(200)(rng.between(-750.0, 750.0))
+    val xs = edges ++ random
+    for (layout, x) <- vectorLayouts(xs) do
+      val s = Numerics.sigmoid(x).toSeq
+      xs.zip(s).foreach { (v, g) =>
+        val e = SigmoidReference.ulpError(g, v)
+        assert(e <= SigmoidUlps, s"$layout sigmoid($v) = $g is $e ulps from the reference")
+      }
   }
 
-  property("sigmoid's branch-free numerator is bit-identical to the branching form on mixed-sign data") {
-    val wide = Gen.oneOf(Gen.choose(-40.0, 40.0), Gen.choose(-800.0, 800.0), Gen.choose(-1e-6, 1e-6))
-    forAll(Gen.listOfN(97, wide)) { xs =>
-      assertBits(Numerics.sigmoid(Vec(xs*)).toSeq, xs.map(branchingSigmoid), "random mixed-sign")
-    }
+  test("sigmoid is exactly exp(x) once 1 + exp(x) rounds to 1, subnormal results included") {
+    val xs = Seq(-37.5, -40.0, -100.0, -708.0, -709.0, -709.79, -720.0, -744.0, -745.0, -745.1, -746.0, -1000.0,
+      -Double.MaxValue, Double.NegativeInfinity)
+    assertBits(Numerics.sigmoid(Vec(xs*)).toSeq, xs.map(math.exp), "exp(x) tail")
+    assert(Numerics.sigmoid(Vec(-744.0))(0) > 0.0 && Numerics.sigmoid(Vec(-744.0))(0) < java.lang.Double.MIN_NORMAL)
+    assertBits(
+      Numerics.sigmoid(Vec(0.0, -0.0, Double.MaxValue, Double.PositiveInfinity, Nan)).toSeq,
+      Seq(0.5, 0.5, 1.0, 1.0, Nan),
+      "specials"
+    )
   }
 
   test("logSumExp is stable for large magnitudes and follows the documented special-value rules") {

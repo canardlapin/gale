@@ -47,9 +47,10 @@ object Numerics:
   def expm1(x: DVec): DVec = mapVec(x)(DoubleKernels.dexpm1Into)
   def expm1(a: DMat): DMat = mapMat(a)(DoubleKernels.dexpm1Into)
 
-  /** Logistic sigmoid `1 / (1 + exp(-x))`, evaluated as `1/(1+t)` for `x >= 0`
-    * and `t/(1+t)` otherwise with `t = exp(-|x|)`, so it never overflows:
-    * `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`, `sigmoid(NaN) = NaN`.
+  /** Logistic sigmoid `1 / (1 + exp(-x))`, evaluated directly for `x >= -36`
+    * and as `t/(1+t)` with `t = exp(x)` below, so it never overflows and keeps
+    * subnormal results: `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`,
+    * `sigmoid(NaN) = NaN`.
     */
   def sigmoid(x: DVec): DVec = mapVec(x)(DoubleKernels.dsigmoidInto)
   def sigmoid(a: DMat): DMat = mapMat(a)(DoubleKernels.dsigmoidInto)

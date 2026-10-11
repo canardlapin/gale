@@ -40,8 +40,8 @@ import org.scalacheck.Prop.forAllNoShrink
   *     same `Math` intrinsic stubs in the interpreter and in compiled code (and
   *     `log1p`/`expm1` delegating to `StrictMath`); a JVM that mixed
   *     implementations could differ by the 1 ulp the `Math` spec allows.
-  *   - `sigmoid`: 4 ulps. Breeze evaluates `1/(1+exp(-x))`; Gale uses
-  *     `exp(x)/(1+exp(x))` for `x < 0` to avoid overflow.
+  *   - `sigmoid`: 4 ulps. Breeze evaluates `1/(1+exp(-x))`; Gale uses the
+  *     same form for `x >= -36` and `exp(x)/(1+exp(x))` below, to avoid overflow.
   *   - `sum`, `mean`, per-axis sums: `|Δ| ≤ 2 n ε Σ|x|` (divided by `n` for a
   *     mean), the forward bound of two differently associated summations. As a
   *     relative error this is `2 n ε` times the summation condition number
