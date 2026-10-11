@@ -1028,3 +1028,15 @@ class QRSuite extends munit.FunSuite:
         assert(math.abs(a - e) <= tolerance, s"[$i,$j] $a != $e (tol=$tolerance)")
         j += 1
       i += 1
+
+  test("fused least squares declines shapes whose [A | b] buffer an Int cannot address") {
+    val m = Int.MaxValue / 3 // m * 3 fits; m * 4 does not
+    assert(DenseDecompositions.fusesLeastSquares(m, 2, m))
+    assert(!DenseDecompositions.fusesLeastSquares(m, 3, m))
+    assert(!DenseDecompositions.fusesLeastSquares(Int.MaxValue, 95, Int.MaxValue))
+    assert(!DenseDecompositions.fusesLeastSquares(10, 1, 10))
+    assert(!DenseDecompositions.fusesLeastSquares(10, 4, 9))
+    assert(!DenseDecompositions.fusesLeastSquares(3, 4, 3))
+    assert(!DenseDecompositions.fusesLeastSquares(200, 96, 200))
+    assert(DenseDecompositions.fusesLeastSquares(64, 16, 64))
+  }

@@ -1856,12 +1856,18 @@ object DenseDecompositions:
     * instead of in a second strided pass, and each reflector is needed only for its own step. Shapes on the blocked
     * path, and every argument the composed path rejects, go through that path unchanged.
     */
+  /** Whether [[leastSquaresUnpivoted]] takes the fused `[A | b]` path for an `m x n` design and a length-`bLength`
+    * right-hand side. A single column is contiguous in `A`'s own layout, where `dnrm2` takes its unfused contiguous
+    * order; strided inside `[A | b]` it would not. The `m x (n + 1)` buffer must also be addressable by an `Int`.
+    */
+  private[gale] def fusesLeastSquares(m: Int, n: Int, bLength: Int): Boolean =
+    n >= 2 && m >= n && bLength == m && !DenseWorkspace.usesBlockedQR(m, n) &&
+      m.toLong * (n + 1) <= Int.MaxValue
+
   private[gale] def leastSquaresUnpivoted(A: DMat, b: DVec)(using Backend): Either[LinAlgError, DVec] =
     val m = A.rows
     val n = A.cols
-    // A single column is contiguous in `A`'s own layout, where `dnrm2` takes its
-    // unfused contiguous order; strided inside `[A | b]` it would not.
-    if n < 2 || m < n || b.length != m || DenseWorkspace.usesBlockedQR(m, n) then solveLeastSquares(qr(A), b)
+    if !fusesLeastSquares(m, n, b.length) then solveLeastSquares(qr(A), b)
     else
       val width = n + 1
       val r = DoubleArray.alloc(m * width)
