@@ -19,6 +19,11 @@ sample.covariance.valuesRowMajor
 Every finite double is an integer multiple of 2^-1074. Sums use those exact
 integer units; product sums use 2^-2148. For frequency mass W, sample/population
 centered covariance is `(W*sum(w*x*y)-sum(w*x)*sum(w*y))/(W*(W-ddof))`.
+The builder stores each exact integer as a compact significand and a separate
+power-of-two shift. Additions and merges align those shifts without rounding;
+the absolute fixed units are reconstructed for final readout. Ordinary inputs
+therefore avoid repeatedly allocating large low-zero-padded integers. Exponents
+that span the full binary64 range still require the conservative worst-case limbs.
 The subtraction operates on exact integers and loses no bits. Means and covariance
 entries round once to nearest binary64, ties to even. Constant maximum finite
 values therefore have finite means and zero covariance even when unnormalized
@@ -43,6 +48,8 @@ its symmetry/PSD/rank tolerance and cannot invent a noise floor from this API.
 output and triangular shapes must fit Int indexing. Source-level estimates bound
 sum/product/readout integer limbs by finite binary64 range and total frequency,
 plus staged numerical arrays, temporary operations and owned output. They are
+inclusive of the independent sum/product shift arrays and readout reconstruction.
+The estimates remain
 conservative numerical capacities, excluding object/reference/host/allocator/GC
 and RSS behavior. Time is O(dimension²) per positive observation with arbitrary-
 precision products, and there is no cheap-loop or whole-workload performance claim.
