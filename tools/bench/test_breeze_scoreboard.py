@@ -225,16 +225,16 @@ class LaneB(unittest.TestCase):
         self.assertIn("Breeze netlib BLAS: `dev.ludovic.netlib.blas.VectorBLAS`", out)
         self.assertIn(
             "**Headline, gale vector vs Breeze VectorBLAS: 2 ahead, 0 tie, 1 behind, "
-            "0 n/a, 0 withheld** of 3 pairs",
+            "0 n/a, 1 withheld** of 4 pairs",
             out,
         )
         self.assertIn(
             "Secondary, gale pure vs Breeze VectorBLAS: 0 ahead, 0 tie, 1 behind, "
-            "0 n/a, 0 withheld of 1 pairs.",
+            "0 n/a, 1 withheld of 2 pairs.",
             out,
         )
         self.assertIn(
-            "All rows: 2 ahead, 0 tie, 2 behind, 0 n/a, 0 withheld of 4 pairs; 0 unpaired.",
+            "All rows: 2 ahead, 0 tie, 2 behind, 0 n/a, 2 withheld of 6 pairs; 0 unpaired.",
             out,
         )
         self.assertLess(out.index("**Headline"), out.index("Secondary,"))
@@ -254,6 +254,20 @@ class LaneB(unittest.TestCase):
         self.assertEqual(chol[-2:], ["1.80x", "ahead"])
         dot = table_row(out, "BlasL1BreezeJmh", "Dot", "n=65536", "backend-insensitive")
         self.assertEqual(dot[-2:], ["0.75x", "behind"])
+        # Withheld pairs keep their backend's side of the headline split.
+        for backend, ratio in (("pure", "0.50x"), ("vector", "0.71x")):
+            row = table_row(out, "LbfgsBreezeJmh", "Logistic", "budget=tolerance", backend)
+            self.assertEqual(row[-2:], [ratio, "withheld"])
+
+    def test_rejects_unknown_backend(self) -> None:
+        rows, ignored = scoreboard.load_results([DATA / "laneB-results.json"])
+        rows = [
+            replace(r, params={**r.params, "backend": "native"})
+            if r.lib == "gale" and r.params.get("backend") == "vector" else r
+            for r in rows
+        ]
+        with self.assertRaisesRegex(scoreboard.ReceiptError, "unknown gale backend 'native'"):
+            scoreboard.render("B", rows, "blas", "lapack", "0123abc", None, ignored)
 
     def test_rejects_scalar_blas(self) -> None:
         code, _, err = lane("B", "laneB-netlib-scalar.jsonl", "laneB-results.json")

@@ -550,7 +550,14 @@ def render(
         if note is not None and note.withhold:
             v = WITHHELD
         counts[v] += 1
-        (secondary if g.backend == "pure" else headline)[v] += 1
+        if g.backend in ("vector", "-"):
+            headline[v] += 1
+        elif g.backend == "pure":
+            secondary[v] += 1
+        else:
+            raise ReceiptError(
+                f"{g.benchmark} {g.params}: unknown gale backend {g.backend!r} (expected pure or vector)"
+            )
         params = ", ".join(f"{k}={val}" for k, val in g.pair_params) or "-"
         body.append(
             f"| {g.cls} | {g.op} | {params} | {g.backend_label} | {g.mode} | {_fmt(g.score, g.error)} | "
