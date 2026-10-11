@@ -196,9 +196,9 @@ the second, and only for a blocked driver.
 `import gale.backend.jvm.vector.given` (or an explicit `using VectorBackend` /
 `Backend.compose`). Gale never selects the Vector backend automatically: there is
 no `ServiceLoader`, no probe of `jdk.incubator.vector`, and no default that changes
-when the module is present. A-2's explicit-selection rule and A-2b's L1/L2 non-seam
-both stand unchanged. This record changes documentation and benchmark tooling
-only; no dispatch behaviour changes.
+when the module is present. Explicit `given` selection (shared constraint 2,
+Doctrine 8), A-2 and A-2b's L1/L2 non-seam all stand unchanged. This record
+changes documentation and benchmark tooling only; no dispatch behaviour changes.
 
 **Rationale.**
 
@@ -219,8 +219,9 @@ only; no dispatch behaviour changes.
 - [`2026-10-11-hc-gemm-vec-fix-trillium.md`](../benchmarks/results/2026-10-11-hc-gemm-vec-fix-trillium.md)
   (`7a90fb7`, two rounds): gale vector is ahead of Breeze `VectorBLAS` on GEMM at
   n = 64 (2.78–2.86×) and n = 256 (1.36–1.41×), tall GEMM at n = 64 (1.70–1.73×) and
-  n = 256 (1.59–1.61×), `AᵀA` at n = 256 (1.83×) and QR at n = 256 (1.83×). gale pure
-  is behind on the same rows at n = 256 (GEMM 0.45–0.46×, `AᵀA` 0.60–0.61×).
+  n = 256 (1.59–1.61×), `AᵀA` at n = 64 (1.27×) and n = 256 (1.83×), and QR at
+  n = 256 (1.83×). At n = 256 gale pure is behind on GEMM (0.45–0.46×), tall GEMM
+  (0.44–0.45×) and `AᵀA` (0.60–0.61×), but ahead on QR (1.47–1.48×).
 - [`2026-10-10-breeze-milestone2-trillium-laneB.md`](../benchmarks/results/2026-10-10-breeze-milestone2-trillium-laneB.md)
   (`0ff6440`, before the GEMM fix): with the scoreboard headline split introduced
   for W2.2, gale vector (plus backend-insensitive rows) vs `VectorBLAS` is 114
@@ -228,6 +229,18 @@ only; no dispatch behaviour changes.
   is 45 ahead, 0 tie, 12 behind and 1 withheld of 58 pairs.
 
 The speed is available to users who opt in; the decision is only about who chooses.
+
+**Rejected:**
+
+- *Auto-select the Vector backend when `jdk.incubator.vector` is resolvable* —
+  a launch flag would then change numerical results (reassociation), violating
+  the rationale above and shared constraint 2 (Doctrine 8).
+- *`ServiceLoader` discovery of backends* — classpath contents would pick the
+  backend; that is the order-dependent global Registry A-2 already rejected
+  (A.8 non-goal 2).
+- *Opt-out (SIMD by default, an import to restore pure)* — the default would
+  need the incubator module on every JVM and would differ by machine vector
+  width; the deterministic pure path must be the one that needs no action.
 
 **Known remaining gaps.** GEMV-bound work still trails `VectorBLAS`. The L-BFGS
 logistic objective at a fixed 20-iteration budget is 0.68× with gale pure and

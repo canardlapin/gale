@@ -290,10 +290,17 @@ lexical scope. Code elsewhere, including library methods that take no
 and the trailing updates of blocked QR, so `qr` and QR-based `leastSquares` at
 larger sizes. Below the thresholds, and for strided operands, the pure kernels
 run. Level-1 operations (`dot`, `norm2`, `axpy`), reductions, LU, Cholesky,
-eigen and SVD are unchanged. On the recorded Zen 5 run, GEMM-class products were
-1.4–2.9× faster than Breeze using `VectorBLAS`, while GEMV-bound work such as a
-logistic L-BFGS objective was still slightly slower; see the
-[recorded run](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-10-11-hc-gemm-vec-fix-trillium.md).
+eigen and SVD are unchanged.
+
+On the recorded Zen 5 run against Breeze using `VectorBLAS`, gale vector was
+1.27–2.86× faster on every GEMM-class row at n ≥ 64 (`A * B`, tall `A * B` and
+`A.t * A`) and 1.83× faster on QR at n = 256
+([GEMM run](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-10-11-hc-gemm-vec-fix-trillium.md)).
+Work dominated by matrix-vector products is still behind. For a logistic
+L-BFGS objective, whose cost is its matrix-vector product, gale was 0.93–0.94×
+(vector) and 0.68× (pure) at a fixed 20-iteration budget, and 0.76× (vector)
+and 0.55× (pure) run to tolerance, where each library stops on its own test
+([L-BFGS run](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-10-11-hc-lbfgs-trillium.md)).
 Measure your own shapes and machine.
 
 **Numerical caveat.** The SIMD GEMM, `syrk` and row-major GEMV reassociate
