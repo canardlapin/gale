@@ -34,6 +34,7 @@ class NonsymmetricKernelDigestSuite extends munit.FunSuite:
   test("nonsymmetricEigen matches the stored per-case bit digests") {
     val actual = eigenDigests(c => (vec, budget) => DenseSpectralKernels.nonsymmetricEigen(c, vec, budget))
     assert(actual.size > 2000, s"corpus shrank to ${actual.size} cases")
+    assertEquals(actual.keySet, expected.keySet.filter(_.startsWith("eig ")))
     val mismatches = actual.filter((key, digest) => !expected.get(key).contains(digest)).keys.toSeq.sorted
     assert(mismatches.isEmpty, s"${mismatches.size} cases changed bits, e.g. ${mismatches.take(5).mkString("; ")}")
   }
@@ -44,6 +45,7 @@ class NonsymmetricKernelDigestSuite extends munit.FunSuite:
       (result.h, result.q)
     )
     assert(actual.size > 1000, s"corpus shrank to ${actual.size} cases")
+    assertEquals(actual.keySet, expected.keySet.filter(_.startsWith("hessenberg ")))
     val mismatches = actual.filter((key, digest) => !expected.get(key).contains(digest)).keys.toSeq.sorted
     assert(mismatches.isEmpty, s"${mismatches.size} cases changed bits, e.g. ${mismatches.take(5).mkString("; ")}")
   }
