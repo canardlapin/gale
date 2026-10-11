@@ -279,8 +279,8 @@ Gale's default sparse-direct provider is `none`. Use an iterative solver, or
 `import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
 canonical square CSR. That import is not SuiteSparse and does not provide
 sparse LU or QR. Those, plus C Wasm, each need their own spec in a
-[future version](../../sparse-direct-future.md); see
-[Scala.js sparse-direct](../../sparse-direct-js.md).
+[future version](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md); see
+[Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-js.md).
 
 ## Reduce, normalize, and use sparse vectors
 
@@ -501,7 +501,7 @@ factor entries.
 ## Coverage at a glance
 
 Differential checks against Breeze 2.1 for these common operations live in the
-[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+[`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md) (`sbt parityTest`). Operations
 with no honest Breeze reference — generalized eigen / GSVD / QZ, sparse-direct
 factorization, near-cutoff rank / `pinv` / `cond`, and Krylov algorithm
 diagnostics — are checked against NumPy / SciPy fixtures in the same module.
@@ -575,6 +575,14 @@ operation may still use the portable implementation. See the
 [JDK 22 Vector comparison](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-07-17-breeze-jdk22-vector-enabled.md)
 and [Numerical contract](../advanced/numerical-contract.md) before choosing a
 backend.
+
+If your Breeze build ran with `--add-modules=jdk.incubator.vector`, netlib used
+`VectorBLAS` automatically. Gale does not switch on that flag alone: keep the
+flag and add `import gale.backend.jvm.vector.given` where the products are
+written, as described in
+[Enabling SIMD](../advanced/numerical-contract.md#enabling-simd). Without the
+import, Gale compares its pure kernels with Breeze's SIMD BLAS, and large dense
+products will be slower than they need to be.
 
 ## Replace Breeze L-BFGS and L-BFGS-B
 
@@ -667,7 +675,7 @@ val optBounded = LBFGSB
 
 ### Recorded differences
 
-`OptimizerParitySuite` in the [`parity/` module](../../../parity/README.md)
+`OptimizerParitySuite` in the [`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md)
 runs both libraries with this shared rule (`τ = 1e-8`, history 10) on
 quadratics with condition numbers up to 1e6, chained Rosenbrock up to
 n = 100, L2-regularized logistic regression, and box-constrained quadratics
