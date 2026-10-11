@@ -9,6 +9,10 @@ package gale.linalg
   * 5d3950e, so any change to its arithmetic or summation order fails here; such a change must regenerate the file
   * deliberately and justify the new bits. JVM-only: the kernels are deterministic per platform, not across platforms.
   *
+  * NaNs are digested canonically (`doubleToLongBits`): a NaN's sign and payload depend on which fma operand carries
+  * the negation and which NaN operand the hardware propagates, neither of which is part of any numerical contract.
+  * Every finite and infinite value, and whether each entry is NaN, is pinned bit for bit.
+  *
   * Setting `GALE_QR_DIGEST_OUT` to a file path writes the current digests there instead of comparing.
   */
 class QRDigestSuite extends munit.FunSuite:
@@ -29,7 +33,7 @@ class QRDigestSuite extends munit.FunSuite:
 
   test("QR and least squares match the stored per-case bit digests") {
     val actual = digests
-    assert(actual.size > 3000, s"corpus shrank to ${actual.size} cases")
+    assert(actual.size > 9000, s"corpus shrank to ${actual.size} cases")
     sys.env.get("GALE_QR_DIGEST_OUT") match
       case Some(path) =>
         val lines = actual.toSeq.sortBy(_._1).map((key, digest) => s"$key\t$digest")
@@ -72,9 +76,30 @@ object QRDigestSuite:
         out += ((s"huge m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e300), b))
         out += ((s"tiny m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e-300), b))
         out += ((s"graded m=$m n=$n", Matrix.tabulate(m, n)((i, j) => r.nextGaussian() * math.pow(10.0, (i - j) * 2.0)), b))
+      if !DenseWorkspace.usesBlockedQR(m, n) then
+        // Non-unit layouts reach the [A | b] gather: a transposed view, a column
+        // window of a wider matrix, and a right-hand side read with stride 3 from
+        // offset 4 of a longer column.
+        val strided = Matrix.tabulate(m + 1, 3)((_, _) => r.nextGaussian()).col(1).slice(1, m + 1)
+        out += ((s"transposed m=$m n=$n", Matrix.tabulate(n, m)((_, _) => r.nextGaussian()).t, strided))
+        out += ((s"window m=$m n=$n", Matrix.tabulate(m + 2, n + 3)((_, _) => r.nextGaussian()).slice(1, m + 1, 2, n + 2), strided))
+        // Non-finite entries off the leading column reach the fused norm's scaled
+        // fallback; a non-finite right-hand side reaches only the transformed b.
+        if m > 2 && n > 1 then
+          val nan = Matrix.tabulate(m, n)((i, j) => if i == 2 && j == 1 then Double.NaN else r.nextGaussian())
+          val inf = Matrix.tabulate(m, n)((i, j) => if i == 2 && j == 1 then Double.PositiveInfinity else r.nextGaussian())
+          out += ((s"nancol m=$m n=$n", nan, b))
+          out += ((s"infcol m=$m n=$n", inf, b))
+          out += ((s"nanb m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian()), Vec.tabulate(m)(i => if i == 2 then Double.NaN else b(i))))
+    // A right-hand side of the wrong length, once per family, on a tall and a wide
+    // shape: pins the error and its precedence over the underdetermined check.
+    for (m, n) <- Seq((7, 4), (3, 6)) do
+      val wrong = Vec.tabulate(m + 1)(_.toDouble)
+      for (key, a, _) <- out.toSeq.filter(_._1.endsWith(s" m=$m n=$n")) do
+        out += ((s"${key.takeWhile(_ != ' ')} badb m=$m n=$n", a, wrong))
     out.toSeq
 
-  /** FNV-1a over 64-bit words, each word's bytes folded high to low. */
+  /** FNV-1a over 64-bit words, each word's bytes folded high to low; every NaN folds as the canonical NaN. */
   final class Digest:
     private var state = 0xcbf29ce484222325L
     def long(x: Long): Digest =
@@ -83,7 +108,7 @@ object QRDigestSuite:
         state = (state ^ ((x >>> shift) & 0xffL)) * 0x100000001b3L
         shift -= 8
       this
-    def double(x: Double): Digest = long(java.lang.Double.doubleToRawLongBits(x))
+    def double(x: Double): Digest = long(java.lang.Double.doubleToLongBits(x))
     def vec(v: DVec): Digest =
       long(v.length.toLong)
       var i = 0
