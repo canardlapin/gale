@@ -1,0 +1,457 @@
+# LbfgsDigestSuite: case<TAB>FNV-1a digest of trial points, result fields and trace
+alm logistic 200x10 ball<=0.5 bounded=false roundoff=false	7f0016db88c5404a
+alm logistic 200x10 ball<=0.5 bounded=false roundoff=true	7f0016db88c5404a
+alm logistic 200x10 ball<=0.5 bounded=true roundoff=false	f8863e3e55d09891
+alm logistic 200x10 ball<=0.5 bounded=true roundoff=true	f8863e3e55d09891
+alm logistic 200x10 sum=1 bounded=false roundoff=false	2127b3de5e36b305
+alm logistic 200x10 sum=1 bounded=false roundoff=true	2127b3de5e36b305
+alm logistic 200x10 sum=1 bounded=true roundoff=false	ce6e1d9364382d73
+alm logistic 200x10 sum=1 bounded=true roundoff=true	ce6e1d9364382d73
+alm quadratic n=5 1e2 ball<=0.5 bounded=false roundoff=false	2b8f50246a410873
+alm quadratic n=5 1e2 ball<=0.5 bounded=false roundoff=true	2b8f50246a410873
+alm quadratic n=5 1e2 ball<=0.5 bounded=true roundoff=false	d4bcd3a3cbde1e00
+alm quadratic n=5 1e2 ball<=0.5 bounded=true roundoff=true	d4bcd3a3cbde1e00
+alm quadratic n=5 1e2 sum=1 bounded=false roundoff=false	2332247294057a05
+alm quadratic n=5 1e2 sum=1 bounded=false roundoff=true	2332247294057a05
+alm quadratic n=5 1e2 sum=1 bounded=true roundoff=false	181a5e555b994bc1
+alm quadratic n=5 1e2 sum=1 bounded=true roundoff=true	181a5e555b994bc1
+alm quadratic n=50 1e6 ball<=0.5 bounded=false roundoff=false	993c0a019cd459fe
+alm quadratic n=50 1e6 ball<=0.5 bounded=false roundoff=true	993c0a019cd459fe
+alm quadratic n=50 1e6 ball<=0.5 bounded=true roundoff=false	d6ac38457721e50a
+alm quadratic n=50 1e6 ball<=0.5 bounded=true roundoff=true	d6ac38457721e50a
+alm quadratic n=50 1e6 sum=1 bounded=false roundoff=false	26f98c8d584b0188
+alm quadratic n=50 1e6 sum=1 bounded=false roundoff=true	26f98c8d584b0188
+alm quadratic n=50 1e6 sum=1 bounded=true roundoff=false	12fdd9322db07ee3
+alm quadratic n=50 1e6 sum=1 bounded=true roundoff=true	12fdd9322db07ee3
+alm rosenbrock n=10 classic ball<=0.5 bounded=false roundoff=false	45959169ec6a0729
+alm rosenbrock n=10 classic ball<=0.5 bounded=false roundoff=true	9cd82a5499042ac8
+alm rosenbrock n=10 classic ball<=0.5 bounded=true roundoff=false	5a0a35924615abfc
+alm rosenbrock n=10 classic ball<=0.5 bounded=true roundoff=true	13c1c21a78795fff
+alm rosenbrock n=10 classic sum=1 bounded=false roundoff=false	d4981b4d6a417943
+alm rosenbrock n=10 classic sum=1 bounded=false roundoff=true	4ef2b2ed81a6d3e7
+alm rosenbrock n=10 classic sum=1 bounded=true roundoff=false	985585946d1b5478
+alm rosenbrock n=10 classic sum=1 bounded=true roundoff=true	680e24e8c82b1cf2
+alm rosenbrock n=10 gaussian ball<=0.5 bounded=false roundoff=false	5eeff73aaf57ab8d
+alm rosenbrock n=10 gaussian ball<=0.5 bounded=false roundoff=true	2ab2ee11059509aa
+alm rosenbrock n=10 gaussian ball<=0.5 bounded=true roundoff=false	aaec238b20c4dca0
+alm rosenbrock n=10 gaussian ball<=0.5 bounded=true roundoff=true	e455347501f2646c
+alm rosenbrock n=10 gaussian sum=1 bounded=false roundoff=false	cdbf3503fc6ad619
+alm rosenbrock n=10 gaussian sum=1 bounded=false roundoff=true	cdbf3503fc6ad619
+alm rosenbrock n=10 gaussian sum=1 bounded=true roundoff=false	8a5bb1458a7df58b
+alm rosenbrock n=10 gaussian sum=1 bounded=true roundoff=true	8a5bb1458a7df58b
+alm rosenbrock n=100 classic ball<=0.5 bounded=false roundoff=false	9352ae46b9e2610b
+alm rosenbrock n=100 classic ball<=0.5 bounded=false roundoff=true	69f2c692a6ee02ff
+alm rosenbrock n=100 classic ball<=0.5 bounded=true roundoff=false	460979f8116be329
+alm rosenbrock n=100 classic ball<=0.5 bounded=true roundoff=true	9e072c7ceea836a9
+alm rosenbrock n=100 classic sum=1 bounded=false roundoff=false	86d360f0f598ab1c
+alm rosenbrock n=100 classic sum=1 bounded=false roundoff=true	2b0f28c811bc2237
+alm rosenbrock n=100 classic sum=1 bounded=true roundoff=false	d26412a2f43b0ba6
+alm rosenbrock n=100 classic sum=1 bounded=true roundoff=true	3b0e0e009a264ba2
+alm rosenbrock n=100 gaussian ball<=0.5 bounded=false roundoff=false	cb72c2576d561d87
+alm rosenbrock n=100 gaussian ball<=0.5 bounded=false roundoff=true	1676c9c767ae6185
+alm rosenbrock n=100 gaussian ball<=0.5 bounded=true roundoff=false	03bebb708724518a
+alm rosenbrock n=100 gaussian ball<=0.5 bounded=true roundoff=true	1e88087e701d90af
+alm rosenbrock n=100 gaussian sum=1 bounded=false roundoff=false	0cc625a942abcb6c
+alm rosenbrock n=100 gaussian sum=1 bounded=false roundoff=true	20cfa3bb6c2a5921
+alm rosenbrock n=100 gaussian sum=1 bounded=true roundoff=false	5e5dd4232510bfad
+alm rosenbrock n=100 gaussian sum=1 bounded=true roundoff=true	b8c82599d9272214
+alm rosenbrock n=2 classic ball<=0.5 bounded=false roundoff=false	a53802fa442bebf4
+alm rosenbrock n=2 classic ball<=0.5 bounded=false roundoff=true	a53802fa442bebf4
+alm rosenbrock n=2 classic ball<=0.5 bounded=true roundoff=false	aa0085bc2fffc43c
+alm rosenbrock n=2 classic ball<=0.5 bounded=true roundoff=true	aa0085bc2fffc43c
+alm rosenbrock n=2 classic sum=1 bounded=false roundoff=false	5f94094bf8cc0ee3
+alm rosenbrock n=2 classic sum=1 bounded=false roundoff=true	5f94094bf8cc0ee3
+alm rosenbrock n=2 classic sum=1 bounded=true roundoff=false	eaeee31bf57f25dc
+alm rosenbrock n=2 classic sum=1 bounded=true roundoff=true	eaeee31bf57f25dc
+alm rosenbrock n=2 gaussian ball<=0.5 bounded=false roundoff=false	f4c03f89c0ca0d11
+alm rosenbrock n=2 gaussian ball<=0.5 bounded=false roundoff=true	f4c03f89c0ca0d11
+alm rosenbrock n=2 gaussian ball<=0.5 bounded=true roundoff=false	b467c382214fad17
+alm rosenbrock n=2 gaussian ball<=0.5 bounded=true roundoff=true	b467c382214fad17
+alm rosenbrock n=2 gaussian sum=1 bounded=false roundoff=false	ca708356101a8307
+alm rosenbrock n=2 gaussian sum=1 bounded=false roundoff=true	ca708356101a8307
+alm rosenbrock n=2 gaussian sum=1 bounded=true roundoff=false	cef11b4984d04721
+alm rosenbrock n=2 gaussian sum=1 bounded=true roundoff=true	cef11b4984d04721
+lbfgs barrier n=8 layout=Column default	297b1936f7129c6a
+lbfgs barrier n=8 layout=Column evaluations=17	297b1936f7129c6a
+lbfgs barrier n=8 layout=Column iterations=0	9d3f8d2453c1e7bf
+lbfgs barrier n=8 layout=Column iterations=25 m=3	f818ef086df62b5b
+lbfgs barrier n=8 layout=Column iterations=3 m=1	aeb9b5e66fe747d9
+lbfgs barrier n=8 layout=Column iterations=40 m=10 untolerant	29558288fa4592ce
+lbfgs barrier n=8 layout=Column loose c2=0.1 linesearch=3	8b93c8100069a221
+lbfgs barrier n=8 layout=Column maxstep=0.5	6dd6464ccb43427c
+lbfgs barrier n=8 layout=Column untraced iterations=60	2cf02ac1a2469ca9
+lbfgs barrier n=8 layout=Transposed default	297b1936f7129c6a
+lbfgs barrier n=8 layout=Transposed evaluations=17	297b1936f7129c6a
+lbfgs barrier n=8 layout=Transposed iterations=0	9d3f8d2453c1e7bf
+lbfgs barrier n=8 layout=Transposed iterations=25 m=3	f818ef086df62b5b
+lbfgs barrier n=8 layout=Transposed iterations=3 m=1	aeb9b5e66fe747d9
+lbfgs barrier n=8 layout=Transposed iterations=40 m=10 untolerant	29558288fa4592ce
+lbfgs barrier n=8 layout=Transposed loose c2=0.1 linesearch=3	8b93c8100069a221
+lbfgs barrier n=8 layout=Transposed maxstep=0.5	6dd6464ccb43427c
+lbfgs barrier n=8 layout=Transposed untraced iterations=60	2cf02ac1a2469ca9
+lbfgs concave layout=Column default	a4ddf93f9c193ce1
+lbfgs concave layout=Column evaluations=17	02048cc41c67917a
+lbfgs concave layout=Column iterations=0	857e745f5f27bb4b
+lbfgs concave layout=Column iterations=25 m=3	a4ddf93f9c193ce1
+lbfgs concave layout=Column iterations=3 m=1	a4ddf93f9c193ce1
+lbfgs concave layout=Column iterations=40 m=10 untolerant	a4ddf93f9c193ce1
+lbfgs concave layout=Column loose c2=0.1 linesearch=3	b615f3de7a7fa55d
+lbfgs concave layout=Column maxstep=0.5	d268cba360a7c405
+lbfgs concave layout=Column untraced iterations=60	6044666c5919080e
+lbfgs concave layout=Transposed default	a4ddf93f9c193ce1
+lbfgs concave layout=Transposed evaluations=17	02048cc41c67917a
+lbfgs concave layout=Transposed iterations=0	857e745f5f27bb4b
+lbfgs concave layout=Transposed iterations=25 m=3	a4ddf93f9c193ce1
+lbfgs concave layout=Transposed iterations=3 m=1	a4ddf93f9c193ce1
+lbfgs concave layout=Transposed iterations=40 m=10 untolerant	a4ddf93f9c193ce1
+lbfgs concave layout=Transposed loose c2=0.1 linesearch=3	b615f3de7a7fa55d
+lbfgs concave layout=Transposed maxstep=0.5	d268cba360a7c405
+lbfgs concave layout=Transposed untraced iterations=60	6044666c5919080e
+lbfgs logistic 200x10 layout=Column default	ea742d32c2eab969
+lbfgs logistic 200x10 layout=Column evaluations=17	4c4702f5efcd749e
+lbfgs logistic 200x10 layout=Column iterations=0	c92c2af0e4615657
+lbfgs logistic 200x10 layout=Column iterations=25 m=3	a25342fac9addb18
+lbfgs logistic 200x10 layout=Column iterations=3 m=1	de13da7e7777bc14
+lbfgs logistic 200x10 layout=Column iterations=40 m=10 untolerant	ac35917e9b9df1e7
+lbfgs logistic 200x10 layout=Column loose c2=0.1 linesearch=3	8f60f501984e671a
+lbfgs logistic 200x10 layout=Column maxstep=0.5	cf1f971a2c0c3c2d
+lbfgs logistic 200x10 layout=Column untraced iterations=60	a904ba834bf6c332
+lbfgs logistic 200x10 layout=Transposed default	ea742d32c2eab969
+lbfgs logistic 200x10 layout=Transposed evaluations=17	4c4702f5efcd749e
+lbfgs logistic 200x10 layout=Transposed iterations=0	c92c2af0e4615657
+lbfgs logistic 200x10 layout=Transposed iterations=25 m=3	a25342fac9addb18
+lbfgs logistic 200x10 layout=Transposed iterations=3 m=1	de13da7e7777bc14
+lbfgs logistic 200x10 layout=Transposed iterations=40 m=10 untolerant	ac35917e9b9df1e7
+lbfgs logistic 200x10 layout=Transposed loose c2=0.1 linesearch=3	8f60f501984e671a
+lbfgs logistic 200x10 layout=Transposed maxstep=0.5	cf1f971a2c0c3c2d
+lbfgs logistic 200x10 layout=Transposed untraced iterations=60	a904ba834bf6c332
+lbfgs quadratic 6x4 1e3 layout=Column default	8912c94c13542d59
+lbfgs quadratic 6x4 1e3 layout=Column evaluations=17	e2967c0f07dfa067
+lbfgs quadratic 6x4 1e3 layout=Column iterations=0	36aa9417e04e7fe7
+lbfgs quadratic 6x4 1e3 layout=Column iterations=25 m=3	0d66db177a4a19c8
+lbfgs quadratic 6x4 1e3 layout=Column iterations=3 m=1	ad8855cc9aebbcc3
+lbfgs quadratic 6x4 1e3 layout=Column iterations=40 m=10 untolerant	7cccc89b17a1d065
+lbfgs quadratic 6x4 1e3 layout=Column loose c2=0.1 linesearch=3	bef3bebe886ed849
+lbfgs quadratic 6x4 1e3 layout=Column maxstep=0.5	27933fd306e178f8
+lbfgs quadratic 6x4 1e3 layout=Column untraced iterations=60	841c67042364887e
+lbfgs quadratic 6x4 1e3 layout=Transposed default	8912c94c13542d59
+lbfgs quadratic 6x4 1e3 layout=Transposed evaluations=17	e2967c0f07dfa067
+lbfgs quadratic 6x4 1e3 layout=Transposed iterations=0	36aa9417e04e7fe7
+lbfgs quadratic 6x4 1e3 layout=Transposed iterations=25 m=3	0d66db177a4a19c8
+lbfgs quadratic 6x4 1e3 layout=Transposed iterations=3 m=1	ad8855cc9aebbcc3
+lbfgs quadratic 6x4 1e3 layout=Transposed iterations=40 m=10 untolerant	7cccc89b17a1d065
+lbfgs quadratic 6x4 1e3 layout=Transposed loose c2=0.1 linesearch=3	bef3bebe886ed849
+lbfgs quadratic 6x4 1e3 layout=Transposed maxstep=0.5	27933fd306e178f8
+lbfgs quadratic 6x4 1e3 layout=Transposed untraced iterations=60	841c67042364887e
+lbfgs quadratic 6x4 1e3 layout=Wide default	8912c94c13542d59
+lbfgs quadratic 6x4 1e3 layout=Wide evaluations=17	e2967c0f07dfa067
+lbfgs quadratic 6x4 1e3 layout=Wide iterations=0	36aa9417e04e7fe7
+lbfgs quadratic 6x4 1e3 layout=Wide iterations=25 m=3	0d66db177a4a19c8
+lbfgs quadratic 6x4 1e3 layout=Wide iterations=3 m=1	ad8855cc9aebbcc3
+lbfgs quadratic 6x4 1e3 layout=Wide iterations=40 m=10 untolerant	7cccc89b17a1d065
+lbfgs quadratic 6x4 1e3 layout=Wide loose c2=0.1 linesearch=3	bef3bebe886ed849
+lbfgs quadratic 6x4 1e3 layout=Wide maxstep=0.5	27933fd306e178f8
+lbfgs quadratic 6x4 1e3 layout=Wide untraced iterations=60	841c67042364887e
+lbfgs quadratic n=5 1e2 layout=Column default	5bbe3a7ebb7fece8
+lbfgs quadratic n=5 1e2 layout=Column evaluations=17	b537c70ef2d56dfa
+lbfgs quadratic n=5 1e2 layout=Column iterations=0	cbb86d9c1adf4bef
+lbfgs quadratic n=5 1e2 layout=Column iterations=25 m=3	8c31a6d8508b5309
+lbfgs quadratic n=5 1e2 layout=Column iterations=3 m=1	343a0b42d4d0d42b
+lbfgs quadratic n=5 1e2 layout=Column iterations=40 m=10 untolerant	61bcb5783a8d3bb2
+lbfgs quadratic n=5 1e2 layout=Column loose c2=0.1 linesearch=3	7fe2a5bf43fa7ae7
+lbfgs quadratic n=5 1e2 layout=Column maxstep=0.5	b29ad17649e4ec35
+lbfgs quadratic n=5 1e2 layout=Column untraced iterations=60	7de563d972922d6e
+lbfgs quadratic n=5 1e2 layout=Transposed default	5bbe3a7ebb7fece8
+lbfgs quadratic n=5 1e2 layout=Transposed evaluations=17	b537c70ef2d56dfa
+lbfgs quadratic n=5 1e2 layout=Transposed iterations=0	cbb86d9c1adf4bef
+lbfgs quadratic n=5 1e2 layout=Transposed iterations=25 m=3	8c31a6d8508b5309
+lbfgs quadratic n=5 1e2 layout=Transposed iterations=3 m=1	343a0b42d4d0d42b
+lbfgs quadratic n=5 1e2 layout=Transposed iterations=40 m=10 untolerant	61bcb5783a8d3bb2
+lbfgs quadratic n=5 1e2 layout=Transposed loose c2=0.1 linesearch=3	7fe2a5bf43fa7ae7
+lbfgs quadratic n=5 1e2 layout=Transposed maxstep=0.5	b29ad17649e4ec35
+lbfgs quadratic n=5 1e2 layout=Transposed untraced iterations=60	7de563d972922d6e
+lbfgs quadratic n=50 1e6 layout=Column default	cc9d3310315aff0e
+lbfgs quadratic n=50 1e6 layout=Column evaluations=17	de71d920dc086d30
+lbfgs quadratic n=50 1e6 layout=Column iterations=0	d5a25cd8ef98013f
+lbfgs quadratic n=50 1e6 layout=Column iterations=25 m=3	2cc8ad563377de60
+lbfgs quadratic n=50 1e6 layout=Column iterations=3 m=1	272f4f066acf2dd4
+lbfgs quadratic n=50 1e6 layout=Column iterations=40 m=10 untolerant	8424d179ec3be062
+lbfgs quadratic n=50 1e6 layout=Column loose c2=0.1 linesearch=3	27661747dd30fad4
+lbfgs quadratic n=50 1e6 layout=Column maxstep=0.5	3ff6c4a3149cbdfd
+lbfgs quadratic n=50 1e6 layout=Column untraced iterations=60	4e51b5adff524496
+lbfgs quadratic n=50 1e6 layout=Transposed default	cc9d3310315aff0e
+lbfgs quadratic n=50 1e6 layout=Transposed evaluations=17	de71d920dc086d30
+lbfgs quadratic n=50 1e6 layout=Transposed iterations=0	d5a25cd8ef98013f
+lbfgs quadratic n=50 1e6 layout=Transposed iterations=25 m=3	2cc8ad563377de60
+lbfgs quadratic n=50 1e6 layout=Transposed iterations=3 m=1	272f4f066acf2dd4
+lbfgs quadratic n=50 1e6 layout=Transposed iterations=40 m=10 untolerant	8424d179ec3be062
+lbfgs quadratic n=50 1e6 layout=Transposed loose c2=0.1 linesearch=3	27661747dd30fad4
+lbfgs quadratic n=50 1e6 layout=Transposed maxstep=0.5	3ff6c4a3149cbdfd
+lbfgs quadratic n=50 1e6 layout=Transposed untraced iterations=60	4e51b5adff524496
+lbfgs rosenbrock 4x3 layout=Column default	8d573afecf8e65e7
+lbfgs rosenbrock 4x3 layout=Column evaluations=17	c09575dafd6dc3f7
+lbfgs rosenbrock 4x3 layout=Column iterations=0	453c260bd1f3086f
+lbfgs rosenbrock 4x3 layout=Column iterations=25 m=3	f318a6b6c82ccf32
+lbfgs rosenbrock 4x3 layout=Column iterations=3 m=1	b75c6eb268bfd7e3
+lbfgs rosenbrock 4x3 layout=Column iterations=40 m=10 untolerant	1aab5ebeabf7cc8c
+lbfgs rosenbrock 4x3 layout=Column loose c2=0.1 linesearch=3	4799f37506bc7f0a
+lbfgs rosenbrock 4x3 layout=Column maxstep=0.5	0c104f3f76a2409f
+lbfgs rosenbrock 4x3 layout=Column untraced iterations=60	4fb36d76667228d5
+lbfgs rosenbrock 4x3 layout=Transposed default	8d573afecf8e65e7
+lbfgs rosenbrock 4x3 layout=Transposed evaluations=17	c09575dafd6dc3f7
+lbfgs rosenbrock 4x3 layout=Transposed iterations=0	453c260bd1f3086f
+lbfgs rosenbrock 4x3 layout=Transposed iterations=25 m=3	f318a6b6c82ccf32
+lbfgs rosenbrock 4x3 layout=Transposed iterations=3 m=1	b75c6eb268bfd7e3
+lbfgs rosenbrock 4x3 layout=Transposed iterations=40 m=10 untolerant	1aab5ebeabf7cc8c
+lbfgs rosenbrock 4x3 layout=Transposed loose c2=0.1 linesearch=3	4799f37506bc7f0a
+lbfgs rosenbrock 4x3 layout=Transposed maxstep=0.5	0c104f3f76a2409f
+lbfgs rosenbrock 4x3 layout=Transposed untraced iterations=60	4fb36d76667228d5
+lbfgs rosenbrock 4x3 layout=Wide default	8d573afecf8e65e7
+lbfgs rosenbrock 4x3 layout=Wide evaluations=17	c09575dafd6dc3f7
+lbfgs rosenbrock 4x3 layout=Wide iterations=0	453c260bd1f3086f
+lbfgs rosenbrock 4x3 layout=Wide iterations=25 m=3	f318a6b6c82ccf32
+lbfgs rosenbrock 4x3 layout=Wide iterations=3 m=1	b75c6eb268bfd7e3
+lbfgs rosenbrock 4x3 layout=Wide iterations=40 m=10 untolerant	1aab5ebeabf7cc8c
+lbfgs rosenbrock 4x3 layout=Wide loose c2=0.1 linesearch=3	4799f37506bc7f0a
+lbfgs rosenbrock 4x3 layout=Wide maxstep=0.5	0c104f3f76a2409f
+lbfgs rosenbrock 4x3 layout=Wide untraced iterations=60	4fb36d76667228d5
+lbfgs rosenbrock n=10 classic layout=Column default	e5c228c5c9b7fa68
+lbfgs rosenbrock n=10 classic layout=Column evaluations=17	e0b96a5cc6eebb82
+lbfgs rosenbrock n=10 classic layout=Column iterations=0	cce3307c349c1e3b
+lbfgs rosenbrock n=10 classic layout=Column iterations=25 m=3	3e80535ec00e6481
+lbfgs rosenbrock n=10 classic layout=Column iterations=3 m=1	836bbcefcae05b1f
+lbfgs rosenbrock n=10 classic layout=Column iterations=40 m=10 untolerant	4596d00c127d5000
+lbfgs rosenbrock n=10 classic layout=Column loose c2=0.1 linesearch=3	6a0bb09cac28b0b0
+lbfgs rosenbrock n=10 classic layout=Column maxstep=0.5	eae77c9baf912390
+lbfgs rosenbrock n=10 classic layout=Column untraced iterations=60	fec608fddeff2447
+lbfgs rosenbrock n=10 classic layout=Transposed default	e5c228c5c9b7fa68
+lbfgs rosenbrock n=10 classic layout=Transposed evaluations=17	e0b96a5cc6eebb82
+lbfgs rosenbrock n=10 classic layout=Transposed iterations=0	cce3307c349c1e3b
+lbfgs rosenbrock n=10 classic layout=Transposed iterations=25 m=3	3e80535ec00e6481
+lbfgs rosenbrock n=10 classic layout=Transposed iterations=3 m=1	836bbcefcae05b1f
+lbfgs rosenbrock n=10 classic layout=Transposed iterations=40 m=10 untolerant	4596d00c127d5000
+lbfgs rosenbrock n=10 classic layout=Transposed loose c2=0.1 linesearch=3	6a0bb09cac28b0b0
+lbfgs rosenbrock n=10 classic layout=Transposed maxstep=0.5	eae77c9baf912390
+lbfgs rosenbrock n=10 classic layout=Transposed untraced iterations=60	fec608fddeff2447
+lbfgs rosenbrock n=10 gaussian layout=Column default	994499de1d4ad3a5
+lbfgs rosenbrock n=10 gaussian layout=Column evaluations=17	95f0f6b270494cc3
+lbfgs rosenbrock n=10 gaussian layout=Column iterations=0	426d5aa789025507
+lbfgs rosenbrock n=10 gaussian layout=Column iterations=25 m=3	c7af8f1b455f57e9
+lbfgs rosenbrock n=10 gaussian layout=Column iterations=3 m=1	b983d3e8f5d3387f
+lbfgs rosenbrock n=10 gaussian layout=Column iterations=40 m=10 untolerant	3a9a85813fb12afd
+lbfgs rosenbrock n=10 gaussian layout=Column loose c2=0.1 linesearch=3	cc0d4b4852b4c46a
+lbfgs rosenbrock n=10 gaussian layout=Column maxstep=0.5	d957113006dc64e8
+lbfgs rosenbrock n=10 gaussian layout=Column untraced iterations=60	0f2a24664ebca9d1
+lbfgs rosenbrock n=10 gaussian layout=Transposed default	994499de1d4ad3a5
+lbfgs rosenbrock n=10 gaussian layout=Transposed evaluations=17	95f0f6b270494cc3
+lbfgs rosenbrock n=10 gaussian layout=Transposed iterations=0	426d5aa789025507
+lbfgs rosenbrock n=10 gaussian layout=Transposed iterations=25 m=3	c7af8f1b455f57e9
+lbfgs rosenbrock n=10 gaussian layout=Transposed iterations=3 m=1	b983d3e8f5d3387f
+lbfgs rosenbrock n=10 gaussian layout=Transposed iterations=40 m=10 untolerant	3a9a85813fb12afd
+lbfgs rosenbrock n=10 gaussian layout=Transposed loose c2=0.1 linesearch=3	cc0d4b4852b4c46a
+lbfgs rosenbrock n=10 gaussian layout=Transposed maxstep=0.5	d957113006dc64e8
+lbfgs rosenbrock n=10 gaussian layout=Transposed untraced iterations=60	0f2a24664ebca9d1
+lbfgs rosenbrock n=100 classic layout=Column default	2fb720f77fd55d6e
+lbfgs rosenbrock n=100 classic layout=Column evaluations=17	f6b6ac93c06933c3
+lbfgs rosenbrock n=100 classic layout=Column iterations=0	516fabc13dc21717
+lbfgs rosenbrock n=100 classic layout=Column iterations=25 m=3	3e2da70778403b65
+lbfgs rosenbrock n=100 classic layout=Column iterations=3 m=1	59696f339478d56e
+lbfgs rosenbrock n=100 classic layout=Column iterations=40 m=10 untolerant	625d48824e04fd8c
+lbfgs rosenbrock n=100 classic layout=Column loose c2=0.1 linesearch=3	1ff797c5bfdbd023
+lbfgs rosenbrock n=100 classic layout=Column maxstep=0.5	5570cc608f594fc3
+lbfgs rosenbrock n=100 classic layout=Column untraced iterations=60	0b2dff40a319dc3c
+lbfgs rosenbrock n=100 classic layout=Transposed default	2fb720f77fd55d6e
+lbfgs rosenbrock n=100 classic layout=Transposed evaluations=17	f6b6ac93c06933c3
+lbfgs rosenbrock n=100 classic layout=Transposed iterations=0	516fabc13dc21717
+lbfgs rosenbrock n=100 classic layout=Transposed iterations=25 m=3	3e2da70778403b65
+lbfgs rosenbrock n=100 classic layout=Transposed iterations=3 m=1	59696f339478d56e
+lbfgs rosenbrock n=100 classic layout=Transposed iterations=40 m=10 untolerant	625d48824e04fd8c
+lbfgs rosenbrock n=100 classic layout=Transposed loose c2=0.1 linesearch=3	1ff797c5bfdbd023
+lbfgs rosenbrock n=100 classic layout=Transposed maxstep=0.5	5570cc608f594fc3
+lbfgs rosenbrock n=100 classic layout=Transposed untraced iterations=60	0b2dff40a319dc3c
+lbfgs rosenbrock n=100 gaussian layout=Column default	409ce8f86ad025f1
+lbfgs rosenbrock n=100 gaussian layout=Column evaluations=17	adbaf2bb6977caa0
+lbfgs rosenbrock n=100 gaussian layout=Column iterations=0	4f01ba7c1c581c8b
+lbfgs rosenbrock n=100 gaussian layout=Column iterations=25 m=3	85586670705e45e4
+lbfgs rosenbrock n=100 gaussian layout=Column iterations=3 m=1	801286be34429913
+lbfgs rosenbrock n=100 gaussian layout=Column iterations=40 m=10 untolerant	9b658728d004246f
+lbfgs rosenbrock n=100 gaussian layout=Column loose c2=0.1 linesearch=3	b13b3e2322fb272e
+lbfgs rosenbrock n=100 gaussian layout=Column maxstep=0.5	cb7fb058c40dee85
+lbfgs rosenbrock n=100 gaussian layout=Column untraced iterations=60	70fbbb742894132e
+lbfgs rosenbrock n=100 gaussian layout=Transposed default	409ce8f86ad025f1
+lbfgs rosenbrock n=100 gaussian layout=Transposed evaluations=17	adbaf2bb6977caa0
+lbfgs rosenbrock n=100 gaussian layout=Transposed iterations=0	4f01ba7c1c581c8b
+lbfgs rosenbrock n=100 gaussian layout=Transposed iterations=25 m=3	85586670705e45e4
+lbfgs rosenbrock n=100 gaussian layout=Transposed iterations=3 m=1	801286be34429913
+lbfgs rosenbrock n=100 gaussian layout=Transposed iterations=40 m=10 untolerant	9b658728d004246f
+lbfgs rosenbrock n=100 gaussian layout=Transposed loose c2=0.1 linesearch=3	b13b3e2322fb272e
+lbfgs rosenbrock n=100 gaussian layout=Transposed maxstep=0.5	cb7fb058c40dee85
+lbfgs rosenbrock n=100 gaussian layout=Transposed untraced iterations=60	70fbbb742894132e
+lbfgs rosenbrock n=2 classic layout=Column default	f3020b2be3d4e6b6
+lbfgs rosenbrock n=2 classic layout=Column evaluations=17	06dadc34202d33dc
+lbfgs rosenbrock n=2 classic layout=Column iterations=0	f0527e5132a43903
+lbfgs rosenbrock n=2 classic layout=Column iterations=25 m=3	c497674fe683ca5f
+lbfgs rosenbrock n=2 classic layout=Column iterations=3 m=1	c8b0c173247c250e
+lbfgs rosenbrock n=2 classic layout=Column iterations=40 m=10 untolerant	da8b6fcbad67075c
+lbfgs rosenbrock n=2 classic layout=Column loose c2=0.1 linesearch=3	b5fffc88e8c94440
+lbfgs rosenbrock n=2 classic layout=Column maxstep=0.5	22bd4636d0198388
+lbfgs rosenbrock n=2 classic layout=Column untraced iterations=60	e2277fbd9fa05df5
+lbfgs rosenbrock n=2 classic layout=Transposed default	f3020b2be3d4e6b6
+lbfgs rosenbrock n=2 classic layout=Transposed evaluations=17	06dadc34202d33dc
+lbfgs rosenbrock n=2 classic layout=Transposed iterations=0	f0527e5132a43903
+lbfgs rosenbrock n=2 classic layout=Transposed iterations=25 m=3	c497674fe683ca5f
+lbfgs rosenbrock n=2 classic layout=Transposed iterations=3 m=1	c8b0c173247c250e
+lbfgs rosenbrock n=2 classic layout=Transposed iterations=40 m=10 untolerant	da8b6fcbad67075c
+lbfgs rosenbrock n=2 classic layout=Transposed loose c2=0.1 linesearch=3	b5fffc88e8c94440
+lbfgs rosenbrock n=2 classic layout=Transposed maxstep=0.5	22bd4636d0198388
+lbfgs rosenbrock n=2 classic layout=Transposed untraced iterations=60	e2277fbd9fa05df5
+lbfgs rosenbrock n=2 gaussian layout=Column default	169dc25ae3df15e1
+lbfgs rosenbrock n=2 gaussian layout=Column evaluations=17	13c8c8181cb5d213
+lbfgs rosenbrock n=2 gaussian layout=Column iterations=0	64ad9f9d00306987
+lbfgs rosenbrock n=2 gaussian layout=Column iterations=25 m=3	a5efd581b7526e5c
+lbfgs rosenbrock n=2 gaussian layout=Column iterations=3 m=1	3d4c2419474ad858
+lbfgs rosenbrock n=2 gaussian layout=Column iterations=40 m=10 untolerant	043f24e88dfb4cb7
+lbfgs rosenbrock n=2 gaussian layout=Column loose c2=0.1 linesearch=3	aebebd3daa77a408
+lbfgs rosenbrock n=2 gaussian layout=Column maxstep=0.5	84f4348650b118fd
+lbfgs rosenbrock n=2 gaussian layout=Column untraced iterations=60	3765697a9c353d1f
+lbfgs rosenbrock n=2 gaussian layout=Transposed default	169dc25ae3df15e1
+lbfgs rosenbrock n=2 gaussian layout=Transposed evaluations=17	13c8c8181cb5d213
+lbfgs rosenbrock n=2 gaussian layout=Transposed iterations=0	64ad9f9d00306987
+lbfgs rosenbrock n=2 gaussian layout=Transposed iterations=25 m=3	a5efd581b7526e5c
+lbfgs rosenbrock n=2 gaussian layout=Transposed iterations=3 m=1	3d4c2419474ad858
+lbfgs rosenbrock n=2 gaussian layout=Transposed iterations=40 m=10 untolerant	043f24e88dfb4cb7
+lbfgs rosenbrock n=2 gaussian layout=Transposed loose c2=0.1 linesearch=3	aebebd3daa77a408
+lbfgs rosenbrock n=2 gaussian layout=Transposed maxstep=0.5	84f4348650b118fd
+lbfgs rosenbrock n=2 gaussian layout=Transposed untraced iterations=60	3765697a9c353d1f
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Column default	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Column iterations=15 m=2	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Column linesearch=4	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Transposed default	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Transposed iterations=15 m=2	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-0.5,0.5] layout=Transposed linesearch=4	6e787a79c11eecf4
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Column default	1ee6a761259cca98
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Column iterations=15 m=2	1ee6a761259cca98
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Column linesearch=4	1ee6a761259cca98
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Transposed default	1ee6a761259cca98
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Transposed iterations=15 m=2	1ee6a761259cca98
+lbfgsb logistic 200x10 box=[-2,0.8] layout=Transposed linesearch=4	1ee6a761259cca98
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Column default	3cba52b4cd8a242b
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Column iterations=15 m=2	43eec5a6355c9782
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Column linesearch=4	3cba52b4cd8a242b
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Transposed default	3cba52b4cd8a242b
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Transposed iterations=15 m=2	43eec5a6355c9782
+lbfgsb quadratic 6x4 1e3 box=[-0.5,0.5] layout=Transposed linesearch=4	3cba52b4cd8a242b
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Column default	d00d2ee21412979d
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Column iterations=15 m=2	3d61f43e1d01e974
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Column linesearch=4	f537ca3eabe5a073
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Transposed default	d00d2ee21412979d
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Transposed iterations=15 m=2	3d61f43e1d01e974
+lbfgsb quadratic 6x4 1e3 box=[-2,0.8] layout=Transposed linesearch=4	f537ca3eabe5a073
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Column default	e60f77fa3599e559
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Column iterations=15 m=2	70964ba666deefa6
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Column linesearch=4	e60f77fa3599e559
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Transposed default	e60f77fa3599e559
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Transposed iterations=15 m=2	70964ba666deefa6
+lbfgsb quadratic n=5 1e2 box=[-0.5,0.5] layout=Transposed linesearch=4	e60f77fa3599e559
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Column default	d76170b29f377e57
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Column iterations=15 m=2	c41a503677f2420e
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Column linesearch=4	d76170b29f377e57
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Transposed default	d76170b29f377e57
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Transposed iterations=15 m=2	c41a503677f2420e
+lbfgsb quadratic n=5 1e2 box=[-2,0.8] layout=Transposed linesearch=4	d76170b29f377e57
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Column default	d6dc2528437c7672
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Column iterations=15 m=2	5ac9beefe0fe1b63
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Column linesearch=4	5e313f06e4b184b7
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Transposed default	d6dc2528437c7672
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Transposed iterations=15 m=2	5ac9beefe0fe1b63
+lbfgsb quadratic n=50 1e6 box=[-0.5,0.5] layout=Transposed linesearch=4	5e313f06e4b184b7
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Column default	178d36e17ca7e19e
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Column iterations=15 m=2	f13c868dc2bf59d4
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Column linesearch=4	afb89a27f907463f
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Transposed default	178d36e17ca7e19e
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Transposed iterations=15 m=2	f13c868dc2bf59d4
+lbfgsb quadratic n=50 1e6 box=[-2,0.8] layout=Transposed linesearch=4	afb89a27f907463f
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Column default	ad2027078b1c4574
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Column iterations=15 m=2	79a731dcaed97626
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Column linesearch=4	ad2027078b1c4574
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Transposed default	ad2027078b1c4574
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Transposed iterations=15 m=2	79a731dcaed97626
+lbfgsb rosenbrock 4x3 box=[-0.5,0.5] layout=Transposed linesearch=4	ad2027078b1c4574
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Column default	90ff24edd65f89c8
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Column iterations=15 m=2	dc18fd61633100d5
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Column linesearch=4	90ff24edd65f89c8
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Transposed default	90ff24edd65f89c8
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Transposed iterations=15 m=2	dc18fd61633100d5
+lbfgsb rosenbrock 4x3 box=[-2,0.8] layout=Transposed linesearch=4	90ff24edd65f89c8
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Column default	52b755609baf0779
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Column iterations=15 m=2	75d50296266205eb
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Column linesearch=4	52b755609baf0779
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Transposed default	52b755609baf0779
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Transposed iterations=15 m=2	75d50296266205eb
+lbfgsb rosenbrock n=10 classic box=[-0.5,0.5] layout=Transposed linesearch=4	52b755609baf0779
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Column default	7fa00263d1e1a441
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Column iterations=15 m=2	14e1214f2268e601
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Column linesearch=4	fe7f391e57873d89
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Transposed default	7fa00263d1e1a441
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Transposed iterations=15 m=2	14e1214f2268e601
+lbfgsb rosenbrock n=10 classic box=[-2,0.8] layout=Transposed linesearch=4	fe7f391e57873d89
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Column default	7cce6ce956e14456
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Column iterations=15 m=2	7c8cae7be41d7c36
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Column linesearch=4	7cce6ce956e14456
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Transposed default	7cce6ce956e14456
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Transposed iterations=15 m=2	7c8cae7be41d7c36
+lbfgsb rosenbrock n=10 gaussian box=[-0.5,0.5] layout=Transposed linesearch=4	7cce6ce956e14456
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Column default	8387231797c23d16
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Column iterations=15 m=2	0d04c17549c08540
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Column linesearch=4	8387231797c23d16
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Transposed default	8387231797c23d16
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Transposed iterations=15 m=2	0d04c17549c08540
+lbfgsb rosenbrock n=10 gaussian box=[-2,0.8] layout=Transposed linesearch=4	8387231797c23d16
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Column default	b3c1f017f28ef074
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Column iterations=15 m=2	86a51a0a533bbd5c
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Column linesearch=4	b3c1f017f28ef074
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Transposed default	b3c1f017f28ef074
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Transposed iterations=15 m=2	86a51a0a533bbd5c
+lbfgsb rosenbrock n=100 classic box=[-0.5,0.5] layout=Transposed linesearch=4	b3c1f017f28ef074
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Column default	101b8a26b7141647
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Column iterations=15 m=2	31f2551a638467e0
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Column linesearch=4	26c14123b727385d
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Transposed default	101b8a26b7141647
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Transposed iterations=15 m=2	31f2551a638467e0
+lbfgsb rosenbrock n=100 classic box=[-2,0.8] layout=Transposed linesearch=4	26c14123b727385d
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Column default	e98a729f3f49d8ce
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Column iterations=15 m=2	17131136f8786f7f
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Column linesearch=4	e98a729f3f49d8ce
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Transposed default	e98a729f3f49d8ce
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Transposed iterations=15 m=2	17131136f8786f7f
+lbfgsb rosenbrock n=100 gaussian box=[-0.5,0.5] layout=Transposed linesearch=4	e98a729f3f49d8ce
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Column default	c69dd557f7722f9c
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Column iterations=15 m=2	065c0025d3078497
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Column linesearch=4	c69dd557f7722f9c
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Transposed default	c69dd557f7722f9c
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Transposed iterations=15 m=2	065c0025d3078497
+lbfgsb rosenbrock n=100 gaussian box=[-2,0.8] layout=Transposed linesearch=4	c69dd557f7722f9c
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Column default	aa4b44063dbb9af2
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Column iterations=15 m=2	69f1c1cf740ebe07
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Column linesearch=4	04e97b3c05d6b379
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Transposed default	aa4b44063dbb9af2
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Transposed iterations=15 m=2	69f1c1cf740ebe07
+lbfgsb rosenbrock n=2 classic box=[-0.5,0.5] layout=Transposed linesearch=4	04e97b3c05d6b379
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Column default	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Column iterations=15 m=2	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Column linesearch=4	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Transposed default	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Transposed iterations=15 m=2	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 classic box=[-2,0.8] layout=Transposed linesearch=4	29cbe7f00e84ddfe
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Column default	18cd2b5674c04033
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Column iterations=15 m=2	a1e15fd8eb042f64
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Column linesearch=4	18cd2b5674c04033
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Transposed default	18cd2b5674c04033
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Transposed iterations=15 m=2	a1e15fd8eb042f64
+lbfgsb rosenbrock n=2 gaussian box=[-0.5,0.5] layout=Transposed linesearch=4	18cd2b5674c04033
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Column default	b748be9474f55acb
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Column iterations=15 m=2	d6e3c57b30bbb752
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Column linesearch=4	b748be9474f55acb
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Transposed default	b748be9474f55acb
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Transposed iterations=15 m=2	d6e3c57b30bbb752
+lbfgsb rosenbrock n=2 gaussian box=[-2,0.8] layout=Transposed linesearch=4	b748be9474f55acb
