@@ -9,9 +9,9 @@ package gale.linalg
   * 5d3950e, so any change to its arithmetic or summation order fails here; such a change must regenerate the file
   * deliberately and justify the new bits. JVM-only: the kernels are deterministic per platform, not across platforms.
   *
-  * NaNs are digested canonically (`doubleToLongBits`): a NaN's sign and payload depend on which fma operand carries
-  * the negation and which NaN operand the hardware propagates, neither of which is part of any numerical contract.
-  * Every finite and infinite value, and whether each entry is NaN, is pinned bit for bit.
+  * NaN sign and payload are not deterministic on HotSpot: the `Math.fma` interpreter fallback returns the canonical
+  * NaN while the JIT intrinsic propagates the operand's, so the same code gives different NaN bits from run to run.
+  * Digests therefore canonicalize NaN (`doubleToLongBits`); all other bits, and every NaN position, are raw.
   *
   * Setting `GALE_QR_DIGEST_OUT` to a file path writes the current digests there instead of comparing.
   */
