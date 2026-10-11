@@ -51,121 +51,93 @@ final class CenteredMomentsSummary private[numeric] (
     val covariance: DMat
 )
 
-/** Worker-local exact finite-input moments. Inputs/merge sources are not retained or mutated. Exact dyadics retain a
-  * separate power-of-two shift instead of repeatedly allocating low zero-padding. Their absolute units remain 2^-1074
-  * for sums and 2^-2148 for products. Exact centered covariance is (W*sum(w*x*y)-sum(w*x)*sum(w*y))/(W*(W-ddof)); the
-  * apparently subtractive formula uses exact integers, so cancellation never discards bits. Mean/covariance round once,
-  * ties to even. Frequency <= MaxFrequency bounds every limb, independently of traversal/partitions. This is a
-  * correctness primitive, not a cheap-loop/RSS claim.
+/** Worker-local exact finite-input moments. Fixed signed radix30 limbs represent absolute units2^-1074/2^-2148. Total
+  * frequency<=2^60 bounds sums below2^2158 and products below2^4256, with spare sign bits for exact modular
+  * carry/borrow. Exact covariance remains (W*sum(w*x*y)-sum(w*x)*sum(w*y))/(W*(W-ddof)). Only final readout constructs
+  * BigInts and rounds once, ties to even.
   */
 final class CenteredMoments private (
     val dimension: Int,
-    private var sums: Array[BigInt],
-    private var products: Array[BigInt],
-    private var sumShifts: Array[Int],
-    private var productShifts: Array[Int],
+    private val sums: FixedMomentLimbs,
+    private val products: FixedMomentLimbs,
     private var mass: Long,
     private var occurrences: Long
 ):
   import CenteredMomentsError.*
+  private val mantissas = new Array[Long](dimension)
+  private val shifts = new Array[Int](dimension)
+  private val negative = new Array[Boolean](dimension)
+  private val significand = new Array[Int](2)
+  private val weight = new Array[Int](3)
+  private val weighted = new Array[Int](5)
+  private val product = new Array[Int](7)
   def frequency: Long = mass
   def positiveOccurrences: Long = occurrences
   def resources: CenteredMomentsResources = CenteredMoments.resources(dimension).toOption.get
+  private def split(value: Long): Unit =
+    significand(0) = (value & FixedMomentLimbs.Mask).toInt
+    significand(1) = (value >>> 30).toInt
   def add(values: Array[Double], frequency: Long = 1L): Either[CenteredMomentsError, Unit] =
     if values == null then Left(MissingInput)
     else if values.length != dimension then Left(LengthMismatch(dimension, values.length))
     else if frequency < 0 then Left(InvalidFrequency(frequency))
     else if frequency > CenteredMoments.MaxFrequency - mass then Left(CapacityExceeded(mass, frequency))
     else
+      // Validate/decompose one caller value at a time. Scratch may change on
+      // refusal, but no observable moment, frequency or occurrence changes.
       var row = 0
       while row < dimension do
-        if !values(row).isFinite then return Left(NonFiniteInput(row))
+        val value = values(row)
+        if !value.isFinite then return Left(NonFiniteInput(row))
+        val bits = java.lang.Double.doubleToRawLongBits(value)
+        val exponent = ((bits >>> 52) & 0x7ffL).toInt
+        val fraction = bits & 0xfffffffffffffL
+        mantissas(row) = if exponent == 0 then fraction else fraction | (1L << 52)
+        shifts(row) = if exponent == 0 then 0 else exponent - 1
+        negative(row) = bits < 0
         row += 1
-      if frequency == 0 then Right(())
+      if frequency == 0 then CenteredMoments.success
       else
-        val exact = new Array[BigInt](dimension)
-        val shifts = new Array[Int](dimension)
-        row = 0
-        while row < dimension do
-          val bits = java.lang.Double.doubleToRawLongBits(values(row))
-          val exponent = ((bits >>> 52) & 0x7ffL).toInt
-          val fraction = bits & 0xfffffffffffffL
-          val mantissa = if exponent == 0 then fraction else fraction | (1L << 52)
-          val trailing = if mantissa == 0 then 0 else java.lang.Long.numberOfTrailingZeros(mantissa)
-          val compact = mantissa >>> trailing
-          exact(row) = BigInt(if bits < 0L then -compact else compact)
-          shifts(row) = (if exponent == 0 then 0 else exponent - 1) + trailing
-          row += 1
-        val weight = BigInt(frequency)
-        val nextSums = new Array[BigInt](dimension)
-        val nextProducts = new Array[BigInt](products.length)
-        val nextSumShifts = sumShifts.clone()
-        val nextProductShifts = productShifts.clone()
+        weight(0) = (frequency & FixedMomentLimbs.Mask).toInt
+        weight(1) = ((frequency >>> 30) & FixedMomentLimbs.Mask).toInt
+        weight(2) = (frequency >>> 60).toInt
+        val weightLength = FixedMomentLimbs.length(weight)
         row = 0; var cell = 0
         while row < dimension do
-          val weighted = weight * exact(row)
-          nextSums(row) = combine(sums(row), sumShifts(row), weighted, shifts(row), nextSumShifts, row)
+          split(mantissas(row))
+          val weightedLength = FixedMomentLimbs.multiply(significand, 2, weight, weightLength, weighted)
+          sums.addShifted(row, weighted, weightedLength, shifts(row), negative(row))
           var column = row
           while column < dimension do
-            nextProducts(cell) = combine(
-              products(cell),
-              productShifts(cell),
-              weighted * exact(column),
+            split(mantissas(column))
+            val productLength = FixedMomentLimbs.multiply(weighted, weightedLength, significand, 2, product)
+            products.addShifted(
+              cell,
+              product,
+              productLength,
               shifts(row) + shifts(column),
-              nextProductShifts,
-              cell
+              negative(row) != negative(column)
             )
             cell += 1; column += 1
           row += 1
-        sums = nextSums; products = nextProducts; sumShifts = nextSumShifts; productShifts = nextProductShifts
         mass += frequency; occurrences += 1
-        Right(())
-
-  /** Align only the meaningful bits. A zero operand does not impose an unnecessarily low scale. */
-  private def combine(a: BigInt, aShift: Int, b: BigInt, bShift: Int, outputShifts: Array[Int], index: Int): BigInt =
-    if b == 0 then a
-    else if a == 0 then
-      outputShifts(index) = bShift
-      b
-    else
-      val shift = math.min(aShift, bShift)
-      outputShifts(index) = shift
-      (a << (aShift - shift)) + (b << (bShift - shift))
-  def copy(): CenteredMoments =
-    new CenteredMoments(
-      dimension,
-      sums.clone(),
-      products.clone(),
-      sumShifts.clone(),
-      productShifts.clone(),
-      mass,
-      occurrences
-    )
+        CenteredMoments.success
+  def copy(): CenteredMoments = new CenteredMoments(dimension, sums.copy(), products.copy(), mass, occurrences)
   def merge(other: CenteredMoments): Either[CenteredMomentsError, Unit] =
     if this eq other then Left(SelfMerge)
     else if dimension != other.dimension then Left(DimensionMismatch(dimension, other.dimension))
     else if other.mass > CenteredMoments.MaxFrequency - mass then Left(CapacityExceeded(mass, other.mass))
     else
-      val nextSumShifts = sumShifts.clone()
-      val nextProductShifts = productShifts.clone()
-      val nextSums = sums.indices
-        .map(i => combine(sums(i), sumShifts(i), other.sums(i), other.sumShifts(i), nextSumShifts, i))
-        .toArray
-      val nextProducts = products.indices
-        .map(i =>
-          combine(products(i), productShifts(i), other.products(i), other.productShifts(i), nextProductShifts, i)
-        )
-        .toArray
-      sums = nextSums; products = nextProducts; sumShifts = nextSumShifts; productShifts = nextProductShifts
+      sums.merge(other.sums); products.merge(other.products)
       mass += other.mass; occurrences += other.occurrences
-      Right(())
+      CenteredMoments.success
   def finish(degreesRemoved: Int = 1): Either[CenteredMomentsError, CenteredMomentsSummary] =
     if degreesRemoved != 0 && degreesRemoved != 1 then Left(UnsupportedDivisor(degreesRemoved))
     else if mass <= degreesRemoved then Left(InsufficientFrequency(mass, degreesRemoved))
     else
       val weight = BigInt(mass); val meanDenominator = weight << 1074
       val covarianceDenominator = (weight * (mass - degreesRemoved)) << 2148
-      val absoluteSums = sums.indices.map(i => sums(i) << sumShifts(i)).toArray
+      val absoluteSums = Array.tabulate(dimension)(sums.integer)
       val mean = new Array[Double](dimension); val covariance = new Array[Double](dimension * dimension)
       var row = 0; var cell = 0
       while row < dimension do
@@ -173,7 +145,7 @@ final class CenteredMoments private (
         if !mean(row).isFinite then return Left(NonFiniteReadout(row, -1))
         var column = row
         while column < dimension do
-          val centered = weight * (products(cell) << productShifts(cell)) - absoluteSums(row) * absoluteSums(column)
+          val centered = weight * products.integer(cell) - absoluteSums(row) * absoluteSums(column)
           val value = ExactDyadic.roundRatio(centered, covarianceDenominator)
           if !value.isFinite then return Left(NonFiniteReadout(row, column))
           covariance(row * dimension + column) = value; covariance(column * dimension + row) = value
@@ -194,24 +166,26 @@ object CenteredMoments:
   val MaxFrequency: Long = 1L << 60
   private val SumBits = 2098 + 60
   private val ProductBits = 4196 + 60
-  // Centered numerator < 2^(4196+120+1); ratio rounding may left-shift it by1074.
   private val ReadoutBits = 4196 + 120 + 1 + 1074
+  private val SumDigits = (SumBits + 29) / 30
+  private val ProductDigits = (ProductBits + 29) / 30
+  private val success: Either[CenteredMomentsError, Unit] = Right(())
   def resources(dimension: Int): Either[CenteredMomentsError, CenteredMomentsResources] =
     if dimension <= 0 then Left(CenteredMomentsError.InvalidDimension(dimension))
     else if dimension.toLong * dimension > Int.MaxValue then Left(CenteredMomentsError.ShapeOverflow(dimension))
     else
       val n = BigInt(dimension); val triangle = n * (n + 1) / 2
       def limbs(bits: Int): BigInt = BigInt((bits + 31) / 32) * 4
-      val shifts = (n + triangle) * 4
-      val state = n * limbs(SumBits) + triangle * limbs(ProductBits) + shifts + 16
-      val scalar = limbs(ReadoutBits)
-      val output = 8 * (n + n * n)
+      // Padded signed physical radix30 arrays, primitive decode/multiply
+      // scratch retained by this worker-local state, and two Long counters.
+      val state = (n * SumDigits + triangle * ProductDigits) * 4 + n * 13 + 68 + 16
+      val scalar = limbs(ReadoutBits); val output = 8 * (n + n * n)
       Right(
         CenteredMomentsResources(
           state,
           state,
-          state + n * (limbs(2098) + 4) + 4096 * scalar,
-          state + 4096 * scalar,
+          0,
+          0,
           4096 * scalar + n * limbs(SumBits) + 2 * output,
           output,
           SumBits,
@@ -220,14 +194,12 @@ object CenteredMoments:
         )
       )
   def make(dimension: Int): Either[CenteredMomentsError, CenteredMoments] =
-    resources(dimension).map(_ =>
+    resources(dimension).map: _ =>
+      val cells = (dimension.toLong * (dimension + 1) / 2).toInt
       new CenteredMoments(
         dimension,
-        Array.fill(dimension)(BigInt(0)),
-        Array.fill((dimension.toLong * (dimension + 1) / 2).toInt)(BigInt(0)),
-        new Array[Int](dimension),
-        new Array[Int]((dimension.toLong * (dimension + 1) / 2).toInt),
+        FixedMomentLimbs.zero(dimension, SumDigits),
+        FixedMomentLimbs.zero(cells, ProductDigits),
         0L,
         0L
       )
-    )
