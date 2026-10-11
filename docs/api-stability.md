@@ -168,7 +168,7 @@ last ulp. Compact pivoted QR (width 8 or less) applies the same infinite-entry
 repair as `norm2`, so its pivot choice matches the wider screened path. These are numerical-contract repairs, not
 binary-compatibility claims against a published baseline.
 
-These members, `DVec.dot`, `DVec.norm2`, and `Numerics` take no
+The members above, together with `DVec.dot`, `DVec.norm2` and `Numerics`, take no
 `(using Backend)` parameter, and none is planned before M1. The
 [competitiveness plan](breeze-competitiveness-plan.md) allowed one (source
 compatible, binary breaking) if the W2 SIMD gate passed. Two decisions in the

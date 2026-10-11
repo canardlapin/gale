@@ -23,8 +23,8 @@ JDK 25), with every scoreboard run under `--validation --strict`:
 
 Merged on 2026-10-11: hc-gemm-vec (`c3ceeb5`), hc-lbfgs (`c9e2b14`),
 hc-lstsq16 (`51d74c9`), W2.2 docs (`96c95e5`, ADR A-2c), all measured by
-Milestone 3; and hc-sigmoid2 (`6066cdb`), which merged after the receipts but
-changes only tests, benchmarks and a comment in the kernel. In flight:
+Milestone 3; and hc-sigmoid2 (`6066cdb`), which merged after the receipts with
+tests, benchmarks and no main-code change beyond a kernel comment. In flight:
 hc-max2, hc-gemv-vec and hc-lbfgs-step. The remaining gaps and their owners are
 in [`benchmarks/dashboard.md`](../benchmarks/dashboard.md).
 
@@ -406,8 +406,11 @@ until all of the following hold:
    - `dot` at n = 64K, 0.97× in both lanes: the paired rerun
      (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) decides whether this is a kernel gap;
    - lane B sparse `dot` with a dense vector, 0.96× (no tracker item yet);
-   - `sigmoid` at n = 1K and 64K is already documented below for lane A;
-     lane B measures 0.95–0.96× for the same backend-insensitive kernel.
+   - `sigmoid` at n = 1K and 64K (lane A 0.96×/0.97×, lane B 0.96×/0.95×)
+     also fails criterion 2: it is a new op family below 1.0× in lane A at
+     n ≥ 1K. Its cause is documented below as an accepted exception, but the
+     exception needs the user's explicit sign-off at the final review;
+     criterion 2 itself is unchanged.
 3. **The new op families are settled at ≥ 1.0×.** Several lane-A rows are
    ties at 1.00× (`exp`, `logSumExp`, sparse `dot` with a dense vector). The
    reviewer must decide whether a CI-overlapping tie meets the bar.
@@ -423,7 +426,9 @@ until all of the following hold:
 
 Accepted exceptions to the outcome above, each with its measured cause.
 
-- **`sigmoid`, n = 1K and 64K: 0.96–0.97× Breeze (lane A).** The hybrid kernel
+- **`sigmoid`, n = 1K and 64K: 0.96–0.97× Breeze (lane A), 0.95–0.96× (lane B,
+  Milestone 3: 0.96× at 1K, 0.95× at 64K; the kernel is backend-insensitive).**
+  It fails epic criterion 2 and awaits the user's sign-off. The hybrid kernel
   (70fb262) uses Breeze's form `1/(1 + exp(-x))` for `x >= -36` and `t/(1 + t)`
   with `t = exp(x)` below. The per-element range test is the whole gap: on
   trillium, the kernel without it (`rawDirect`) is 4.4% faster at 1K, 3.7% at
