@@ -1852,10 +1852,43 @@ object DenseDecompositions:
           Right(DVec.fromDoubleArrayOwned(unpermuted))
 
   /** `A.qr.solveLeastSquares(b)` for the portable default (unpivoted) policy, bit-identical to it but without building
-    * a [[QR]]: `b` is factored as an extra column of `[A | b]`, so the reflectors reach it inside each row-major update
-    * instead of in a second strided pass, and each reflector is needed only for its own step. Shapes on the blocked
-    * path, and every argument the composed path rejects, go through that path unchanged.
+    * a [[QR]]: `b` is carried as an extra column of `[A | b]` and receives each reflector at its own step, so each
+    * reflector is needed only for that step and no `m x n` reflector store is kept. Shapes on the blocked path, and
+    * every argument the composed path rejects, go through that path unchanged.
     */
+  /** Apply step `k`'s reflector to the right-hand-side column `col` of `[A | b]` exactly as [[solveLeastSquares]]
+    * applies it to `b`: `dot = (vᵀ y) * tau`, then `y -= dot * v` written `fma(-dot, v, y)`. Matrix columns negate `v`
+    * instead; the two agree on every non-NaN value, and keeping the solve's form keeps its NaN sign and payload too.
+    */
+  private def reflectRightHandSide(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int
+  ): Unit =
+    var dot = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      dot = fma(reflectors(v), r(p), dot)
+      v += limit
+      p += n
+      i += 1
+    dot *= tauK
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      r(p) = fma(-dot, reflectors(v), r(p))
+      v += limit
+      p += n
+      i += 1
+
   /** Whether [[leastSquaresUnpivoted]] takes the fused `[A | b]` path for an `m x n` design and a length-`bLength`
     * right-hand side. A single column is contiguous in `A`'s own layout, where `dnrm2` takes its unfused contiguous
     * order; strided inside `[A | b]` it would not. The `m x (n + 1)` buffer must also be addressable by an `Int`.
@@ -1892,9 +1925,9 @@ object DenseDecompositions:
       while k < n do
         factorHouseholder(r, m, width, reflector, 1, tau, k, norm)
         if k + 1 < n then
-          val ssq = applyReflectorMeasuringLead(r, m, width, reflector, 1, tau(k), k, k + 1, width, scratch, 0)
+          val ssq = applyReflectorMeasuringLead(r, m, width, reflector, 1, tau(k), k, k + 1, n, scratch, 0)
           norm = trailingNorm(m - k - 1, ssq, r, (k + 1) * width + k + 1, width)
-        else applyReflectorToColumns(r, m, width, reflector, 1, tau(k), k, k + 1, width, scratch, 0)
+        if tau(k) != 0.0 then reflectRightHandSide(r, m, width, reflector, 1, tau(k), k, n)
         k += 1
 
       val tolerance = rankToleranceFromUpperTriangular(r, m, n, width)
