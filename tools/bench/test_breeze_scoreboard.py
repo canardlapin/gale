@@ -223,7 +223,23 @@ class LaneB(unittest.TestCase):
         )
         self.assertEqual(code, 0, err)
         self.assertIn("Breeze netlib BLAS: `dev.ludovic.netlib.blas.VectorBLAS`", out)
-        self.assertIn("of 4 pairs; 0 unpaired.", out)
+        self.assertIn(
+            "**Headline, gale vector vs Breeze VectorBLAS: 2 ahead, 0 tie, 1 behind, "
+            "0 n/a, 0 withheld** of 3 pairs",
+            out,
+        )
+        self.assertIn(
+            "Secondary, gale pure vs Breeze VectorBLAS: 0 ahead, 0 tie, 1 behind, "
+            "0 n/a, 0 withheld of 1 pairs.",
+            out,
+        )
+        self.assertIn(
+            "All rows: 2 ahead, 0 tie, 2 behind, 0 n/a, 0 withheld of 4 pairs; 0 unpaired.",
+            out,
+        )
+        self.assertLess(out.index("**Headline"), out.index("Secondary,"))
+        self.assertLess(out.index("Secondary,"), out.index("All rows:"))
+        self.assertEqual(out.count("**"), 2)
         self.assertEqual(
             table_row(out, "BlasL3BreezeJmh", "Gemm", "n=64", "pure")[-2:],
             ["0.60x", "behind"],
