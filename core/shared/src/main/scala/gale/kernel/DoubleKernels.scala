@@ -1675,7 +1675,10 @@ private[gale] object DoubleKernels:
     * direct form above [[SigmoidDirectFloor]], and `t/(1+t)` with `t = exp(x)`
     * below it. `sigmoid(+Inf) = 1`, `sigmoid(-Inf) = 0`, `sigmoid(NaN) = NaN`,
     * and for `x < -37.5` (where `1 + t` rounds to `1`) `sigmoid(x) == exp(x)`,
-    * including subnormal results.
+    * including subnormal results. The per-element range test costs about 4% against
+    * Breeze's form alone at n = 1K (a documented gap in
+    * docs/breeze-competitiveness-plan.md), the price of those subnormal results where
+    * Breeze's form returns 0.
     */
   inline def sigmoid(v: Double): Double =
     // Direct form on the hot path: one exp, one add, one divide, and a branch that

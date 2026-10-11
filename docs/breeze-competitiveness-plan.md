@@ -370,3 +370,21 @@ this follow-up. Preserve unrelated main-worktree files and stage only owned path
 
 Next action: implement step 1 on an isolated branch from current integration,
 while coordinating benchmark-sized eig validation with the existing HC-1 owner.
+
+## Documented gaps
+
+Accepted exceptions to the outcome above, each with its measured cause.
+
+- **`sigmoid`, n = 1K and 64K: 0.96–0.97× Breeze (lane A).** The hybrid kernel
+  (70fb262) uses Breeze's form `1/(1 + exp(-x))` for `x >= -36` and `t/(1 + t)`
+  with `t = exp(x)` below. The per-element range test is the whole gap: on
+  trillium, the kernel without it (`rawDirect`) is 4.4% faster at 1K, 3.7% at
+  64K and 1.9% at 1M, and gale's facade is within 0.4% of the bare kernel.
+  Both bit-identical prescans that would skip the test were slower (3.0–9.4%).
+  The test is kept because Breeze's form overflows `exp(-x)` below about -709.78
+  and returns 0 there, where the true sigmoid is the (subnormal) `exp(x)`; it
+  also loses up to 2.4 ulps below -36. At n = 1M gale is 1.42× Breeze, whose map
+  slows to 5.10 ns per element there against gale's 3.59. Receipts:
+  `benchmarks/results/2026-10-11-hc-sigmoid-trillium-r2.md` and
+  `benchmarks/results/2026-10-11-hc-sigmoid2-path-trillium.md`;
+  `SigmoidDigestSuite` pins the kernel's bits.
