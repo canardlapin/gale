@@ -230,38 +230,78 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
     assert(svd.diagnostics.orthogonalityError < 1e-13)
   }
 
-  test("dense nonsymmetric eigen measures residuals on access against per-column products") {
-    // Rotation blocks give complex pairs; the diagonal ramp gives real eigenvalues.
-    val n = 9
-    val a = Matrix.tabulate(n, n)((r, c) =>
-      if r == c then 0.5 * r
-      else if r < 4 && c < 4 && r / 2 == c / 2 then (if r < c then 2.0 else -2.0)
-      else 0.1 * math.sin(1.0 + r * n + c)
+  /** A strongly non-normal matrix with two complex pairs (rotation blocks) and
+    * real eigenvalues (diagonal ramp), scaled by `scale`.
+    */
+  private def nonNormal(n: Int, scale: Double): DMat =
+    Matrix.tabulate(n, n)((r, c) =>
+      val v =
+        if r == c then 0.5 * r
+        else if r < 4 && c < 4 && r / 2 == c / 2 then (if r < c then 2.0 else -2.0)
+        else if c > r then 3.0 * math.cos(1.0 + r * n + c)
+        else 0.01 * math.sin(1.0 + r * n + c)
+      v * scale
     )
+
+  /** The residual of eigenvalue `j` from the explicit `A V` columns, by the
+    * definition: `‖A v − λ v‖` in real arithmetic, a pair sharing one value.
+    */
+  private def explicitResidual(av: DMat, v: DMat, re: DVec, im: DVec, j: Int): Double =
+    if im(j) == 0.0 then (av.col(j) - v.col(j) * re(j)).norm2
+    else
+      val k = if im(j) > 0.0 then j else j - 1
+      val vr = v.col(k)
+      val vi = v.col(k + 1)
+      val realPart = av.col(k) - (vr * re(k) - vi * im(k))
+      val imagPart = av.col(k + 1) - (vi * re(k) + vr * im(k))
+      Vec((realPart.toSeq ++ imagPart.toSeq)*).norm2
+
+  test("dense nonsymmetric eigen measures residuals on access by their definition") {
+    val n = 9
+    val a = nonNormal(n, 1e6)
     val eig = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.Right).toOption.get
-    assert(eig.diagnostics.toString.contains("<deferred>"), eig.diagnostics.toString)
-    val re = eig.re
-    val im = eig.im
+    assert(eig.diagnostics.residuals ne null)
     val v = eig.rightVectorsPacked
-    assert((0 until n).exists(j => im(j) != 0.0) && (0 until n).exists(j => im(j) == 0.0))
+    val im = eig.im
+    assert((0 until n).count(j => im(j) != 0.0) == 4 && (0 until n).exists(j => im(j) == 0.0))
+    // The same A·V product the facade forms, so both sides share its rounding
+    // and the comparison sees only the residual formula and its reduction.
+    val av = a * v
     var j = 0
     while j < n do
-      if im(j) == 0.0 then
-        val r = (a * v.col(j) - v.col(j) * re(j)).norm2
-        assertEqualsDouble(eig.diagnostics.residuals(j), r, 1e-15)
-        j += 1
-      else
-        val vr = v.col(j)
-        val vi = v.col(j + 1)
-        val realPart = a * vr - (vr * re(j) - vi * im(j))
-        val imagPart = a * vi - (vi * re(j) + vr * im(j))
-        val r = math.sqrt(realPart.dot(realPart) + imagPart.dot(imagPart))
-        assertEqualsDouble(eig.diagnostics.residuals(j), r, 1e-15)
-        assertEqualsDouble(eig.diagnostics.residuals(j + 1), r, 0.0)
-        j += 2
-    assert(eig.diagnostics.worstResidual < 1e-13)
+      val expected = explicitResidual(av, v, eig.re, im, j)
+      val got = eig.diagnostics.residuals(j)
+      assert(expected > 0.0, s"residual $j vanished")
+      assert(math.abs(got - expected) <= 1e-12 * expected, s"residual $j: $got vs $expected")
+      j += 1
+    assert(eig.diagnostics.worstResidual < 1e-9 * 1e6)
     assertEqualsDouble(eig.diagnostics.orthogonalityError, 0.0, 0.0)
 
     val valuesOnly = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.ValuesOnly).toOption.get
     assertEquals(valuesOnly.diagnostics.residuals.toSeq, Seq.fill(n)(0.0))
+  }
+
+  test("dense nonsymmetric eigen defers only the residuals") {
+    val eig = Eigen.eigNonsymmetric(nonNormal(6, 1.0), EigenSelection.All, EigenVectors.Right).toOption.get
+    assert(
+      eig.diagnostics.toString.endsWith(",<deferred>,0.0,0,None,true,None)"),
+      eig.diagnostics.toString
+    )
+    assert(eig.diagnostics.worstResidual < 1e-12)
+    assert(!eig.diagnostics.toString.contains("<deferred>"), eig.diagnostics.toString)
+  }
+
+  test("dense nonsymmetric pair residuals stay finite near the overflow threshold") {
+    val n = 9
+    val scale = 1e300
+    val a = nonNormal(n, scale)
+    val eig = Eigen.eigNonsymmetric(a, EigenSelection.All, EigenVectors.Right).toOption.get
+    val im = eig.im
+    assert((0 until n).exists(j => im(j) != 0.0))
+    var j = 0
+    while j < n do
+      val r = eig.diagnostics.residuals(j)
+      assert(r.isFinite && r >= 0.0, s"residual $j = $r")
+      assert(r < 1e-9 * scale, s"residual $j = $r")
+      j += 1
   }

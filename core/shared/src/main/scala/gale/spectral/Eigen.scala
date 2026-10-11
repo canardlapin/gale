@@ -15,6 +15,8 @@ import gale.linalg.ScratchRequirement
 import gale.linalg.Shape
 import gale.linalg.Symmetric
 import gale.linalg.TriangularSolve
+import gale.linalg.value
+import gale.platform.DoubleArray
 import gale.solvers.Preconditioner
 
 /** Public eigendecomposition entry points — symmetric (phase a) and nonsymmetric
@@ -1289,9 +1291,11 @@ object Eigen:
     * nonsymmetric result, given the product `av = A · packed` (one matrix product
     * rather than a matrix-vector product per column). A real eigenvalue uses its
     * single column; a conjugate pair uses its two adjacent columns `(v_re, v_im)`
-    * and both members share the one residual. The residual columns are formed in
-    * one row-major pass and then reduced per column. Returns zeros when no
-    * vectors are present.
+    * and both members share the one residual. The residual columns
+    * `A V − V Λ` are formed in place in `av` (a fresh product owned here; copied
+    * first only if it is not contiguous row-major), reading `packed` through its
+    * strides, and then reduced per column with overflow-safe norms. Returns zeros
+    * when no vectors are present.
     */
   private def nonsymResiduals(av: DMat, re: DVec, im: DVec, packed: DMat): DVec =
     val cnt = re.length
@@ -1301,22 +1305,28 @@ object Eigen:
       val reA = re.toArray
       val imA = im.toArray
       // r := A V − V Λ, with Λ in real 2x2-block form for a conjugate pair.
-      val r = av.toDoubleArrayCopyRowMajor
-      val v = packed.toDoubleArrayCopyRowMajor
+      val (r, rOff) =
+        if av.isContiguousRowMajor then (av.data, av.offsetValue.value)
+        else (av.toDoubleArrayCopyRowMajor, 0)
+      val v = packed.data
+      val vOff = packed.offsetValue.value
+      val vRs = packed.rowStride.value
+      val vCs = packed.colStride.value
       var i = 0
       while i < n do
-        val row = i * cnt
+        val row = rOff + i * cnt
+        val vRow = vOff + i * vRs
         var j = 0
         while j < cnt do
           val a = reA(j)
           val b = imA(j)
           if b == 0.0 then
-            r(row + j) = r(row + j) - v(row + j) * a
+            r(row + j) = r(row + j) - v(vRow + j * vCs) * a
             j += 1
           else
             // Positive-imaginary member at j; its conjugate is at j+1.
-            val vr = v(row + j)
-            val vi = v(row + j + 1)
+            val vr = v(vRow + j * vCs)
+            val vi = v(vRow + (j + 1) * vCs)
             r(row + j) = r(row + j) - (vr * a - vi * b)
             r(row + j + 1) = r(row + j + 1) - (vi * a + vr * b)
             j += 2
@@ -1325,14 +1335,32 @@ object Eigen:
       var j = 0
       while j < cnt do
         if imA(j) == 0.0 then
-          out(j) = DoubleKernels.dnrm2(n, r, j, cnt)
+          out(j) = DoubleKernels.dnrm2(n, r, rOff + j, cnt)
           j += 1
         else
-          val res = math.sqrt(DoubleKernels.ddot(n, r, j, cnt, r, j, cnt) + DoubleKernels.ddot(n, r, j + 1, cnt, r, j + 1, cnt))
+          val res = pairResidualNorm(n, r, rOff + j, cnt)
           out(j) = res
           out(j + 1) = res
           j += 2
       DVec.fromSeq(out.toIndexedSeq)
+
+  /** Sum-of-squares floor below which [[pairResidualNorm]] (like
+    * `DoubleKernels.dnrm2`) distrusts the plain sum and rescans with scaling.
+    */
+  private inline val PairNormTrustedMin = 1e-280
+
+  /** `sqrt(‖r_j‖² + ‖r_{j+1}‖²)` for the adjacent row-major columns starting at
+    * `offset` (row stride `stride`). The plain sum of squares is used when it is
+    * finite and above [[PairNormTrustedMin]]; otherwise the two columns are
+    * rescanned with max scaling, so entries near `1e300` do not overflow and
+    * tiny ones do not underflow to zero.
+    */
+  private def pairResidualNorm(n: Int, r: DoubleArray, offset: Int, stride: Int): Double =
+    val ssq =
+      DoubleKernels.ddot(n, r, offset, stride, r, offset, stride) +
+        DoubleKernels.ddot(n, r, offset + 1, stride, r, offset + 1, stride)
+    if ssq.isFinite && ssq >= PairNormTrustedMin then math.sqrt(ssq)
+    else DoubleKernels.dnrmFrobenius(n, 2, r, offset, stride, 1)
 
   /** Per-eigenvalue '''left''' residual `‖wᴴ A − λ wᴴ‖` in real arithmetic, using
     * `at = Aᵀ`. For `λ = a + b·i` and `w = w_re + i·w_im` the (transposed) residual
@@ -1403,11 +1431,11 @@ object Eigen:
         case (false, false) => DVec.zeros(cnt)
     val diagnostics =
       if wantRight || wantLeft then
-        SpectralDiagnostics.deferred(
+        SpectralDiagnostics.deferredResiduals(
           requested = cnt,
           converged = cnt,
           residuals = () => residuals(),
-          orthogonalityError = () => 0.0,
+          orthogonalityError = 0.0,
           iterations = 0,
           rank = None,
           extremalityCertified = true

@@ -246,3 +246,29 @@ object SpectralDiagnostics:
       extremalityCertified,
       None
     )
+
+  /** Diagnostics whose `residuals` are measured on first access and cached,
+    * with an `orthogonalityError` known up front (for example `0.0` for a
+    * nonsymmetric eigenbasis, which is not orthonormal), so it is never shown as
+    * deferred. The residual source must read only snapshots that no caller can
+    * mutate.
+    */
+  private[spectral] def deferredResiduals(
+      requested: Int,
+      converged: Int,
+      residuals: () => DVec,
+      orthogonalityError: Double,
+      iterations: Int,
+      rank: Option[Int],
+      extremalityCertified: Boolean
+  ): SpectralDiagnostics =
+    new SpectralDiagnostics(
+      requested,
+      converged,
+      new Measurement(residuals, alreadyMeasured = false),
+      new Measurement(() => orthogonalityError, alreadyMeasured = true),
+      iterations,
+      rank,
+      extremalityCertified,
+      None
+    )
