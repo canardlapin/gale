@@ -11,12 +11,17 @@ import gale.linalg.*
   * evaluation counts, and the full progress trace. The stored digests in `lbfgs-digests.txt` were generated from the
   * solvers as of breeze/integration 5d3950e, so any change to their arithmetic, summation order or line-search
   * decisions fails here; such a change must regenerate the file deliberately (`LbfgsDigestSuite.main`) and justify the
-  * new bits. JVM-only: the solvers are deterministic per platform, not across platforms.
+  * new bits. The corpus includes restart cases that drive the two-loop direction non-finite, so the history is cleared
+  * (after its ring has wrapped) and refilled.
+  *
+  * JVM-only because several test objectives call `exp`, `log1p`, `log` and `pow` and the starting points come from
+  * `Random.nextGaussian`, whose last bits are not specified identically on Scala.js; the solvers themselves use no
+  * transcendental functions. `LbfgsPortableDigestSuite` pins a transcendental-free subset on both platforms.
   */
 class LbfgsDigestSuite extends munit.FunSuite:
   import LbfgsDigestSuite.*
 
-  private lazy val expected: Map[String, String] =
+  private lazy val expectedLines: Seq[(String, String)] =
     val stream = getClass.getResourceAsStream(DigestResource)
     assert(stream != null, s"missing resource $DigestResource")
     val source = scala.io.Source.fromInputStream(stream, "UTF-8")
@@ -26,8 +31,14 @@ class LbfgsDigestSuite extends munit.FunSuite:
         .map: line =>
           val tab = line.lastIndexOf('\t')
           line.substring(0, tab) -> line.substring(tab + 1)
-        .toMap
+        .toSeq
     finally source.close()
+
+  private lazy val expected: Map[String, String] = expectedLines.toMap
+
+  test("the digest resource has one line per case") {
+    assertEquals(expected.size, expectedLines.size, "duplicate case keys in the digest resource")
+  }
 
   test("LBFGS, LBFGSB and augmented-Lagrangian solves match the stored per-case bit digests") {
     val actual = digests
@@ -345,4 +356,20 @@ object LbfgsDigestSuite:
             .hex
       s"alm ${problem.name} $constraintName bounded=$bounded roundoff=$roundoff" -> digest
 
-  def digests: Map[String, String] = (lbfgsDigests ++ lbfgsbDigests ++ almDigests).toMap
+  /** Two-loop fallback: see [[LbfgsPortableDigests.gatedRestart]]. */
+  private def restartDigests: Seq[(String, String)] =
+    for
+      (name, gate, slope, history) <- LbfgsPortableDigests.restartCases
+      layout <- Seq(Layout.Column, Layout.Transposed)
+    yield
+      val trials = new Digest
+      val problem =
+        Problem(s"restart $name", 3, 1, Array(-1.2, 1.0, 0.0), LbfgsPortableDigests.gatedRestart(gate, slope))
+      val config = LBFGSConfig(maxIterations = 60, historySize = history, control = traced)
+      val result = LBFGS.minimize(objective(problem, layout, trials), matrixOf(problem.start, 3, 1, layout), config)
+      s"lbfgs ${problem.name} layout=$layout" -> solutionDigest(trials, result)
+
+  def digests: Map[String, String] =
+    val all = lbfgsDigests ++ lbfgsbDigests ++ almDigests ++ restartDigests
+    assert(all.map(_._1).distinct.size == all.size, "duplicate case keys in the corpus")
+    all.toMap

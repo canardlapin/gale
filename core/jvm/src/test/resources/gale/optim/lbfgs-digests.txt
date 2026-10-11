@@ -188,6 +188,12 @@ lbfgs quadratic n=50 1e6 layout=Transposed iterations=40 m=10 untolerant	8424d17
 lbfgs quadratic n=50 1e6 layout=Transposed loose c2=0.1 linesearch=3	27661747dd30fad4
 lbfgs quadratic n=50 1e6 layout=Transposed maxstep=0.5	3ff6c4a3149cbdfd
 lbfgs quadratic n=50 1e6 layout=Transposed untraced iterations=60	4e51b5adff524496
+lbfgs restart gate=0 slope=5.5e153 m=3 layout=Column	2883f872c5976f74
+lbfgs restart gate=0 slope=5.5e153 m=3 layout=Transposed	2883f872c5976f74
+lbfgs restart gate=0 slope=6e153 m=3 layout=Column	d2e88bb41df4aac5
+lbfgs restart gate=0 slope=6e153 m=3 layout=Transposed	d2e88bb41df4aac5
+lbfgs restart gate=0.5 slope=5.5e153 m=2 layout=Column	ab88abf88aaecd38
+lbfgs restart gate=0.5 slope=5.5e153 m=2 layout=Transposed	ab88abf88aaecd38
 lbfgs rosenbrock 4x3 layout=Column default	8d573afecf8e65e7
 lbfgs rosenbrock 4x3 layout=Column evaluations=17	c09575dafd6dc3f7
 lbfgs rosenbrock 4x3 layout=Column iterations=0	453c260bd1f3086f
