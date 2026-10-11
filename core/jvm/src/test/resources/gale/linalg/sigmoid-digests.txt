@@ -113,3 +113,117 @@ aarch64 uniform [-800,800) matrix	9e3c853cb67cc84a
 aarch64 uniform [-800,800) slice	9e3c853cb67cc84a
 aarch64 uniform [-800,800) transposed	9e3c853cb67cc84a
 aarch64 uniform [-800,800) vec	9e3c853cb67cc84a
+amd64 extremes column	bc63b6385cf48564
+amd64 extremes input	a4426fc0d3dc1307
+amd64 extremes matrix	bc63b6385cf48564
+amd64 extremes slice	bc63b6385cf48564
+amd64 extremes transposed	bc63b6385cf48564
+amd64 extremes vec	bc63b6385cf48564
+amd64 mixed column	d4e875850938930d
+amd64 mixed input	13a78fb6fed7005c
+amd64 mixed matrix	d4e875850938930d
+amd64 mixed slice	d4e875850938930d
+amd64 mixed transposed	d4e875850938930d
+amd64 mixed vec	d4e875850938930d
+amd64 normal scale=0.01 column	52a5be58749965cb
+amd64 normal scale=0.01 input	88fe1d0233cc84ee
+amd64 normal scale=0.01 matrix	52a5be58749965cb
+amd64 normal scale=0.01 slice	52a5be58749965cb
+amd64 normal scale=0.01 transposed	52a5be58749965cb
+amd64 normal scale=0.01 vec	52a5be58749965cb
+amd64 normal scale=1.0 column	e08f29f085ae59f8
+amd64 normal scale=1.0 input	1403ad2b2d18b825
+amd64 normal scale=1.0 matrix	e08f29f085ae59f8
+amd64 normal scale=1.0 slice	e08f29f085ae59f8
+amd64 normal scale=1.0 transposed	e08f29f085ae59f8
+amd64 normal scale=1.0 vec	e08f29f085ae59f8
+amd64 normal scale=1.0E-6 column	b765a3d3aacaba8f
+amd64 normal scale=1.0E-6 input	964b8189959ef9bb
+amd64 normal scale=1.0E-6 matrix	b765a3d3aacaba8f
+amd64 normal scale=1.0E-6 slice	b765a3d3aacaba8f
+amd64 normal scale=1.0E-6 transposed	b765a3d3aacaba8f
+amd64 normal scale=1.0E-6 vec	b765a3d3aacaba8f
+amd64 normal scale=1024.0 column	df60b188dbdaa7d2
+amd64 normal scale=1024.0 input	109a5304ca4f27b7
+amd64 normal scale=1024.0 matrix	df60b188dbdaa7d2
+amd64 normal scale=1024.0 slice	df60b188dbdaa7d2
+amd64 normal scale=1024.0 transposed	df60b188dbdaa7d2
+amd64 normal scale=1024.0 vec	df60b188dbdaa7d2
+amd64 normal scale=16.0 column	e558ac10712ed49a
+amd64 normal scale=16.0 input	618581a537ba9c2b
+amd64 normal scale=16.0 matrix	e558ac10712ed49a
+amd64 normal scale=16.0 slice	e558ac10712ed49a
+amd64 normal scale=16.0 transposed	e558ac10712ed49a
+amd64 normal scale=16.0 vec	e558ac10712ed49a
+amd64 normal scale=256.0 column	ecb52b10f4187f16
+amd64 normal scale=256.0 input	0bfd04c9be6b819c
+amd64 normal scale=256.0 matrix	ecb52b10f4187f16
+amd64 normal scale=256.0 slice	ecb52b10f4187f16
+amd64 normal scale=256.0 transposed	ecb52b10f4187f16
+amd64 normal scale=256.0 vec	ecb52b10f4187f16
+amd64 normal scale=4.0 column	a3696bfbc3b83212
+amd64 normal scale=4.0 input	b31bad7748e40a7c
+amd64 normal scale=4.0 matrix	a3696bfbc3b83212
+amd64 normal scale=4.0 slice	a3696bfbc3b83212
+amd64 normal scale=4.0 transposed	a3696bfbc3b83212
+amd64 normal scale=4.0 vec	a3696bfbc3b83212
+amd64 normal scale=64.0 column	89900566945caabc
+amd64 normal scale=64.0 input	ba8108c46dddca43
+amd64 normal scale=64.0 matrix	89900566945caabc
+amd64 normal scale=64.0 slice	89900566945caabc
+amd64 normal scale=64.0 transposed	89900566945caabc
+amd64 normal scale=64.0 vec	89900566945caabc
+amd64 overflow ±709.78 column	0b9c6318aaca5e4e
+amd64 overflow ±709.78 input	0ba7d37d8f0dcbee
+amd64 overflow ±709.78 matrix	0b9c6318aaca5e4e
+amd64 overflow ±709.78 slice	0b9c6318aaca5e4e
+amd64 overflow ±709.78 transposed	0b9c6318aaca5e4e
+amd64 overflow ±709.78 vec	0b9c6318aaca5e4e
+amd64 specials column	55f2df7eea85e4ff
+amd64 specials input	5a036a15a3554271
+amd64 specials matrix	55f2df7eea85e4ff
+amd64 specials slice	55f2df7eea85e4ff
+amd64 specials transposed	55f2df7eea85e4ff
+amd64 specials vec	55f2df7eea85e4ff
+amd64 subnormal inputs column	8f1bc1c2b7623eef
+amd64 subnormal inputs input	3e88a44bdc8dc6b7
+amd64 subnormal inputs matrix	8f1bc1c2b7623eef
+amd64 subnormal inputs slice	8f1bc1c2b7623eef
+amd64 subnormal inputs transposed	8f1bc1c2b7623eef
+amd64 subnormal inputs vec	8f1bc1c2b7623eef
+amd64 switch +36 column	2a51c61196adec9e
+amd64 switch +36 input	bdb8adb648b9ab02
+amd64 switch +36 matrix	2a51c61196adec9e
+amd64 switch +36 slice	2a51c61196adec9e
+amd64 switch +36 transposed	2a51c61196adec9e
+amd64 switch +36 vec	2a51c61196adec9e
+amd64 switch -36 column	d4c461db5a09c191
+amd64 switch -36 input	6aac5e8d46c1bfde
+amd64 switch -36 matrix	d4c461db5a09c191
+amd64 switch -36 slice	d4c461db5a09c191
+amd64 switch -36 transposed	d4c461db5a09c191
+amd64 switch -36 vec	d4c461db5a09c191
+amd64 tail -37.5 column	204c9f7a906123ff
+amd64 tail -37.5 input	ead113c4a1cdff28
+amd64 tail -37.5 matrix	204c9f7a906123ff
+amd64 tail -37.5 slice	204c9f7a906123ff
+amd64 tail -37.5 transposed	204c9f7a906123ff
+amd64 tail -37.5 vec	204c9f7a906123ff
+amd64 underflow -745 column	939bd62e8d52acfc
+amd64 underflow -745 input	438681447485c52b
+amd64 underflow -745 matrix	939bd62e8d52acfc
+amd64 underflow -745 slice	939bd62e8d52acfc
+amd64 underflow -745 transposed	939bd62e8d52acfc
+amd64 underflow -745 vec	939bd62e8d52acfc
+amd64 uniform [-1,1) column	1aacab5d7c9b253b
+amd64 uniform [-1,1) input	bc12f7c6cf831177
+amd64 uniform [-1,1) matrix	1aacab5d7c9b253b
+amd64 uniform [-1,1) slice	1aacab5d7c9b253b
+amd64 uniform [-1,1) transposed	1aacab5d7c9b253b
+amd64 uniform [-1,1) vec	1aacab5d7c9b253b
+amd64 uniform [-800,800) column	be3e6c83f4f5beee
+amd64 uniform [-800,800) input	c8f739223a0d54e6
+amd64 uniform [-800,800) matrix	be3e6c83f4f5beee
+amd64 uniform [-800,800) slice	be3e6c83f4f5beee
+amd64 uniform [-800,800) transposed	be3e6c83f4f5beee
+amd64 uniform [-800,800) vec	be3e6c83f4f5beee
