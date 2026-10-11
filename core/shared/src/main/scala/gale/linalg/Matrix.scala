@@ -748,8 +748,10 @@ final class DMat private[gale] (
   )(using Backend): Either[LinAlgError, QR] =
     DenseDecompositions.qrScaledRows(this, scales, options, workspace)
 
-  def leastSquares(b: DVec)(using Backend): Either[LinAlgError, DVec] =
-    qr.solveLeastSquares(b)
+  def leastSquares(b: DVec)(using backend: Backend): Either[LinAlgError, DVec] =
+    factorizationProvider(math.max(rows, cols), backend.thresholds.nativeQrMinSize) match
+      case Some(_) => qr.solveLeastSquares(b)
+      case None    => DenseDecompositions.leastSquaresUnpivoted(this, b)
 
   def leastSquares(b: DVec, options: QROptions)(using Backend): Either[LinAlgError, DVec] =
     qr(options).solveLeastSquares(b)

@@ -15,7 +15,9 @@ invariants; it does not guarantee exact real arithmetic or universal
 bit-for-bit agreement between legal algorithms.
 
 - The pure single-threaded implementation is deterministic for a fixed Gale
-  build and runtime.
+  build and runtime. Determinism covers every non-NaN value and which entries
+  are NaN; the sign and payload of a NaN are unspecified (on HotSpot they
+  depend on whether `Math.fma` ran interpreted or as a JIT intrinsic).
 - JVM kernels may use `Math.fma`; Scala.js uses the JavaScript number operation.
   Cross-platform results can differ in their final ulps. The contiguous dot
   product (and the sums of squares built on it) is the exception: it uses

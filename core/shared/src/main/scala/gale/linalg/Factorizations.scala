@@ -746,7 +746,8 @@ object DenseDecompositions:
       col += 1
 
   /** Small-shape QR: scalar Householder generation with row-major rank-1 updates. Keeping this path avoids compact-WY
-    * setup overhead where Gale is already ahead of Breeze.
+    * setup overhead where Gale is already ahead of Breeze. Each update also accumulates the next pivot column's norm,
+    * so no step rescans a strided column.
     */
   private def factorUnblockedQR(
       r: DoubleArray,
@@ -758,10 +759,19 @@ object DenseDecompositions:
       scratch: DoubleArray
   ): Unit =
     var k = 0
+    var norm = if limit > 0 then DoubleKernels.dnrm2(m, r, 0, n) else 0.0
     while k < limit do
-      factorHouseholder(r, m, n, reflectors, limit, tau, k)
-      applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
+      factorHouseholder(r, m, n, reflectors, limit, tau, k, norm)
+      if k + 1 < limit then
+        val ssq = applyReflectorMeasuringLead(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
+        norm = trailingNorm(m - k - 1, ssq, r, (k + 1) * n + k + 1, n)
+      else applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, n, scratch, 0)
       k += 1
+
+  /** [[DoubleKernels.dnrm2]] of a `length >= 1` strided column whose sum of squares a fused update already formed. */
+  private def trailingNorm(length: Int, ssq: Double, r: DoubleArray, offset: Int, stride: Int): Double =
+    if length == 1 then math.abs(r(offset))
+    else DoubleKernels.dnrm2FromSumSq(length, ssq, r, offset, stride)
 
   /** Large-shape QR using compact WY panels. Each panel is factored with the unblocked kernel, but its reflectors are
     * aggregated as `H = I - V T Vᵀ`; the trailing matrix receives `Hᵀ` through two GEMMs.
@@ -785,7 +795,7 @@ object DenseDecompositions:
       var k = panelStart
       while k < panelEnd do
         factorHouseholder(r, m, n, reflectors, limit, tau, k)
-        applyReflectorToColumns(r, m, n, reflectors, limit, tau(k), k, k + 1, panelEnd, scratch, wOffset)
+        sweepReflectorRows(r, m, n, reflectors, limit, tau(k), k, k + 1, panelEnd, scratch, wOffset)
         k += 1
 
       if panelEnd < n then
@@ -879,6 +889,27 @@ object DenseDecompositions:
       scratchOffset: Int
   ): Unit =
     val width = colUntil - colFrom
+    if tauK != 0.0 && width > 0 && width <= DenseWorkspace.QrNarrowMaxWidth then
+      reflectNarrow(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, measure = false)
+    else sweepReflectorRows(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, scratch, scratchOffset)
+
+  /** [[applyReflectorToColumns]] by row sweeps at every width. Blocked QR panels keep this form: their columns are at
+    * least 96 rows tall, where narrow panels re-read each row once per panel and have not been measured.
+    */
+  private def sweepReflectorRows(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      colFrom: Int,
+      colUntil: Int,
+      scratch: DoubleArray,
+      scratchOffset: Int
+  ): Unit =
+    val width = colUntil - colFrom
     if tauK != 0.0 && width > 0 then
       var j = 0
       while j < width do
@@ -930,6 +961,341 @@ object DenseDecompositions:
         while j < width do
           r(rRow + j) = fma(-vi, scratch(scratchOffset + j), r(rRow + j))
           j += 1
+
+  /** [[applyReflectorToColumns]] over `colFrom until colUntil` that also returns the sum of squares of the updated
+    * column `colFrom` over rows `k + 1 until m`, accumulated during the update in exactly the strided
+    * [[DoubleKernels.dsumsq]] order (one fma chain, ascending rows). The next unblocked step's Householder norm
+    * therefore needs no separate strided pass and is bit-identical to rescanning the column. Requires
+    * `colFrom < colUntil`, `k + 1 < m` and `n >= 2`.
+    */
+  private def applyReflectorMeasuringLead(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      colFrom: Int,
+      colUntil: Int,
+      scratch: DoubleArray,
+      scratchOffset: Int
+  ): Double =
+    if tauK == 0.0 then DoubleKernels.dsumsq(m - k - 1, r, (k + 1) * n + colFrom, n)
+    else if colUntil - colFrom <= DenseWorkspace.QrNarrowMaxWidth then
+      reflectNarrow(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, measure = true)
+    else
+      val width = colUntil - colFrom
+      scaledReflectorDots(r, m, n, reflectors, limit, tauK, k, colFrom, width, scratch, scratchOffset)
+      // Row k is the next step's pivot row, outside the trailing norm.
+      updateReflectedRow(r, n, reflectors(k * limit + k), k * n + colFrom, width, scratch, scratchOffset)
+      var ssq = 0.0
+      var i = k + 1
+      while i + 1 < m do
+        val vi = reflectors(i * limit + k)
+        val vi1 = reflectors((i + 1) * limit + k)
+        val rRow = i * n + colFrom
+        val rRow1 = rRow + n
+        var j = 0
+        while j < width do
+          val w = scratch(scratchOffset + j)
+          r(rRow + j) = fma(-vi, w, r(rRow + j))
+          r(rRow1 + j) = fma(-vi1, w, r(rRow1 + j))
+          j += 1
+        val lead = r(rRow)
+        val lead1 = r(rRow1)
+        ssq = fma(lead1, lead1, fma(lead, lead, ssq))
+        i += 2
+      if i < m then
+        val rRow = i * n + colFrom
+        updateReflectedRow(r, n, reflectors(i * limit + k), rRow, width, scratch, scratchOffset)
+        val lead = r(rRow)
+        ssq = fma(lead, lead, ssq)
+      ssq
+
+  /** Apply `I - tau*v*vᵀ` to a narrow column interval in register-held column panels.
+    *
+    * Each column's dot product is still one fma chain over ascending rows and each update is still one fma per entry,
+    * so the bits equal the row-sweep path; the panels only replace short vector loops (whose per-row setup dominates at
+    * these widths) with up to eight independent accumulator chains. With `measure`, returns the sum of squares of the
+    * updated column `colFrom` over rows `k + 1 until m` in [[DoubleKernels.dsumsq]]'s strided order; otherwise 0.
+    */
+  private def reflectNarrow(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      colFrom: Int,
+      colUntil: Int,
+      measure: Boolean
+  ): Double =
+    var ssq = 0.0
+    var col = colFrom
+    while colUntil - col >= 8 do
+      val panel = reflectColumns8(r, m, n, reflectors, limit, tauK, k, col, measure && col == colFrom)
+      if col == colFrom then ssq = panel
+      col += 8
+    if colUntil - col >= 4 then
+      val panel = reflectColumns4(r, m, n, reflectors, limit, tauK, k, col, measure && col == colFrom)
+      if col == colFrom then ssq = panel
+      col += 4
+    if colUntil - col >= 2 then
+      val panel = reflectColumns2(r, m, n, reflectors, limit, tauK, k, col, measure && col == colFrom)
+      if col == colFrom then ssq = panel
+      col += 2
+    if col < colUntil then
+      val panel = reflectColumn1(r, m, n, reflectors, limit, tauK, k, col, measure && col == colFrom)
+      if col == colFrom then ssq = panel
+    ssq
+
+  private def reflectColumns8(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int,
+      measure: Boolean
+  ): Double =
+    var s0 = 0.0
+    var s1 = 0.0
+    var s2 = 0.0
+    var s3 = 0.0
+    var s4 = 0.0
+    var s5 = 0.0
+    var s6 = 0.0
+    var s7 = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      val vi = reflectors(v)
+      s0 = fma(vi, r(p), s0)
+      s1 = fma(vi, r(p + 1), s1)
+      s2 = fma(vi, r(p + 2), s2)
+      s3 = fma(vi, r(p + 3), s3)
+      s4 = fma(vi, r(p + 4), s4)
+      s5 = fma(vi, r(p + 5), s5)
+      s6 = fma(vi, r(p + 6), s6)
+      s7 = fma(vi, r(p + 7), s7)
+      v += limit
+      p += n
+      i += 1
+    val w0 = tauK * s0
+    val w1 = tauK * s1
+    val w2 = tauK * s2
+    val w3 = tauK * s3
+    val w4 = tauK * s4
+    val w5 = tauK * s5
+    val w6 = tauK * s6
+    val w7 = tauK * s7
+    var ssq = 0.0
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      val nvi = -reflectors(v)
+      val lead = fma(nvi, w0, r(p))
+      r(p) = lead
+      r(p + 1) = fma(nvi, w1, r(p + 1))
+      r(p + 2) = fma(nvi, w2, r(p + 2))
+      r(p + 3) = fma(nvi, w3, r(p + 3))
+      r(p + 4) = fma(nvi, w4, r(p + 4))
+      r(p + 5) = fma(nvi, w5, r(p + 5))
+      r(p + 6) = fma(nvi, w6, r(p + 6))
+      r(p + 7) = fma(nvi, w7, r(p + 7))
+      if measure && i > k then ssq = fma(lead, lead, ssq)
+      v += limit
+      p += n
+      i += 1
+    ssq
+
+  private def reflectColumns4(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int,
+      measure: Boolean
+  ): Double =
+    var s0 = 0.0
+    var s1 = 0.0
+    var s2 = 0.0
+    var s3 = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      val vi = reflectors(v)
+      s0 = fma(vi, r(p), s0)
+      s1 = fma(vi, r(p + 1), s1)
+      s2 = fma(vi, r(p + 2), s2)
+      s3 = fma(vi, r(p + 3), s3)
+      v += limit
+      p += n
+      i += 1
+    val w0 = tauK * s0
+    val w1 = tauK * s1
+    val w2 = tauK * s2
+    val w3 = tauK * s3
+    var ssq = 0.0
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      val nvi = -reflectors(v)
+      val lead = fma(nvi, w0, r(p))
+      r(p) = lead
+      r(p + 1) = fma(nvi, w1, r(p + 1))
+      r(p + 2) = fma(nvi, w2, r(p + 2))
+      r(p + 3) = fma(nvi, w3, r(p + 3))
+      if measure && i > k then ssq = fma(lead, lead, ssq)
+      v += limit
+      p += n
+      i += 1
+    ssq
+
+  private def reflectColumns2(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int,
+      measure: Boolean
+  ): Double =
+    var s0 = 0.0
+    var s1 = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      val vi = reflectors(v)
+      s0 = fma(vi, r(p), s0)
+      s1 = fma(vi, r(p + 1), s1)
+      v += limit
+      p += n
+      i += 1
+    val w0 = tauK * s0
+    val w1 = tauK * s1
+    var ssq = 0.0
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      val nvi = -reflectors(v)
+      val lead = fma(nvi, w0, r(p))
+      r(p) = lead
+      r(p + 1) = fma(nvi, w1, r(p + 1))
+      if measure && i > k then ssq = fma(lead, lead, ssq)
+      v += limit
+      p += n
+      i += 1
+    ssq
+
+  private def reflectColumn1(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int,
+      measure: Boolean
+  ): Double =
+    var s = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      s = fma(reflectors(v), r(p), s)
+      v += limit
+      p += n
+      i += 1
+    val w = tauK * s
+    var ssq = 0.0
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      val lead = fma(-reflectors(v), w, r(p))
+      r(p) = lead
+      if measure && i > k then ssq = fma(lead, lead, ssq)
+      v += limit
+      p += n
+      i += 1
+    ssq
+
+  /** `scratch(j) = tauK * (vᵀ R(k:m, colFrom + j))` for `j < width`. */
+  private def scaledReflectorDots(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      colFrom: Int,
+      width: Int,
+      scratch: DoubleArray,
+      scratchOffset: Int
+  ): Unit =
+    var j = 0
+    while j < width do
+      scratch(scratchOffset + j) = 0.0
+      j += 1
+    // Two rows per sweep load and store each scratch entry once per pair; the
+    // nested FMAs keep the one-row accumulation order exactly.
+    var i = k
+    while i + 1 < m do
+      val vi = reflectors(i * limit + k)
+      val vi1 = reflectors((i + 1) * limit + k)
+      val rRow = i * n + colFrom
+      val rRow1 = rRow + n
+      j = 0
+      while j < width do
+        val wj = scratchOffset + j
+        scratch(wj) = fma(vi1, r(rRow1 + j), fma(vi, r(rRow + j), scratch(wj)))
+        j += 1
+      i += 2
+    if i < m then
+      val vi = reflectors(i * limit + k)
+      val rRow = i * n + colFrom
+      j = 0
+      while j < width do
+        val wj = scratchOffset + j
+        scratch(wj) = fma(vi, r(rRow + j), scratch(wj))
+        j += 1
+    j = 0
+    while j < width do
+      scratch(scratchOffset + j) = tauK * scratch(scratchOffset + j)
+      j += 1
+
+  /** `R(row, colFrom + j) -= vi * scratch(j)` for one row starting at flat index `rRow`. */
+  private def updateReflectedRow(
+      r: DoubleArray,
+      n: Int,
+      vi: Double,
+      rRow: Int,
+      width: Int,
+      scratch: DoubleArray,
+      scratchOffset: Int
+  ): Unit =
+    var j = 0
+    while j < width do
+      r(rRow + j) = fma(-vi, scratch(scratchOffset + j), r(rRow + j))
+      j += 1
 
   /** Form the upper-triangular compact-WY factor `T` for one reflector panel. */
   private def formCompactWY(
@@ -1484,6 +1850,95 @@ object DenseDecompositions:
             unpermuted(qr.columnPermutation(pivoted)) = x(pivoted)
             pivoted += 1
           Right(DVec.fromDoubleArrayOwned(unpermuted))
+
+  /** `A.qr.solveLeastSquares(b)` for the portable default (unpivoted) policy, bit-identical to it but without building
+    * a [[QR]]: `b` is carried as an extra column of `[A | b]` and receives each reflector at its own step, so each
+    * reflector is needed only for that step and no `m x n` reflector store is kept. Shapes on the blocked path, and
+    * every argument the composed path rejects, go through that path unchanged.
+    */
+  /** Apply step `k`'s reflector to the right-hand-side column `col` of `[A | b]` exactly as [[solveLeastSquares]]
+    * applies it to `b`: `dot = (vᵀ y) * tau`, then `y -= dot * v` written `fma(-dot, v, y)`. Matrix columns negate `v`
+    * instead; the two agree on every non-NaN value, and keeping the solve's form keeps its NaN sign and payload too.
+    */
+  private def reflectRightHandSide(
+      r: DoubleArray,
+      m: Int,
+      n: Int,
+      reflectors: DoubleArray,
+      limit: Int,
+      tauK: Double,
+      k: Int,
+      col: Int
+  ): Unit =
+    var dot = 0.0
+    var v = k * limit + k
+    var p = k * n + col
+    var i = k
+    while i < m do
+      dot = fma(reflectors(v), r(p), dot)
+      v += limit
+      p += n
+      i += 1
+    dot *= tauK
+    v = k * limit + k
+    p = k * n + col
+    i = k
+    while i < m do
+      r(p) = fma(-dot, reflectors(v), r(p))
+      v += limit
+      p += n
+      i += 1
+
+  /** Whether [[leastSquaresUnpivoted]] takes the fused `[A | b]` path for an `m x n` design and a length-`bLength`
+    * right-hand side. A single column is contiguous in `A`'s own layout, where `dnrm2` takes its unfused contiguous
+    * order; strided inside `[A | b]` it would not. The `m x (n + 1)` buffer must also be addressable by an `Int`.
+    */
+  private[gale] def fusesLeastSquares(m: Int, n: Int, bLength: Int): Boolean =
+    n >= 2 && m >= n && bLength == m && !DenseWorkspace.usesBlockedQR(m, n) &&
+      m.toLong * (n + 1) <= Int.MaxValue
+
+  private[gale] def leastSquaresUnpivoted(A: DMat, b: DVec)(using Backend): Either[LinAlgError, DVec] =
+    val m = A.rows
+    val n = A.cols
+    if !fusesLeastSquares(m, n, b.length) then solveLeastSquares(qr(A), b)
+    else
+      val width = n + 1
+      val r = DoubleArray.alloc(m * width)
+      var row = 0
+      while row < m do
+        var source = A.offset.value + row * A.rowStride.value
+        var col = 0
+        while col < n do
+          r(row * width + col) = A.data(source)
+          source += A.colStride.value
+          col += 1
+        r(row * width + n) = b.data(b.offset.value + row * b.stride.value)
+        row += 1
+      // Step k's reflector is consumed by step k alone. With a reflector "column
+      // count" of 1 the kernels address v_k(i) at index i + k, so one length
+      // m + n vector holds every step's reflector in turn.
+      val reflector = DoubleArray.alloc(m + n)
+      val tau = DoubleArray.alloc(n)
+      val scratch = DoubleArray.alloc(n)
+      var norm = DoubleKernels.dnrm2(m, r, 0, width)
+      var k = 0
+      while k < n do
+        factorHouseholder(r, m, width, reflector, 1, tau, k, norm)
+        if k + 1 < n then
+          val ssq = applyReflectorMeasuringLead(r, m, width, reflector, 1, tau(k), k, k + 1, n, scratch, 0)
+          norm = trailingNorm(m - k - 1, ssq, r, (k + 1) * width + k + 1, width)
+        if tau(k) != 0.0 then reflectRightHandSide(r, m, width, reflector, 1, tau(k), k, n)
+        k += 1
+
+      val tolerance = rankToleranceFromUpperTriangular(r, m, n, width)
+      val rank = rankFromUpperTriangular(r, m, n, width, tolerance)
+      if rank < n then Left(LinAlgError.RankDeficient(rank, n))
+      else
+        val x = DoubleArray.alloc(n)
+        DoubleKernels.dcopy(n, r, n, width, x, 0, 1)
+        val info = DoubleKernels.dtrsv(n, lower = false, unit = false, tolerance, r, 0, width, 1, x, 0, 1)
+        if info >= 0 then Left(LinAlgError.RankDeficient(rank, n))
+        else Right(DVec.fromDoubleArrayOwned(x))
 
   def solveLeastSquares(qr: QR, b: DMat): Either[LinAlgError, DMat] =
     val m = qr.reflectors.rows
@@ -2076,11 +2531,20 @@ object DenseDecompositions:
       cols: Int,
       tolerance: Double
   ): Int =
+    rankFromUpperTriangular(values, rows, cols, cols, tolerance)
+
+  private def rankFromUpperTriangular(
+      values: DoubleArray,
+      rows: Int,
+      cols: Int,
+      rowStride: Int,
+      tolerance: Double
+  ): Int =
     val limit = math.min(rows, cols)
     var rank = 0
     var i = 0
     while i < limit do
-      if math.abs(values(i * cols + i)) > tolerance then rank += 1
+      if math.abs(values(i * rowStride + i)) > tolerance then rank += 1
       i += 1
     rank
 
@@ -2088,11 +2552,14 @@ object DenseDecompositions:
     rankToleranceFromUpperTriangular(A.toDoubleArrayCopyRowMajor, A.rows, A.cols)
 
   private def rankToleranceFromUpperTriangular(values: DoubleArray, rows: Int, cols: Int): Double =
+    rankToleranceFromUpperTriangular(values, rows, cols, cols)
+
+  private def rankToleranceFromUpperTriangular(values: DoubleArray, rows: Int, cols: Int, rowStride: Int): Double =
     val limit = math.min(rows, cols)
     var maxDiag = 0.0
     var i = 0
     while i < limit do
-      maxDiag = math.max(maxDiag, math.abs(values(i * cols + i)))
+      maxDiag = math.max(maxDiag, math.abs(values(i * rowStride + i)))
       i += 1
     // Tolerance scales with the matrix magnitude; a hard floor at 1.0 would
     // wrongly rank uniformly tiny (but well-conditioned) matrices as deficient.

@@ -69,10 +69,20 @@ private[gale] object DoubleKernels:
   ): Double =
     if n < 1 then 0.0
     else if n == 1 then math.abs(x(xOffset))
-    else
-      val ssq = dsumsq(n, x, xOffset, xStride)
-      if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
-      else dnrmScaledLines(1, n, x, xOffset, 0, xStride)
+    else dnrm2FromSumSq(n, dsumsq(n, x, xOffset, xStride), x, xOffset, xStride)
+
+  /** Finish [[dnrm2]] from a sum of squares the caller accumulated in exactly [[dsumsq]]'s order (a fused producer
+    * pass), so the result is bit-identical to `dnrm2(n, x, xOffset, xStride)`. Requires `n >= 2`.
+    */
+  private[gale] def dnrm2FromSumSq(
+      n: Int,
+      ssq: Double,
+      x: DoubleArray,
+      xOffset: Int,
+      xStride: Int
+  ): Double =
+    if ssq.isFinite && ssq >= FrobeniusTrustedMin then math.sqrt(ssq)
+    else dnrmScaledLines(1, n, x, xOffset, 0, xStride)
 
   /** Euclidean norm by the LAPACK `dnrm2` scaled recurrence, in one pass.
     *

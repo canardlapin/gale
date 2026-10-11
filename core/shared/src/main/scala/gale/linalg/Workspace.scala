@@ -114,6 +114,9 @@ object DenseWorkspace:
   private[gale] inline val QrBlockSize = 32
   private[gale] inline val QrBlockedMin = 96
 
+  /** Widest column interval a Householder update applies in register-held column panels rather than row sweeps. */
+  private[gale] inline val QrNarrowMaxWidth = 16
+
   /** Scratch regions the wide column-pivoted path lays out per column: the reflector-update block it shares with the
     * unpivoted path, then the downdated squared norms, then their rounding bounds.
     */
