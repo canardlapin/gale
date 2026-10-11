@@ -165,8 +165,10 @@ on both JVM and Scala.js:
   or line whose maximum is not finite (NaN, `+Inf`, or all `-Inf`).
 - **Elementwise functions.** `Numerics.exp`, `log`, `log1p`, and `expm1` apply
   the platform `Math` function to each entry, so they agree bit for bit with
-  `a.pointwise.map(math.exp)` on the same platform. `sigmoid` uses the
-  overflow-free form `1/(1+t)` or `t/(1+t)` with `t = exp(-|x|)`.
+  `a.pointwise.map(math.exp)` on the same platform. `sigmoid` evaluates
+  `1/(1+exp(-x))` directly for `x >= -36` and `t/(1+t)` with `t = exp(x)`
+  below, so it never overflows and keeps subnormal results; it is within
+  3 ulps of the exact value (measured under 2 ulps on the JVM).
 
 ## Storage and allocation boundary
 

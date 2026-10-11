@@ -1,0 +1,4224 @@
+{
+ "job": "2535855",
+ "node": "tri0119",
+ "executionOrder": [
+  "laneA base r1",
+  "laneA new r1",
+  "laneA base r2",
+  "laneA new r2",
+  "laneB base r1",
+  "laneB new r1",
+  "laneB base r2",
+  "laneB new r2"
+ ],
+ "runs": [
+  {
+   "lane": "A",
+   "variant": "base",
+   "round": 1,
+   "sourceSha": "0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 291756.2359528059,
+      "scoreError": 1536.915069545258,
+      "scoreConfidence": [
+       290219.32088326063,
+       293293.1510223512
+      ],
+      "scorePercentiles": {
+       "0.0": 290292.7535761123,
+       "50.0": 291786.3145504635,
+       "90.0": 293070.51334083505,
+       "95.0": 293078.08642211935,
+       "99.0": 293078.08642211935,
+       "99.9": 293078.08642211935,
+       "99.99": 293078.08642211935,
+       "99.999": 293078.08642211935,
+       "99.9999": 293078.08642211935,
+       "100.0": 293078.08642211935
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        293078.08642211935,
+        291800.75453746127,
+        292870.84199694166,
+        292162.3673034174,
+        293002.3556092766
+       ],
+       [
+        291771.87456346577,
+        290921.6470447799,
+        290972.5273940321,
+        290689.15108045243,
+        290292.7535761123
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4282.004837441332,
+      "scoreError": 13.335551050284435,
+      "scoreConfidence": [
+       4268.6692863910475,
+       4295.340388491616
+      ],
+      "scorePercentiles": {
+       "0.0": 4265.8584111018745,
+       "50.0": 4280.359170368474,
+       "90.0": 4294.249219133771,
+       "95.0": 4294.513548614445,
+       "99.0": 4294.513548614445,
+       "99.9": 4294.513548614445,
+       "99.99": 4294.513548614445,
+       "99.999": 4294.513548614445,
+       "99.9999": 4294.513548614445,
+       "100.0": 4294.513548614445
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4276.446495281659,
+        4276.213962266808,
+        4290.852754698976,
+        4291.870253807693,
+        4294.513548614445
+       ],
+       [
+        4282.269834518759,
+        4285.673474537975,
+        4278.44850621819,
+        4277.901133366936,
+        4265.8584111018745
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 186.34344090980542,
+      "scoreError": 0.2460987658744604,
+      "scoreConfidence": [
+       186.09734214393097,
+       186.58953967567987
+      ],
+      "scorePercentiles": {
+       "0.0": 186.21088544026813,
+       "50.0": 186.28717400958226,
+       "90.0": 186.70357169939328,
+       "95.0": 186.72073182672096,
+       "99.0": 186.72073182672096,
+       "99.9": 186.72073182672096,
+       "99.99": 186.72073182672096,
+       "99.999": 186.72073182672096,
+       "99.9999": 186.72073182672096,
+       "100.0": 186.72073182672096
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.22899134404082,
+        186.72073182672096,
+        186.23897564822764,
+        186.28697096063374,
+        186.28737705853075
+       ],
+       [
+        186.21088544026813,
+        186.5491305534441,
+        186.30894709296234,
+        186.27728826528468,
+        186.32511090794097
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 246788.78768763604,
+      "scoreError": 4401.005156564457,
+      "scoreConfidence": [
+       242387.78253107157,
+       251189.7928442005
+      ],
+      "scorePercentiles": {
+       "0.0": 240515.2647667257,
+       "50.0": 248192.23147376912,
+       "90.0": 248709.8597014156,
+       "95.0": 248742.13138465432,
+       "99.0": 248742.13138465432,
+       "99.9": 248742.13138465432,
+       "99.99": 248742.13138465432,
+       "99.999": 248742.13138465432,
+       "99.9999": 248742.13138465432,
+       "100.0": 248742.13138465432
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        242211.17264970555,
+        248263.97542216838,
+        248234.6901585303,
+        247394.20582100455,
+        248149.7727890079
+       ],
+       [
+        240515.2647667257,
+        248742.13138465432,
+        248419.4145522672,
+        247694.28469839145,
+        248262.96463390492
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 2215.7047859724094,
+      "scoreError": 30.403216447714126,
+      "scoreConfidence": [
+       2185.3015695246954,
+       2246.1080024201233
+      ],
+      "scorePercentiles": {
+       "0.0": 2186.1983146173543,
+       "50.0": 2212.179560935432,
+       "90.0": 2243.6624765138195,
+       "95.0": 2243.667039811292,
+       "99.0": 2243.667039811292,
+       "99.9": 2243.667039811292,
+       "99.99": 2243.667039811292,
+       "99.999": 2243.667039811292,
+       "99.9999": 2243.667039811292,
+       "100.0": 2243.667039811292
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        2243.667039811292,
+        2203.7694813047165,
+        2192.284099235528,
+        2211.0257336207374,
+        2204.684112240768
+       ],
+       [
+        2243.6214068365675,
+        2213.333388250127,
+        2186.1983146173543,
+        2228.2665913098213,
+        2230.197692497181
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 132.8158959907566,
+      "scoreError": 2.626363864614422,
+      "scoreConfidence": [
+       130.18953212614215,
+       135.44225985537102
+      ],
+      "scorePercentiles": {
+       "0.0": 129.54786370540313,
+       "50.0": 133.82696867386343,
+       "90.0": 134.01362870593303,
+       "95.0": 134.0184205205048,
+       "99.0": 134.0184205205048,
+       "99.9": 134.0184205205048,
+       "99.99": 134.0184205205048,
+       "99.999": 134.0184205205048,
+       "99.9999": 134.0184205205048,
+       "100.0": 134.0184205205048
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        129.7735068176452,
+        132.78707873750153,
+        133.9124346589765,
+        133.97050237478712,
+        134.0184205205048
+       ],
+       [
+        129.54786370540313,
+        132.6071780099203,
+        133.78283620842765,
+        133.8711011392992,
+        133.88803773510048
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "a5609a47-be08-4944-9140-67ffc9f6f8a8",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "f5f160d9-dbc9-490f-a202-0b134b40780b",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "5dd6a944-6a76-4bcb-9ee0-70724b6d7233",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "ba987fc4-877c-470c-a1c5-65e3a4fa4f79",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "46a29164-7584-49d8-9469-149e918b4e2f",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "85f794b1-b273-4109-b801-41e4a75eb697",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "09c9dd81-12bb-4fe0-ba8f-d7e11760ffed",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "32c6be3c-86b8-4f02-ab1c-b6a0d4c4655a",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "6ba92f1c-02dc-48eb-b9ab-e5aeec153955",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "85ec5ec0-7c2e-4ae1-9384-6a49653368f1",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "918df2cb-031f-4521-a3dd-82cba7da33dd",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "913d2160-7797-483e-a972-187116c3af1e",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "A",
+   "variant": "new",
+   "round": 1,
+   "sourceSha": "567a11095ccf337b82395c33debc76ef8b3e156e",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 290083.04959907004,
+      "scoreError": 2156.2110289377433,
+      "scoreConfidence": [
+       287926.8385701323,
+       292239.26062800776
+      ],
+      "scorePercentiles": {
+       "0.0": 288135.21813129995,
+       "50.0": 290131.2690087212,
+       "90.0": 292378.56070834235,
+       "95.0": 292458.0174108385,
+       "99.0": 292458.0174108385,
+       "99.9": 292458.0174108385,
+       "99.99": 292458.0174108385,
+       "99.999": 292458.0174108385,
+       "99.9999": 292458.0174108385,
+       "100.0": 292458.0174108385
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        291051.7164190789,
+        290818.67549869907,
+        288135.21813129995,
+        288971.699690923,
+        288638.83268396294
+       ],
+       [
+        292458.0174108385,
+        291663.450385877,
+        290131.27095690253,
+        290131.26706054,
+        288830.34775257856
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4274.151832313539,
+      "scoreError": 23.544723392924844,
+      "scoreConfidence": [
+       4250.607108920614,
+       4297.696555706463
+      ],
+      "scorePercentiles": {
+       "0.0": 4242.705440259835,
+       "50.0": 4278.447942790657,
+       "90.0": 4287.736079383002,
+       "95.0": 4287.867874850702,
+       "99.0": 4287.867874850702,
+       "99.9": 4287.867874850702,
+       "99.99": 4287.867874850702,
+       "99.999": 4287.867874850702,
+       "99.9999": 4287.867874850702,
+       "100.0": 4287.867874850702
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4277.6589593618055,
+        4282.63928558507,
+        4286.549920173704,
+        4278.168661453766,
+        4287.867874850702
+       ],
+       [
+        4278.727224127548,
+        4275.78272445571,
+        4248.6002306764,
+        4242.705440259835,
+        4282.818002190847
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 185.86385887371108,
+      "scoreError": 0.4061427527394631,
+      "scoreConfidence": [
+       185.4577161209716,
+       186.27000162645055
+      ],
+      "scorePercentiles": {
+       "0.0": 185.5678014563401,
+       "50.0": 185.82257353988075,
+       "90.0": 186.41102674350407,
+       "95.0": 186.45272615397124,
+       "99.0": 186.45272615397124,
+       "99.9": 186.45272615397124,
+       "99.99": 186.45272615397124,
+       "99.999": 186.45272615397124,
+       "99.9999": 186.45272615397124,
+       "100.0": 186.45272615397124
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.0357320492994,
+        185.66711705449876,
+        185.63972860741214,
+        185.74410332076064,
+        185.64896750628043
+       ],
+       [
+        185.9551166663114,
+        186.45272615397124,
+        185.5678014563401,
+        186.02625216323545,
+        185.90104375900083
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 231414.38413592888,
+      "scoreError": 2826.5766478155842,
+      "scoreConfidence": [
+       228587.8074881133,
+       234240.96078374446
+      ],
+      "scorePercentiles": {
+       "0.0": 228155.6990979142,
+       "50.0": 232226.62620335587,
+       "90.0": 233322.97165516796,
+       "95.0": 233369.4622293592,
+       "99.0": 233369.4622293592,
+       "99.9": 233369.4622293592,
+       "99.99": 233369.4622293592,
+       "99.999": 233369.4622293592,
+       "99.9999": 233369.4622293592,
+       "100.0": 233369.4622293592
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        228663.0589126198,
+        229933.8337783126,
+        232629.85861447905,
+        232036.30738969476,
+        232904.55648744685
+       ],
+       [
+        231168.73883566202,
+        228155.6990979142,
+        232865.3809967835,
+        232416.945017017,
+        233369.4622293592
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 3482.3276216473496,
+      "scoreError": 59.92772575317416,
+      "scoreConfidence": [
+       3422.3998958941756,
+       3542.2553474005235
+      ],
+      "scorePercentiles": {
+       "0.0": 3429.4795862855694,
+       "50.0": 3474.2621582761617,
+       "90.0": 3531.725719566551,
+       "95.0": 3531.754206944363,
+       "99.0": 3531.754206944363,
+       "99.9": 3531.754206944363,
+       "99.99": 3531.754206944363,
+       "99.999": 3531.754206944363,
+       "99.9999": 3531.754206944363,
+       "100.0": 3531.754206944363
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        3531.754206944363,
+        3531.469333166244,
+        3488.090668001605,
+        3524.481702625253,
+        3511.0587343081543
+       ],
+       [
+        3429.4795862855694,
+        3450.061182917281,
+        3450.1952511668483,
+        3460.4336485507183,
+        3446.2519025074607
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 222.74400428900526,
+      "scoreError": 0.5975729832508235,
+      "scoreConfidence": [
+       222.14643130575445,
+       223.34157727225607
+      ],
+      "scorePercentiles": {
+       "0.0": 221.91683710912702,
+       "50.0": 222.90703638437606,
+       "90.0": 223.11715969757196,
+       "95.0": 223.12073784482098,
+       "99.0": 223.12073784482098,
+       "99.9": 223.12073784482098,
+       "99.99": 223.12073784482098,
+       "99.999": 223.12073784482098,
+       "99.9999": 223.12073784482098,
+       "100.0": 223.12073784482098
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        222.8839021733499,
+        222.9823637912828,
+        221.91683710912702,
+        223.08495637233077,
+        222.50574796416726
+       ],
+       [
+        223.02323761551662,
+        222.93017059540222,
+        222.27818604789755,
+        223.12073784482098,
+        222.71390337615765
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "75157ec5-ae0f-4a6a-941d-9ed42338329b",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "ffe2bf1c-2020-4612-971f-fd5c4753d845",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "7f0e0ac8-e4a7-43b8-bac3-25b17a06a38a",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "7277ac4d-e85e-47fa-a805-44728be9856c",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "a41ebfe8-f4dc-4350-b26f-8c231eae2204",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "d6999273-9ffc-495a-ab9c-c946960e4f13",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "4f0792e4-f931-4acd-bf3d-0eb82b710111",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "63b6c9d6-0093-4af1-ba67-a49f29e8cb35",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "19283437-6bde-41ed-8319-35b19eece2a5",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "11a2bb88-a021-4bee-aa90-e2f16d1717e4",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "9a723bb3-2fe0-4952-b525-792c11a2250d",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "4869d37e-a72e-45b8-87f1-a0d486bbc1ae",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "A",
+   "variant": "base",
+   "round": 2,
+   "sourceSha": "0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 291006.1385035037,
+      "scoreError": 760.6342541662889,
+      "scoreConfidence": [
+       290245.5042493374,
+       291766.77275766997
+      ],
+      "scorePercentiles": {
+       "0.0": 290314.39393122855,
+       "50.0": 290954.316025199,
+       "90.0": 291870.1357157411,
+       "95.0": 291902.74806838343,
+       "99.0": 291902.74806838343,
+       "99.9": 291902.74806838343,
+       "99.99": 291902.74806838343,
+       "99.999": 291902.74806838343,
+       "99.9999": 291902.74806838343,
+       "100.0": 291902.74806838343
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        291271.92718910106,
+        291239.16675198363,
+        290314.39393122855,
+        290727.27977797005,
+        290736.5223647734
+       ],
+       [
+        291902.74806838343,
+        290989.7413058086,
+        291576.6245419597,
+        290918.8907445894,
+        290384.0903592392
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4281.291126914417,
+      "scoreError": 7.042924201199473,
+      "scoreConfidence": [
+       4274.248202713217,
+       4288.334051115617
+      ],
+      "scorePercentiles": {
+       "0.0": 4274.183292584953,
+       "50.0": 4281.529374782571,
+       "90.0": 4287.686969105956,
+       "95.0": 4287.8402063124,
+       "99.0": 4287.8402063124,
+       "99.9": 4287.8402063124,
+       "99.99": 4287.8402063124,
+       "99.999": 4287.8402063124,
+       "99.9999": 4287.8402063124,
+       "100.0": 4287.8402063124
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4274.183292584953,
+        4286.307834247964,
+        4277.838827268786,
+        4278.045095956862,
+        4282.845327768252
+       ],
+       [
+        4280.213421796889,
+        4287.8402063124,
+        4276.311609545073,
+        4283.4043340748285,
+        4285.9213195881575
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 184.3422077790337,
+      "scoreError": 3.076209661044918,
+      "scoreConfidence": [
+       181.2659981179888,
+       187.41841744007863
+      ],
+      "scorePercentiles": {
+       "0.0": 182.11237788635128,
+       "50.0": 184.63886934519786,
+       "90.0": 186.570276166454,
+       "95.0": 186.61093574745468,
+       "99.0": 186.61093574745468,
+       "99.9": 186.61093574745468,
+       "99.99": 186.61093574745468,
+       "99.999": 186.61093574745468,
+       "99.9999": 186.61093574745468,
+       "100.0": 186.61093574745468
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        182.11237788635128,
+        182.12304175292476,
+        183.17010935384943,
+        182.56116643917198,
+        182.2198772548685
+       ],
+       [
+        186.17309606805472,
+        186.10762933654632,
+        186.61093574745468,
+        186.20433993744794,
+        186.1395040136677
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 246626.25087336468,
+      "scoreError": 4363.351396641902,
+      "scoreConfidence": [
+       242262.89947672279,
+       250989.60227000658
+      ],
+      "scorePercentiles": {
+       "0.0": 240474.510934536,
+       "50.0": 248013.2943134167,
+       "90.0": 248583.6496616141,
+       "95.0": 248587.6098928722,
+       "99.0": 248587.6098928722,
+       "99.9": 248587.6098928722,
+       "99.99": 248587.6098928722,
+       "99.999": 248587.6098928722,
+       "99.9999": 248587.6098928722,
+       "100.0": 248587.6098928722
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        242189.2647417898,
+        248293.04555382192,
+        248327.75116492272,
+        247892.653486468,
+        248587.6098928722
+       ],
+       [
+        240474.510934536,
+        248548.00758029128,
+        248133.93514036541,
+        246603.04066522355,
+        247212.68957335613
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 2274.7336548528046,
+      "scoreError": 84.8512899441198,
+      "scoreConfidence": [
+       2189.882364908685,
+       2359.5849447969244
+      ],
+      "scorePercentiles": {
+       "0.0": 2186.284287170232,
+       "50.0": 2268.6476984522424,
+       "90.0": 2355.5120636097504,
+       "95.0": 2358.9605900668835,
+       "99.0": 2358.9605900668835,
+       "99.9": 2358.9605900668835,
+       "99.99": 2358.9605900668835,
+       "99.999": 2358.9605900668835,
+       "99.9999": 2358.9605900668835,
+       "100.0": 2358.9605900668835
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        2255.327813077279,
+        2242.9158103839136,
+        2186.284287170232,
+        2227.2612130011253,
+        2223.924762399365
+       ],
+       [
+        2358.9605900668835,
+        2324.4753254955504,
+        2281.967583827205,
+        2323.5421181431143,
+        2322.6770449633755
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 132.79361534329428,
+      "scoreError": 2.5878559680487383,
+      "scoreConfidence": [
+       130.20575937524555,
+       135.381471311343
+      ],
+      "scorePercentiles": {
+       "0.0": 129.64775534618076,
+       "50.0": 133.80794295797,
+       "90.0": 134.00551634082166,
+       "95.0": 134.01804545492806,
+       "99.0": 134.01804545492806,
+       "99.9": 134.01804545492806,
+       "99.99": 134.01804545492806,
+       "99.999": 134.01804545492806,
+       "99.9999": 134.01804545492806,
+       "100.0": 134.01804545492806
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        129.73507345536987,
+        132.7196440381496,
+        133.87392797679783,
+        133.85759960838462,
+        134.01804545492806
+       ],
+       [
+        129.64775534618076,
+        132.57546732332813,
+        133.8312200950893,
+        133.78466582085073,
+        133.89275431386417
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "75417b87-ef20-4765-b533-b674e2277a2b",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "707692d3-546c-4fa9-80c1-d5c5766c0b55",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "1c08ec23-0bbf-4479-aa86-2171ae58a56b",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "ca6ccea0-3a26-4e39-b1d8-e3720bbad6a2",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "7ff0efe4-1c23-4961-b929-8ea796371ed6",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "24f05b36-ac01-4d05-a32a-c33d49da535a",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "db1780d1-dfd3-498f-b5b8-30c36c20e0a2",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "8c0df6d0-7234-49d2-9139-f8e39a032a08",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "251f0d37-3c57-4f8d-b14b-aa1fb91ec6c6",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "b0a63ed7-a064-4979-bb88-8c8f6db5b5ea",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "83e33049-3d45-452e-8654-3c11203a291e",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "547dbe7c-07fd-4e6a-be0f-246aa44be143",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "A",
+   "variant": "new",
+   "round": 2,
+   "sourceSha": "567a11095ccf337b82395c33debc76ef8b3e156e",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 290953.42452914343,
+      "scoreError": 1202.6689203102248,
+      "scoreConfidence": [
+       289750.7556088332,
+       292156.09344945365
+      ],
+      "scorePercentiles": {
+       "0.0": 289270.09802884684,
+       "50.0": 291142.8901419948,
+       "90.0": 291803.2532921044,
+       "95.0": 291810.5833936375,
+       "99.0": 291810.5833936375,
+       "99.9": 291810.5833936375,
+       "99.99": 291810.5833936375,
+       "99.999": 291810.5833936375,
+       "99.9999": 291810.5833936375,
+       "100.0": 291810.5833936375
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        291364.461482857,
+        290464.81543403014,
+        289270.09802884684,
+        291810.5833936375,
+        290357.00285744615
+       ],
+       [
+        291298.3505810054,
+        290587.29216100724,
+        291656.92927131295,
+        290987.42970298417,
+        291737.28237830644
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4287.3217001390785,
+      "scoreError": 9.203562682927656,
+      "scoreConfidence": [
+       4278.118137456151,
+       4296.525262822006
+      ],
+      "scorePercentiles": {
+       "0.0": 4279.689592454755,
+       "50.0": 4288.765143878578,
+       "90.0": 4298.137988568385,
+       "95.0": 4298.941875642497,
+       "99.0": 4298.941875642497,
+       "99.9": 4298.941875642497,
+       "99.99": 4298.941875642497,
+       "99.999": 4298.941875642497,
+       "99.9999": 4298.941875642497,
+       "100.0": 4298.941875642497
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4286.087659124778,
+        4298.941875642497,
+        4290.903004901379,
+        4290.148826522249,
+        4289.844464692448
+       ],
+       [
+        4279.689592454755,
+        4288.06859387236,
+        4280.378190385932,
+        4289.461693884797,
+        4279.693099909583
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 186.53497177951536,
+      "scoreError": 0.2244670885286358,
+      "scoreConfidence": [
+       186.31050469098673,
+       186.759438868044
+      ],
+      "scorePercentiles": {
+       "0.0": 186.3787420182015,
+       "50.0": 186.50236217520256,
+       "90.0": 186.87983186899123,
+       "95.0": 186.90673466084465,
+       "99.0": 186.90673466084465,
+       "99.9": 186.90673466084465,
+       "99.99": 186.90673466084465,
+       "99.999": 186.90673466084465,
+       "99.9999": 186.90673466084465,
+       "100.0": 186.90673466084465
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.3787420182015,
+        186.6377067423106,
+        186.52474779100874,
+        186.49241212470102,
+        186.52881552207873
+       ],
+       [
+        186.4050571898251,
+        186.47077739577827,
+        186.90673466084465,
+        186.4938810117654,
+        186.51084333863975
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 231210.54798036005,
+      "scoreError": 5078.314358999968,
+      "scoreConfidence": [
+       226132.23362136006,
+       236288.86233936003
+      ],
+      "scorePercentiles": {
+       "0.0": 223006.9293336962,
+       "50.0": 232484.1292826183,
+       "90.0": 233517.97586973594,
+       "95.0": 233567.63227678946,
+       "99.0": 233567.63227678946,
+       "99.9": 233567.63227678946,
+       "99.99": 233567.63227678946,
+       "99.999": 233567.63227678946,
+       "99.9999": 233567.63227678946,
+       "100.0": 233567.63227678946
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        232002.67188817257,
+        227396.12517986522,
+        232825.17251843945,
+        232890.86628419132,
+        232575.76067219154
+       ],
+       [
+        223006.9293336962,
+        233071.06820625407,
+        233567.63227678946,
+        232392.49789304502,
+        232376.75555095566
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 3457.2070202052987,
+      "scoreError": 10.81875130104542,
+      "scoreConfidence": [
+       3446.3882689042534,
+       3468.025771506344
+      ],
+      "scorePercentiles": {
+       "0.0": 3441.4638751435627,
+       "50.0": 3457.8406358054367,
+       "90.0": 3467.957936075788,
+       "95.0": 3468.7039049111145,
+       "99.0": 3468.7039049111145,
+       "99.9": 3468.7039049111145,
+       "99.99": 3468.7039049111145,
+       "99.999": 3468.7039049111145,
+       "99.9999": 3468.7039049111145,
+       "100.0": 3468.7039049111145
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        3457.2813833207883,
+        3459.1826781535365,
+        3461.244216557849,
+        3468.7039049111145,
+        3461.106563796048
+       ],
+       [
+        3450.5793481742458,
+        3441.4638751435627,
+        3457.1801089940714,
+        3458.399888290085,
+        3456.9282347116796
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=A",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneA-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 222.70561079509935,
+      "scoreError": 0.6177171552113363,
+      "scoreConfidence": [
+       222.08789363988802,
+       223.32332795031067
+      ],
+      "scorePercentiles": {
+       "0.0": 221.95429162100075,
+       "50.0": 222.77807288684366,
+       "90.0": 223.1457233224039,
+       "95.0": 223.14934087731655,
+       "99.0": 223.14934087731655,
+       "99.9": 223.14934087731655,
+       "99.99": 223.14934087731655,
+       "99.999": 223.14934087731655,
+       "99.9999": 223.14934087731655,
+       "100.0": 223.14934087731655
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        222.76291378091898,
+        222.92803272042124,
+        221.95429162100075,
+        222.79323199276834,
+        222.39018152431774
+       ],
+       [
+        223.05234427117637,
+        223.1131653281902,
+        222.16431667996756,
+        223.14934087731655,
+        222.74828915491602
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "2d9d0c3c-24e0-44de-861e-74eca2d2fe6e",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "59740465-9545-47b9-a7ae-ee6d4c1a1aab",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "ca366e22-07bb-467f-98c8-3b44ea93ab1a",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "c337997d-4f3a-4356-86b6-77909743063e",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e5898e5b-8707-40f9-892c-9b651c9f8ece",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "871c9cb2-9439-49f7-b7a1-111fc80bf17d",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "b1beea9b-b249-47d6-8889-7afb5576b682",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "3515b37b-be7b-4fac-b393-4bb5a1156d1d",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e6d615d7-a8d2-485d-a3db-d2d6308a0a53",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "c15abb7c-6c36-40ce-8e30-d945fa4667cf",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "4bfa82f7-3ed7-40ac-bce2-2d3bcde9f857",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "858c1ee7-ebba-4c96-a485-ac3c0c3650b4",
+     "lane": "A",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": false,
+     "blas": "dev.ludovic.netlib.blas.Java11BLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "B",
+   "variant": "base",
+   "round": 1,
+   "sourceSha": "0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 290892.39315639634,
+      "scoreError": 1389.655943678119,
+      "scoreConfidence": [
+       289502.73721271823,
+       292282.04910007445
+      ],
+      "scorePercentiles": {
+       "0.0": 289008.8878491896,
+       "50.0": 290754.96892001294,
+       "90.0": 292391.9599957721,
+       "95.0": 292476.7812034549,
+       "99.0": 292476.7812034549,
+       "99.9": 292476.7812034549,
+       "99.99": 292476.7812034549,
+       "99.999": 292476.7812034549,
+       "99.9999": 292476.7812034549,
+       "100.0": 292476.7812034549
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        290778.1399982622,
+        289008.8878491896,
+        290518.0139035792,
+        291448.7033884247,
+        290704.27507916023
+       ],
+       [
+        291628.569126627,
+        292476.7812034549,
+        291298.1199635095,
+        290731.7978417636,
+        290330.643209993
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4309.768081492947,
+      "scoreError": 70.13868034701814,
+      "scoreConfidence": [
+       4239.6294011459295,
+       4379.906761839965
+      ],
+      "scorePercentiles": {
+       "0.0": 4266.691491053523,
+       "50.0": 4286.035567693076,
+       "90.0": 4390.864626974813,
+       "95.0": 4391.724647460151,
+       "99.0": 4391.724647460151,
+       "99.9": 4391.724647460151,
+       "99.99": 4391.724647460151,
+       "99.999": 4391.724647460151,
+       "99.9999": 4391.724647460151,
+       "100.0": 4391.724647460151
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4278.220773544698,
+        4285.145961839514,
+        4274.527510763092,
+        4286.925173546638,
+        4274.7180120681805
+       ],
+       [
+        4336.547863582401,
+        4266.691491053523,
+        4320.0549384645055,
+        4383.124442606773,
+        4391.724647460151
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 186.4594445222499,
+      "scoreError": 0.25489075578721143,
+      "scoreConfidence": [
+       186.20455376646268,
+       186.7143352780371
+      ],
+      "scorePercentiles": {
+       "0.0": 186.0271066350755,
+       "50.0": 186.5085959654014,
+       "90.0": 186.60182022238183,
+       "95.0": 186.60487922368432,
+       "99.0": 186.60487922368432,
+       "99.9": 186.60487922368432,
+       "99.99": 186.60487922368432,
+       "99.999": 186.60487922368432,
+       "99.9999": 186.60487922368432,
+       "100.0": 186.60487922368432
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.5372391394785,
+        186.34665200168737,
+        186.0271066350755,
+        186.50684929142218,
+        186.60487922368432
+       ],
+       [
+        186.46550524629825,
+        186.57428921065954,
+        186.56388790631908,
+        186.51034263938064,
+        186.45769392849337
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 247729.47564179366,
+      "scoreError": 740.14765900357,
+      "scoreConfidence": [
+       246989.3279827901,
+       248469.62330079722
+      ],
+      "scorePercentiles": {
+       "0.0": 246674.40576170047,
+       "50.0": 247805.4260693738,
+       "90.0": 248333.43491315516,
+       "95.0": 248350.6614072127,
+       "99.0": 248350.6614072127,
+       "99.9": 248350.6614072127,
+       "99.99": 248350.6614072127,
+       "99.999": 248350.6614072127,
+       "99.9999": 248350.6614072127,
+       "100.0": 248350.6614072127
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        248135.6228751745,
+        247540.11621233687,
+        248178.39646663715,
+        247436.22165813379,
+        247881.7158853231
+       ],
+       [
+        247729.1362534245,
+        246674.40576170047,
+        248350.6614072127,
+        247417.42267545644,
+        247951.0572225374
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 2214.148668837369,
+      "scoreError": 25.297048087793442,
+      "scoreConfidence": [
+       2188.8516207495754,
+       2239.4457169251623
+      ],
+      "scorePercentiles": {
+       "0.0": 2189.1544609809907,
+       "50.0": 2212.5888000540995,
+       "90.0": 2243.024327193377,
+       "95.0": 2243.8567622626706,
+       "99.0": 2243.8567622626706,
+       "99.9": 2243.8567622626706,
+       "99.99": 2243.8567622626706,
+       "99.999": 2243.8567622626706,
+       "99.9999": 2243.8567622626706,
+       "100.0": 2243.8567622626706
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        2243.8567622626706,
+        2213.1080731843454,
+        2212.0695269238536,
+        2220.281200392653,
+        2216.098680408354
+       ],
+       [
+        2235.5324115697313,
+        2211.9118269444784,
+        2206.370242556633,
+        2189.1544609809907,
+        2193.1035031499823
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 132.75593543790336,
+      "scoreError": 2.6247742067768005,
+      "scoreConfidence": [
+       130.13116123112655,
+       135.38070964468017
+      ],
+      "scorePercentiles": {
+       "0.0": 129.53016869024742,
+       "50.0": 133.83375490344827,
+       "90.0": 133.9004412036496,
+       "95.0": 133.90215983424366,
+       "99.0": 133.90215983424366,
+       "99.9": 133.90215983424366,
+       "99.99": 133.90215983424366,
+       "99.999": 133.90215983424366,
+       "99.9999": 133.90215983424366,
+       "100.0": 133.90215983424366
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        129.71659828925598,
+        132.57201485971618,
+        133.8713704968863,
+        133.87289518290595,
+        133.884973528303
+       ],
+       [
+        129.53016869024742,
+        132.5416636905788,
+        133.81690876146058,
+        133.85060104543592,
+        133.90215983424366
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "ed78a913-10af-4da8-a372-071aa1dd1cad",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "24c5a987-ceff-4744-bcc4-90d8f7532c71",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "57267d50-d3c9-4b7f-a799-66db436849c0",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "ba395a8d-5fdd-47cf-b381-959c674ea256",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "70847e72-b3d8-412d-a0b8-b70ed8eccd97",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "0d05b8b1-6862-4a6b-94a5-8646d7a88e5c",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "75c155e7-1a4b-4574-bc05-dbfb745465db",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "0a330246-ef17-429a-82af-e9a622aa64da",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "3b2dcbd7-3c07-439c-88a9-607ef352b873",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "994c7d47-8b21-4e6f-b5f1-0dbd6c311b75",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "591580d1-d12d-49a8-89be-e1454ebc1646",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "be11ebb5-a852-487c-b623-5b0a9797b165",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "B",
+   "variant": "new",
+   "round": 1,
+   "sourceSha": "567a11095ccf337b82395c33debc76ef8b3e156e",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 290052.7528036727,
+      "scoreError": 1136.9355778659228,
+      "scoreConfidence": [
+       288915.81722580676,
+       291189.6883815386
+      ],
+      "scorePercentiles": {
+       "0.0": 288691.3402414681,
+       "50.0": 289982.9221352651,
+       "90.0": 291136.7318325663,
+       "95.0": 291160.56082812534,
+       "99.0": 291160.56082812534,
+       "99.9": 291160.56082812534,
+       "99.99": 291160.56082812534,
+       "99.999": 291160.56082812534,
+       "99.9999": 291160.56082812534,
+       "100.0": 291160.56082812534
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        289428.8046599765,
+        290922.27087253507,
+        290051.9134534762,
+        291160.56082812534,
+        289537.6824043257
+       ],
+       [
+        289913.9308170539,
+        290785.4517358052,
+        290158.83003963577,
+        288691.3402414681,
+        289876.74298432516
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4283.269024414689,
+      "scoreError": 18.557535641975488,
+      "scoreConfidence": [
+       4264.711488772713,
+       4301.826560056665
+      ],
+      "scorePercentiles": {
+       "0.0": 4257.942034424154,
+       "50.0": 4283.80206358743,
+       "90.0": 4299.517339628036,
+       "95.0": 4299.595820802457,
+       "99.0": 4299.595820802457,
+       "99.9": 4299.595820802457,
+       "99.99": 4299.595820802457,
+       "99.999": 4299.595820802457,
+       "99.9999": 4299.595820802457,
+       "100.0": 4299.595820802457
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4278.509085053168,
+        4281.457054271358,
+        4273.205756338893,
+        4286.147072903502,
+        4257.942034424154
+       ],
+       [
+        4280.047425244414,
+        4298.811009058249,
+        4286.7417298470045,
+        4299.595820802457,
+        4290.233256203695
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 184.55651628867972,
+      "scoreError": 2.847413901860769,
+      "scoreConfidence": [
+       181.70910238681896,
+       187.40393019054048
+      ],
+      "scorePercentiles": {
+       "0.0": 182.12356019720235,
+       "50.0": 184.96824724283974,
+       "90.0": 186.34541329273526,
+       "95.0": 186.34791799785245,
+       "99.0": 186.34791799785245,
+       "99.9": 186.34791799785245,
+       "99.99": 186.34791799785245,
+       "99.999": 186.34791799785245,
+       "99.9999": 186.34791799785245,
+       "100.0": 186.34791799785245
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.29066467078283,
+        186.34791799785245,
+        186.21535745073933,
+        186.32287094668047,
+        186.30994596341645
+       ],
+       [
+        182.8138296508107,
+        182.33053097054608,
+        182.12356019720235,
+        183.72113703494014,
+        183.0893480038264
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 232500.91054384116,
+      "scoreError": 395.8310506015226,
+      "scoreConfidence": [
+       232105.07949323964,
+       232896.7415944427
+      ],
+      "scorePercentiles": {
+       "0.0": 232102.96280355856,
+       "50.0": 232618.31910330334,
+       "90.0": 232769.69610476537,
+       "95.0": 232771.20297321942,
+       "99.0": 232771.20297321942,
+       "99.9": 232771.20297321942,
+       "99.99": 232771.20297321942,
+       "99.999": 232771.20297321942,
+       "99.9999": 232771.20297321942,
+       "100.0": 232771.20297321942
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        232675.89822691944,
+        232165.16116661363,
+        232593.96188538626,
+        232642.6763212204,
+        232179.20515163074
+       ],
+       [
+        232698.00712430757,
+        232102.96280355856,
+        232756.13428867908,
+        232771.20297321942,
+        232423.89549687665
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 3453.4048714368837,
+      "scoreError": 11.71418495711332,
+      "scoreConfidence": [
+       3441.69068647977,
+       3465.119056393997
+      ],
+      "scorePercentiles": {
+       "0.0": 3438.7665625767354,
+       "50.0": 3453.0978382122157,
+       "90.0": 3461.1623374437486,
+       "95.0": 3461.1822403168094,
+       "99.0": 3461.1822403168094,
+       "99.9": 3461.1822403168094,
+       "99.99": 3461.1822403168094,
+       "99.999": 3461.1822403168094,
+       "99.9999": 3461.1822403168094,
+       "100.0": 3461.1822403168094
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        3438.7665625767354,
+        3451.347467539702,
+        3448.7116785730823,
+        3461.1822403168094,
+        3445.38835398707
+       ],
+       [
+        3454.848208884729,
+        3460.844064239168,
+        3451.1503060877394,
+        3460.8266205775994,
+        3460.983211586201
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r1/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 222.7174162051777,
+      "scoreError": 0.6114738154694295,
+      "scoreConfidence": [
+       222.10594238970828,
+       223.32889002064712
+      ],
+      "scorePercentiles": {
+       "0.0": 222.01402064528995,
+       "50.0": 222.95856299469187,
+       "90.0": 223.06817903866903,
+       "95.0": 223.06845275717885,
+       "99.0": 223.06845275717885,
+       "99.9": 223.06845275717885,
+       "99.99": 223.06845275717885,
+       "99.999": 223.06845275717885,
+       "99.9999": 223.06845275717885,
+       "100.0": 223.06845275717885
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        223.00770891256144,
+        222.95169007135212,
+        222.20220859273994,
+        222.9654359180316,
+        222.38342108086738
+       ],
+       [
+        223.03344886399606,
+        223.0657155720808,
+        222.01402064528995,
+        223.06845275717885,
+        222.4820596376788
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "b4cf58e2-3447-4271-a022-24540287f885",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "2082c19f-2826-4dbd-b9fb-c1939e9db1da",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "0a36534e-ae99-46eb-ae45-351f1bf1e4a3",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "943e81a9-9e97-41ba-8db3-723490b71139",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "09049c3c-1eb0-476b-bdb5-b651f5202d46",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "50ab3c80-8305-44fa-ad54-cee86441d97e",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "2e35622a-600e-4cd1-982b-8b2c1cf3ee2c",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "6183733f-123e-4adb-ac00-b7c3601a6e55",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "0f7875b3-7d6f-474d-afad-35edfdabec5a",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "d4394698-a7db-493d-a672-b3f1b2ca18a5",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "7ca1b76b-5104-4232-a216-dced0dc7b9ea",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "b46d90db-5459-4267-9aa3-09ba83301f4d",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "B",
+   "variant": "base",
+   "round": 2,
+   "sourceSha": "0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 290970.10171711456,
+      "scoreError": 790.320749004643,
+      "scoreConfidence": [
+       290179.7809681099,
+       291760.4224661192
+      ],
+      "scorePercentiles": {
+       "0.0": 290351.8197130721,
+       "50.0": 290881.0331871821,
+       "90.0": 291996.1946788255,
+       "95.0": 292058.7432160894,
+       "99.0": 292058.7432160894,
+       "99.9": 292058.7432160894,
+       "99.99": 292058.7432160894,
+       "99.999": 292058.7432160894,
+       "99.9999": 292058.7432160894,
+       "100.0": 292058.7432160894
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        290733.24874819646,
+        291271.4398694553,
+        290669.507024804,
+        291433.25784345064,
+        290478.49258859415
+       ],
+       [
+        291120.77031725924,
+        292058.7432160894,
+        290554.9202240564,
+        291028.8176261677,
+        290351.8197130721
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4284.656513725328,
+      "scoreError": 16.63950068366361,
+      "scoreConfidence": [
+       4268.0170130416645,
+       4301.296014408992
+      ],
+      "scorePercentiles": {
+       "0.0": 4271.405018909296,
+       "50.0": 4281.7643480858005,
+       "90.0": 4303.130427704045,
+       "95.0": 4303.352534791025,
+       "99.0": 4303.352534791025,
+       "99.9": 4303.352534791025,
+       "99.99": 4303.352534791025,
+       "99.999": 4303.352534791025,
+       "99.9999": 4303.352534791025,
+       "100.0": 4303.352534791025
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4273.9265814496885,
+        4271.405018909296,
+        4277.5340358486055,
+        4301.131463921228,
+        4285.858048151559
+       ],
+       [
+        4285.095005075308,
+        4278.433691096292,
+        4278.308801643945,
+        4303.352534791025,
+        4291.5199563663355
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 174.22947277123222,
+      "scoreError": 17.36134637474451,
+      "scoreConfidence": [
+       156.86812639648772,
+       191.59081914597672
+      ],
+      "scorePercentiles": {
+       "0.0": 163.20586961550748,
+       "50.0": 174.2840591871111,
+       "90.0": 185.23086295118824,
+       "95.0": 185.233717378134,
+       "99.0": 185.233717378134,
+       "99.9": 185.233717378134,
+       "99.99": 185.233717378134,
+       "99.999": 185.233717378134,
+       "99.9999": 185.233717378134,
+       "100.0": 185.233717378134
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        184.98813745666482,
+        185.233717378134,
+        185.02229814131434,
+        185.16531512545316,
+        185.20517310867646
+       ],
+       [
+        163.42072842709072,
+        163.20586961550748,
+        163.20847772664348,
+        163.57998091755738,
+        163.26502981528054
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 246707.556961358,
+      "scoreError": 2775.366854109485,
+      "scoreConfidence": [
+       243932.19010724852,
+       249482.92381546748
+      ],
+      "scorePercentiles": {
+       "0.0": 244362.59995183416,
+       "50.0": 247695.71603846463,
+       "90.0": 248645.2440303802,
+       "95.0": 248675.7235329711,
+       "99.0": 248675.7235329711,
+       "99.9": 248675.7235329711,
+       "99.99": 248675.7235329711,
+       "99.999": 248675.7235329711,
+       "99.9999": 248675.7235329711,
+       "100.0": 248675.7235329711
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        248370.92850706202,
+        247840.475247099,
+        248675.7235329711,
+        247550.95682983025,
+        248025.55520299563
+       ],
+       [
+        248178.71366147802,
+        244454.60992326622,
+        244833.66824510624,
+        244362.59995183416,
+        244782.33851193718
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 2270.8392513835583,
+      "scoreError": 97.3336543427721,
+      "scoreConfidence": [
+       2173.505597040786,
+       2368.1729057263306
+      ],
+      "scorePercentiles": {
+       "0.0": 2192.3335327424224,
+       "50.0": 2275.0552934196517,
+       "90.0": 2347.8346827415094,
+       "95.0": 2349.154976066939,
+       "99.0": 2349.154976066939,
+       "99.9": 2349.154976066939,
+       "99.99": 2349.154976066939,
+       "99.999": 2349.154976066939,
+       "99.9999": 2349.154976066939,
+       "100.0": 2349.154976066939
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        2235.269567551794,
+        2219.1914686570753,
+        2211.2853700618157,
+        2192.3335327424224,
+        2198.4555541948002
+       ],
+       [
+        2349.154976066939,
+        2330.2442215654,
+        2314.8410192875094,
+        2321.6647608951857,
+        2335.9520428126416
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=0ff64405ea981f5a6dbf026a12e2bcc81617f412",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-base-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 132.71833296686313,
+      "scoreError": 2.616765989247166,
+      "scoreConfidence": [
+       130.10156697761596,
+       135.3350989561103
+      ],
+      "scorePercentiles": {
+       "0.0": 129.54916321185954,
+       "50.0": 133.74865624769248,
+       "90.0": 133.85881859071,
+       "95.0": 133.8628478742278,
+       "99.0": 133.8628478742278,
+       "99.9": 133.8628478742278,
+       "99.99": 133.8628478742278,
+       "99.999": 133.8628478742278,
+       "99.9999": 133.8628478742278,
+       "100.0": 133.8628478742278
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        129.54916321185954,
+        132.77319348381747,
+        133.78104724901988,
+        133.79242239457903,
+        133.8628478742278
+       ],
+       [
+        129.5643316427341,
+        132.54045627795884,
+        133.73256856348033,
+        133.82255503904977,
+        133.76474393190463
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "8139f00d-1421-4888-854d-0a729daf8b5a",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "3ccaf132-c45f-4a06-ba07-27643ae6975c",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "1d008cce-207f-4a9b-a502-e360f29795fa",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "f5120ff5-4af4-4f83-bff9-a10c657e5d3a",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "62cb0714-c68d-4213-9776-d3b4e97f2acf",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e367b7f1-9d0f-4eae-a373-f4aa520e6e67",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "508c49f8-cae9-4cdf-95af-96bc5c4b0f59",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "fe5a64d7-1986-4a2f-a98a-50b4d5b7b19d",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e6061123-d661-4cbb-bca6-d23a6a73728b",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "de18d849-966c-4bea-ae71-a431c2ef430f",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "f3a47f80-1506-4ad2-a1f9-d10fe5c73d9e",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e43d9d1f-ae81-40dd-8c6c-3082ea45c004",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  },
+  {
+   "lane": "B",
+   "variant": "new",
+   "round": 2,
+   "sourceSha": "567a11095ccf337b82395c33debc76ef8b3e156e",
+   "jmh": [
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 291304.1097881361,
+      "scoreError": 1107.9248288740796,
+      "scoreConfidence": [
+       290196.184959262,
+       292412.03461701015
+      ],
+      "scorePercentiles": {
+       "0.0": 290406.8572875575,
+       "50.0": 291314.60116599826,
+       "90.0": 292695.5493130566,
+       "95.0": 292791.5938223003,
+       "99.0": 292791.5938223003,
+       "99.9": 292791.5938223003,
+       "99.99": 292791.5938223003,
+       "99.999": 292791.5938223003,
+       "99.9999": 292791.5938223003,
+       "100.0": 292791.5938223003
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        290503.16678904166,
+        291573.40831638785,
+        290498.8595880592,
+        291310.3068494827,
+        290406.8572875575
+       ],
+       [
+        291682.1674012069,
+        292791.5938223003,
+        291318.8954825139,
+        291831.148729863,
+        291124.69361494743
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 4280.978614763155,
+      "scoreError": 13.067829825362455,
+      "scoreConfidence": [
+       4267.910784937792,
+       4294.046444588517
+      ],
+      "scorePercentiles": {
+       "0.0": 4268.234854403022,
+       "50.0": 4280.200434527966,
+       "90.0": 4293.621216763908,
+       "95.0": 4294.179628548584,
+       "99.0": 4294.179628548584,
+       "99.9": 4294.179628548584,
+       "99.99": 4294.179628548584,
+       "99.999": 4294.179628548584,
+       "99.9999": 4294.179628548584,
+       "100.0": 4294.179628548584
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        4277.599522365636,
+        4268.234854403022,
+        4268.954464748312,
+        4286.91552183278,
+        4288.276910301564
+       ],
+       [
+        4288.595510701818,
+        4294.179628548584,
+        4277.03469893066,
+        4282.801346690294,
+        4277.193689108892
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 173.36616761844658,
+      "scoreError": 20.386443915217008,
+      "scoreConfidence": [
+       152.97972370322958,
+       193.75261153366358
+      ],
+      "scorePercentiles": {
+       "0.0": 160.4321282552585,
+       "50.0": 173.04384837798005,
+       "90.0": 186.46920920781443,
+       "95.0": 186.47267134391043,
+       "99.0": 186.47267134391043,
+       "99.9": 186.47267134391043,
+       "99.99": 186.47267134391043,
+       "99.999": 186.47267134391043,
+       "99.9999": 186.47267134391043,
+       "100.0": 186.47267134391043
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        186.43804998295033,
+        185.0742736592469,
+        186.40001164087903,
+        186.37466235354987,
+        186.47267134391043
+       ],
+       [
+        160.4321282552585,
+        160.47015711526103,
+        160.52420658067044,
+        161.0134230967132,
+        160.46209215602616
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1024"
+     },
+     "primaryMetric": {
+      "score": 232538.49092133547,
+      "scoreError": 648.2859363443218,
+      "scoreConfidence": [
+       231890.20498499114,
+       233186.7768576798
+      ],
+      "scorePercentiles": {
+       "0.0": 231808.606819655,
+       "50.0": 232609.23694288323,
+       "90.0": 233081.93997836072,
+       "95.0": 233098.89206648243,
+       "99.0": 233098.89206648243,
+       "99.9": 233098.89206648243,
+       "99.99": 233098.89206648243,
+       "99.999": 233098.89206648243,
+       "99.9999": 233098.89206648243,
+       "100.0": 233098.89206648243
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        233098.89206648243,
+        232316.75284255785,
+        232929.37118526537,
+        232906.43159688305,
+        232630.43158108226
+       ],
+       [
+        232681.30391145745,
+        231875.6979889131,
+        232588.04230468423,
+        232549.37891637397,
+        231808.606819655
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "65536"
+     },
+     "primaryMetric": {
+      "score": 3451.7937730606172,
+      "scoreError": 11.303053739426515,
+      "scoreConfidence": [
+       3440.4907193211907,
+       3463.096826800044
+      ],
+      "scorePercentiles": {
+       "0.0": 3441.2487134633743,
+       "50.0": 3449.799972147629,
+       "90.0": 3462.3996480679393,
+       "95.0": 3462.6041688578666,
+       "99.0": 3462.6041688578666,
+       "99.9": 3462.6041688578666,
+       "99.99": 3462.6041688578666,
+       "99.999": 3462.6041688578666,
+       "99.9999": 3462.6041688578666,
+       "100.0": 3462.6041688578666
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        3457.141598655337,
+        3462.6041688578666,
+        3445.2204981909613,
+        3448.3498335673444,
+        3441.2487134633743
+       ],
+       [
+        3449.476590591778,
+        3460.5589609585954,
+        3450.12335370348,
+        3458.8961348053303,
+        3444.3178778121055
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    },
+    {
+     "jmhVersion": "1.37",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "mode": "thrpt",
+     "threads": 1,
+     "forks": 2,
+     "jvm": "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v3/Core/java/25.36/bin/java",
+     "jvmArgs": [
+      "--add-modules=jdk.incubator.vector",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Xms4g",
+      "-Xmx4g",
+      "-Dgale.bench.sourceSha=567a11095ccf337b82395c33debc76ef8b3e156e",
+      "-Dgale.bench.lane=B",
+      "-Dgale.bench.netlibSidecar=/scratch/brad/gale-bench/sig/out/2535855/laneB-new-r2/netlib.jsonl"
+     ],
+     "jdkVersion": "25",
+     "vmName": "OpenJDK 64-Bit Server VM",
+     "vmVersion": "25+36-LTS",
+     "warmupIterations": 5,
+     "warmupTime": "500 ms",
+     "warmupBatchSize": 1,
+     "measurementIterations": 5,
+     "measurementTime": "500 ms",
+     "measurementBatchSize": 1,
+     "params": {
+      "n": "1048576"
+     },
+     "primaryMetric": {
+      "score": 222.78625560890836,
+      "scoreError": 0.5161147645408675,
+      "scoreConfidence": [
+       222.2701408443675,
+       223.30237037344924
+      ],
+      "scorePercentiles": {
+       "0.0": 222.14023043946878,
+       "50.0": 222.9140123922121,
+       "90.0": 223.13283514809675,
+       "95.0": 223.138265456569,
+       "99.0": 223.138265456569,
+       "99.9": 223.138265456569,
+       "99.99": 223.138265456569,
+       "99.999": 223.138265456569,
+       "99.9999": 223.138265456569,
+       "100.0": 223.138265456569
+      },
+      "scoreUnit": "ops/s",
+      "rawData": [
+       [
+        223.03726277774155,
+        223.138265456569,
+        222.3446233785521,
+        223.01871675420662,
+        222.74181612261347
+       ],
+       [
+        222.85736970547873,
+        222.97065507894544,
+        222.14023043946878,
+        223.08396237184647,
+        222.52965400366173
+       ]
+      ]
+     },
+     "secondaryMetrics": {}
+    }
+   ],
+   "netlib": [
+    {
+     "forkId": "b6f555ad-36d9-4c86-bdc6-7c8b64801de7",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "894e947c-1ede-4812-a9cf-05904352c3e7",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "0cf52fb3-5fea-42c6-b118-a1515cf9fa65",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "8346394c-eed0-4be6-aa8b-a40e7b0ddcad",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "f310de82-3ea5-48ef-bfe6-ce64ca5f24b7",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "45c32e7f-8909-4420-b863-229864fa84ba",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.breezeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "76efbc46-b37e-49fc-a3c9-b345294582ad",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "88f13242-d92e-4e91-8809-b12df0b36824",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1024",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "aabefbf7-e73b-44f4-95d8-15523990e4a0",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "79115fbc-b4fd-4d1d-a509-3b0653c7b726",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=65536",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "f1e618bc-4dc1-4159-8501-c082b4390579",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    },
+    {
+     "forkId": "e218b116-8ac6-4259-9e86-3aeeddd6c0c5",
+     "lane": "B",
+     "benchmark": "gale.bench.ReductionBreezeJmh.galeSigmoid",
+     "params": "n=1048576",
+     "jdk": "25",
+     "vectorModule": true,
+     "blas": "dev.ludovic.netlib.blas.VectorBLAS",
+     "lapack": "dev.ludovic.netlib.lapack.F2jLAPACK"
+    }
+   ]
+  }
+ ]
+}
