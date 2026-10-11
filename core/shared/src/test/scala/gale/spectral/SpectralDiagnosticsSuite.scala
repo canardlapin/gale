@@ -284,7 +284,8 @@ class SpectralDiagnosticsSuite extends munit.FunSuite:
   test("dense nonsymmetric eigen defers only the residuals") {
     val eig = Eigen.eigNonsymmetric(nonNormal(6, 1.0), EigenSelection.All, EigenVectors.Right).toOption.get
     assert(
-      eig.diagnostics.toString.endsWith(",<deferred>,0.0,0,None,true,None)"),
+      // String.valueOf(0.0) is "0.0" on the JVM and "0" on Scala.js.
+      eig.diagnostics.toString.endsWith(s",<deferred>,${String.valueOf(0.0)},0,None,true,None)"),
       eig.diagnostics.toString
     )
     assert(eig.diagnostics.worstResidual < 1e-12)
