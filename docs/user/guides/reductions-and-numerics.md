@@ -35,7 +35,13 @@ assert(tied.argmax == 1)
 
 val withNaN = Vec(1.0, Double.NaN, 9.0)
 assert(withNaN.argmax == 1 && withNaN.max.isNaN)
+assert(withNaN.sum.isNaN && withNaN.mean.isNaN && withNaN.norm1.isNaN)
 ```
+
+Sums, means, and norms follow IEEE arithmetic, so a NaN entry makes them NaN,
+and so does `+Inf` added to `-Inf`. Gale guarantees **which** results are NaN,
+not the sign or payload bits of a NaN, so test with `isNaN` rather than
+comparing bit patterns.
 
 ## Choose `sum` or `sumExact`
 
@@ -132,10 +138,17 @@ assert(Numerics.exp(z).valuesRowMajor == z.pointwise.map(math.exp).valuesRowMajo
 
 val probabilities = Numerics.sigmoid(Vec(-1000.0, 0.0, 1000.0))
 assert(probabilities.toSeq == Seq(0.0, 0.5, 1.0))
+
+val deepTail = Numerics.sigmoid(Vec(-720.0))(0)
+assert(deepTail > 0.0 && deepTail == math.exp(-720.0))
 ```
 
-`sigmoid` is evaluated in an overflow-free form, so very large or very
-negative inputs saturate cleanly to `1.0` and `0.0`.
+`sigmoid` uses two forms. For `x >= -36` it evaluates `1 / (1 + exp(-x))`,
+the same expression Breeze uses. Below `-36` it evaluates `t / (1 + t)` with
+`t = exp(x)`, so it never overflows: where `exp(-x)` would be infinite (below
+about `-709.78`), the result is the subnormal `exp(x)` rather than `0.0`. Large
+inputs saturate to `1.0`; inputs below about `-745` round to `0.0`. The result
+is within 3 ulps of the exact value.
 
 ## Log-sum-exp and softmax
 
