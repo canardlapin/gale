@@ -351,9 +351,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
   /** `C := AᵀA` for a row-major `A`. Packs the columns of `A` contiguously (the
     * same transpose-pack as the GEMM's `B`), then runs the packed 3×3 dot tile over
     * the upper triangle only and mirrors it, so the result is exactly symmetric.
-    * The shared (row) dimension is split into [[SyrkChunk]]-long slices so the
-    * packed panel a tile sweep streams stays cache-resident; each later slice
-    * accumulates into `C`. Reassociates like the GEMM.
+    * The shared (row) dimension is processed in [[SyrkChunk]]-row slices, each
+    * packed into one reused panel; each later slice accumulates into `C`.
+    * Reassociates like the GEMM.
     */
   def syrk(
       m: Int,
@@ -365,16 +365,33 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    if Species.length() >= 2 then
+    if syrkUsesSimd(m, k) then
       syrkPackedSimd(m, k, DoubleArray.asArray(a), aOffset, aRowStride, DoubleArray.asArray(c), cOffset, cRowStride)
     else PureDenseDoubleKernel.syrk(m, k, a, aOffset, aRowStride, c, cOffset, cRowStride)
 
-  /** Shared-dimension slice length for the SIMD `syrk`: 256 doubles keep the six
-    * live packed rows of a tile in L1 and a `k = 256` panel slice within a 1 MB L2.
+  /** The `syrk`'s own crossover, inside the kernel because the shared gemm gate
+    * (`m·k·k ≥ 64³`) does not fit it. The pure kernel already does half the work
+    * of a GEMM, so the SIMD path needs twice the GEMM's element-work (`AᵀA` of
+    * `64×64` stays pure, `128×64` goes SIMD). Each dot product runs over the `m`
+    * rows of `A`, so short-wide `A` (`m < 4·lanes`, where a dot is at most a few
+    * vectors or wholly scalar tail against nine horizontal reductions per tile)
+    * also stays pure. Measured on ARM64 (two-double species), JDK 25.
+    */
+  private[vector] def syrkUsesSimd(m: Int, k: Int): Boolean =
+    val lanes = Species.length()
+    lanes >= 2 && m >= 4 * lanes && m.toLong * k.toLong * k.toLong >= SyrkMinWork
+
+  private final val SyrkMinWork = 2L * 64L * 64L * 64L
+
+  /** Shared-dimension slice length for the SIMD `syrk`. A slice of `A` is packed
+    * into a reused contiguous `k × 256` panel (column `j` at `j·256`), so transient
+    * memory is bounded by `256·k` doubles whatever `m` is; the six live packed rows
+    * of a tile (12 KB) stay in L1, and for `k ≤ 256` the whole panel (≤ 512 KB) fits
+    * a 1 MB L2.
     */
   private final val SyrkChunk = 256
 
-  private def syrkPackedSimd(
+  private[vector] def syrkPackedSimd(
       m: Int,
       k: Int,
       a: Array[Double],
@@ -384,15 +401,16 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    val packed = packColumns(m, k, a, aOffset, aRowStride)
+    val panel = new Array[Double](k * math.min(SyrkChunk, m))
     // At least one slice, so m = 0 still assigns the zero Gram matrix.
     var start = 0
     while start == 0 || start < m do
       val length = math.min(SyrkChunk, m - start)
+      packColumnsInto(length, k, a, aOffset + start * aRowStride, aRowStride, panel)
       packedDotTiles(
         k, k, length, 1.0,
-        packed, start, m,
-        packed, start, m,
+        panel, 0, length,
+        panel, 0, length,
         if start == 0 then 0.0 else 1.0, c, cOffset, cRowStride,
         upperOnly = true
       )
@@ -468,7 +486,8 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       cOffset: Int,
       cRowStride: Int
   ): Unit =
-    val packedB = packColumns(shared, cols, b, bOffset, bRowStride)
+    val packedB = new Array[Double](cols * shared)
+    packColumnsInto(shared, cols, b, bOffset, bRowStride, packedB)
     packedDotTiles(
       rows, cols, shared, alpha,
       a, aOffset, aRowStride,
@@ -477,11 +496,17 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       upperOnly = false
     )
 
-  /** Copy the columns of the row-major `rows × cols` matrix at `b` into a fresh
-    * array, column `j` contiguous at `j * rows`, in 32×32 blocks.
+  /** Copy the columns of the row-major `rows × cols` matrix at `b` into `packed`,
+    * column `j` contiguous at `j * rows`, in 32×32 blocks.
     */
-  private def packColumns(rows: Int, cols: Int, b: Array[Double], bOffset: Int, bRowStride: Int): Array[Double] =
-    val packed = new Array[Double](cols * rows)
+  private def packColumnsInto(
+      rows: Int,
+      cols: Int,
+      b: Array[Double],
+      bOffset: Int,
+      bRowStride: Int,
+      packed: Array[Double]
+  ): Unit =
     val PackBlock = 32
     var kb = 0
     while kb < rows do
@@ -499,7 +524,6 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
           k += 1
         jb += PackBlock
       kb += PackBlock
-    packed
 
   /** `C(i, j) := alpha · ⟨a_i, p_j⟩ + beta · C(i, j)` over `length`-long contiguous
     * rows `a_i` (at `aOffset + i·aRowStride`) and `p_j` (at `pOffset + j·pRowStride`),
@@ -648,8 +672,11 @@ end VectorDenseDoubleKernel
 /** Measured Vector-API crossovers. On ARM64 (two-double species, JDK 25) the packed
   * GEMM and `syrk` beat the pure kernels from 64³ element-work (`64×64·64×64`,
   * `256×64·64×64`, `AᵀA` of `256×64`); the four-row GEMV wins from 128 square.
+  * `syrk` additionally applies its own shape guard (`VectorDenseDoubleKernel.syrkUsesSimd`).
   * Narrower-than-two-double runtimes retain the pure implementation. Factorizations
-  * remain on the pure backend.
+  * themselves stay pure, but blocked QR's trailing updates go through the gemm
+  * seam (`Factorizations.dispatchGemm`), so above this threshold they run on the
+  * SIMD GEMM.
   */
 object VectorThresholds extends BackendThresholds:
   // The preferred species is fixed for the life of the JVM, so the crossovers are
