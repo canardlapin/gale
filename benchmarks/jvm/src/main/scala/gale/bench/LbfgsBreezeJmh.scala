@@ -44,6 +44,16 @@ import org.openjdk.jmh.infra.Blackhole
   * Allocation: gale's callback receives an `n × 1` `DMat` and must return an owned
   * gradient `DMat`, built with one `Matrix.fromArrayCopy` (one extra `O(n)` copy that
   * Breeze's `DenseVector` wrap avoids).
+  *
+  * Work audit (2026-10-10, `fixed`): both sides run identical objective arithmetic
+  * for the same 20 iterations with history 10, but their line searches differ, so
+  * their evaluation counts do too: Rosenbrock gale 36 vs Breeze 25, logistic 23 vs
+  * 22. Breeze scales its first trial step to `1/‖d‖` and zooms by cubic
+  * interpolation; gale tries the unit step on `−∇f` and bisects. On Rosenbrock's
+  * steep start (`‖∇f‖∞ = 792`) gale's first line search spends 10 evaluations and
+  * its 12th and 20th 4 each, against one for every other iteration. That extra work
+  * belongs to gale's solver, not to the harness, so the timed comparison keeps it;
+  * read the `[breeze-lbfgs]` counts alongside the times.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
