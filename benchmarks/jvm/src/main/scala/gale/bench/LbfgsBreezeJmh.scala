@@ -106,9 +106,9 @@ class LbfgsBreezeJmh:
         breezeMaxIter = FixedIterations
         breezeTolerance = 0.0
       case "tolerance" =>
-        galeConfig = LBFGSConfig(maxIterations = 10000)
-        breezeMaxIter = 10000
-        breezeTolerance = 1e-8
+        galeConfig = toleranceConfig
+        breezeMaxIter = ToleranceIterations
+        breezeTolerance = BreezeTolerance
       case other => throw new IllegalArgumentException(s"unknown budget '$other' (expected fixed|tolerance)")
     BreezeBenchmarkValidation.operation(params) match
       case "Rosenbrock" =>
@@ -286,6 +286,13 @@ object LbfgsBreezeJmh:
   /** Breeze `LBFGS` with the harness's history; `tolerance = 0` disables its convergence tests. */
   def breezeLbfgs(maxIter: Int, tolerance: Double): BreezeLBFGS[BDV[Double]] =
     new BreezeLBFGS[BDV[Double]](maxIter, History, tolerance)
+
+  /** The `tolerance` budget's iteration cap (both sides) and Breeze's own convergence tolerance. */
+  final val ToleranceIterations = 10000
+  final val BreezeTolerance     = 1e-8
+
+  /** The `tolerance` budget's gale configuration: gale's default (strict) gradient test. */
+  def toleranceConfig: LBFGSConfig = LBFGSConfig(maxIterations = ToleranceIterations)
 
   /** The `fixed` budget's gale configuration: tolerance disabled. */
   def fixedConfig: LBFGSConfig =

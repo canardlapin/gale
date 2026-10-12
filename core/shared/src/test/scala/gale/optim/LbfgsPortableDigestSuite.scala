@@ -239,7 +239,9 @@ object LbfgsPortableDigests:
           solutionDigest(trials, LBFGSB.minimize(objective(problem, layout, trials), bounds, start, config))
     lbfgs ++ restarts ++ lbfgsb
 
-  /** Generated on the JVM from breeze/integration 5d3950e. */
+  /** Generated on the JVM: lbfgsb cases from breeze/integration 5d3950e; lbfgs cases regenerated on
+    * breeze/hc-lbfgs-step from a12f800 (base main 51d74c9) for the `1 / ‖d‖₂` first step.
+    */
   val ExpectedEntries: Seq[(String, String)] = Seq(
     "lbfgs quadratic 6x4 layout=Column c2=0.1 linesearch=3" -> "fe2b112ffd416bd9",
     "lbfgs quadratic 6x4 layout=Column default" -> "e562de2974f23f39",
