@@ -46,7 +46,7 @@ Breeze 2.1.0 is gale's main competitor: it is mostly retired and JVM-only, but b
 - In scope: reductions, elementwise numerics, the three norms, SparseVector.
 - Out of scope: FFT, distributions, stats, broadcasting. Broadcasting is a candidate for a later version.
 
-**Outcome sought:** a reproducible two-lane scoreboard in which gale ≥ Breeze on every L2, L3, factorization and eigen pair at n ≥ 64. Any exception must be documented with its cause. The new op families must be ≥ 1.0× Breeze. Every new or changed path must be parity-tested against Breeze, including edge cases and sizes above the blocking thresholds.
+**Outcome sought:** a reproducible two-lane scoreboard in which gale ≥ Breeze on every L2, L3, factorization and eigen pair at n ≥ 64. Any exception must be documented with its cause. The new op families must be ≥ 1.0× Breeze (*amended 2026-10-12, accepted by the user:* except the [documented gaps](#documented-gaps)). Every new or changed path must be parity-tested against Breeze, including edge cases and sizes above the blocking thresholds.
 
 ## Ground rules
 
@@ -236,6 +236,9 @@ Parallelism: W1, W3/W4 and W5.2–5.4 touch disjoint files and can run in separa
 - **Epic done when:**
   - Lane A has no L2, L3, factorization or eigen pair at n ≥ 64 below 1.0× without a documented cause.
   - New op families (reductions, numerics, norms, SparseVector) are ≥ 1.0× in lane A at n ≥ 1K.
+    *Amended 2026-10-12, accepted by the user:* except the exceptions listed
+    under [Documented gaps](#documented-gaps) (`max` at n = 1M and `sigmoid` at
+    n = 1K and 64K).
   - Small fixed-size work (3×3, 4×4) and n < 64 are report-only. Per-call overhead dominates there, so they are tracked but are not a pass/fail target.
   - W5 suites are green on CI.
   - The docs gate (`docsCheck`) passes.
@@ -398,19 +401,20 @@ until all of the following hold:
    hc-lbfgs-step.
 2. **Every Milestone 3 gap is closed or documented here with its cause**
    (see the dashboard's "Still behind" list):
-   - lane A `max` at n = 1M, 0.76× (HC-3, `bd-01M4GY1QTAE17DV1A1990V88B8`).
-     This one fails an epic criterion: a new op family below 1.0× at n ≥ 1K;
+   - [x] lane A `max` at n = 1M, 0.76× (HC-3, `bd-01M4GY1QTAE17DV1A1990V88B8`):
+     a documented exception under the amended criterion 2 (see
+     [Documented gaps](#documented-gaps));
    - lane B vector `gemv`/`gemvT` (0.95–0.96×) and the gemv-bound L-BFGS
      logistic objective at a fixed budget (0.96×) (HC-4,
      `bd-01M4PAPJGS4EF4DXMEAS8NVY01`);
-   - `dot` at n = 64K, 0.97× in both lanes: the paired rerun
-     (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) decides whether this is a kernel gap;
-   - lane B sparse `dot` with a dense vector, 0.96× (no tracker item yet);
-   - `sigmoid` at n = 1K and 64K (lane A 0.96×/0.97×, lane B 0.96×/0.95×)
-     also fails criterion 2: it is a new op family below 1.0× in lane A at
-     n ≥ 1K. Its cause is documented below as an accepted exception, but the
-     exception needs the user's explicit sign-off at the final review;
-     criterion 2 itself is unchanged.
+   - [ ] `dot` at n = 64K, 0.97× in both lanes: a real gap. The paired rerun
+     (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`, receipt `2c26b9c`) measured 0.959–0.967×
+     in all 4 runs; hc-dot is investigating;
+   - [x] sparse `dot` with a dense vector (nnz = 10K), 0.96× in lane B: not
+     reproduced (1.001–1.006× in the same rerun, `2c26b9c`); noise;
+   - [x] `sigmoid` at n = 1K and 64K (lane A 0.96×/0.97×, lane B 0.96×/0.95×):
+     a documented exception under the amended criterion 2, signed off by the
+     user on 2026-10-12;
 3. **The new op families are settled at ≥ 1.0×.** Several lane-A rows are
    ties at 1.00× (`exp`, `logSumExp`, sparse `dot` with a dense vector). The
    reviewer must decide whether a CI-overlapping tie meets the bar.
@@ -428,7 +432,7 @@ Accepted exceptions to the outcome above, each with its measured cause.
 
 - **`sigmoid`, n = 1K and 64K: 0.96–0.97× Breeze (lane A), 0.95–0.96× (lane B,
   Milestone 3: 0.96× at 1K, 0.95× at 64K; the kernel is backend-insensitive).**
-  It fails epic criterion 2 and awaits the user's sign-off. The hybrid kernel
+  An exception to epic criterion 2, signed off by the user on 2026-10-12. The hybrid kernel
   (70fb262) uses Breeze's form `1/(1 + exp(-x))` for `x >= -36` and `t/(1 + t)`
   with `t = exp(x)` below. The per-element range test is the whole gap: on
   trillium, the kernel without it (`rawDirect`) is 4.4% faster at 1K, 3.7% at
@@ -441,3 +445,18 @@ Accepted exceptions to the outcome above, each with its measured cause.
   `benchmarks/results/2026-10-11-hc-sigmoid-trillium-r2.md` and
   `benchmarks/results/2026-10-11-hc-sigmoid2-path-trillium.md`;
   `SigmoidDigestSuite` pins the kernel's bits.
+- **`max`, n = 1M: 0.76× Breeze in lane A (Milestone 3; Milestone 2 lane A
+  0.95×, lane B 0.76×).** An exception to epic criterion 2, signed off by the
+  user on 2026-10-12. The gap is a per-fork JIT outcome on Zen 5, not the
+  kernel: each fork runs the same scan loop fast or slow. In the shipped
+  `galeMax` at 1M, slow forks run identical instructions and branches per
+  element (4.00 and 1.25) at 1.014 instead of about 0.77 cycles per element
+  (IPC 3.95 against 5.2). gale's fast mode ties Breeze at 1M and beats the
+  Breeze-shaped loop 1.13–1.24× at 1K and 64K, and Breeze shows the same
+  lottery (0–1 slow forks per 8). No bit-exact loop shape changed the
+  instruction mix; a dense facade entry point only moved the slow forks from
+  1M to 64K. Receipts: `benchmarks/results/2026-10-11-hc-max2-trillium.md`
+  (`ad2b6f0`), `benchmarks/results/2026-10-11-hc-max2-facade-trillium.md`
+  (`a9e5134`), and the Milestone 2 and 3 lane A/B receipts. Hypothesis: code
+  placement of the hot loop, with slow forks fed by the 4-wide decoders
+  instead of the op cache. Confirmation (`-XX:OptoLoopAlignment=64`): pending.

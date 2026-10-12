@@ -474,6 +474,59 @@ class ReductionsSuite extends ScalaCheckSuite:
         assertEquals(bits(gale.kernel.DoubleKernels.dminReduce(len, data, off, stride)), expectedMin, s"reduce min $where")
   }
 
+  test("max/min/argmax/argmin on long lines match a sequential first-occurrence scan, bit for bit") {
+    // Lengths straddle multiples of 4, 8 and 64 so any lane, block or tail split
+    // is crossed; features are planted at the first, middle and last positions.
+    def raw(x: Double) = java.lang.Double.doubleToRawLongBits(x)
+    val nanA = java.lang.Double.longBitsToDouble(0x7ff8000000000001L)
+    val nanB = java.lang.Double.longBitsToDouble(0xfff8000000000002L)
+    // First NaN, else first strictly better entry (IEEE compare: 0.0 ties -0.0).
+    def reference(xs: IndexedSeq[Double], better: (Double, Double) => Boolean): Int =
+      val firstNaN = xs.indexWhere(_.isNaN)
+      if firstNaN >= 0 then firstNaN
+      else
+        var best = 0
+        for i <- 1 until xs.length do if better(xs(i), xs(best)) then best = i
+        best
+    type Plant = (IndexedSeq[Double], Int) => IndexedSeq[Double]
+    val plants: Seq[(String, Int => Plant)] = Seq(
+      "nan" -> (p => (xs, _) => xs.updated(p, nanA)),
+      "two nans" -> (p => (xs, n) => xs.updated(p, nanB).updated(n - 1, nanA)),
+      "+inf" -> (p => (xs, _) => xs.updated(p, PInf)),
+      "-inf" -> (p => (xs, _) => xs.updated(p, NInf)),
+      "tied max" -> (p => (xs, n) => xs.updated(p, 50.0).updated(n - 1, 50.0)),
+      "tied min" -> (p => (xs, n) => xs.updated(p, -50.0).updated(n - 1, -50.0)),
+      "-0 then 0 as extremes" -> (p => (xs, n) => xs.map(v => -math.abs(v) - 1.0).updated(p, -0.0).updated(n - 1, 0.0)),
+      "0 then -0 as extremes" -> (p => (xs, n) => xs.map(v => -math.abs(v) - 1.0).updated(p, 0.0).updated(n - 1, -0.0)),
+      "-0 then 0 as minima" -> (p => (xs, n) => xs.map(v => math.abs(v) + 1.0).updated(p, -0.0).updated(n - 1, 0.0)),
+      "0 then -0 as minima" -> (p => (xs, n) => xs.map(v => math.abs(v) + 1.0).updated(p, 0.0).updated(n - 1, -0.0)),
+      "all -inf" -> (_ => (xs, _) => xs.map(_ => NInf)),
+      "all +inf" -> (_ => (xs, _) => xs.map(_ => PInf))
+    )
+    for
+      n <- Seq(1, 7, 8, 9, 31, 63, 64, 65, 127, 129, 1031)
+      (plantName, plant) <- plants
+      position <- Seq(0, n / 2, n - 1).distinct
+    do
+      val base = values(n, 20261011L + n).toIndexedSeq
+      val xs = plant(position)(base, n)
+      val maxAt = reference(xs, _ > _)
+      val minAt = reference(xs, _ < _)
+      for (name, x) <- layouts(xs) do
+        val (len, data, off, stride) = (x.length, x.data, x.offset.value, x.stride.value)
+        val where = s"$name n=$n $plantName at $position"
+        assertEquals(x.argmax, maxAt, s"argmax $where")
+        assertEquals(x.argmin, minAt, s"argmin $where")
+        val expectedMax = raw(x(maxAt))
+        val expectedMin = raw(x(minAt))
+        assertEquals(raw(x.max), expectedMax, s"max $where")
+        assertEquals(raw(x.min), expectedMin, s"min $where")
+        assertEquals(raw(gale.kernel.DoubleKernels.dmaxScan(len, data, off, stride)), expectedMax, s"scan max $where")
+        assertEquals(raw(gale.kernel.DoubleKernels.dmaxReduce(len, data, off, stride)), expectedMax, s"reduce max $where")
+        assertEquals(raw(gale.kernel.DoubleKernels.dminScan(len, data, off, stride)), expectedMin, s"scan min $where")
+        assertEquals(raw(gale.kernel.DoubleKernels.dminReduce(len, data, off, stride)), expectedMin, s"reduce min $where")
+  }
+
   test("both streamed per-axis passes (scan and reduce) return the bits at each line's argmax/argmin") {
     // As above: drive both passes on every host, not only the platform default.
     def bits(x: Double) = java.lang.Double.doubleToLongBits(x)
