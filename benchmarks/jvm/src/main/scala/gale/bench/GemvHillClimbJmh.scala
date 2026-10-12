@@ -4,17 +4,14 @@ import scala.compiletime.uninitialized
 
 import dev.ludovic.netlib.blas.JavaBLAS
 import gale.backend.jvm.vector.VectorDenseDoubleKernel
-import gale.backend.jvm.vector.VectorGemvBenchHook
 import gale.platform.DoubleArray
 import java.util.concurrent.TimeUnit
 import org.openjdk.jmh.annotations.*
 
-/** Paired kernel-level GEMV hill climb (HC-4) for the Vector backend: in one fork,
+/** Kernel-level GEMV regression pair for the Vector backend (from the HC-4 hill
+  * climb, receipt `benchmarks/results/2026-10-11-hc-gemv-vec-trillium.md`): in one fork,
   *
-  *   - `refGemv` runs the frozen pre-climb row-major kernel (`VectorGemvBaseline`),
-  *   - `curGemv` the live `VectorDenseDoubleKernel.gemv` on the same row-major `A`,
-  *   - `noTreeGemv` the live tile without the eight-lane row-sum tree (identical to
-  *     `curGemv` on a species narrower than eight doubles),
+  *   - `curGemv` runs the live `VectorDenseDoubleKernel.gemv` on a row-major `A`,
   *   - `vblasGemv` Breeze's backend for `A * x`, VectorBLAS `dgemv("N")` on a
   *     column-major copy of the same `A`,
   *   - `curGemvT` / `vblasGemvT` the transpose product `Aᵀx`: gale's column-contiguous
@@ -66,19 +63,11 @@ class GemvHillClimbJmh:
     if impl != "dev.ludovic.netlib.blas.VectorBLAS" then
       throw new IllegalStateException(s"expected VectorBLAS, got $impl (run with --add-modules=jdk.incubator.vector)")
 
-  @Benchmark def refGemv(): Double =
-    VectorGemvBenchHook.gemvRowMajorBaseline(rows, cols, 1.0, aRow, 0, cols, x, 0, 0.0, y, 0)
-    y(0)
-
   @Benchmark def curGemv(): Double =
     VectorDenseDoubleKernel.gemv(
       rows, cols, 1.0, DoubleArray.adopt(aRow), 0, cols, 1,
       DoubleArray.adopt(x), 0, 1, 0.0, DoubleArray.adopt(y), 0, 1
     )
-    y(0)
-
-  @Benchmark def noTreeGemv(): Double =
-    VectorGemvBenchHook.gemvRowMajorNoTree(rows, cols, 1.0, aRow, 0, cols, x, 0, 0.0, y, 0)
     y(0)
 
   @Benchmark def vblasGemv(): Double =

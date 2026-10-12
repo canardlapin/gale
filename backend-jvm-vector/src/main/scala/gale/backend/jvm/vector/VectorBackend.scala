@@ -133,7 +133,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       y: Array[Double],
       yOffset: Int
   ): Unit =
-    gemvRowMajorTiles(Species, true, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset)
+    gemvRowMajorTiles(Species, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset)
 
   /** The row-major GEMV body, inlined at a constant `species`; production expands it
     * at [[Species]] and the tests also expand it at a fixed 256- and 512-bit species,
@@ -144,12 +144,10 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
     * eight). On an eight-lane species it also replaces the scalar column tail with one
     * masked step, and reduces the eight accumulators together with a rotate-and-add
     * tree into one vector of eight row sums, which is scaled and stored as a vector,
-    * instead of eight separate horizontal reductions and scalar stores. Production
-    * always takes the tree; `rowSumTree = false` exists so a benchmark can isolate it.
+    * instead of eight separate horizontal reductions and scalar stores.
     */
   private[vector] inline def gemvRowMajorTiles(
       inline species: VectorSpecies[java.lang.Double],
-      inline rowSumTree: Boolean,
       rows: Int,
       cols: Int,
       alpha: Double,
@@ -217,7 +215,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         s6 = DoubleVector.fromArray(species, a, aRow6 + j, m).fma(xv, s6)
         s7 = DoubleVector.fromArray(species, a, aRow7 + j, m).fma(xv, s7)
         j = cols
-      if lanes == 8 && rowSumTree then
+      if lanes == 8 then
         // Each level folds two vectors into one: lanes with bit `d` clear sum the
         // first operand's lanes `k` and `k + d`, lanes with bit `d` set the second's
         // lanes `k` and `k + d` (mod 8). Three levels leave row `r`'s total in lane `r`.

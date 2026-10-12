@@ -21,9 +21,8 @@ class VectorGemvRowMajorSuite extends munit.FunSuite:
   private val RelTol = 1e-10
   private val Sentinel = 99.0
 
-  // Species widths in doubles; "8-noTree" is the eight-lane tile with per-row
-  // reductions instead of the row-sum tree (the benchmark's attribution variant).
-  private val Variants = Seq("2", "4", "8", "8-noTree")
+  // Species widths in doubles.
+  private val Variants = Seq("2", "4", "8")
 
   private def runTiles(
       lanes: String,
@@ -42,19 +41,15 @@ class VectorGemvRowMajorSuite extends munit.FunSuite:
     lanes match
       case "2" =>
         VectorDenseDoubleKernel.gemvRowMajorTiles(
-          DoubleVector.SPECIES_128, true, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
+          DoubleVector.SPECIES_128, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
         )
       case "4" =>
         VectorDenseDoubleKernel.gemvRowMajorTiles(
-          DoubleVector.SPECIES_256, true, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
+          DoubleVector.SPECIES_256, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
         )
       case "8" =>
         VectorDenseDoubleKernel.gemvRowMajorTiles(
-          DoubleVector.SPECIES_512, true, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
-        )
-      case "8-noTree" =>
-        VectorDenseDoubleKernel.gemvRowMajorTiles(
-          DoubleVector.SPECIES_512, false, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
+          DoubleVector.SPECIES_512, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset
         )
       case other => fail(s"unknown tile variant $other")
 
