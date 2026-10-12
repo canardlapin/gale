@@ -50,12 +50,12 @@ its delta against Milestone 2 and its provenance.
 
 | Gap | Lane A | Lane B headline | Cause or owner |
 | --- | --- | --- | --- |
-| `sigmoid`, n = 1K and 64K | 0.96×, 0.97× | 0.96×, 0.95× | Accepted: the per-element range test that keeps subnormal results below −36; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps) |
-| `max`, n = 1M | 0.76× | 0.90× (tie) | In progress: HC-3 (`bd-01M4GY1QTAE17DV1A1990V88B8`) |
+| `sigmoid`, n = 1K and 64K | 0.96×, 0.97× | 0.96×, 0.95× | Documented exception (signed off 2026-10-12): the per-element range test that keeps subnormal results below −36; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps) |
+| `max`, n = 1M | 0.76× | 0.90× (tie) | Documented exception (signed off 2026-10-12): JIT code placement, the same loop in a fast or slow mode per fork; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps) |
 | vector `gemv`/`gemvT`, n = 256–2048 | — | 0.95–0.96× (4 rows behind; 2 ties) | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
 | L-BFGS logistic, fixed budget (gemv-bound) | — | 0.96× | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
-| `dot`, n = 64K | 0.97× | 0.97× | Paired rerun pending before kernel work (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) |
-| sparse `dot` with a dense vector, length = 100000, nnz = 10000 | 1.00× (tie) | 0.96× | No tracker item yet |
+| `dot`, n = 64K | 0.97× | 0.97× | Real: 0.959–0.967× in all 4 paired reruns (`6b3fb9e`); hc-dot investigating (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) |
+| sparse `dot` with a dense vector, length = 100000, nnz = 10000 | 1.00× (tie) | 0.96× | Not reproduced: 1.001–1.006× in the paired rerun (`6b3fb9e`) |
 
 No lane-A L2, L3, factorization or eigen pair at n ≥ 64 is behind. The
 secondary lane-B rows (pure gale against SIMD Breeze) are report-only: they
