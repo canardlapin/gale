@@ -462,7 +462,8 @@ Accepted exceptions to the outcome above, each with its measured cause.
   by `benchmarks/results/2026-10-11-max-placement-trillium.md` (`4b013cf`):
   placement of the hot loop. At 1M, JDK-default alignment gave 6 of 16 slow
   forks; `-XX:OptoLoopAlignment=32` alone gave 0 of 16, as did
-  `-XX:CodeEntryAlignment=64 -XX:OptoLoopAlignment=64`. That fits a loop
+  `-XX:CodeEntryAlignment=64 -XX:OptoLoopAlignment=64` (which also gave 0 of
+  16 at 64K, where loop alignment 32 alone still left 1). That fits a loop
   head straddling a fetch or op-cache boundary at the default 16-byte
   alignment; the exact microarchitectural path is not verified without hsdis.
   These are JVM flags, so the fix is the user's, not the library's.
