@@ -279,8 +279,8 @@ Gale's default sparse-direct provider is `none`. Use an iterative solver, or
 `import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
 canonical square CSR. That import is not SuiteSparse and does not provide
 sparse LU or QR. Those, plus C Wasm, each need their own spec in a
-[future version](../../sparse-direct-future.md); see
-[Scala.js sparse-direct](../../sparse-direct-js.md).
+[future version](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md); see
+[Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-js.md).
 
 ## Reduce, normalize, and use sparse vectors
 
@@ -301,7 +301,7 @@ names the result axis with `Axis`. `Axis.Rows` gives one value per row, and
 | `norm(a.toDenseVector)` | `a.normFrobenius` | |
 | max column / row absolute sum | `a.norm1`, `a.normInf` | The induced matrix norms; Breeze has no direct call. |
 | `breeze.numerics.exp(v)`, `log`, `log1p`, `expm1` | `Numerics.exp(v)`, `log`, `log1p`, `expm1` | Same `java.lang.Math` results on the JVM. |
-| `breeze.numerics.sigmoid(v)` | `Numerics.sigmoid(v)` | Overflow-free form; agrees within 4 ulps. |
+| `breeze.numerics.sigmoid(v)` | `Numerics.sigmoid(v)` | Breeze's `1/(1+exp(-x))` for `x >= -36`, `t/(1+t)` with `t = exp(x)` below; agrees within 4 ulps above about `-709.78`. |
 | `softmax(v)` | `Numerics.logSumExp(v)` | **Naming trap:** Breeze's `softmax` is the scalar log-sum-exp. |
 | `exp(v - softmax(v))` | `Numerics.softmax(v)` | Gale's `softmax` is the normalized probability vector. |
 | `v - softmax(v)` | `Numerics.logSoftmax(v)` | |
@@ -501,7 +501,7 @@ factor entries.
 ## Coverage at a glance
 
 Differential checks against Breeze 2.1 for these common operations live in the
-[`parity/` module](../../../parity/README.md) (`sbt parityTest`). Operations
+[`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md) (`sbt parityTest`). Operations
 with no honest Breeze reference — generalized eigen / GSVD / QZ, sparse-direct
 factorization, near-cutoff rank / `pinv` / `cond`, and Krylov algorithm
 diagnostics — are checked against NumPy / SciPy fixtures in the same module.
@@ -563,11 +563,15 @@ always copies.
 Do not assume that Gale or Breeze is faster for every operation. Measure the
 operations, sizes, JVM, and backend used by the application.
 
-In Gale's recorded pure-JVM comparison against Breeze 2.1's Java fallback,
-Gale was faster on 23 of 42 operation-and-size pairs, within the stated parity
-band on 2, and slower on 17. The result does not describe Breeze with native
-BLAS/LAPACK enabled, and it does not predict another processor or JVM.
-See the [release-grade Breeze comparison](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-07-11-breeze-release-grade.md).
+In the most recent recorded comparison (an AMD Zen 5 server, JDK 25, Breeze
+2.1 with its scalar `Java11BLAS` fallback), pure Gale was faster on 124 of 151
+operation-and-size pairs, tied on 13, and slower on 4; 10 pairs were not
+like-for-like and carry no verdict. Against Breeze on `VectorBLAS`, Gale with
+the Vector backend imported was faster on 118, tied on 14, and slower on 9.
+The remaining gaps and their causes are listed in the
+[benchmark dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).
+The result does not describe Breeze with native BLAS/LAPACK enabled, and it
+does not predict another processor or JVM.
 
 Gale also has optional JVM Vector API and native FFM backends. They route only
 supported operations, layouts, and measured problem sizes. A small or strided
@@ -575,6 +579,14 @@ operation may still use the portable implementation. See the
 [JDK 22 Vector comparison](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-07-17-breeze-jdk22-vector-enabled.md)
 and [Numerical contract](../advanced/numerical-contract.md) before choosing a
 backend.
+
+If your Breeze build ran with `--add-modules=jdk.incubator.vector`, netlib used
+`VectorBLAS` automatically. Gale does not switch on that flag alone: keep the
+flag and add `import gale.backend.jvm.vector.given` where the products are
+written, as described in
+[Enabling SIMD](../advanced/numerical-contract.md#enabling-simd). Without the
+import, Gale compares its pure kernels with Breeze's SIMD BLAS, and large dense
+products will be slower than they need to be.
 
 ## Replace Breeze L-BFGS and L-BFGS-B
 
@@ -668,7 +680,7 @@ val optBounded = LBFGSB
 
 ### Recorded differences
 
-`OptimizerParitySuite` in the [`parity/` module](../../../parity/README.md)
+`OptimizerParitySuite` in the [`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md)
 runs both libraries with this shared rule (`τ = 1e-8`, history 10) on
 quadratics with condition numbers up to 1e6, chained Rosenbrock up to
 n = 100, L2-regularized logistic regression, and box-constrained quadratics

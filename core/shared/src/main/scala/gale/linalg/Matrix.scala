@@ -615,7 +615,7 @@ final class DMat private[gale] (
 
   /** Scale every entry by `alpha`. The result is an owned contiguous row-major
     * matrix, including when `this` is a transpose or slice view. Same arithmetic
-    * as [[DVec.*]]: `0 * Inf` is `NaN`, and `1.0` still copies.
+    * as `DVec.*`: `0 * Inf` is `NaN`, and `1.0` still copies.
     */
   def *(alpha: Double): DMat =
     val n = rows * cols

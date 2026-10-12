@@ -180,7 +180,7 @@ final class SparseVector private[gale] (
   /** Largest element of the dense vector: includes `0.0` when an implicit zero
     * exists. `NaN` propagates.
     *
-    * @throws LinAlgError.EmptyInput for a length-0 vector
+    * @throws gale.linalg.LinAlgError `EmptyInput` for a length-0 vector
     */
   def max: Double =
     extreme("SparseVector.max", largest = true)
@@ -188,7 +188,7 @@ final class SparseVector private[gale] (
   /** Smallest element of the dense vector: includes `0.0` when an implicit
     * zero exists. `NaN` propagates.
     *
-    * @throws LinAlgError.EmptyInput for a length-0 vector
+    * @throws gale.linalg.LinAlgError `EmptyInput` for a length-0 vector
     */
   def min: Double =
     extreme("SparseVector.min", largest = false)

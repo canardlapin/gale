@@ -47,6 +47,14 @@ modes (``avgt``, ``sample``, ``ss``). The verdict compares JMH's 99.9% confidenc
 intervals: disjoint intervals give ``ahead`` or ``behind``; overlapping intervals
 give ``tie``; a missing interval (a single measurement iteration) gives ``n/a``.
 
+Headline
+--------
+Lane A has one headline count over all pairs. Lane B's headline pairs gale's SIMD
+configuration with Breeze's: ``vector`` (and ``vector (gemm-routed only)``) rows
+plus ``backend-insensitive`` rows against Breeze on ``VectorBLAS``. The ``pure``
+rows against ``VectorBLAS`` are counted on a separate secondary line, and an
+all-rows line keeps the combined count. The table itself is unchanged.
+
 Caveats
 -------
 ``CAVEATS`` maps ``(class, op)`` or ``(class, op, params)`` to a note shown in the
@@ -483,6 +491,17 @@ def _fmt(score: float, error: float) -> str:
     return f"{score:.6g} ± {err}"
 
 
+def _counts() -> dict[str, int]:
+    return {"ahead": 0, "tie": 0, "behind": 0, "n/a": 0, WITHHELD: 0}
+
+
+def _tally(counts: dict[str, int]) -> str:
+    return (
+        f"{counts['ahead']} ahead, {counts['tie']} tie, {counts['behind']} behind, "
+        f"{counts['n/a']} n/a, {counts[WITHHELD]} withheld"
+    )
+
+
 def git_commit(repo: Path) -> str:
     try:
         sha = subprocess.run(
@@ -524,7 +543,7 @@ def render(
     )
     jdks = sorted({f"{r.jdk} ({r.vm})" for r in rows})
     jvm_args = sorted({" ".join(r.jvm_args) or "(none)" for r in rows})
-    counts = {"ahead": 0, "tie": 0, "behind": 0, "n/a": 0, WITHHELD: 0}
+    counts, headline, secondary = _counts(), _counts(), _counts()
     body = []
     for g, b in pairs:
         ratio, v = verdict(g, b)
@@ -532,6 +551,14 @@ def render(
         if note is not None and note.withhold:
             v = WITHHELD
         counts[v] += 1
+        if g.backend in ("vector", "-"):
+            headline[v] += 1
+        elif g.backend == "pure":
+            secondary[v] += 1
+        else:
+            raise ReceiptError(
+                f"{g.benchmark} {g.params}: unknown gale backend {g.backend!r} (expected pure or vector)"
+            )
         params = ", ".join(f"{k}={val}" for k, val in g.pair_params) or "-"
         body.append(
             f"| {g.cls} | {g.op} | {params} | {g.backend_label} | {g.mode} | {_fmt(g.score, g.error)} | "
@@ -552,13 +579,27 @@ def render(
     ]
     if machine:
         out.append(f"- Machine: {machine}")
+    legend = (
+        "Ratio > 1 means gale is faster; verdicts use non-overlapping 99.9% CIs. `backend-insensitive` rows "
+        "run pure gale in every lane. A `withheld` pair is not like-for-like (see its note) and carries no "
+        "verdict; other notes name a known asymmetry behind a verdict."
+    )
+    totals = f"of {len(pairs)} pairs; {len(unpaired)} unpaired. {legend}"
+    if lane == "B":
+        out += [
+            "",
+            f"**Headline, gale vector vs Breeze VectorBLAS: {_tally(headline)}** of "
+            f"{sum(headline.values())} pairs (`vector` rows plus `backend-insensitive` rows, gale's "
+            "best configuration in this lane).",
+            "",
+            f"Secondary, gale pure vs Breeze VectorBLAS: {_tally(secondary)} of "
+            f"{sum(secondary.values())} pairs.",
+            "",
+            f"All rows: {_tally(counts)} {totals}",
+        ]
+    else:
+        out += ["", f"**{_tally(counts)}** {totals}"]
     out += [
-        "",
-        f"**{counts['ahead']} ahead, {counts['tie']} tie, {counts['behind']} behind, {counts['n/a']} n/a, "
-        f"{counts[WITHHELD]} withheld** of {len(pairs)} pairs; {len(unpaired)} unpaired. Ratio > 1 means gale "
-        "is faster; verdicts use non-overlapping 99.9% CIs. `backend-insensitive` rows run pure gale in every "
-        "lane. A `withheld` pair is not like-for-like (see its note) and carries no verdict; other notes name "
-        "a known asymmetry behind a verdict.",
         "",
         "| class | op | params | gale backend | mode | gale | breeze | unit | gale speedup | verdict | note |",
         "|---|---|---|---|---|---:|---:|---|---:|---|---|",
