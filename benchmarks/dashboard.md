@@ -52,10 +52,15 @@ its delta against Milestone 2 and its provenance.
 | --- | --- | --- | --- |
 | `sigmoid`, n = 1K and 64K | 0.96×, 0.97× | 0.96×, 0.95× | Accepted: the per-element range test that keeps subnormal results below −36; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps) |
 | `max`, n = 1M | 0.76× | 0.90× (tie) | In progress: HC-3 (`bd-01M4GY1QTAE17DV1A1990V88B8`) |
-| vector `gemv`/`gemvT`, n = 256–2048 | — | 0.95–0.96× (4 rows behind; 2 ties) | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
-| L-BFGS logistic, fixed budget (gemv-bound) | — | 0.96× | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
+| vector `gemvT`, n = 1024 | — | 0.94–0.95× | Documented gap: follow-up `breeze/hc-gemvt-vec` abandoned; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps); [receipt](results/2026-10-11-hc-gemv-vec-trillium.md) |
+| vector `gemv`/`gemvT` kernels, 1000×50 (L-BFGS design) | — | 0.91× / 0.81× (kernel harness, vs VectorBLAS) | gemvT: documented gap; gemv: open (HC-4); [receipt](results/2026-10-11-hc-gemv-vec-trillium.md) |
 | `dot`, n = 64K | 0.97× | 0.97× | Paired rerun pending before kernel work (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) |
 | sparse `dot` with a dense vector, length = 100000, nnz = 10000 | 1.00× (tie) | 0.96× | No tracker item yet |
+
+Since Milestone 3, HC-4 (`7c460eb`, [receipt](results/2026-10-11-hc-gemv-vec-trillium.md))
+closed the lane-B square vector `gemv` rows (n = 2048 1.08–1.10× ahead;
+n = 256 and 1024 ties) and the gemv-bound L-BFGS logistic objective at a fixed
+budget (0.95× to a 0.99–1.00× tie). The rows above are the gaps that remain.
 
 No lane-A L2, L3, factorization or eigen pair at n ≥ 64 is behind. The
 secondary lane-B rows (pure gale against SIMD Breeze) are report-only: they
@@ -359,7 +364,7 @@ as the backend's only oracle.
 | Backend and platform | Operation | Shipped threshold | Evidence at routed sizes | Decision |
 | --- | --- | ---: | --- | --- |
 | Vector, Apple ARM64, JDK 22 | contiguous GEMM | `128^3` work | 1.43–1.67x over pure Gale | enabled |
-| Vector, Apple ARM64, JDK 22 | contiguous GEMV | `128^2` work | 1.77–1.98x over pure Gale | enabled |
+| Vector, Apple ARM64, JDK 22 | contiguous GEMV | `128^2` work | 1.77–1.98x over pure Gale (measured before HC-4 `7c460eb`; not re-measured since, see the [ARM directional check](results/2026-10-11-hc-gemv-vec-trillium.md#arm-directional-check)) | enabled |
 | FFM Accelerate, Apple ARM64, JDK 22 | square GEMM | `512^3` work | 2.84x at n=512 | enabled above discontinuity |
 | FFM Accelerate, Apple ARM64, JDK 22 | LU / solve | n=128 | 1.53–1.60x solve at n=128–256 | enabled |
 

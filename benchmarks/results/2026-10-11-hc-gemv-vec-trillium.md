@@ -14,6 +14,8 @@ breeze/hc-gemv-vec: an eight-row gemv tile, masked tail and row-sum tree (`7c460
 
 ## Part 1: GemvHillClimbJmh (new bundle)
 
+The `refGemv` (frozen pre-HC-4 kernel) and `noTreeGemv` columns come from `GemvHillClimbJmh` as it stood at `7a79d4a`. That scaffolding, including the bench-only `VectorGemvBaseline`, was removed in `cf718d7`, so these two columns cannot be regenerated from the branch head; the remaining harness keeps only the `cur`-vs-VectorBLAS pair.
+
 | shape | curGemv | refGemv | noTreeGemv | vblasGemv | curGemvT | vblasGemvT |
 |---|---:|---:|---:|---:|---:|---:|
 | 256x256 | 2.534e+05 ± 9.4e+02 ops/s | 2.348e+05 ± 3.9e+03 ops/s | 2.486e+05 ± 6.7e+02 ops/s | 2.343e+05 ± 1.2e+04 ops/s | 2.455e+05 ± 1.1e+03 ops/s | 2.542e+05 ± 3.8e+03 ops/s |
@@ -52,7 +54,7 @@ None of these classes is preflight-covered, so no validation records exist; each
 ## Summary
 
 **Part 1, kernel (new bundle, 3 forks):**
-- **The row-sum tree and masked tail are intrinsified on x86.** `curGemv` is not slower than `noTreeGemv` at any shape: 1.02× at 256², 1.02× at 1024², 1.01× (CIs overlap, a tie) at 2048², and 1.10× at 1000×50. The rotate tree and masked `fromArray` are not a liability on AVX-512.
+- **The row-sum tree and masked tail cost nothing on Zen 5.** `curGemv` is not slower than `noTreeGemv` at any shape: 1.02× at 256², 1.02× at 1024², 1.01× (CIs overlap, a tie) at 2048², and 1.10× at 1000×50. That timing is consistent with the rotate tree and masked `fromArray` being intrinsified on AVX-512, but intrinsification is inferred from timing only; no compiled-code dump verified it.
 - **The HC-4 tile against the pre-HC-4 reference:** `curGemv / refGemv` is 1.07–1.15× on the square shapes and 1.29× on 1000×50, all with disjoint CIs.
 - **Against VectorBLAS, gemv:** ahead on the square shapes (`curGemv / vblasGemv` 1.08–1.09×, disjoint) but behind on the short-wide 1000×50 (0.91×, disjoint).
 - **Against VectorBLAS, gemvT:** behind or tied (0.97× at 256², 0.85× at 1024², 0.98× tie at 2048², 0.81× at 1000×50). HC-4 did not target gemvT.
@@ -62,5 +64,17 @@ None of these classes is preflight-covered, so no validation records exist; each
 - **gemvT (vector):** unchanged vs base (0.99–1.02×, CIs overlap). n = 1024 stays behind Breeze (0.94–0.95×), and n = 256 / 2048 are ties or near-ties.
 - **L-BFGS logistic, fixed budget (vector):** 1.05× faster than base in both rounds (disjoint). Against Breeze it goes from 0.95× (behind) to 0.99–1.00× (tie).
 - **Headline counts:** across the 7 pairs, 0 ahead / 2–4 tie / 3–5 behind in the base runs, against 1–2 ahead / 4 tie / 1–2 behind in the new runs.
+
+## ARM directional check
+
+Local, directional only; not a receipt and not in the JSON. Apple M3 laptop (NEON, 2 double lanes), JDK 25 (Homebrew `openjdk@25`), `benchmarksJVM/Jmh/run -f 2 -wi 5 -i 5 -p backend=vector 'BlasL2BreezeJmh.(galeGemv|breezeGemv)$'` with sbt in each tree: base `61c82cb` (detached worktree) and head `30782c1` (this branch, which contains `7c460eb`). Order: head r1, base r2, head r2, base r3 (base r1 failed at sbt load and was rerun last). Facade `galeGemv`, ops/s ± 99.9% CI:
+
+| n | base r2 | base r3 | head r1 | head r2 | head/base (means) |
+|---|---:|---:|---:|---:|---:|
+| 256 | 104521 ± 5364 | 109072 ± 415 | 105164 ± 7549 | 103613 ± 11561 | 0.98× |
+| 1024 | 6051 ± 482 | 6365 ± 340 | 6255 ± 378 | 6400 ± 460 | 1.02× |
+| 2048 | 1128 ± 28 | 1231 ± 37 | 971 ± 153 | 1303 ± 29 | 0.96× |
+
+**Possible ARM regression, not resolved.** Head is 3.6% below base at n = 2048 on the means and 2.3% below at n = 256 (5% below in the head r2 / base r3 pairing). The spread is larger than the effect: at n = 2048 head r1 is 0.86× base r2 with a ±16% CI while head r2 is 1.06× base r3, and the Breeze rows moved by similar amounts between runs (n = 2048: 924–1113 ops/s; n = 256 head r2: 73009 ± 32237). An unpinned laptop with two forks cannot separate a 3% change from noise. On a two-lane species the eight-lane tree and masked step are not compiled; the head path differs from base only in the eight-row tile and its tail handling. A pinned, more-fork M-series run is needed before claiming ARM parity either way.
 
 Raw data: `2026-10-11-hc-gemv-vec-trillium.json`. It holds the per-run JMH JSON, netlib records, source SHA and load.

@@ -24,8 +24,11 @@ JDK 25), with every scoreboard run under `--validation --strict`:
 Merged on 2026-10-11: hc-gemm-vec (`c3ceeb5`), hc-lbfgs (`c9e2b14`),
 hc-lstsq16 (`51d74c9`), W2.2 docs (`96c95e5`, ADR A-2c), all measured by
 Milestone 3; and hc-sigmoid2 (`6066cdb`), which merged after the receipts with
-tests, benchmarks and no main-code change beyond a kernel comment. In flight:
-hc-max2, hc-gemv-vec and hc-lbfgs-step. The remaining gaps and their owners are
+tests, benchmarks and no main-code change beyond a kernel comment. hc-lbfgs-step merged at `88dde85` (L-BFGS logistic at a fixed budget:
+lane B vector now a 0.99× tie, lane A 1.20×). hc-gemvt-vec was abandoned (see
+[Documented gaps](#documented-gaps)). hc-gemv-vec (`7c460eb`,
+vector gemv; receipt [`2026-10-11-hc-gemv-vec-trillium.md`](../benchmarks/results/2026-10-11-hc-gemv-vec-trillium.md)) is ready to merge. In flight:
+hc-max2. The remaining gaps and their owners are
 in [`benchmarks/dashboard.md`](../benchmarks/dashboard.md).
 
 ## Context
@@ -33,7 +36,7 @@ in [`benchmarks/dashboard.md`](../benchmarks/dashboard.md).
 Breeze 2.1.0 is gale's main competitor: it is mostly retired and JVM-only, but battle-tested through Spark. The last full head-to-head (`benchmarks/results/2026-07-11-breeze-release-grade.md`) had gale ahead on 23/42 pairs. Since then none of the gap kernels has improved. An audit on 2026-10-08 found five problems:
 
 - **The baseline is mislabelled.** Since 07-17, JMH forks receive `--add-modules=jdk.incubator.vector` (`build.sbt:415`, added in df62a78), so any default Breeze run since then gets netlib **VectorBLAS**, while the README and build comment still say F2J. The 07-11 release-grade sweep (80611e3) predates both `.jvmopts` and that option, so it most likely ran scalar `Java11BLAS` against scalar gale: its gaps (axpy, gemv, LU, solve) are genuine scalar-vs-scalar gaps. No receipt recorded the class until W0 (verified 2026-10-08 by w0-bench).
-- **Kernel gaps remain.** LU and Cholesky are unblocked. There is no trsm. Row-major gemv is untiled and the transposed gemv is not unrolled. `tred2` is unblocked. Cholesky got an extra copy plus finiteness pass on 10-03 (2c794d8) that has not been re-measured.
+- **Kernel gaps remain.** LU and Cholesky are unblocked. There is no trsm. Row-major gemv is untiled and the transposed gemv is not unrolled (as of the audit; the pure row-major kernel is now 4-row tiled, and HC-4 `7c460eb` tiled the vector-backend row-major gemv at 8 rows). `tred2` is unblocked. Cholesky got an extra copy plus finiteness pass on 10-03 (2c794d8) that has not been re-measured.
 - **The everyday API is missing.** Gale has no reductions, no exp/log/softmax/logsumexp, no public norm1/normInf/Frobenius and no SparseVector. Benchmarks can't be won on operations gale doesn't have.
 - **Parity tests use easy inputs.** Inputs are well-conditioned and n ≤ 25, so future blocked paths would never be exercised. There are no edge cases (empty, 1×1, NaN/Inf, singular, ill-conditioned, views). LBFGS/LBFGSB have no Breeze parity. Nothing on Scala.js is checked against an external reference.
 - **Benchmark coverage is thin.** There is no Breeze benchmark for SVD, eig, inv, det, pinv, sparse, optimizers, elementwise, small fixed-size, multi-RHS, or n ≥ 512.
@@ -88,7 +91,7 @@ Breeze 2.1.0 is gale's main competitor: it is mostly retired and JVM-only, but b
 Order by expected gain against risk:
 
 1. **gemv.**
-   - Row-major `dgemvRowMajor` (`DoubleKernels.scala:245`): use 4-row tiles that share each loaded `x[j]`, each row keeping fma accumulators, and handle the remainder rows.
+   - Row-major `dgemvRowMajor` (`DoubleKernels.scala:245`): use 4-row tiles that share each loaded `x[j]`, each row keeping fma accumulators, and handle the remainder rows. *Done in the pure kernel; the vector-backend counterpart landed as HC-4 (`7c460eb`, 8-row tile, masked tail, row-sum tree; receipt [`2026-10-11-hc-gemv-vec-trillium.md`](../benchmarks/results/2026-10-11-hc-gemv-vec-trillium.md)).*
    - `dgemvColMajor` (`:293`): unroll 4 columns per pass over `y`.
    - Keep the strided fallbacks.
 2. **trsm.** Add `dtrsmLeft(uplo, unitDiag, n, nrhs, alpha, A(off, ld), B(off, ld))` for row-major sub-blocks, blocked at 32 to 64. The diagonal block uses a dtrsv-style loop; off-diagonal blocks use `dgemm(alpha=-1, beta=1)`.
@@ -394,15 +397,20 @@ while coordinating benchmark-sized eig validation with the existing HC-1 owner.
 Do not cut `benchmarks/results/2026-1x-xx-breeze-two-lane-final.{json,md}`
 until all of the following hold:
 
-1. **In-flight work has merged or been dropped:** hc-max2, hc-gemv-vec and
-   hc-lbfgs-step.
+1. **In-flight work has merged or been dropped:** hc-max2 (hc-gemv-vec landed
+   as `7c460eb`, hc-lbfgs-step merged at `88dde85`, hc-gemvt-vec abandoned).
 2. **Every Milestone 3 gap is closed or documented here with its cause**
    (see the dashboard's "Still behind" list):
    - lane A `max` at n = 1M, 0.76× (HC-3, `bd-01M4GY1QTAE17DV1A1990V88B8`).
      This one fails an epic criterion: a new op family below 1.0× at n ≥ 1K;
-   - lane B vector `gemv`/`gemvT` (0.95–0.96×) and the gemv-bound L-BFGS
-     logistic objective at a fixed budget (0.96×) (HC-4,
-     `bd-01M4PAPJGS4EF4DXMEAS8NVY01`);
+   - lane B vector `gemvT` at n = 1024 (0.94–0.95×) and the short-wide
+     1000×50 kernels (gemv 0.91×, gemvT 0.81× against VectorBLAS); the
+     gemvT follow-up `breeze/hc-gemvt-vec` was abandoned and gemvT is now a
+     documented gap (HC-4, `bd-01M4PAPJGS4EF4DXMEAS8NVY01`). HC-4 `7c460eb` closed the square vector
+     `gemv` gap (n = 2048 1.08–1.10× ahead, n = 256/1024 ties) and moved the
+     gemv-bound L-BFGS logistic objective at a fixed budget from 0.95× to a
+     0.99–1.00× tie (receipt
+     [`2026-10-11-hc-gemv-vec-trillium.md`](../benchmarks/results/2026-10-11-hc-gemv-vec-trillium.md));
    - `dot` at n = 64K, 0.97× in both lanes: the paired rerun
      (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) decides whether this is a kernel gap;
    - lane B sparse `dot` with a dense vector, 0.96× (no tracker item yet);
@@ -441,3 +449,15 @@ Accepted exceptions to the outcome above, each with its measured cause.
   `benchmarks/results/2026-10-11-hc-sigmoid-trillium-r2.md` and
   `benchmarks/results/2026-10-11-hc-sigmoid2-path-trillium.md`;
   `SigmoidDigestSuite` pins the kernel's bits.
+- **Vector `gemvT` against VectorBLAS (lane B only): 0.86–0.94× in the kernel
+  harness, 0.94–0.95× through the facade at n = 1024.** Lane B only, so not an
+  epic criterion. One attempt, `breeze/hc-gemvt-vec` (y held in registers;
+  trillium job 2540035, receipt `0d9d3eb` on `bench/gt-096594c`), was abandoned
+  under its pre-registered rule: 1.08× at 1000×50, but 0.96× at 256², 0.61–0.80×
+  with long y forced, and 0.23–0.73× on M3. The gemvT bit-identity pin fixes the
+  per-element column order, so holding y in registers leaves one FMA chain per y
+  vector, as long as the column count. Eight such chains per block are
+  latency-bound, while the current 8-column sweep is throughput-bound because
+  out-of-order execution overlaps the y chunks. A further attempt needs split
+  per-column accumulators, which reassociate, and so needs a decision to relax
+  the gemvT bitwise pin. That decision belongs to the user.
