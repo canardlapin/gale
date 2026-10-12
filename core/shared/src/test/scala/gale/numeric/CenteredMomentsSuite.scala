@@ -76,7 +76,8 @@ class CenteredMomentsSuite extends munit.FunSuite:
     assert(s.finish(2).isLeft); assert(s.finish(-1).isLeft)
   test("resource inspection is pure, conservative and shape checked before allocation"):
     assert(CenteredMoments.make(0).isLeft); assert(CenteredMoments.resources(50000).isLeft)
-    val r = ok(CenteredMoments.resources(376)); assert(r.stateBytes > 0); assert(r.addScratchBytes > r.stateBytes)
+    val r = ok(CenteredMoments.resources(376)); assert(r.stateBytes > 0); assertEquals(r.addScratchBytes, BigInt(0));
+    assertEquals(r.mergeScratchBytes, BigInt(0))
     assert(r.readoutScratchBytes > r.ownedResultBytes); assertEquals(r.copyAdditionalBytes, r.stateBytes)
     val empty = ok(CenteredMoments.make(2)); val before = empty.resources; ok(empty.add(Array(1.0, 2.0)))
     assertEquals(empty.resources, before); assert(before.maximumProductSumBits > before.maximumSumBits)
