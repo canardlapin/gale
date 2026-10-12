@@ -58,9 +58,8 @@ class MaxHillClimbJmh:
   @Benchmark def keyMax(): Double         = MaxHillClimbRef.keyMax(n, x)
   @Benchmark def scan4Max(): Double       = MaxHillClimbRef.scan4(n, x)
 
-  // Facade A/B on the scoreboard's vector: `facadeMax` is `DVec.max`;
-  // `generalMax` is its call before the dense entry point (offset and stride
-  // read from the vector at run time).
+  // The scoreboard's vector: `facadeMax` is `DVec.max`; `generalMax` is the
+  // kernel call it makes (offset and stride read from the vector at run time).
   @Benchmark def facadeMax(): Double = v.max
   @Benchmark def generalMax(): Double =
     DoubleKernels.dmax(v.length, v.data, v.offset.value, v.stride.value)
