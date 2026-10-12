@@ -168,6 +168,25 @@ last ulp. Compact pivoted QR (width 8 or less) applies the same infinite-entry
 repair as `norm2`, so its pivot choice matches the wider screened path. These are numerical-contract repairs, not
 binary-compatibility claims against a published baseline.
 
+The members above, together with `DVec.dot`, `DVec.norm2` and `Numerics`, take no
+`(using Backend)` parameter, and none is planned before M1. The
+[competitiveness plan](breeze-competitiveness-plan.md) allowed one (source
+compatible, binary breaking) if the W2 SIMD gate passed. Two decisions in the
+[backend architecture](backend-architecture.md) keep the signatures above:
+
+- **A-2b** (§A.2.1): Level-1 kernels stay static calls into the portable
+  kernels, with no backend table to install. The Vector backend's lever is
+  the coarse product seam (GEMM, `syrk`, contiguous GEMV), so reductions,
+  norms, `dot`, and `Numerics` run the portable kernels whichever backend is
+  in scope.
+- **A-2c** (§A.2.2, W2.2): SIMD is enabled only by
+  `import gale.backend.jvm.vector.given` (or an explicit `using`). There is no
+  `ServiceLoader` and no automatic selection when `jdk.incubator.vector` is
+  present. W2.2 changed documentation and benchmark tooling only.
+
+Routing L1 or reduction ops through a backend later would need a new decision
+and, after M1, would be a binary change.
+
 ## Dense inverse addition before M1
 
 `DMat` adds `inverse` and `LU` adds `inverse`, both returning
