@@ -452,11 +452,18 @@ Accepted exceptions to the outcome above, each with its measured cause.
   `galeMax` at 1M, slow forks run identical instructions and branches per
   element (4.00 and 1.25) at 1.014 instead of about 0.77 cycles per element
   (IPC 3.95 against 5.2). gale's fast mode ties Breeze at 1M and beats the
-  Breeze-shaped loop 1.13–1.24× at 1K and 64K, and Breeze shows the same
-  lottery (0–1 slow forks per 8). No bit-exact loop shape changed the
+  Breeze-shaped loop 1.13–1.24× at 1K and 64K. Breeze also has occasional
+  slow forks (0–2 per 8), but loop alignment does not remove them, so they are
+  a different effect. No bit-exact loop shape changed the
   instruction mix; a dense facade entry point only moved the slow forks from
   1M to 64K. Receipts: `benchmarks/results/2026-10-11-hc-max2-trillium.md`
   (`ad2b6f0`), `benchmarks/results/2026-10-11-hc-max2-facade-trillium.md`
-  (`a9e5134`), and the Milestone 2 and 3 lane A/B receipts. Hypothesis: code
-  placement of the hot loop, with slow forks fed by the 4-wide decoders
-  instead of the op cache. Confirmation (`-XX:OptoLoopAlignment=64`): pending.
+  (`a9e5134`), and the Milestone 2 and 3 lane A/B receipts. Cause, confirmed
+  by `benchmarks/results/2026-10-11-max-placement-trillium.md` (`4b013cf`):
+  placement of the hot loop. At 1M, JDK-default alignment gave 6 of 16 slow
+  forks; `-XX:OptoLoopAlignment=32` alone gave 0 of 16, as did
+  `-XX:CodeEntryAlignment=64 -XX:OptoLoopAlignment=64` (which also gave 0 of
+  16 at 64K, where loop alignment 32 alone still left 1). That fits a loop
+  head straddling a fetch or op-cache boundary at the default 16-byte
+  alignment; the exact microarchitectural path is not verified without hsdis.
+  These are JVM flags, so the fix is the user's, not the library's.
