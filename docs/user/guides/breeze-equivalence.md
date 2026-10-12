@@ -301,7 +301,7 @@ names the result axis with `Axis`. `Axis.Rows` gives one value per row, and
 | `norm(a.toDenseVector)` | `a.normFrobenius` | |
 | max column / row absolute sum | `a.norm1`, `a.normInf` | The induced matrix norms; Breeze has no direct call. |
 | `breeze.numerics.exp(v)`, `log`, `log1p`, `expm1` | `Numerics.exp(v)`, `log`, `log1p`, `expm1` | Same `java.lang.Math` results on the JVM. |
-| `breeze.numerics.sigmoid(v)` | `Numerics.sigmoid(v)` | Overflow-free form; agrees within 4 ulps. |
+| `breeze.numerics.sigmoid(v)` | `Numerics.sigmoid(v)` | Breeze's `1/(1+exp(-x))` for `x >= -36`, `t/(1+t)` with `t = exp(x)` below; agrees within 4 ulps above about `-709.78`. |
 | `softmax(v)` | `Numerics.logSumExp(v)` | **Naming trap:** Breeze's `softmax` is the scalar log-sum-exp. |
 | `exp(v - softmax(v))` | `Numerics.softmax(v)` | Gale's `softmax` is the normalized probability vector. |
 | `v - softmax(v)` | `Numerics.logSoftmax(v)` | |
@@ -563,11 +563,15 @@ always copies.
 Do not assume that Gale or Breeze is faster for every operation. Measure the
 operations, sizes, JVM, and backend used by the application.
 
-In Gale's recorded pure-JVM comparison against Breeze 2.1's Java fallback,
-Gale was faster on 23 of 42 operation-and-size pairs, within the stated parity
-band on 2, and slower on 17. The result does not describe Breeze with native
-BLAS/LAPACK enabled, and it does not predict another processor or JVM.
-See the [release-grade Breeze comparison](https://github.com/canardlapin/gale/blob/main/benchmarks/results/2026-07-11-breeze-release-grade.md).
+In the most recent recorded comparison (an AMD Zen 5 server, JDK 25, Breeze
+2.1 with its scalar `Java11BLAS` fallback), pure Gale was faster on 124 of 151
+operation-and-size pairs, tied on 13, and slower on 4; 10 pairs were not
+like-for-like and carry no verdict. Against Breeze on `VectorBLAS`, Gale with
+the Vector backend imported was faster on 118, tied on 14, and slower on 9.
+The remaining gaps and their causes are listed in the
+[benchmark dashboard](https://github.com/canardlapin/gale/blob/main/benchmarks/dashboard.md).
+The result does not describe Breeze with native BLAS/LAPACK enabled, and it
+does not predict another processor or JVM.
 
 Gale also has optional JVM Vector API and native FFM backends. They route only
 supported operations, layouts, and measured problem sizes. A small or strided
@@ -606,6 +610,7 @@ solvers in `gale.optim` (`AcceleratedProximal`, `LevenbergMarquardt`, `CMAES`,
 | `new LBFGSB(l, u, maxIter, m, tolerance)` | `LBFGSBConfig(...)` with `MatrixBoxBounds.from(l, u)` | Breeze defaults: `maxIter = 100`, `m = 5`, `tolerance = 1e-8`. |
 | `StrongWolfeLineSearch` with `c1 = 1e-4`, `c2 = 0.9` (fixed) | `c1`, `c2` in the config | Same defaults; Gale lets them be changed. |
 | `maxZoomIter`, `maxLineSearchIter` (10 each in `LBFGS`, 64 in `LBFGSB`) | `maxLineSearch` (default 40) | One trial budget per line search. `LBFGSConfig.maximumStep` caps the step. |
+| first trial step: `1/‖d‖₂` on iteration 0 in `LBFGS`, else 1; always 1 in `LBFGSB` | the same rule, fixed | Gale `LBFGS` also uses `1/‖d‖₂` after a history reset, whenever `d = −∇f` is unscaled. |
 | evaluation count (wrap the `DiffFunction`) | `solution.evaluations.callbacks` | Gale counts every callback, including rejected trials. |
 | `minimizeAndReturnState(f, x0).convergenceReason` | `solution.status` | `Converged`, `IterationLimit`, `LineSearchFailed`, `EvaluationLimit`, `Cancelled`, `NumericalStagnation`. |
 

@@ -48,7 +48,10 @@ private[optim] object StrongWolfe:
       onApproximateAcceptance
     )
 
-  /** [[search]] from a caller that already holds `initialDerivative = dot(originEvaluation.gradient, direction)`. */
+  /** [[search]] from a caller that already holds `initialDerivative = dot(originEvaluation.gradient, direction)`.
+    *
+    * `initialStep` is the first trial step before the `maximumStep` cap; bracketing doubles from it.
+    */
   def searchFrom(
       objective: DifferentiableObjective,
       origin: DMat,
@@ -64,7 +67,8 @@ private[optim] object StrongWolfe:
       bounds: Option[MatrixBoxBounds] = None,
       interpolate: Boolean = false,
       approximateWolfe: Boolean = false,
-      onApproximateAcceptance: () => Unit = ignoreApproximateAcceptance
+      onApproximateAcceptance: () => Unit = ignoreApproximateAcceptance,
+      initialStep: Double = 1.0
   ): Either[FirstOrderError, Accepted] =
     import OptimNumerics.*
     if !initialDerivative.isFinite || initialDerivative >= 0.0 then
@@ -174,7 +178,7 @@ private[optim] object StrongWolfe:
         Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.LineSearchFailed))
 
       var previous = Accepted(origin, originEvaluation, 0.0, initialDerivative)
-      var step = Math.min(1.0, maximumStep)
+      var step = Math.min(initialStep, maximumStep)
       var attempt = 0
       while attempt < maxTrials do
         trial(step) match
