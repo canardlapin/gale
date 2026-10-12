@@ -231,14 +231,18 @@ final class DVec private[gale] (
     */
   def max: Double =
     requireNonEmpty("max")
-    DoubleKernels.dmax(length, data, offset.value, stride.value)
+    // A dense vector passes constant offset and stride, so the inlined kernel
+    // compiles to the contiguous loop alone.
+    if offset.value == 0 && stride.value == 1 then DoubleKernels.dmax(length, data, 0, 1)
+    else DoubleKernels.dmax(length, data, offset.value, stride.value)
 
   /** Smallest entry; NaN if any entry is NaN. Throws [[LinAlgError.EmptyInput]]
     * when empty.
     */
   def min: Double =
     requireNonEmpty("min")
-    DoubleKernels.dmin(length, data, offset.value, stride.value)
+    if offset.value == 0 && stride.value == 1 then DoubleKernels.dmin(length, data, 0, 1)
+    else DoubleKernels.dmin(length, data, offset.value, stride.value)
 
   /** Index of the first largest entry, or of the first NaN if any entry is NaN.
     * Throws [[LinAlgError.EmptyInput]] when empty.

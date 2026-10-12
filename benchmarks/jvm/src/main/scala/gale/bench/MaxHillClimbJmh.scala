@@ -3,7 +3,7 @@ package gale.bench
 import scala.compiletime.uninitialized
 
 import gale.kernel.DoubleKernels
-import gale.linalg.{Axis, DMat, Matrix}
+import gale.linalg.{Axis, DMat, DVec, Matrix, value}
 import gale.platform.DoubleArray
 import gale.platform.DoubleArray.*
 import java.util.concurrent.TimeUnit
@@ -36,6 +36,7 @@ class MaxHillClimbJmh:
   var n: Int = 0
 
   private var x: DoubleArray   = uninitialized
+  private var v: DVec          = uninitialized
   private var side: Int        = 0
   private var a: DMat          = uninitialized
   private var out: DoubleArray = uninitialized
@@ -46,6 +47,7 @@ class MaxHillClimbJmh:
     side = math.sqrt(n.toDouble).toInt
     a = Matrix.tabulate(side, side)((i, j) => x(i * side + j))
     out = DoubleArray.alloc(side)
+    v = BreezeBenchData.galeVector(BreezeBenchData.vectorData(n, 5300L))
     MaxHillClimbRef.selfCheck(n, x)
 
   @Benchmark def refMax(): Double         = MaxHillClimbRef.refMax(n, x)
@@ -55,6 +57,13 @@ class MaxHillClimbJmh:
   @Benchmark def reduceMax(): Double      = DoubleKernels.dmaxReduce(n, x, 0, 1)
   @Benchmark def keyMax(): Double         = MaxHillClimbRef.keyMax(n, x)
   @Benchmark def scan4Max(): Double       = MaxHillClimbRef.scan4(n, x)
+
+  // Facade A/B on the scoreboard's vector: `facadeMax` is `DVec.max`;
+  // `generalMax` is its call before the dense entry point (offset and stride
+  // read from the vector at run time).
+  @Benchmark def facadeMax(): Double = v.max
+  @Benchmark def generalMax(): Double =
+    DoubleKernels.dmax(v.length, v.data, v.offset.value, v.stride.value)
 
   // Column maxima of the side x side row-major matrix: the streamed geometry.
   @Benchmark def refMaxCols(bh: Blackhole): Unit =
