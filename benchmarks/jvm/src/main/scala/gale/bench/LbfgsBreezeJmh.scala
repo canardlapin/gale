@@ -45,15 +45,28 @@ import org.openjdk.jmh.infra.Blackhole
   * gradient `DMat`, built with one `Matrix.fromArrayCopy` (one extra `O(n)` copy that
   * Breeze's `DenseVector` wrap avoids).
   *
-  * Work audit (2026-10-10, `fixed`): both sides run identical objective arithmetic
-  * for the same 20 iterations with history 10, but their line searches differ, so
-  * their evaluation counts do too: Rosenbrock gale 36 vs Breeze 25, logistic 23 vs
-  * 22. Breeze scales its first trial step to `1/‖d‖` and zooms by cubic
-  * interpolation; gale tries the unit step on `−∇f` and bisects. On Rosenbrock's
-  * steep start (`‖∇f‖∞ = 792`) gale's first line search spends 10 evaluations and
-  * its 12th and 20th 4 each, against one for every other iteration. That extra work
-  * belongs to gale's solver, not to the harness, so the timed comparison keeps it;
-  * read the `[breeze-lbfgs]` counts alongside the times.
+  * Work audit (2026-10-11): both sides run identical objective arithmetic with
+  * history 10, but their line searches differ, so their evaluation counts do too.
+  * Both now scale the first trial step on the unscaled `−∇f` to `1/‖d‖₂`; Breeze
+  * zooms by cubic interpolation and gale bisects. Before gale adopted that step
+  * (2026-10-10 audit) it tried the unit step on `−∇f`, and on Rosenbrock's steep
+  * start (`‖∇f‖∞ = 792`) its first line search spent 10 evaluations.
+  *
+  * | budget | problem | gale before (evals / iters) | gale now | Breeze |
+  * |---|---|---|---|---|
+  * | `fixed` | Rosenbrock | 36 / 20 | 23 / 20 | 25 / 20 |
+  * | `fixed` | logistic | 23 / 20 | 21 / 20 | 22 / 20 |
+  * | `tolerance` | Rosenbrock | 629 / 513 | 607 / 522 | 614 / 522 |
+  * | `tolerance` | logistic | 53 / 46 | 36 / 34 | 42 / 39 |
+  *
+  * Line-search work belongs to each solver, not to the harness, so the timed
+  * comparison keeps it; read the `[breeze-lbfgs]` counts alongside the times.
+  *
+  * Trial setup runs [[BreezeBenchmarkValidation.preflight]] on the selected
+  * problem: converged solves from both libraries are checked against the known
+  * Rosenbrock minimizer, or against each other through the logistic objective's
+  * strong convexity, and the fixed-budget solves must run exactly
+  * [[LbfgsBreezeJmh.FixedIterations]] descending iterations.
   */
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -80,35 +93,28 @@ class LbfgsBreezeJmh:
   @Setup(Level.Trial)
   def setupTrial(params: BenchmarkParams): Unit =
     recordNetlib(params)
-    rosenbrockStart = Array.tabulate(RosenbrockSize)(i => if i % 2 == 0 then -1.2 else 1.0)
+    rosenbrockStart = rosenbrockStartPoint()
     gRosenbrockStart = Matrix.fromArrayCopy(RosenbrockSize, 1, rosenbrockStart)
-    val design = matrixData(LogisticRows, LogisticCols, 6100L)
-    val truth  = vectorData(LogisticCols, 6200L)
-    val noise  = vectorData(LogisticRows, 6300L)
-    val labels = Array.tabulate(LogisticRows): i =>
-      var z = 0.0
-      var j = 0
-      while j < LogisticCols do
-        z += design(i)(j) * truth(j)
-        j += 1
-      if z + 0.5 * noise(i) >= 0.0 then 1.0 else -1.0
+    val (design, labels) = logisticData()
     gX = galeMatrix(design)
     gLabels = labels.clone()
     bX = breezeMatrix(design)
     bLabels = labels.clone()
     budget match
       case "fixed" =>
-        galeConfig = LBFGSConfig(
-          maxIterations = FixedIterations,
-          tolerance = FirstOrderTolerance.from(Double.MinPositiveValue, 0.0).fold(e => throw new IllegalStateException(e.message), identity)
-        )
+        galeConfig = fixedConfig
         breezeMaxIter = FixedIterations
         breezeTolerance = 0.0
       case "tolerance" =>
-        galeConfig = LBFGSConfig(maxIterations = 10000)
-        breezeMaxIter = 10000
-        breezeTolerance = 1e-8
+        galeConfig = toleranceConfig
+        breezeMaxIter = ToleranceIterations
+        breezeTolerance = BreezeTolerance
       case other => throw new IllegalArgumentException(s"unknown budget '$other' (expected fixed|tolerance)")
+    BreezeBenchmarkValidation.operation(params) match
+      case "Rosenbrock" =>
+        BreezeBenchmarkValidation.preflight(params, BreezeBenchmarkValidation.column(rosenbrockStart), RosenbrockFixture)
+      case _ =>
+        BreezeBenchmarkValidation.preflight(params, design, LogisticFixture, BreezeBenchmarkValidation.column(labels))
     report("rosenbrock", runGaleRosenbrock(), runBreezeRosenbrock())
     report("logistic", runGaleLogistic(using gale.backend.PureBackend), runBreezeLogistic())
 
@@ -133,55 +139,13 @@ class LbfgsBreezeJmh:
 
   // gale ---------------------------------------------------------------------
 
-  private def galeRosenbrockObjective: DifferentiableObjective =
-    new DifferentiableObjective:
-      def variableRows: Int = RosenbrockSize
-      def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
-        val g = new Array[Double](RosenbrockSize)
-        var f = 0.0
-        var i = 0
-        while i < RosenbrockSize - 1 do
-          val xi = at(i, 0)
-          val t  = at(i + 1, 0) - xi * xi
-          val u  = 1.0 - xi
-          f += 100.0 * t * t + u * u
-          g(i) += -400.0 * t * xi - 2.0 * u
-          g(i + 1) += 200.0 * t
-          i += 1
-        Right(ObjectiveEvaluation(f, Matrix.fromArrayCopy(RosenbrockSize, 1, g)))
-
-  private def galeLogisticObjective(using Backend): DifferentiableObjective =
-    new DifferentiableObjective:
-      def variableRows: Int = LogisticCols
-      def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
-        val w = at.col(0)
-        val z = gX * w
-        val r = new Array[Double](LogisticRows)
-        var f = 0.0
-        var i = 0
-        while i < LogisticRows do
-          val m = gLabels(i) * z(i)
-          f += logOnePlusExp(-m)
-          r(i) = -gLabels(i) * sigmoid(-m)
-          i += 1
-        val xtr = gX.t * Vec.fromArrayCopy(r)
-        val g   = new Array[Double](LogisticCols)
-        var ww  = 0.0
-        var j   = 0
-        while j < LogisticCols do
-          val wj = w(j)
-          ww += wj * wj
-          g(j) = xtr(j) + Lambda * wj
-          j += 1
-        Right(ObjectiveEvaluation(f + 0.5 * Lambda * ww, Matrix.fromArrayCopy(LogisticCols, 1, g)))
-
   private def runGaleRosenbrock(): (FirstOrderSolution, Int) =
-    val solution = LBFGS.minimize(galeRosenbrockObjective, gRosenbrockStart, galeConfig).fold(e => throw new IllegalStateException(e.message), identity)
+    val solution = LBFGS.minimize(rosenbrockObjective, gRosenbrockStart, galeConfig).fold(e => throw new IllegalStateException(e.message), identity)
     (solution, solution.evaluations.callbacks)
 
   private def runGaleLogistic(using Backend): (FirstOrderSolution, Int) =
     val start    = DMat.zeros(LogisticCols, 1)
-    val solution = LBFGS.minimize(galeLogisticObjective, start, galeConfig).fold(e => throw new IllegalStateException(e.message), identity)
+    val solution = LBFGS.minimize(logisticObjective(gX, gLabels), start, galeConfig).fold(e => throw new IllegalStateException(e.message), identity)
     (solution, solution.evaluations.callbacks)
 
   // breeze -------------------------------------------------------------------
@@ -192,50 +156,15 @@ class LbfgsBreezeJmh:
       evaluations += 1
       f(x)
 
-  private def rosenbrockBreeze(x: BDV[Double]): (Double, BDV[Double]) =
-    val g = new Array[Double](RosenbrockSize)
-    var f = 0.0
-    var i = 0
-    while i < RosenbrockSize - 1 do
-      val xi = x(i)
-      val t  = x(i + 1) - xi * xi
-      val u  = 1.0 - xi
-      f += 100.0 * t * t + u * u
-      g(i) += -400.0 * t * xi - 2.0 * u
-      g(i + 1) += 200.0 * t
-      i += 1
-    (f, BDV(g))
-
-  private def logisticBreeze(w: BDV[Double]): (Double, BDV[Double]) =
-    val z = bX * w
-    val r = new Array[Double](LogisticRows)
-    var f = 0.0
-    var i = 0
-    while i < LogisticRows do
-      val m = bLabels(i) * z(i)
-      f += logOnePlusExp(-m)
-      r(i) = -bLabels(i) * sigmoid(-m)
-      i += 1
-    val xtr = bX.t * BDV(r)
-    val g   = new Array[Double](LogisticCols)
-    var ww  = 0.0
-    var j   = 0
-    while j < LogisticCols do
-      val wj = w(j)
-      ww += wj * wj
-      g(j) = xtr(j) + Lambda * wj
-      j += 1
-    (f + 0.5 * Lambda * ww, BDV(g))
-
-  private def breezeSolver = new BreezeLBFGS[BDV[Double]](breezeMaxIter, History, breezeTolerance)
+  private def breezeSolver = breezeLbfgs(breezeMaxIter, breezeTolerance)
 
   private def runBreezeRosenbrock(): (BreezeLBFGS[BDV[Double]]#State, Int) =
-    val f     = new Counting(rosenbrockBreeze)
+    val f     = new Counting(rosenbrockFunction)
     val state = breezeSolver.minimizeAndReturnState(f, BDV(rosenbrockStart.clone()))
     (state, f.evaluations)
 
   private def runBreezeLogistic(): (BreezeLBFGS[BDV[Double]]#State, Int) =
-    val f     = new Counting(logisticBreeze)
+    val f     = new Counting(logisticFunction(bX, bLabels))
     val state = breezeSolver.minimizeAndReturnState(f, BDV.zeros[Double](LogisticCols))
     (state, f.evaluations)
 
@@ -257,6 +186,120 @@ object LbfgsBreezeJmh:
   final val Lambda          = 0.01
   final val History         = 10
   final val FixedIterations = 20
+  final val RosenbrockFixture = "rosenbrock100-alternating-v1"
+  final val LogisticFixture   = "logistic1000x50-design6100-truth6200-noise6300-v1"
+
+  /** The chained-Rosenbrock start `(−1.2, 1, −1.2, 1, …)`. */
+  def rosenbrockStartPoint(): Array[Double] = Array.tabulate(RosenbrockSize)(i => if i % 2 == 0 then -1.2 else 1.0)
+
+  /** The logistic design and its `±1` labels from a seeded linear model plus noise. */
+  def logisticData(): (Array[Array[Double]], Array[Double]) =
+    val design = matrixData(LogisticRows, LogisticCols, 6100L)
+    val truth  = vectorData(LogisticCols, 6200L)
+    val noise  = vectorData(LogisticRows, 6300L)
+    val labels = Array.tabulate(LogisticRows): i =>
+      var z = 0.0
+      var j = 0
+      while j < LogisticCols do
+        z += design(i)(j) * truth(j)
+        j += 1
+      if z + 0.5 * noise(i) >= 0.0 then 1.0 else -1.0
+    (design, labels)
+
+  val rosenbrockObjective: DifferentiableObjective =
+    new DifferentiableObjective:
+      def variableRows: Int = RosenbrockSize
+      def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
+        val g = new Array[Double](RosenbrockSize)
+        var f = 0.0
+        var i = 0
+        while i < RosenbrockSize - 1 do
+          val xi = at(i, 0)
+          val t  = at(i + 1, 0) - xi * xi
+          val u  = 1.0 - xi
+          f += 100.0 * t * t + u * u
+          g(i) += -400.0 * t * xi - 2.0 * u
+          g(i + 1) += 200.0 * t
+          i += 1
+        Right(ObjectiveEvaluation(f, Matrix.fromArrayCopy(RosenbrockSize, 1, g)))
+
+  def logisticObjective(x: DMat, labels: Array[Double])(using Backend): DifferentiableObjective =
+    new DifferentiableObjective:
+      def variableRows: Int = LogisticCols
+      def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
+        val w = at.col(0)
+        val z = x * w
+        val r = new Array[Double](LogisticRows)
+        var f = 0.0
+        var i = 0
+        while i < LogisticRows do
+          val m = labels(i) * z(i)
+          f += logOnePlusExp(-m)
+          r(i) = -labels(i) * sigmoid(-m)
+          i += 1
+        val xtr = x.t * Vec.fromArrayCopy(r)
+        val g   = new Array[Double](LogisticCols)
+        var ww  = 0.0
+        var j   = 0
+        while j < LogisticCols do
+          val wj = w(j)
+          ww += wj * wj
+          g(j) = xtr(j) + Lambda * wj
+          j += 1
+        Right(ObjectiveEvaluation(f + 0.5 * Lambda * ww, Matrix.fromArrayCopy(LogisticCols, 1, g)))
+
+  def rosenbrockFunction(x: BDV[Double]): (Double, BDV[Double]) =
+    val g = new Array[Double](RosenbrockSize)
+    var f = 0.0
+    var i = 0
+    while i < RosenbrockSize - 1 do
+      val xi = x(i)
+      val t  = x(i + 1) - xi * xi
+      val u  = 1.0 - xi
+      f += 100.0 * t * t + u * u
+      g(i) += -400.0 * t * xi - 2.0 * u
+      g(i + 1) += 200.0 * t
+      i += 1
+    (f, BDV(g))
+
+  def logisticFunction(x: BDM[Double], labels: Array[Double])(w: BDV[Double]): (Double, BDV[Double]) =
+    val z = x * w
+    val r = new Array[Double](LogisticRows)
+    var f = 0.0
+    var i = 0
+    while i < LogisticRows do
+      val m = labels(i) * z(i)
+      f += logOnePlusExp(-m)
+      r(i) = -labels(i) * sigmoid(-m)
+      i += 1
+    val xtr = x.t * BDV(r)
+    val g   = new Array[Double](LogisticCols)
+    var ww  = 0.0
+    var j   = 0
+    while j < LogisticCols do
+      val wj = w(j)
+      ww += wj * wj
+      g(j) = xtr(j) + Lambda * wj
+      j += 1
+    (f + 0.5 * Lambda * ww, BDV(g))
+
+  /** Breeze `LBFGS` with the harness's history; `tolerance = 0` disables its convergence tests. */
+  def breezeLbfgs(maxIter: Int, tolerance: Double): BreezeLBFGS[BDV[Double]] =
+    new BreezeLBFGS[BDV[Double]](maxIter, History, tolerance)
+
+  /** The `tolerance` budget's iteration cap (both sides) and Breeze's own convergence tolerance. */
+  final val ToleranceIterations = 10000
+  final val BreezeTolerance     = 1e-8
+
+  /** The `tolerance` budget's gale configuration: gale's default (strict) gradient test. */
+  def toleranceConfig: LBFGSConfig = LBFGSConfig(maxIterations = ToleranceIterations)
+
+  /** The `fixed` budget's gale configuration: tolerance disabled. */
+  def fixedConfig: LBFGSConfig =
+    LBFGSConfig(
+      maxIterations = FixedIterations,
+      tolerance = FirstOrderTolerance.from(Double.MinPositiveValue, 0.0).fold(e => throw new IllegalStateException(e.message), identity)
+    )
 
   /** `log(1 + exp(t))` without overflow. */
   def logOnePlusExp(t: Double): Double =

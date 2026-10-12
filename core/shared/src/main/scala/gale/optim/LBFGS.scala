@@ -54,6 +54,7 @@ object LBFGS:
       initial,
       config,
       None,
+      scaleSteepestStep = true,
       interpolate = false,
       approximateWolfe = false,
       onApproximateAcceptance = StrongWolfe.ignoreApproximateAcceptance
@@ -64,6 +65,7 @@ object LBFGS:
       initial: DMat,
       config: LBFGSConfig,
       curvatureScale: Option[CurvatureScale],
+      scaleSteepestStep: Boolean,
       interpolate: Boolean,
       approximateWolfe: Boolean,
       onApproximateAcceptance: () => Unit
@@ -78,6 +80,7 @@ object LBFGS:
           initial,
           config,
           curvatureScale,
+          scaleSteepestStep,
           interpolate,
           approximateWolfe,
           onApproximateAcceptance
@@ -109,6 +112,7 @@ object LBFGS:
       initial: DMat,
       config: LBFGSConfig,
       curvatureScale: Option[CurvatureScale],
+      scaleSteepestStep: Boolean,
       interpolate: Boolean,
       approximateWolfe: Boolean,
       onApproximateAcceptance: () => Unit
@@ -192,6 +196,14 @@ object LBFGS:
         directionalDerivative = dot(currentEvaluation.gradient, direction)
         history.clear()
         curvatureScale.foreach(_.value = 1.0)
+      // With no correction pairs and no carried curvature, the direction is the raw `-g`, so a unit step has the
+      // gradient's units. Try `1 / ‖d‖₂` (Breeze `LBFGS.determineStepSize`, Liu-Nocedal `STP1`): a unit-length
+      // displacement. Once a pair exists, `gamma = sᵀy / yᵀy` scales `d` and the unit step is the natural trial.
+      val initialStep =
+        if scaleSteepestStep && history.size == 0 && curvatureScale.isEmpty then
+          val inverse = 1.0 / norm(array(direction))
+          if inverse.isFinite && inverse > 0.0 then inverse else 1.0
+        else 1.0
       StrongWolfe.searchFrom(
         objective,
         current,
@@ -205,7 +217,8 @@ object LBFGS:
         config.maximumStep,
         interpolate = interpolate,
         approximateWolfe = approximateWolfe,
-        onApproximateAcceptance = onApproximateAcceptance
+        onApproximateAcceptance = onApproximateAcceptance,
+        initialStep = initialStep
       ) match
         case Left(FirstOrderError.ExecutionStopped(FirstOrderStoppingStatus.LineSearchFailed)) =>
           val failed = latest.copy(status = FirstOrderStoppingStatus.LineSearchFailed)

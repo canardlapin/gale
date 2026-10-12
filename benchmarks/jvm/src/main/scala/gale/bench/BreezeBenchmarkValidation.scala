@@ -1,9 +1,12 @@
 package gale.bench
 
 import breeze.linalg.{DenseMatrix as BDM, LU as BLU, cholesky as bChol, eig as bEig, eigSym as bEigSym, inv as bInv, pinv as bPinv, qr as bQr, svd as bSvd}
+import breeze.linalg.DenseVector as BDV
+import breeze.optimize.DiffFunction
 import gale.backend.{Backend, PureBackend}
 import gale.bench.BreezeBenchData.*
 import gale.linalg.*
+import gale.optim.{DifferentiableObjective, FirstOrderSolution, LBFGS, LBFGSConfig}
 import gale.spectral.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths, StandardOpenOption}
@@ -293,8 +296,183 @@ object BreezeBenchmarkValidation:
         for (label, actual) <- Seq("gale" -> data(ga * galeMatrix(rhs)), "breeze" -> data(ba * breezeMatrix(rhs))) do
           audit.matrix(label, actual, m, rhs(0).length)
           audit.check(s"$label product", ratio(norm(minus(actual, expected)), norm(a) * norm(rhs)))
+      case "Rosenbrock" =>
+        require(n == 1, "Rosenbrock fixture is a start column")
+        rosenbrockSolves(audit, a.map(_(0)))
+      case "Logistic" =>
+        require(rhs.length == m && rhs.forall(_.length == 1), "logistic labels are one column per design row")
+        logisticSolves(audit, a, rhs.map(_(0)), ga, ba)
       case other => throw new IllegalArgumentException(s"unvalidated operation $other")
     audit.metrics.toVector
+
+  private def normInf(x: Array[Double]): Double = x.foldLeft(0.0)((m, v) => math.max(m, math.abs(v)))
+  private def norm2(x: Array[Double]): Double = x.foldLeft(0.0)(math.hypot)
+  private def distance(x: Array[Double], y: Array[Double]): Double = norm2(Array.tabulate(x.length)(i => x(i) - y(i)))
+
+  /** Chained Rosenbrock value and gradient, written independently of the timed objectives. */
+  private[bench] def rosenbrock(x: Array[Double]): (Double, Array[Double]) =
+    val g = new Array[Double](x.length)
+    var f = 0.0
+    for i <- 0 until x.length - 1 do
+      val t = x(i + 1) - x(i) * x(i)
+      f += 100.0 * t * t + (1.0 - x(i)) * (1.0 - x(i))
+      g(i) += -400.0 * x(i) * t - 2.0 * (1.0 - x(i))
+      g(i + 1) += 200.0 * t
+    (f, g)
+
+  /** Smallest eigenvalue of the chained-Rosenbrock Hessian at `x` (tridiagonal), by Sturm-count bisection. */
+  private[bench] def rosenbrockHessianMin(x: Array[Double]): Double =
+    val n = x.length
+    val d = Array.tabulate(n)(i =>
+      (if i < n - 1 then 1200.0 * x(i) * x(i) - 400.0 * x(i + 1) + 2.0 else 0.0) + (if i > 0 then 200.0 else 0.0)
+    )
+    val e = Array.tabulate(n - 1)(i => -400.0 * x(i))
+    def below(sigma: Double): Int =
+      var count = 0
+      var q = 1.0
+      for i <- 0 until n do
+        q = d(i) - sigma - (if i > 0 then e(i - 1) * e(i - 1) / q else 0.0)
+        if q == 0.0 then q = -Double.MinPositiveValue
+        if q < 0.0 then count += 1
+      count
+    val radius = Array.tabulate(n)(i => (if i > 0 then math.abs(e(i - 1)) else 0.0) + (if i < n - 1 then math.abs(e(i)) else 0.0))
+    var lo = (0 until n).map(i => d(i) - radius(i)).min
+    var hi = (0 until n).map(i => d(i) + radius(i)).max
+    while hi - lo > 1e-14 * math.max(1.0, math.abs(hi)) do
+      val mid = 0.5 * (lo + hi)
+      if mid <= lo || mid >= hi then return lo
+      if below(mid) >= 1 then hi = mid else lo = mid
+    lo
+
+  /** Regularized logistic value and gradient, written independently of the timed objectives. */
+  private[bench] def logistic(design: Data, labels: Array[Double], w: Array[Double]): (Double, Array[Double]) =
+    import LbfgsBreezeJmh.{Lambda, logOnePlusExp, sigmoid}
+    val g = Array.tabulate(w.length)(j => Lambda * w(j))
+    var f = 0.5 * Lambda * w.foldLeft(0.0)((s, v) => s + v * v)
+    for i <- design.indices do
+      var z = 0.0
+      for j <- w.indices do z += design(i)(j) * w(j)
+      val margin = labels(i) * z
+      f += logOnePlusExp(-margin)
+      val r = -labels(i) * sigmoid(-margin)
+      for j <- w.indices do g(j) += r * design(i)(j)
+    (f, g)
+
+  private def galeSolve(objective: DifferentiableObjective, start: Array[Double], config: LBFGSConfig) =
+    LBFGS
+      .minimize(objective, Matrix.fromArrayCopy(start.length, 1, start), config)
+      .fold(e => throw new IllegalStateException(s"gale L-BFGS failed: ${e.message}"), solution => solution)
+
+  private def galePoint(solution: FirstOrderSolution): Array[Double] =
+    Array.tabulate(solution.primal.rows)(solution.primal(_, 0))
+
+  private def breezeSolve(
+      f: BDV[Double] => (Double, BDV[Double]),
+      start: Array[Double],
+      maxIter: Int,
+      tolerance: Double
+  ) =
+    val function = new DiffFunction[BDV[Double]]:
+      def calculate(x: BDV[Double]) = f(x)
+    LbfgsBreezeJmh.breezeLbfgs(maxIter, tolerance).minimizeAndReturnState(function, BDV(start.clone()))
+
+  /** Largest allowed ratio of Breeze's fixed-budget decrease `f0 − f` to gale's. */
+  final val FixedBudgetDecreaseFactor = 2.0
+
+  /** Both `fixed`-budget solves run exactly the iteration budget and descend from the start, and gale's decrease
+    * `f0 − f` is at least `1 / FixedBudgetDecreaseFactor` of Breeze's. Descent alone passes any monotone search, even
+    * one whose steps are too small to move; the decrease ratio fails it. On both fixtures the ratio is currently
+    * 1.000 to three decimals.
+    */
+  private[bench] def fixedBudget(
+      audit: Audit,
+      problem: String,
+      f0: Double,
+      gale: (Int, Double),
+      breeze: (Int, Double)
+  ): Unit =
+    for (label, (iterations, f)) <- Seq("gale" -> gale, "breeze" -> breeze) do
+      require(iterations == LbfgsBreezeJmh.FixedIterations, s"$label $problem fixed budget ran $iterations iterations")
+      audit.check(s"$label $problem fixed-budget descent f/f0", f / f0, 1.0)
+    audit.check(
+      s"$problem fixed-budget decrease breeze/gale",
+      (f0 - breeze._2) / (f0 - gale._2),
+      FixedBudgetDecreaseFactor
+    )
+
+  /** Converged solves against the known minimizer `x* = 1`, `f* = 0`. With `mu`, the smallest Hessian eigenvalue at
+    * `x*`, a point in its basin satisfies `f − f* ≤ ‖g‖₂²/(2 mu)` and `‖x − x*‖₂ ≤ ‖g‖₂/mu`; the limits allow twice
+    * that for the Hessian's variation near `x*`. A point at another stationary point (the chained function has a
+    * local minimum with `f ≈ 3.98`) fails the objective check.
+    */
+  private def rosenbrockSolves(audit: Audit, start: Array[Double]): Unit =
+    val n = start.length
+    val minimizer = Array.fill(n)(1.0)
+    val mu = rosenbrockHessianMin(minimizer)
+    require(mu > 0.0 && mu.isFinite, s"Rosenbrock Hessian at x* is not positive definite: $mu")
+    val (f0, g0) = rosenbrock(start)
+    val gradientLimit = 1e-6 * math.max(1.0, normInf(g0))
+    val galeConverged = galeSolve(LbfgsBreezeJmh.rosenbrockObjective, start, LbfgsBreezeJmh.toleranceConfig)
+    val breezeConverged = breezeSolve(
+      LbfgsBreezeJmh.rosenbrockFunction,
+      start,
+      LbfgsBreezeJmh.ToleranceIterations,
+      LbfgsBreezeJmh.BreezeTolerance
+    )
+    for (label, x) <- Seq("gale" -> galePoint(galeConverged), "breeze" -> breezeConverged.x.toArray) do
+      val (f, g) = rosenbrock(x)
+      audit.check(s"$label Rosenbrock gradient inf-norm", normInf(g), gradientLimit)
+      audit.check(s"$label Rosenbrock objective gap to f*=0", f, squaredNorm(g) / mu + n * Eps * Eps)
+      audit.check(s"$label Rosenbrock distance to x*=1", distance(x, minimizer), 2.0 * norm2(g) / mu + n * Eps)
+    val galeFixed = galeSolve(LbfgsBreezeJmh.rosenbrockObjective, start, LbfgsBreezeJmh.fixedConfig)
+    val breezeFixed = breezeSolve(LbfgsBreezeJmh.rosenbrockFunction, start, LbfgsBreezeJmh.FixedIterations, 0.0)
+    fixedBudget(
+      audit,
+      "Rosenbrock",
+      f0,
+      (galeFixed.certificate.iterations, rosenbrock(galePoint(galeFixed))._1),
+      (breezeFixed.iter, rosenbrock(breezeFixed.x.toArray)._1)
+    )
+
+  /** Converged solves against each other. The ridge term makes the objective `Lambda`-strongly convex, so each
+    * point satisfies `f − f* ≤ ‖g‖₂²/(2 Lambda)` and `‖w − w*‖₂ ≤ ‖g‖₂/Lambda`; the agreement limits are the sums of
+    * the two sides' bounds. `slack` covers the reference gradient's own rounding.
+    */
+  private def logisticSolves(audit: Audit, design: Data, labels: Array[Double], ga: DMat, ba: BDM[Double])(using
+      Backend
+  ): Unit =
+    val (m, n) = (design.length, design(0).length)
+    val lambda = LbfgsBreezeJmh.Lambda
+    val start = new Array[Double](n)
+    val (f0, g0) = logistic(design, labels, start)
+    val gradientLimit = 1e-6 * math.max(1.0, normInf(g0))
+    val objective = LbfgsBreezeJmh.logisticObjective(ga, labels)
+    val function = LbfgsBreezeJmh.logisticFunction(ba, labels)
+    val galeConverged = galeSolve(objective, start, LbfgsBreezeJmh.toleranceConfig)
+    val breezeConverged =
+      breezeSolve(function, start, LbfgsBreezeJmh.ToleranceIterations, LbfgsBreezeJmh.BreezeTolerance)
+    val absDesign = design.iterator.flatMap(_.iterator).foldLeft(0.0)((s, v) => s + math.abs(v))
+    val points = Seq("gale" -> galePoint(galeConverged), "breeze" -> breezeConverged.x.toArray)
+    val evaluated = points.map: (label, w) =>
+      val (f, g) = logistic(design, labels, w)
+      audit.check(s"$label logistic gradient inf-norm", normInf(g), gradientLimit)
+      val slack = 4.0 * (m + n) * Eps * absDesign * (1.0 + normInf(w))
+      (w, f, norm2(g) + slack)
+    val Seq((wg, fg, gg), (wb, fb, gb)) = evaluated: @unchecked
+    val rounding = 4.0 * (m + n) * Eps * math.max(math.abs(fg), math.abs(fb))
+    audit.check("logistic objective agreement", math.abs(fg - fb), (gg * gg + gb * gb) / (2.0 * lambda) + rounding)
+    audit.check("logistic solution agreement", distance(wg, wb), (gg + gb) / lambda)
+    val galeFixed = galeSolve(objective, start, LbfgsBreezeJmh.fixedConfig)
+    val breezeFixed = breezeSolve(function, start, LbfgsBreezeJmh.FixedIterations, 0.0)
+    fixedBudget(
+      audit,
+      "logistic",
+      f0,
+      (galeFixed.certificate.iterations, logistic(design, labels, galePoint(galeFixed))._1),
+      (breezeFixed.iter, logistic(design, labels, breezeFixed.x.toArray)._1)
+    )
+
+  private def squaredNorm(x: Array[Double]): Double = x.foldLeft(0.0)((s, v) => s + v * v)
 
   /** Same netlib calls and copies as MultiRhsBreezeJmh.breezeCholSolve. */
   private def breezeCholeskySolve(a: BDM[Double], b: BDM[Double]): Data =

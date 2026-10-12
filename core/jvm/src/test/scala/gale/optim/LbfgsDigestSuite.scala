@@ -9,7 +9,8 @@ import gale.linalg.*
   * Each case of a fixed corpus is reduced to one 64-bit digest of the raw bits of every point handed to the objective
   * (so every line-search trial, in order), the returned point, objective, residual, step, status, iteration and
   * evaluation counts, and the full progress trace. The stored digests in `lbfgs-digests.txt` were generated from the
-  * solvers as of breeze/integration 5d3950e, so any change to their arithmetic, summation order or line-search
+  * solvers as of breeze/integration 5d3950e; the `LBFGS` cases were regenerated when it adopted the `1 / ‖d‖₂` first
+  * step on unscaled `−∇f` (breeze/hc-lbfgs-step). Any change to their arithmetic, summation order or line-search
   * decisions fails here; such a change must regenerate the file deliberately (`LbfgsDigestSuite.main`) and justify the
   * new bits. The corpus includes restart cases that drive the two-loop direction non-finite, so the history is cleared
   * (after its ring has wrapped) and refilled.

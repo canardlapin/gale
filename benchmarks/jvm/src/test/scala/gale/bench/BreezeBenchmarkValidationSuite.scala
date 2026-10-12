@@ -83,3 +83,49 @@ class BreezeBenchmarkValidationSuite extends munit.FunSuite:
     assert(validate("Inv", diagonallyDominant(64, 2100L), backend = vector).nonEmpty)
     assert(validate("LuSolve", diagonallyDominant(64, 1700L), matrixData(64, 16, 1900L), vector).nonEmpty)
   }
+
+  test("L-BFGS fixtures validate converged and fixed-budget solves from both libraries") {
+    val rosenbrock = validate("Rosenbrock", column(LbfgsBreezeJmh.rosenbrockStartPoint()))
+    assert(rosenbrock.exists(_.name == "gale Rosenbrock distance to x*=1"), rosenbrock.map(_.name))
+    assert(rosenbrock.exists(_.name == "breeze Rosenbrock fixed-budget descent f/f0"), rosenbrock.map(_.name))
+    val (design, labels) = LbfgsBreezeJmh.logisticData()
+    for backend <- Seq(gale.backend.PureBackend, gale.backend.jvm.vector.VectorBackend) do
+      val logistic = validate("Logistic", design, column(labels), backend)
+      assert(logistic.exists(_.name == "logistic solution agreement"), logistic.map(_.name))
+  }
+
+  test("the Rosenbrock curvature bound matches the closed form and rejects another stationary point") {
+    // n = 2 at x* = 1: H = [[802, -400], [-400, 200]], so lambda_min = (1002 - sqrt(1002^2 - 1600)) / 2.
+    val expected = (1002.0 - math.sqrt(1002.0 * 1002.0 - 1600.0)) / 2.0
+    assertEqualsDouble(rosenbrockHessianMin(Array(1.0, 1.0)), expected, 1e-9 * expected)
+    // From x_0 = -1 both solvers settle at the chained function's local minimum (f ~ 3.98), not at x* = 1.
+    val local = Array.tabulate(LbfgsBreezeJmh.RosenbrockSize)(i => if i == 0 then -1.0 else 1.0)
+    intercept[IllegalArgumentException](validate("Rosenbrock", column(local)))
+  }
+
+  test("the fixed-budget check rejects a solve that descends without making progress") {
+    val f0 = 24926.0
+    val breezeFixed = (LbfgsBreezeJmh.FixedIterations, 97.84)
+    fixedBudget(new Audit(1), "Rosenbrock", f0, (LbfgsBreezeJmh.FixedIterations, 97.88), breezeFixed)
+    // A degenerate first step (1e-300 times the unit-length one) leaves every iterate at the start to within a few
+    // ulps: f/f0 <= 1 still holds, so descent alone would pass; the decrease ratio does not.
+    val stalled = (LbfgsBreezeJmh.FixedIterations, f0 * (1.0 - 1e-15))
+    intercept[IllegalArgumentException](fixedBudget(new Audit(1), "Rosenbrock", f0, stalled, breezeFixed))
+    // A solve that reaches only 1/2.5 of Breeze's decrease is outside the stated factor of 2.
+    val slow = (LbfgsBreezeJmh.FixedIterations, f0 - (f0 - 97.84) / 2.5)
+    intercept[IllegalArgumentException](fixedBudget(new Audit(1), "Rosenbrock", f0, slow, breezeFixed))
+    // A real solve whose steps are capped at 1e-300 cannot leave the start at all, and the iteration guard fails it.
+    val start = LbfgsBreezeJmh.rosenbrockStartPoint()
+    val capped = gale.optim.LBFGS
+      .minimize(
+        LbfgsBreezeJmh.rosenbrockObjective,
+        gale.linalg.DMat.tabulate(start.length, 1)((i, _) => start(i)),
+        LbfgsBreezeJmh.fixedConfig.copy(maximumStep = 1e-300)
+      )
+      .toOption
+      .get
+    val x = Array.tabulate[Double](start.length)(capped.primal(_, 0))
+    intercept[IllegalArgumentException](
+      fixedBudget(new Audit(1), "Rosenbrock", f0, (capped.certificate.iterations, rosenbrock(x)._1), breezeFixed)
+    )
+  }

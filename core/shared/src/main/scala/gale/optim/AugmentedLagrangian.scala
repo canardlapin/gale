@@ -318,6 +318,9 @@ object AugmentedLagrangian:
               control = innerControl
             ),
             curvatureScale,
+            // Inner solves start from the previous outer iterate, where `-g` is short and a unit-length first
+            // trial (`1 / ‖g‖₂`) would overshoot; keep the unit step, as the bounded branch does.
+            scaleSteepestStep = false,
             interpolate = true,
             approximateWolfe = config.roundoffAwareLineSearch,
             onApproximateAcceptance = recordApproximate
