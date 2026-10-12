@@ -9,8 +9,8 @@ import gale.linalg.*
   * only thing hashed. Each case is reduced, as in the JVM-only `LbfgsDigestSuite`, to a 64-bit FNV-1a digest of every
   * point handed to the objective, the returned point and fields, the evaluation counts and the progress trace. The
   * expected digests were generated on the JVM from breeze/integration 5d3950e (`LbfgsPortableDigests.main`), with the
-  * `LBFGS` cases regenerated for its `1 / ‖d‖₂` first step on unscaled `−∇f` (breeze/hc-lbfgs-step). On
-  * Scala.js this also covers the `Float64Array`-backed storage the solvers allocate.
+  * `LBFGS` cases regenerated for its `1 / ‖d‖₂` first step on unscaled `−∇f` (breeze/hc-lbfgs-step). On Scala.js this
+  * also covers the `Float64Array`-backed storage the solvers allocate.
   */
 class LbfgsPortableDigestSuite extends munit.FunSuite:
   import LbfgsPortableDigests.*
