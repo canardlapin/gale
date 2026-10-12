@@ -176,6 +176,22 @@ class VectorGemvRowMajorSuite extends munit.FunSuite:
         val y = simdY(lanes, q, 1.0, 0.0)
         for i <- 0 until rows do assert(y(q.yOffset + i).isNaN, s"${rows}x$cols lanes=$lanes: row $i missed NaN x")
 
+  test("row-major tile: empty shapes scale y by beta when cols = 0 and leave it untouched when rows = 0"):
+    for (rows, cols) <- Seq((8, 0), (1, 0), (13, 0), (0, 5), (0, 0)); (alpha, beta) <- Seq((1.0, 0.0), (1.5, 1.0), (0.75, -1.25))
+    do
+      for yInit <- Seq[Int => Double](i => (i % 7).toDouble - 3.0, _ => Double.NaN) do
+        val p = problem(rows, cols, yInit = yInit)
+        checkAllLanes(p, alpha, beta)
+        for lanes <- Variants do
+          val y = simdY(lanes, p, alpha, beta)
+          for i <- 0 until rows do
+            val expected = if beta == 0.0 then 0.0 else beta * yInit(i)
+            val actual = y(p.yOffset + i)
+            val label = s"${rows}x$cols lanes=$lanes alpha=$alpha beta=$beta row $i"
+            if expected.isNaN then assert(actual.isNaN, s"$label: expected NaN, got $actual")
+            else assertEquals(actual, expected, label)
+          if rows == 0 then assertEquals(y.toSeq, p.y.toSeq, s"${rows}x$cols lanes=$lanes: rows = 0 wrote to y")
+
   test("row-major tile is deterministic run to run"):
     for (rows, cols) <- Shapes; lanes <- Variants do
       val p = problem(rows, cols)

@@ -44,8 +44,6 @@ PIN=(numactl --physcpubind="$CCD" --membind="${NUMANODE:-0}")
   for d in ${LIB_DIRS//:/ }; do ls "$d" 2>/dev/null | grep -iE '^lib(blas|lapack|openblas|flexiblas)' | sed "s|^|$d/|" || true; done
 } > "$OUT/env.txt" 2>&1
 
-LANE_A=(-jvmArgs "-Xms4g -Xmx4g -Dgale.bench.sourceSha=$SOURCE_SHA -Dgale.bench.lane=A -Dgale.bench.netlibSidecar=$OUT/netlib.jsonl" -p backend=pure -rf json)
-LANE_B=(-jvmArgsAppend "-Xms4g -Xmx4g -Dgale.bench.sourceSha=$SOURCE_SHA -Dgale.bench.lane=B -Dgale.bench.netlibSidecar=$OUT/netlib.jsonl" -p backend=pure,vector -rf json)
 HOST=("${PIN[@]}" "$JAVA" --add-modules=jdk.incubator.vector "-Dgale.bench.sourceSha=$SOURCE_SHA" -cp "$CP" org.openjdk.jmh.Main -foe true)
 
 reset_sidecars() { rm -f "$1/netlib.jsonl" "$1/netlib.jsonl.validation.jsonl"; }
