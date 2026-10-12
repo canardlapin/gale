@@ -408,10 +408,10 @@ until all of the following hold:
      logistic objective at a fixed budget (0.96×) (HC-4,
      `bd-01M4PAPJGS4EF4DXMEAS8NVY01`);
    - [ ] `dot` at n = 64K, 0.97× in both lanes: a real gap. The paired rerun
-     (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`, receipt `6b3fb9e`) measured 0.959–0.967×
+     (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`, receipt `2c26b9c`) measured 0.959–0.967×
      in all 4 runs; hc-dot is investigating;
    - [x] sparse `dot` with a dense vector (nnz = 10K), 0.96× in lane B: not
-     reproduced (1.001–1.006× in the same rerun, `6b3fb9e`); noise;
+     reproduced (1.001–1.006× in the same rerun, `2c26b9c`); noise;
    - [x] `sigmoid` at n = 1K and 64K (lane A 0.96×/0.97×, lane B 0.96×/0.95×):
      a documented exception under the amended criterion 2, signed off by the
      user on 2026-10-12;
@@ -447,16 +447,16 @@ Accepted exceptions to the outcome above, each with its measured cause.
   `SigmoidDigestSuite` pins the kernel's bits.
 - **`max`, n = 1M: 0.76× Breeze in lane A (Milestone 3; Milestone 2 lane A
   0.95×, lane B 0.76×).** An exception to epic criterion 2, signed off by the
-  user on 2026-10-12. The cause is JIT code placement on Zen 5, not the
-  kernel: each fork compiles the same scan loop into a fast or a slow
-  placement. Slow forks run identical instructions and branches per element
-  (3.75 and 1.25) at 1.01 instead of 0.77 cycles per element (IPC 3.9 against
-  5.2), consistent with the loop being fed by the 4-wide decoders instead of
-  the op cache. gale's fast mode ties Breeze at 1M and beats the Breeze-shaped
-  loop 1.13–1.24× at 1K and 64K, and Breeze shows the same lottery (0–1 slow
-  forks per 8). No bit-exact loop shape changed the instruction mix; a dense
-  facade entry point only moved the slow forks from 1M to 64K. Receipts:
-  `benchmarks/results/2026-10-11-hc-max2-trillium.md` (`86d77cd`),
-  `benchmarks/results/2026-10-11-hc-max2-facade-trillium.md` (`a206580`), and
-  the Milestone 2 and 3 lane A/B receipts. Confirmation
-  (`-XX:OptoLoopAlignment=64`): pending.
+  user on 2026-10-12. The gap is a per-fork JIT outcome on Zen 5, not the
+  kernel: each fork runs the same scan loop fast or slow. In the shipped
+  `galeMax` at 1M, slow forks run identical instructions and branches per
+  element (4.00 and 1.25) at 1.014 instead of about 0.77 cycles per element
+  (IPC 3.95 against 5.2). gale's fast mode ties Breeze at 1M and beats the
+  Breeze-shaped loop 1.13–1.24× at 1K and 64K, and Breeze shows the same
+  lottery (0–1 slow forks per 8). No bit-exact loop shape changed the
+  instruction mix; a dense facade entry point only moved the slow forks from
+  1M to 64K. Receipts: `benchmarks/results/2026-10-11-hc-max2-trillium.md`
+  (`ad2b6f0`), `benchmarks/results/2026-10-11-hc-max2-facade-trillium.md`
+  (`a9e5134`), and the Milestone 2 and 3 lane A/B receipts. Hypothesis: code
+  placement of the hot loop, with slow forks fed by the 4-wide decoders
+  instead of the op cache. Confirmation (`-XX:OptoLoopAlignment=64`): pending.

@@ -54,8 +54,8 @@ its delta against Milestone 2 and its provenance.
 | `max`, n = 1M | 0.76× | 0.90× (tie) | Documented exception (signed off 2026-10-12): JIT code placement, the same loop in a fast or slow mode per fork; see [Documented gaps](../docs/breeze-competitiveness-plan.md#documented-gaps) |
 | vector `gemv`/`gemvT`, n = 256–2048 | — | 0.95–0.96× (4 rows behind; 2 ties) | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
 | L-BFGS logistic, fixed budget (gemv-bound) | — | 0.96× | HC-4 (`bd-01M4PAPJGS4EF4DXMEAS8NVY01`) |
-| `dot`, n = 64K | 0.97× | 0.97× | Real: 0.959–0.967× in all 4 paired reruns (`6b3fb9e`); hc-dot investigating (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) |
-| sparse `dot` with a dense vector, length = 100000, nnz = 10000 | 1.00× (tie) | 0.96× | Not reproduced: 1.001–1.006× in the paired rerun (`6b3fb9e`) |
+| `dot`, n = 64K | 0.97× | 0.97× | Real: 0.959–0.967× in all 4 paired reruns (`2c26b9c`); hc-dot investigating (`bd-01M4PAPKQTBWWQSVC5PJ5R9CFT`) |
+| sparse `dot` with a dense vector, length = 100000, nnz = 10000 | 1.00× (tie) | 0.96× | Not reproduced: 1.001–1.006× in the paired rerun (`2c26b9c`) |
 
 No lane-A L2, L3, factorization or eigen pair at n ≥ 64 is behind. The
 secondary lane-B rows (pure gale against SIMD Breeze) are report-only: they

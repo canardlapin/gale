@@ -72,8 +72,10 @@ class MaxHillClimbJmh:
 
 private object MaxHillClimbRef:
   /** Throws unless every max candidate returns the same bits as the scan, on the
-    * benchmark data and on lines with NaNs of either sign, signed zeros,
-    * infinities and ties planted at the first, middle and last positions.
+    * benchmark data and on random lines of several lengths with fixed plants:
+    * a middle NaN, a negative NaN first and a NaN last, +Inf last, all -Inf,
+    * signed zeros first and last, and a first/last tie. Each plant is checked
+    * three times, with a different entry (first, middle, last) doubled first.
     */
   def selfCheck(n: Int, data: DoubleArray): Unit =
     def raw(v: Double) = java.lang.Double.doubleToRawLongBits(v)
