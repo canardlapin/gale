@@ -328,7 +328,7 @@ lazy val vectorBackend =
 
 // The optional adapter uses an exact canonical source revision. A sibling
 // checkout never changes resolution implicitly.
-lazy val ravelRevision = "9b53145ebb5a9547fe003b5117e05da9d6eff186"
+lazy val ravelRevision = "195d71027423d5bda1c53ef1baa17e07670fe290"
 lazy val ravelBuild: java.net.URI =
   sys.props
     .get("gale.ravel.build")
