@@ -16,7 +16,7 @@ import jdk.incubator.vector.VectorSpecies
   * `syrk` have explicit SIMD kernels; every other operation forwards to
   * [[gale.backend.PureDenseDoubleKernel]], the portable reference.
   *
-  * GEMV has two SIMD layouts: a four-output row tile for row-major `A`, and an
+  * GEMV has two SIMD layouts: eight- and four-output row tiles for row-major `A`, and an
   * eight-column axpy sweep for column-contiguous `A` (the transpose view of a
   * row-major matrix). GEMM packs `B` by columns, uses a 3×3 SIMD dot-product tile,
   * and handles only fully row-major inputs. Any other strided operand falls back
@@ -116,10 +116,9 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         x, xOffset, xStride, beta, y, yOffset, yStride
       )
 
-  /** Four-output row-major matrix-vector tile. Each output row and `x` are
-    * contiguous, so four independent vector accumulators hide the horizontal
-    * reduction latency even on a two-double ARM species. This is the row-major
-    * dual of a column-major BLAS transpose-GEMV kernel.
+  /** Row-major GEMV: an eight-row tile, then a four-row tile, then single rows.
+    * Each output row and `x` are contiguous, so this is the row-major dual of a
+    * column-major BLAS transpose-GEMV kernel.
     */
   private def gemvRowMajorSimd(
       rows: Int,
@@ -134,13 +133,139 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       y: Array[Double],
       yOffset: Int
   ): Unit =
-    val species = Species
+    gemvRowMajorTiles(Species, rows, cols, alpha, a, aOffset, aRowStride, x, xOffset, beta, y, yOffset)
+
+  /** The row-major GEMV body, inlined at a constant `species`; production expands it
+    * at [[Species]] and the tests also expand it at a fixed 256- and 512-bit species,
+    * so the eight-lane paths run (on the Vector API's Java fallback) on any host.
+    *
+    * The eight-row tile keeps one vector accumulator per row: eight independent FMA
+    * chains, and one `x` load per eight `A` loads (the four-row tile needs two per
+    * eight). On an eight-lane species it also replaces the scalar column tail with one
+    * masked step, and reduces the eight accumulators together with a rotate-and-add
+    * tree into one vector of eight row sums, which is scaled and stored as a vector,
+    * instead of eight separate horizontal reductions and scalar stores.
+    */
+  private[vector] inline def gemvRowMajorTiles(
+      inline species: VectorSpecies[java.lang.Double],
+      rows: Int,
+      cols: Int,
+      alpha: Double,
+      a: Array[Double],
+      aOffset: Int,
+      aRowStride: Int,
+      x: Array[Double],
+      xOffset: Int,
+      beta: Double,
+      y: Array[Double],
+      yOffset: Int
+  ): Unit =
     val lanes = species.length()
     val colBound = species.loopBound(cols)
     val pairBound = cols - cols % (2 * lanes)
-    val rowBound = rows - (rows & 3)
     var i = 0
-    while i < rowBound do
+
+    // Row-sum tree constants (eight-lane species only), hoisted out of the row loop.
+    val odd = jdk.incubator.vector.VectorMask.fromLong(species, 0xaaL)
+    val pairHigh = jdk.incubator.vector.VectorMask.fromLong(species, 0xccL)
+    val upperHalf = jdk.incubator.vector.VectorMask.fromLong(species, 0xf0L)
+    val rotate1 = species.iotaShuffle(1, 1, true)
+    val rotate2 = species.iotaShuffle(2, 1, true)
+    val rotate4 = species.iotaShuffle(4, 1, true)
+    val rowBound8 = rows - (rows & 7)
+    while i < rowBound8 do
+      val aRow0 = aOffset + i * aRowStride
+      val aRow1 = aRow0 + aRowStride
+      val aRow2 = aRow1 + aRowStride
+      val aRow3 = aRow2 + aRowStride
+      val aRow4 = aRow3 + aRowStride
+      val aRow5 = aRow4 + aRowStride
+      val aRow6 = aRow5 + aRowStride
+      val aRow7 = aRow6 + aRowStride
+      var s0 = DoubleVector.zero(species)
+      var s1 = DoubleVector.zero(species)
+      var s2 = DoubleVector.zero(species)
+      var s3 = DoubleVector.zero(species)
+      var s4 = DoubleVector.zero(species)
+      var s5 = DoubleVector.zero(species)
+      var s6 = DoubleVector.zero(species)
+      var s7 = DoubleVector.zero(species)
+      var j = 0
+      while j < colBound do
+        val xv = DoubleVector.fromArray(species, x, xOffset + j)
+        s0 = DoubleVector.fromArray(species, a, aRow0 + j).fma(xv, s0)
+        s1 = DoubleVector.fromArray(species, a, aRow1 + j).fma(xv, s1)
+        s2 = DoubleVector.fromArray(species, a, aRow2 + j).fma(xv, s2)
+        s3 = DoubleVector.fromArray(species, a, aRow3 + j).fma(xv, s3)
+        s4 = DoubleVector.fromArray(species, a, aRow4 + j).fma(xv, s4)
+        s5 = DoubleVector.fromArray(species, a, aRow5 + j).fma(xv, s5)
+        s6 = DoubleVector.fromArray(species, a, aRow6 + j).fma(xv, s6)
+        s7 = DoubleVector.fromArray(species, a, aRow7 + j).fma(xv, s7)
+        j += lanes
+      if lanes == 8 && j < cols then
+        // Masked-off lanes read nothing and add +0.0 to their accumulator.
+        val m = species.indexInRange(j, cols)
+        val xv = DoubleVector.fromArray(species, x, xOffset + j, m)
+        s0 = DoubleVector.fromArray(species, a, aRow0 + j, m).fma(xv, s0)
+        s1 = DoubleVector.fromArray(species, a, aRow1 + j, m).fma(xv, s1)
+        s2 = DoubleVector.fromArray(species, a, aRow2 + j, m).fma(xv, s2)
+        s3 = DoubleVector.fromArray(species, a, aRow3 + j, m).fma(xv, s3)
+        s4 = DoubleVector.fromArray(species, a, aRow4 + j, m).fma(xv, s4)
+        s5 = DoubleVector.fromArray(species, a, aRow5 + j, m).fma(xv, s5)
+        s6 = DoubleVector.fromArray(species, a, aRow6 + j, m).fma(xv, s6)
+        s7 = DoubleVector.fromArray(species, a, aRow7 + j, m).fma(xv, s7)
+        j = cols
+      if lanes == 8 then
+        // Each level folds two vectors into one: lanes with bit `d` clear sum the
+        // first operand's lanes `k` and `k + d`, lanes with bit `d` set the second's
+        // lanes `k` and `k + d` (mod 8). Three levels leave row `r`'s total in lane `r`.
+        val sums = rotateAddLevel(
+          rotateAddLevel(rotateAddLevel(s0, s1, odd, rotate1), rotateAddLevel(s2, s3, odd, rotate1), pairHigh, rotate2),
+          rotateAddLevel(rotateAddLevel(s4, s5, odd, rotate1), rotateAddLevel(s6, s7, odd, rotate1), pairHigh, rotate2),
+          upperHalf,
+          rotate4
+        )
+        val scaled = sums.mul(alpha)
+        if beta == 0.0 then scaled.intoArray(y, yOffset + i)
+        else
+          DoubleVector
+            .fromArray(species, y, yOffset + i)
+            .fma(DoubleVector.broadcast(species, beta), scaled)
+            .intoArray(y, yOffset + i)
+      else
+        var sum0 = s0.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum1 = s1.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum2 = s2.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum3 = s3.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum4 = s4.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum5 = s5.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum6 = s6.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        var sum7 = s7.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
+        while j < cols do
+          val xj = x(xOffset + j)
+          sum0 = Math.fma(a(aRow0 + j), xj, sum0)
+          sum1 = Math.fma(a(aRow1 + j), xj, sum1)
+          sum2 = Math.fma(a(aRow2 + j), xj, sum2)
+          sum3 = Math.fma(a(aRow3 + j), xj, sum3)
+          sum4 = Math.fma(a(aRow4 + j), xj, sum4)
+          sum5 = Math.fma(a(aRow5 + j), xj, sum5)
+          sum6 = Math.fma(a(aRow6 + j), xj, sum6)
+          sum7 = Math.fma(a(aRow7 + j), xj, sum7)
+          j += 1
+        y(yOffset + i) = combine(alpha, sum0, beta, y(yOffset + i))
+        y(yOffset + i + 1) = combine(alpha, sum1, beta, y(yOffset + i + 1))
+        y(yOffset + i + 2) = combine(alpha, sum2, beta, y(yOffset + i + 2))
+        y(yOffset + i + 3) = combine(alpha, sum3, beta, y(yOffset + i + 3))
+        y(yOffset + i + 4) = combine(alpha, sum4, beta, y(yOffset + i + 4))
+        y(yOffset + i + 5) = combine(alpha, sum5, beta, y(yOffset + i + 5))
+        y(yOffset + i + 6) = combine(alpha, sum6, beta, y(yOffset + i + 6))
+        y(yOffset + i + 7) = combine(alpha, sum7, beta, y(yOffset + i + 7))
+      i += 8
+
+    // At most seven rows remain: a four-row tile with two accumulators per row
+    // (eight chains), then single rows.
+    val rowBound4 = rows - (rows & 3)
+    while i < rowBound4 do
       val aRow0 = aOffset + i * aRowStride
       val aRow1 = aRow0 + aRowStride
       val aRow2 = aRow1 + aRowStride
@@ -149,7 +274,6 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
       var s1 = DoubleVector.zero(species)
       var s2 = DoubleVector.zero(species)
       var s3 = DoubleVector.zero(species)
-      // Two accumulators per row: eight independent vector FMA chains.
       var t0 = DoubleVector.zero(species)
       var t1 = DoubleVector.zero(species)
       var t2 = DoubleVector.zero(species)
@@ -177,7 +301,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         s1 = DoubleVector.fromArray(species, a, aRow1 + j).fma(xv, s1)
         s2 = DoubleVector.fromArray(species, a, aRow2 + j).fma(xv, s2)
         s3 = DoubleVector.fromArray(species, a, aRow3 + j).fma(xv, s3)
-        j += species.length()
+        j += lanes
       var sum0 = s0.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
       var sum1 = s1.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
       var sum2 = s2.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
@@ -203,13 +327,25 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         val av = DoubleVector.fromArray(species, a, aRow + j)
         val xv = DoubleVector.fromArray(species, x, xOffset + j)
         sum = av.fma(xv, sum)
-        j += species.length()
+        j += lanes
       var scalar = sum.reduceLanes(jdk.incubator.vector.VectorOperators.ADD)
       while j < cols do
         scalar = Math.fma(a(aRow + j), x(xOffset + j), scalar)
         j += 1
       y(yOffset + i) = combine(alpha, scalar, beta, y(yOffset + i))
       i += 1
+
+  /** One level of the eight-lane row-sum tree, rotating by `d` lanes: lanes clear in
+    * `setLanes` get `u(k) + u(k + d)`, lanes set get `v(k) + v(k + d)` (mod 8), where
+    * `setLanes` holds the lanes with bit `d` set and `rotateD` rotates by `d`.
+    */
+  private[vector] inline def rotateAddLevel(
+      u: DoubleVector,
+      v: DoubleVector,
+      setLanes: jdk.incubator.vector.VectorMask[java.lang.Double],
+      rotateD: jdk.incubator.vector.VectorShuffle[java.lang.Double]
+  ): DoubleVector =
+    u.blend(v, setLanes).add(v.blend(u, setLanes).rearrange(rotateD))
 
   /** Column-contiguous (e.g. the transpose view of a row-major matrix) GEMV as a
     * sequence of SIMD axpys over `y`, eight (then four) columns per pass so each
@@ -344,7 +480,7 @@ object VectorDenseDoubleKernel extends DenseDoubleKernel:
         i += 1
       j += 1
 
-  private inline def combine(alpha: Double, sum: Double, beta: Double, prior: Double): Double =
+  private[vector] inline def combine(alpha: Double, sum: Double, beta: Double, prior: Double): Double =
     if beta == 0.0 then alpha * sum
     else Math.fma(beta, prior, alpha * sum)
 
