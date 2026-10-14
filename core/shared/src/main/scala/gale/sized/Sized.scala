@@ -154,7 +154,7 @@ object SMat:
     def *(alpha: Double): SMat[R, C] =
       unsafe(m.toDMat * alpha)
 
-    /** Scale by a scalar. Alias of [[*]]. */
+    /** Scale by a scalar. Alias of `m * alpha`. */
     def scale(alpha: Double): SMat[R, C] =
       m * alpha
 
