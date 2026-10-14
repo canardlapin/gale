@@ -9,6 +9,8 @@ Start from the problem you need to solve:
   run iterative methods, and define a matrix-free operator.
 - [Spectral analysis](spectral-analysis.md) — compute dense eigenvalues or SVD
   and interpret partial convergence.
+- [Bounded symmetric tanh rotation](ica-rotation.md) — iterate over already
+  whitened observations with explicit initialization and typed stopping outcomes.
 - [Minimum-norm solves and subspaces](subspaces-and-minimum-norm.md) — choose
   a singular-value cutoff, reuse projections, and report null equations.
 - [First-order composite optimization](first-order-optimization.md) — choose
