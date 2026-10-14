@@ -31,3 +31,5 @@ to advanced ownership, sparse-structure, and generalized-eigensolver material.
 If you have not completed one Gale call yet, begin with
 [Get your first result](../getting-started.md). If you know the call but not the
 failure, use [Troubleshooting](../troubleshooting.md).
+
+[Owned complex Hermitian factors](complex-hermitian.md) covers the bounded portable complex storage, PSD factors, rank cutoffs and solves.

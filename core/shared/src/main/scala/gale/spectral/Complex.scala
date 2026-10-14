@@ -3,13 +3,13 @@ package gale.spectral
 /** A complex number, used only as a '''boundary value type''' at the spectral
   * API surface.
   *
-  * gale's spectral inputs and storage are real throughout (fixed constraint 1 of
-  * `docs/spectral-parity.md`): there is no complex storage tier and no complex
-  * kernel tier. `Complex` exists solely so that nonsymmetric and generalized
+  * The existing spectral inputs and storage remain real throughout (fixed constraint 1 of
+  * `docs/spectral-parity.md`). The separate `gale.complex` tier supplies bounded
+  * owned complex Hermitian operations. This scalar also lets nonsymmetric and generalized
   * eigenvalue accessors can hand back a conjugate-pair eigenvalue as a single
   * value. It carries only the arithmetic those accessors need — magnitude,
   * conjugation, and division by a real scalar (to form `α/β`) — deliberately not
-  * a full complex-arithmetic tier.
+  * a general scalar complex-arithmetic API.
   */
 final case class Complex(re: Double, im: Double):
   /** The modulus `√(re² + im²)`, via [[scala.math.hypot]] to avoid intermediate
