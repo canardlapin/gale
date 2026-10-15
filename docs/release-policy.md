@@ -1,12 +1,13 @@
 # Gale v1 compatibility and artifact policy
 
 This policy begins with the first `1.0.0` release. The current build version is
-`1.0.0-SNAPSHOT`; a snapshot is not a published release or a compatibility
-promise.
+`1.0.0-RC1` on the dependency-release branch. The limited JVM candidate is
+described in [dependency-release.md](dependency-release.md); it is not the full
+stable release or the start of the stable compatibility promise.
 
 ## Coordinates and published modules
 
-The organization is `io.gale` and the Scala binary suffix is `_3`. The intended
+The organization is `io.github.canardlapin` and the Scala binary suffix is `_3`. The intended
 v1 artifact set is:
 
 | Artifact | Platforms | Purpose |

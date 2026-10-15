@@ -2,3 +2,6 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.22.0")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.8")
 addSbtPlugin("org.typelevel" % "sbt-typelevel-site" % "0.8.7")
+
+// Sign the explicitly selected JVM dependency release without the full Typelevel stack.
+addSbtPlugin("io.crashbox" % "sbt-gpg" % "0.2.1")
