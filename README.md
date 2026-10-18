@@ -195,7 +195,9 @@ normalized readout methods, not accumulator insertion.
 ## Fit and boundaries
 
 Gale targets the real-`Double` linear algebra slice used by scientific and data
-libraries. It is not source-compatible with Breeze and does not replace
+libraries, plus a bounded owned complex Hermitian tier in `gale.complex`.
+The [Hermitian guide](docs/user/guides/complex-hermitian.md) defines its portable
+PSD factor, rank-aware solve and capacity contracts. It is not source-compatible with Breeze and does not replace
 Breeze's statistics, probability, signal-processing, plotting, machine
 learning, tensor, or general complex-number modules. Sparse direct
 factorization is not implemented in the current core.

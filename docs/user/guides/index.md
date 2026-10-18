@@ -12,6 +12,8 @@ Start from the problem you need to solve:
   run iterative methods, and define a matrix-free operator.
 - [Spectral analysis](spectral-analysis.md) — compute dense eigenvalues or SVD
   and interpret partial convergence.
+- [Bounded symmetric tanh rotation](ica-rotation.md) — iterate over already
+  whitened observations with explicit initialization and typed stopping outcomes.
 - [Minimum-norm solves and subspaces](subspaces-and-minimum-norm.md) — choose
   a singular-value cutoff, reuse projections, and report null equations.
 - [First-order composite optimization](first-order-optimization.md) — choose
@@ -32,3 +34,5 @@ to advanced ownership, sparse-structure, and generalized-eigensolver material.
 If you have not completed one Gale call yet, begin with
 [Get your first result](../getting-started.md). If you know the call but not the
 failure, use [Troubleshooting](../troubleshooting.md).
+
+[Owned complex Hermitian factors](complex-hermitian.md) covers the bounded portable complex storage, PSD factors, rank cutoffs and solves.

@@ -279,8 +279,8 @@ Gale's default sparse-direct provider is `none`. Use an iterative solver, or
 `import gale.sparse.direct.pure.given` for portable sparse Cholesky on a
 canonical square CSR. That import is not SuiteSparse and does not provide
 sparse LU or QR. Those, plus C Wasm, each need their own spec in a
-[future version](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md); see
-[Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-js.md).
+[future version](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/docs/sparse-direct-future.md); see
+[Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/docs/sparse-direct-js.md).
 
 ## Reduce, normalize, and use sparse vectors
 
@@ -501,7 +501,7 @@ factor entries.
 ## Coverage at a glance
 
 Differential checks against Breeze 2.1 for these common operations live in the
-[`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md) (`sbt parityTest`). Operations
+[`parity/` module](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/parity/README.md) (`sbt parityTest`). Operations
 with no honest Breeze reference — generalized eigen / GSVD / QZ, sparse-direct
 factorization, near-cutoff rank / `pinv` / `cond`, and Krylov algorithm
 diagnostics — are checked against NumPy / SciPy fixtures in the same module.
@@ -680,7 +680,7 @@ val optBounded = LBFGSB
 
 ### Recorded differences
 
-`OptimizerParitySuite` in the [`parity/` module](https://github.com/canardlapin/gale/blob/main/parity/README.md)
+`OptimizerParitySuite` in the [`parity/` module](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/parity/README.md)
 runs both libraries with this shared rule (`τ = 1e-8`, history 10) on
 quadratics with condition numbers up to 1e6, chained Rosenbrock up to
 n = 100, L2-regularized logistic regression, and box-constrained quadratics

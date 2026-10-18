@@ -231,8 +231,8 @@ JVM and Scala.js. `import gale.sparse.direct.pure.given` enables portable
 sparse Cholesky only (minimum-degree `ProviderDefault`, exact-zero-style
 `NotPositiveDefinite`, fill guard). Do not infer sparse LU or QR from the
 types or from that import. Sparse QR, pivoting LU, and C Wasm each need
-their own spec in a [future version](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md). The
-current plan is [Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-js.md).
+their own spec in a [future version](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/docs/sparse-direct-future.md). The
+current plan is [Scala.js sparse-direct](https://github.com/canardlapin/gale/blob/be709f1e2458e6b58e902862f9e868c4da27e4fe/docs/sparse-direct-js.md).
 
 ## Choosing a backend
 
