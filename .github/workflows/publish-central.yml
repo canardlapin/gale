@@ -1,0 +1,79 @@
+name: Publish validated Central milestone
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: "Validated USER_MANAGED deployment ID for Gale 0.1.0-M1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-central-0.1.0-M1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Verify exact milestone and publish only after Central validation
+        env:
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        shell: python
+        run: |
+          import base64, json, os, re, time, urllib.request
+          from pathlib import Path
+
+          deployment = os.environ["DEPLOYMENT_ID"]
+          assert re.fullmatch(r"[0-9a-fA-F-]{36}", deployment), "Invalid deployment ID"
+          credentials = os.environ["SONATYPE_USERNAME"] + ":" + os.environ["SONATYPE_PASSWORD"]
+          authorization = "Bearer " + base64.b64encode(credentials.encode()).decode()
+          base = "https://central.sonatype.com/api/v1/publisher/"
+          expected = {
+              f"pkg:maven/io.github.canardlapin/{artifact}@0.1.0-M1"
+              for artifact in ("gale-core_3", "gale-laws_3", "gale-core_sjs1_3", "gale-laws_sjs1_3")
+          }
+
+          def post(path):
+              request = urllib.request.Request(base + path, method="POST", headers={"Authorization": authorization})
+              with urllib.request.urlopen(request, timeout=60) as response:
+                  return response.read()
+
+          def status():
+              result = json.loads(post("status?id=" + deployment))
+              Path("central-publication.json").write_text(json.dumps(result, indent=2) + "\n")
+              assert result["deploymentId"] == deployment, "Wrong deployment"
+              assert set(result.get("purls", [])) == expected, "Unexpected release coordinates"
+              return result["deploymentState"]
+
+          state = status()
+          if state == "VALIDATED":
+              post("deployment/" + deployment)
+              print("Requested publication of validated Gale 0.1.0-M1.")
+          elif state not in ("PUBLISHING", "PUBLISHED"):
+              raise RuntimeError("Refusing to publish deployment in state " + state)
+          for attempt in range(90):
+              state = status()
+              print("Central state:", state)
+              if state == "PUBLISHED":
+                  with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+                      summary.write("Gale **0.1.0-M1** is PUBLISHED. Deployment: `" + deployment + "`\n")
+                  break
+              if state not in ("VALIDATED", "PUBLISHING"):
+                  raise RuntimeError("Unexpected publication state: " + state)
+              time.sleep(10)
+          else:
+              raise RuntimeError("Publication still pending; inspect deployment before retrying.")
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: central-publication
+          path: central-publication.json
+          if-no-files-found: error
