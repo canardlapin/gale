@@ -32,16 +32,24 @@ class Response:
 
 
 class PublicationWorkflowTest(unittest.TestCase):
-    def run_states(self, states, publishes, error=None):
+    def run_states(self, states, publishes, error=None, bad_public_pom=False):
         requests = []
         sequence = iter(states)
 
         def request(req, timeout):
+            if isinstance(req, str):
+                self.assertTrue(req.startswith('https://repo.maven.apache.org/maven2/io/github/canardlapin/'))
+                requests.append(req)
+                artifact = req.split('/')[-3]
+                version = 'wrong' if bad_public_pom else '0.1.0-M1'
+                return Response((f'<project xmlns="http://maven.apache.org/POM/4.0.0">'
+                                 f'<groupId>io.github.canardlapin</groupId><artifactId>{artifact}</artifactId>'
+                                 f'<version>{version}</version></project>').encode())
             requests.append(req.full_url)
             if '/deployment/' in req.full_url:
                 return Response(b'')
             state, purls = next(sequence)
-            return Response(json.dumps(dict(deploymentId=DEPLOYMENT, deploymentState=state, purls=purls)).encode())
+            return Response(json.dumps(dict(deploymentId=DEPLOYMENT, deploymentName="Gale-v0.1.0-M1", deploymentState=state, purls=purls)).encode())
 
         with tempfile.TemporaryDirectory() as temporary:
             old = os.getcwd()
@@ -72,8 +80,14 @@ class PublicationWorkflowTest(unittest.TestCase):
     def test_wrong_coordinates_are_rejected_even_during_publication(self):
         self.run_states([('PUBLISHING', PURLS[:1])], 0, AssertionError)
 
-    def test_completion_requires_exact_coordinates(self):
-        self.run_states([('PUBLISHED', [])], 0, AssertionError)
+    def test_completion_can_verify_missing_metadata_from_public_poms(self):
+        self.run_states([('PUBLISHED', []), ('PUBLISHED', [])], 0)
+
+    def test_bad_public_pom_cannot_certify_completion(self):
+        self.run_states([('PUBLISHED', [])], 0, AssertionError, bad_public_pom=True)
+
+    def test_nonempty_wrong_completion_coordinates_are_rejected(self):
+        self.run_states([('PUBLISHED', PURLS[:1])], 0, AssertionError)
 
     def test_failed_validation_cannot_publish(self):
         self.run_states([('FAILED', PURLS)], 0, RuntimeError)
