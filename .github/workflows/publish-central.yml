@@ -50,8 +50,13 @@ jobs:
               result = json.loads(post("status?id=" + deployment))
               Path("central-publication.json").write_text(json.dumps(result, indent=2) + "\n")
               assert result["deploymentId"] == deployment, "Wrong deployment"
-              assert set(result.get("purls", [])) == expected, "Unexpected release coordinates"
-              return result["deploymentState"]
+              state = result["deploymentState"]
+              purls = set(result.get("purls", []))
+              # Central can omit component metadata while copying a deployment.
+              # Keep exact coordinates mandatory before publication and at completion.
+              if state != "PUBLISHING" or purls:
+                  assert purls == expected, "Unexpected release coordinates"
+              return state
 
           state = status()
           if state == "VALIDATED":
