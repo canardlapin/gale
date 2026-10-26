@@ -33,7 +33,7 @@ are pinned by `GaleNumericalContractSuite`.
 | Sparse direct Cholesky | portable, opt-in | select `SparseDirectProvider.pure` explicitly; the default provider remains empty | `PureSparseCholeskySuite`, [provider guide](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-provider.md) |
 | Sparse direct LU / QR | backend-only, no shipped provider | `Left(UnsupportedOperation)` with the default or pure provider | `SparseDirectSeamSuite`, `PureSparseCholeskySuite`, [future work](https://github.com/canardlapin/gale/blob/main/docs/sparse-direct-future.md) |
 | Vector / FFM BLAS backends | backend-only | same answers within conformance; not bit-identical | backend suites |
-| Complex matrix storage | out | not an API | [Breeze migration guide](../guides/breeze-equivalence.md) |
+| Complex matrix storage and Hermitian PSD factors | portable, bounded | owned split-complex matrices; factorization for dimensions 1–128; explicit rank, residual and capacity checks | [Hermitian guide](../guides/complex-hermitian.md) |
 
 Status words:
 

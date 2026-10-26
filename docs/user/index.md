@@ -6,13 +6,13 @@ typed numerical failures, matrix-free operators, and diagnostics that qualify
 iterative results. Optional allocation-control and JVM acceleration stay
 explicit.
 
-This site describes Gale @VERSION@. The first intended public checkpoint is
-`v0.1.0-M1`, so installation currently uses a pinned source revision or locally
-published artifacts.
+This site describes Gale @VERSION@. The first milestone, `0.1.0-M1`, is
+available from Maven Central. [Getting started](getting-started.md) covers
+artifact installation and an optional exact source pin.
 
 ## Reach a first result
 
-Start with [Getting started](getting-started.md). It shows the current source
+Start with [Getting started](getting-started.md). It shows the core
 dependency, fits a small regression, and explains when to retain
 `Either[LinAlgError, A]` rather than call `.orThrow`.
 
@@ -29,6 +29,10 @@ the live `gale-core` API.
   pivoted QR, matrix right-hand sides, row scaling, and reusable scratch.
 - [Reductions, norms, and elementwise numerics](guides/reductions-and-numerics.md) —
   sums, extrema, per-axis reductions, norms, and stable softmax.
+- [Compare two linear fits](guides/numerical-workspaces.md) — paired residual
+  bounds and profile-decrease certificates.
+- [Complex Hermitian factors](guides/complex-hermitian.md) — complex storage,
+  PSD factorization, and rank-aware solves.
 - [Sparse matrices and operator solves](guides/sparse-operators.md) — CSR,
   iterative methods, and matrix-free application.
 - [Spectral analysis](guides/spectral-analysis.md) — dense eigenproblems, SVD,

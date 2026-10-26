@@ -16,6 +16,7 @@ duplicate their setup.
 | a rectangular dense matrix | economy SVD factors | [Spectral analysis](spectral-analysis.md#compute-an-economy-svd) |
 | symmetric operators `A` and SPD `B` | a few generalized eigenpairs | [Matrix-free generalized symmetric eigensolving](../advanced/generalized-operator-eigen.md) |
 | a composite differentiable/proximal objective | a typed first-order method and certificate | [First-order composite optimization](first-order-optimization.md) |
+| two fitted linear predictions | a certified squared-residual comparison | [Compare two linear fits](numerical-workspaces.md) |
 | Breeze values at an old boundary | explicit copy/view conversion and a migration plan | [Moving a Breeze workload to Gale](breeze-equivalence.md) |
 
 For storage reuse after profiling, continue with [Dense destinations](../advanced/dense-destinations.md),

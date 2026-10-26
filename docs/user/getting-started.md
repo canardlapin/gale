@@ -4,28 +4,41 @@ This page takes Gale from an sbt dependency to one interpreted numerical
 result. The example fits a straight line, so the expected coefficients are
 visible without knowing any Gale internals.
 
-## Add Gale before the first release
+## Add the released core
 
-Gale is currently source-only. Pin an exact revision and choose the platform
-projection your build uses:
+Gale `0.1.0-M1` is available from Maven Central. Use Scala 3.7.4 and JDK 21
+for the baseline build. In a JVM project's `build.sbt`:
 
 ```scala
-lazy val galeRevision = "<commit sha>"
+scalaVersion := "3.7.4"
+libraryDependencies += "io.github.canardlapin" %% "gale-core" % "0.1.0-M1"
+```
+
+For Scala.js or a cross-project, use `%%%` in place of `%%` with the matching
+build plugin enabled. No Vector API or native-library setup is needed for the
+portable core artifact. Continue to [the regression example](#fit-a-small-regression).
+
+## Add Gale from source
+
+For source integration instead of an artifact dependency, the following pins
+the exact commit behind `v0.1.0-M1`:
+
+```scala
+scalaVersion := "3.7.4"
+
+lazy val galeRevision = "62e4998c03a1eae1bed55cefa2d131f7d9e33568"
 lazy val galeBuild = uri(
   s"https://github.com/canardlapin/gale.git#$galeRevision"
 )
 lazy val galeCoreJVM = ProjectRef(galeBuild, "coreJVM")
 
-lazy val app = project.dependsOn(galeCoreJVM)
+lazy val app = project.in(file(".")).dependsOn(galeCoreJVM)
 ```
 
-Use `coreJS` for a Scala.js project. For a cross-project, depend on the matching
+For an existing project, add `.dependsOn(galeCoreJVM)` to its definition.
+Add `--add-modules=jdk.incubator.vector` to `.jvmopts` when consuming the
+source build. Use `coreJS` for a Scala.js project. For a cross-project, depend on the matching
 `coreJVM` and `coreJS` references from its platform projections.
-
-The intended public coordinate is
-`"io.github.canardlapin" %%% "gale-core" % "<published-version>"`, but it is
-not installable from Maven Central until a release is actually published. Do
-not use the site's snapshot version as though it were a public artifact.
 
 ## Fit a small regression
 
@@ -49,6 +62,8 @@ val observations = Vec(1.0, 3.0, 5.0, 7.0)
 
 val coefficients = design.leastSquares(observations).orThrow
 coefficients.toSeq
+assert(math.abs(coefficients(0) - 1.0) < 1e-12)
+assert(math.abs(coefficients(1) - 2.0) < 1e-12)
 ```
 
 The result is an owned `DVec`. The design and observations remain unchanged,

@@ -188,5 +188,78 @@ NaN for that whole line.
 Its Gale equivalent is `Numerics.logSumExp(v)`; Gale's `Numerics.softmax(v)` is
 the normalized-exponential vector.
 
+## Accumulate values across batches
+
+Use `gale.numeric.ExactSum` when values arrive incrementally or separate
+batches must be merged without rounding each batch's total first. `add` adds
+one `Double`; `addAll` merges another accumulator's exact state.
+
+```scala mdoc
+import gale.numeric.ExactSum
+
+val firstBatch = ExactSum.zero()
+assert(firstBatch.add(1e100).isRight)
+assert(firstBatch.add(1.0).isRight)
+val secondBatch = ExactSum.zero()
+assert(secondBatch.add(-1e100).isRight)
+assert(secondBatch.add(3.0).isRight)
+assert(firstBatch.addAll(secondBatch).isRight)
+assert(firstBatch.value == 4.0)
+```
+
+The final total retains the small terms lost by ordinary intermediate rounding.
+For finite inputs within capacity, input order and merge order do not change
+that result. Keep each mutable accumulator within one worker; merge the batches
+when their producers have finished.
+
+`add` and `addAll` return `Either[ExactSumError.CapacityExceeded, Unit]`;
+successful calls reuse one result object. `value` rounds the exact total once
+to nearest, ties to even, and `copy()` owns independent storage. The supported capacity is `ExactSum.MaxTerms` (`2^60`)
+nonzero finite inputs, including inputs inherited through merges. Cancellation
+keeps the input count; zeros and nonfinite inputs do not consume capacity.
+A capacity refusal leaves the builder unchanged. Builders are not thread-safe.
+Nonfinite inputs follow a separate IEEE addition channel; NaN payload bits and
+their ordering are unspecified.
+
+### Divide exact totals before rounding
+
+`total.ratio(normalizer)` returns `Either[ExactSumError, Double]` by dividing
+the two exact finite totals before rounding once to nearest, ties to even.
+Both totals may exceed Double range. The readout
+allocates integer scratch storage and leaves both builders and their capacity
+unchanged. It refuses nonfinite input channels (`NonFiniteRatio`) and exact
+zero denominators (`ZeroNormalizer`). True ratio overflow returns signed
+infinity; underflow rounds to subnormals or signed zero. An exact zero numerator
+returns positive zero. Products supplied as inputs are still rounded before
+accumulation; this is an exact sum and ratio, not an exact dot product.
+
+The following ratio stays finite even though the numerator's rounded sum
+overflows:
+
+```scala mdoc
+val numerator = ExactSum.zero()
+val denominator = ExactSum.zero()
+assert(numerator.add(Double.MaxValue).isRight)
+assert(numerator.add(Double.MaxValue).isRight)
+assert(denominator.add(1.0).isRight)
+assert(denominator.add(1.0).isRight)
+assert(numerator.value == Double.PositiveInfinity)
+assert(numerator.ratio(denominator) == Right(Double.MaxValue))
+```
+
+### Capacity and storage
+
+`ExactSum.resources` (also available as `builder.resources`) exposes immutable
+numerical capacity facts without normalizing or rounding state. State, copying
+and `value` report their Long-array payloads; `ratio` reports a conservative
+BigInt scratch estimate and maximum operand bit widths. These are source-level
+numerical payload estimates, with object, host and GC overhead excluded. They do
+not establish a heap/RSS limit or a JavaScript engine allocation bound. Consumers
+must account for their own retained results, staging and any native workspace.
+
+The separate `ExactSum.add` and `addAll` contracts expose only
+`ExactSumError.CapacityExceeded`; ratio/normalization errors belong to the
+normalized readout methods, not accumulator insertion.
+
 The complete NaN, empty-input, and determinism rules are in the
 [numerical contract](../advanced/numerical-contract.md).

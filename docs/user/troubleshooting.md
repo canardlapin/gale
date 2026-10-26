@@ -6,12 +6,12 @@ responses.
 
 | Symptom | Likely cause | What to inspect or change |
 | --- | --- | --- |
-| dependency does not resolve | Gale has no public release | use a pinned source `ProjectRef` or publish the exact checkout locally |
+| dependency does not resolve | requested artifact/version is unavailable from the configured resolver | check the coordinate and resolver; the [source setup](getting-started.md#add-gale-from-source) provides an exact revision without requiring a Central release |
 | `DimensionMismatch` or `VectorLengthMismatch` | incompatible shapes | print matrix rows/cols and RHS length or columns at the call boundary |
 | `SingularMatrix` | square system has no unique solve under the pivot policy | inspect rank/conditioning; reformulate rather than loosening an unrelated tolerance |
 | `NotPositiveDefinite` | Cholesky or metric premise failed | validate the lower triangle and the application's SPD assumption |
 | `RankDeficient` from least squares | design lacks full numerical column rank | use pivoted QR diagnostics, remove dependent columns, or define a different model |
-| iterative result has `converged = false` | legal iteration budget ended first | inspect residual and iterations; improve scaling/preconditioning or change the budget deliberately |
+| iterative result has `converged = false` | iteration limit or numerical breakdown | inspect residual and iteration count; an early stop can indicate breakdown, so check solver assumptions and preconditioning before increasing the budget |
 | partial spectral result contains fewer pairs | only a subset passed residual tolerance | inspect `diagnostics.converged`; call `requireConverged` when partial output is unacceptable |
 | `SpectralExtremeNotCertified` | residual passed but global-end membership was not proved | change the start/subspace/engine or accept only residual convergence if scientifically appropriate |
 | backend import does not accelerate a call | shape, layout, routine, or library family is outside measured dispatch | inspect the backend dashboard; do not infer a threshold from another machine or BLAS family |
