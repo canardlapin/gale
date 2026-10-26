@@ -19,7 +19,9 @@ Every admitted coordinate is released at one tag-derived version and includes
 a binary JAR, sources JAR, Scaladoc JAR, POM, checksums, and signatures. The
 bundle verifier rejects missing coordinates, additional coordinates, mixed
 versions, snapshots, coordinates outside the admitted Maven group, missing
-files or signatures, and absent or incorrect MD5/SHA-1 checksums.
+files or signatures, absent or incorrect MD5/SHA-1 checksums, invalid POM coordinates/metadata or
+dependencies, invalid/empty JAR contents, and unexpected files. Signed validation
+cryptographically verifies each payload against the configured primary key fingerprint.
 
 ## Tested but provisional modules
 
@@ -41,7 +43,7 @@ The following projects are development, integration, or evidence surfaces and
 are not part of the 0.1 publication bundle:
 
 - `interopRavelJVM` and `interopRavelJS`: the current dependency is
-  `ravel-core_3:1.0.0-SNAPSHOT`, so this integration remains opt-in until Ravel
+  an unpublished pinned Ravel source build, so this integration remains opt-in until Ravel
   has an immutable published coordinate;
 - `parity`, benchmark projects, `demo`, and the documentation site;
 - `scalaNextConsumer` and `publishedInteropConsumer`; and
@@ -87,7 +89,29 @@ an exact `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag. The first intended tag is
 `v0.1.0-M1`.
 
 The release workflow stages the four admitted modules, validates their Maven
-layout and signatures with `tools/verify-central-bundle.sh`, and uploads one
+layout, contents and signatures with `tools/verify-central-bundle.sh`, and uploads one
 user-managed Central Portal deployment. A manual dry run uses a validated
 synthetic milestone or RC version, creates an unsigned bundle, and never reads
 release credentials or uploads it.
+
+## Signed validation and consumer rehearsal
+
+For owner setup, follow [the secure setup guide](release-setup.md).
+
+Configure `PGP_SECRET`, `PGP_PASSPHRASE`, `SONATYPE_USERNAME`, and
+`SONATYPE_PASSWORD` as repository secrets, and the public primary signing-key
+fingerprint as repository variable `RELEASE_PGP_FINGERPRINT`. The signing job
+exports only that public key for verification in the separate upload job.
+
+```sh
+tools/verify-central-bundle.sh --require-signatures \
+  --public-key release-public-key.asc \
+  --expected-fingerprint "$RELEASE_PGP_FINGERPRINT" central-bundle.zip
+```
+
+The release workflow runs the same required CI court as branch CI before staging.
+It then verifies the bundle and runs `compat/release-consumer` from the staged Maven
+repository on JVM, fast-linked JS, and fully optimized JS. That build has no sibling
+source dependencies and does not use `publishLocal` to satisfy Gale coordinates.
+Unsigned dry runs do not authenticate signatures and are labeled accordingly.
+Only a real signed Portal validation establishes publication readiness.

@@ -6,6 +6,9 @@ import gale.linalg.*
   * ([[DenseSpectralKernels.nonsymmetricEigen]] and
   * [[DenseSpectralKernels.hessenberg]]) on the JVM.
   *
+  * Fixture transcendental functions use StrictMath so identical inputs and objective values
+  * are used on ARM and x86 JVMs. This constrains the test corpus, not production arithmetic.
+  *
   * Each case of a fixed corpus is reduced to one 64-bit digest of the raw bits
   * the kernel returns (eigenvalue parts, packed vectors, or the failure value;
   * `H` and `Q` for the Hessenberg reduction) and compared with the digests in
@@ -79,7 +82,7 @@ object NonsymmetricKernelDigestSuite:
       out += (s"tiny n=$n" -> Matrix.tabulate(n, n)((_, _) => r3.nextGaussian() * 1e-300))
       out += (s"perm n=$n" -> Matrix.tabulate(n, n)((i, j) => if j == (i + 1) % math.max(n, 1) then 1.0 else 0.0))
       val r2 = new scala.util.Random(9L + n)
-      out += (s"scaled n=$n" -> Matrix.tabulate(n, n)((i, j) => r2.nextGaussian() * math.pow(10.0, (i - j) * 3.0)))
+      out += (s"scaled n=$n" -> Matrix.tabulate(n, n)((i, j) => r2.nextGaussian() * StrictMath.pow(10.0, (i - j) * 3.0)))
     out.toSeq
 
   /** FNV-1a over 64-bit words, each word's bytes folded high to low. */

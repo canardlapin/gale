@@ -20,8 +20,12 @@ permissions:
   contents: read
 
 jobs:
+  qualification:
+    uses: ./.github/workflows/ci.yml
+
   preflight:
     name: Release preflight
+    needs: qualification
     if: github.event_name == 'push' || inputs.dry_run == true
     runs-on: ubuntu-latest
     env:
@@ -36,6 +40,9 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Require a semantic release tag
         if: github.event_name == 'push'
         run: |
@@ -80,6 +87,21 @@ jobs:
         env:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
         run: printf '%s' "$PGP_SECRET" | base64 --decode | gpg --batch --import
+      - name: Export the expected public signing key
+        if: github.event_name == 'push'
+        env:
+          RELEASE_PGP_FINGERPRINT: ${{ vars.RELEASE_PGP_FINGERPRINT }}
+        run: |
+          test -n "$RELEASE_PGP_FINGERPRINT"
+          mkdir -p target
+          gpg --batch --armor --export "$RELEASE_PGP_FINGERPRINT" > target/release-public-key.asc
+          test -s target/release-public-key.asc
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: release-public-key
+          path: target/release-public-key.asc
+          if-no-files-found: error
       - name: Stage the signed JDK 21 publication slice
         if: github.event_name == 'push'
         env:
@@ -109,13 +131,38 @@ jobs:
           mkdir -p target/central-bundle-tree
           cp -R target/central-staging/. target/central-bundle-tree/
           (cd target/central-bundle-tree && zip -X -q -r ../central-bundle.zip .)
+      - uses: actions/download-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: release-public-key
+          path: target
       - name: Verify the complete Maven layout and admitted coordinates
+        env:
+          RELEASE_PGP_FINGERPRINT: ${{ vars.RELEASE_PGP_FINGERPRINT }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            tools/verify-central-bundle.sh --require-signatures target/central-bundle.zip
+            tools/verify-central-bundle.sh --require-signatures --public-key target/release-public-key.asc --expected-fingerprint "$RELEASE_PGP_FINGERPRINT" target/central-bundle.zip
           else
             tools/verify-central-bundle.sh target/central-bundle.zip
           fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Consume all four staged coordinates on JVM and optimized Scala.js
+        env:
+          CANDIDATE_VERSION: ${{ inputs.candidate_version }}
+        run: |
+          version="$CANDIDATE_VERSION"
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then version="${GITHUB_REF_NAME#v}"; fi
+          repository="$GITHUB_WORKSPACE/target/central-bundle-tree"
+          cd compat/release-consumer
+          sbt "-Dgale.release.repository=$repository" "-Dgale.release.version=$version" testRelease
       - name: Upload as a user-managed Central Portal deployment
         if: github.event_name == 'push'
         env:
@@ -134,3 +181,27 @@ jobs:
             echo
             printf 'Deployment ID: `%s`\n' "$deployment"
           } >> "$GITHUB_STEP_SUMMARY"
+          for attempt in $(seq 1 30); do
+            curl --fail-with-body --silent --show-error --request POST \
+              --header "Authorization: Bearer $token" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=$deployment" \
+              > target/central-validation.json
+            state=$(jq -r '.deploymentState' target/central-validation.json)
+            if [[ "$state" == "VALIDATED" ]]; then
+              echo "Central validation passed; deployment remains unpublished." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            if [[ "$state" != "PENDING" && "$state" != "VALIDATING" ]]; then
+              cat target/central-validation.json
+              echo "Unexpected Central state: $state" >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Central validation did not finish within five minutes; inspect the deployment ID above." >&2
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'push'
+        with:
+          name: central-validation
+          path: target/central-validation.json

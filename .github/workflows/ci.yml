@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -28,6 +29,10 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - name: Check the release formatting scope
         run: sbt scalafmtCheckAll
+      - name: Validate release bundle rejection and signature checks
+        run: |
+          python3 -I tools/release/test_verify_bundle.py
+          python3 -I tools/release/test_configure_credentials.py
       - name: Compile with fatal compiler warnings
         run: sbt coreJVM/compile coreJS/compile
 

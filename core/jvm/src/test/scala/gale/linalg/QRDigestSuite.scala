@@ -2,6 +2,9 @@ package gale.linalg
 
 /** Bit-exact regression guard for the portable dense QR and the default least-squares facade on the JVM.
   *
+  * Fixture transcendental functions use StrictMath so identical inputs and objective values
+  * are used on ARM and x86 JVMs. This constrains the test corpus, not production arithmetic.
+  *
   * Each case of a fixed corpus is reduced to one 64-bit digest of the raw bits the factorization returns (reflectors,
   * `tau`, `R`, rank and rank tolerance) and of `A.leastSquares(b)` (the coefficients or the error), unpivoted and
   * column-pivoted, and compared with
@@ -75,7 +78,7 @@ object QRDigestSuite:
         out += ((s"dupcol m=$m n=$n", Matrix.tabulate(m, n)((i, j) => (i + 1).toDouble * (if j % 2 == 0 then 1.0 else 2.0)), b))
         out += ((s"huge m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e300), b))
         out += ((s"tiny m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e-300), b))
-        out += ((s"graded m=$m n=$n", Matrix.tabulate(m, n)((i, j) => r.nextGaussian() * math.pow(10.0, (i - j) * 2.0)), b))
+        out += ((s"graded m=$m n=$n", Matrix.tabulate(m, n)((i, j) => r.nextGaussian() * StrictMath.pow(10.0, (i - j) * 2.0)), b))
       if !DenseWorkspace.usesBlockedQR(m, n) then
         // Non-unit layouts reach the [A | b] gather: a transposed view, a column
         // window of a wider matrix, and a right-hand side read with stride 3 from

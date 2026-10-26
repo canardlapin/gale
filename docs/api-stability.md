@@ -10,10 +10,12 @@ generated from the published M1 artifacts after that immutable version exists.
 | Package | Compatible contract from M1 |
 | --- | --- |
 | `gale.linalg` | dense values and views, builders, shapes, operators, factorizations, solve and least-squares entry points, typed errors, destinations, and workspaces |
-| `gale.sparse` | COO/CSR/CSC and structured matrices, `SparseVector`, canonicalization, Matrix Market IO, compressed patterns, and symbolic replay plans |
+| `gale.sparse` | COO/CSR/CSC and structured matrices, `SparseVector`, canonicalization, Matrix Market IO, compressed patterns, symbolic replay plans, and the sparse-direct provider/resource seam with opt-in portable Cholesky |
 | `gale.solvers` | iterative solver options, results, diagnostics, preconditioners, convergence semantics, and reusable workspaces |
 | `gale.spectral` | dense and partial decompositions, typed selection, result ordering, convergence and extremality diagnostics, generalized operators, and explicit metric-solve contracts |
-| `gale.optim` | optimization contracts, L-BFGS/L-BFGS-B, dense nonlinear least squares/LM, accelerated proximal gradient, standard terms/sets, work controls, diagnostics, and constrained-Rayleigh helpers |
+| `gale.optim` | optimization contracts, L-BFGS/L-BFGS-B, dense nonlinear least squares/LM, accelerated proximal gradient, standard terms/sets, work controls, diagnostics, and constrained-Rayleigh helpers, augmented Lagrangian, CMA-ES, box quasi-Newton and symmetric tanh ICA |
+| `gale.numeric` | exact sums and normalized readouts, centered moments, paired residual comparisons, distribution functions, typed errors, ownership and resource estimates |
+| `gale.complex` | owned complex values and matrices, Hermitian PSD factorization, rank-aware solves, cutoffs, certificates and capacity/refusal contracts |
 | `gale.sized` | optional compile-time sized wrappers and their checked conversion boundary |
 | `gale.backend` | caller-visible capabilities, backend selection, fallback behavior, configuration, thresholds, and factorization-provider contracts |
 | `gale.syntax` | the `all` and `unicode` opt-in extension modules, including `zipMapExact`, pointwise operations, matrix product, and dot aliases |
@@ -65,8 +67,8 @@ contract. Test fixtures and private helpers do not.
 Known source migrations that must be settled before M1, not restored as
 permanent aliases:
 
-1. `DMatBuilder.updateRowMajor` became `writeLinear`. Callers in multivar and
-   ScalaFIM still need to move.
+1. `DMatBuilder.updateRowMajor` became `writeLinear`. Consumer qualification must check the exact current pins; historical
+   migration notes do not establish whether a consumer still uses the old name.
 2. `gale.syntax.all.zipMap` became `zipMapExact`. No remaining direct consumer
    of the old Gale name is known.
 

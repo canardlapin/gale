@@ -469,22 +469,30 @@ object IterativeSolvers:
     val restart = math.max(1, config.restart)
     val x = initialGuess(initial, A.cols)
     var totalIterations = 0
-    // Left-preconditioned GMRES on M^{-1} A x = M^{-1} b. The Givens recurrence
-    // tracks the preconditioned residual ||M^{-1}(b - A x)||, which equals the
-    // true residual when M is the identity. Each inner step costs one matvec and
-    // one preconditioner apply — no per-step dense QR and no extra residual matvec.
-    var residual = preconditionedResidualNorm(A, preconditioner, b, x.asVec)
+    // Left-preconditioning changes the Krylov geometry, not the public stopping
+    // criterion. Cache the true residual at initialization and after each cycle:
+    // one initial matvec, one per Arnoldi step, and one verification per cycle.
+    val ax = MutableDVec.zeros(A.rows)
+    def trueResidual(): DVec =
+      A.applyTo(x.asVec, ax)
+      b - ax.asVec
+    var r = trueResidual()
+    var residual = r.norm2
     if residual <= tol then
       return SolverResult.Converged(x.asVec, 0, residual)
 
     while totalIterations < config.maxIterations do
-      val ax = MutableDVec.zeros(A.rows)
-      A.applyTo(x.asVec, ax)
+      if !residual.isFinite then
+        return SolverResult.NotConverged(x.asVec, totalIterations, residual)
       val r0 = MutableDVec.zeros(A.rows)
-      preconditioner.solve(b - ax.asVec, r0)
+      preconditioner.solve(r, r0)
       val beta = r0.asVec.norm2
-      if beta <= tol then
-        return SolverResult.Converged(x.asVec, totalIterations, beta)
+      // A singular/non-finite preconditioner cannot certify the original system.
+      if beta == 0.0 || !beta.isFinite then
+        return SolverResult.NotConverged(x.asVec, totalIterations, residual)
+      // This is only a candidate trigger; anisotropic preconditioning need not
+      // preserve residual ratios. Every candidate is checked against b - A x.
+      val innerTolerance = beta * math.min(1.0, tol / residual)
       val innerLimit = math.min(restart, config.maxIterations - totalIterations)
       val basis = Array.fill(innerLimit + 1)(MutableDVec.zeros(A.cols))
       scaleInto(basis(0), r0.asVec, 1.0 / beta)
@@ -496,14 +504,15 @@ object IterativeSolvers:
       val rMat = new Array[Double](innerLimit * innerLimit)
       var j = 0
       var innerSteps = 0
-      var converged = false
+      var candidate = false
       var brokeDown = false
-      while j < innerLimit && !converged && !brokeDown do
+      while j < innerLimit && !candidate && !brokeDown do
         val av = MutableDVec.zeros(A.rows)
         A.applyTo(basis(j).asVec, av)
         val w = MutableDVec.zeros(A.rows)
         preconditioner.solve(av.asVec, w)
         val hcol = new Array[Double](j + 2)
+        val arnoldiNorm = w.asVec.norm2
         var i = 0
         while i <= j do
           val hij = basis(i).asVec.dot(w.asVec)
@@ -514,7 +523,7 @@ object IterativeSolvers:
         hcol(j + 1) = hNext
         // Happy breakdown: the next basis vector is (numerically) zero, so the
         // Krylov space is exhausted at this step.
-        val happyBreakdown = hNext <= 1e-14 * beta
+        val happyBreakdown = hNext <= 1e-14 * arnoldiNorm
         if !happyBreakdown && j + 1 < basis.length then
           scaleInto(basis(j + 1), w.asVec, 1.0 / hNext)
         // Apply the accumulated Givens rotations to the new Hessenberg column.
@@ -525,7 +534,7 @@ object IterativeSolvers:
           hcol(i) = temp
           i += 1
         val rr = math.hypot(hcol(j), hcol(j + 1))
-        if rr == 0.0 then
+        if rr == 0.0 || !rr.isFinite then
           // Diagonal and subdiagonal both vanished: R is singular, a hard
           // breakdown that no further step can repair.
           brokeDown = true
@@ -542,9 +551,8 @@ object IterativeSolvers:
           val gtemp = c * g(j)
           g(j + 1) = -s * g(j)
           g(j) = gtemp
-          residual = math.abs(g(j + 1))
           innerSteps = j + 1
-          if residual <= tol then converged = true
+          if math.abs(g(j + 1)) <= innerTolerance then candidate = true
           if happyBreakdown then brokeDown = true
         j += 1
 
@@ -575,7 +583,9 @@ object IterativeSolvers:
           i += 1
 
       totalIterations += innerSteps
-      if converged then
+      r = trueResidual()
+      residual = r.norm2
+      if residual <= tol then
         return SolverResult.Converged(x.asVec, totalIterations, residual)
       if brokeDown then
         return SolverResult.NotConverged(x.asVec, totalIterations, residual)
@@ -696,19 +706,6 @@ object IterativeSolvers:
     mode match
       case ToleranceMode.Absolute      => tolerance
       case ToleranceMode.RelativeToRhs => tolerance * b.norm2
-
-  /** `||M^{-1}(b - A x)||`, the preconditioned residual norm GMRES tracks. */
-  private def preconditionedResidualNorm(
-      A: DoubleLinearOperator,
-      preconditioner: Preconditioner,
-      b: DVec,
-      x: DVec
-  ): Double =
-    val ax = MutableDVec.zeros(A.rows)
-    A.applyTo(x, ax)
-    val residual = MutableDVec.zeros(A.rows)
-    preconditioner.solve(b - ax.asVec, residual)
-    residual.asVec.norm2
 
   /** `out := alpha * x`. */
   private def scaleInto(out: MutableDVec, x: DVec, alpha: Double): Unit =
