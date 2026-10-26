@@ -65,16 +65,45 @@ val svd = rectangular.svd.orThrow
 transpose action is available. Singular values are returned in descending
 order.
 
-## Interpret partial results
+## Request a few eigenpairs and check the result
 
-Partial eigensolvers and SVD return diagnostics because a legal run can finish
-before every requested component converges. `requireConverged` converts an
-incomplete result to a typed failure when the application requires all pairs.
+Passing an operator and its dimension selects the iterative overload. Here
+only the largest eigenvalue of the earlier symmetric matrix is requested:
 
-For a requested spectral extreme, residual convergence and global membership
-are separate claims. `requireExtremeCertified` additionally requires Gale's
-extremality certificate; it can reject a residual-converged Ritz pair that is
-not proven to belong to the requested end.
+```scala mdoc
+val partial = Eigen.eigSymmetric(
+  symmetric, symmetric.rows,
+  EigenSelection.Count(1, EigenOrder.LargestAlgebraic)
+).orThrow
+
+val complete = partial.requireConverged.orThrow
+assert(complete.eigenvalues.length == 1)
+assert(math.abs(complete.eigenvalues(0) - (2.0 + math.sqrt(2.0))) < 1e-10)
+(partial.diagnostics.converged, partial.diagnostics.worstResidual)
+```
+
+An iterative run can return `Right` with fewer converged pairs than requested.
+`requireConverged` checks completeness and returns a typed failure when pairs
+are missing. Keep that `Either` in application code when partial output is
+unacceptable; `.orThrow` above makes a failed tutorial expectation explicit.
+
+Completeness does not always prove that the solver found the requested end of
+the spectrum. A vector can satisfy `A * v = lambda * v` accurately while its
+`lambda` is not the largest eigenvalue. An iterative method may explore a
+subspace that misses that direction. Such an approximate eigenpair is called
+a Ritz pair.
+
+If the application also needs a certificate that the result belongs to the
+requested spectral end, use the stricter check:
+
+```scala mdoc
+val globallyCertified = partial.requireExtremeCertified
+globallyCertified.isRight
+```
+
+This check may reject residual-converged results. It does not rerun the solver
+or improve the approximation; it checks the evidence already in the result.
+Do not discard that failure if global extremality is required by your algorithm.
 
 ## Choose the generalized route
 

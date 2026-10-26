@@ -13,10 +13,12 @@ immutable storage. Gathers, exporters, and ordinary interop return copies.
 Because the public core exposes no mutable alias to Gale-owned storage,
 immutable sharing remains safe.
 
-Builders and workspaces are a separate, single-owner tier. A builder transfers
-its storage and closes. A workspace can be reused sequentially, while ordinary
-results returned from workspace APIs still own their storage. An API that
-deliberately exposes later mutation carries `unsafe` in its name.
+Builders and workspaces hold mutable state and need a single owner. Calling
+`result()` on a `DVecBuilder`, `DMatBuilder`, `CSRValuesBuilder`, or
+`CSCValuesBuilder` transfers storage and closes that builder. COO assembly
+builders remain reusable after conversion. Workspaces can be reused
+sequentially; ordinary returned results still own their storage. Borrowed views
+that can change after workspace reuse carry `unsafe` in their names.
 
 ## 2. Shape is checked where it matters
 
@@ -32,7 +34,7 @@ failure model.
 ## 3. Success and convergence are different questions
 
 A direct solve can return `Left(SingularMatrix(...))`. An iterative solve can
-finish its legal iteration budget and still return the best available iterate
+finish its legal iteration budget and still return the last available iterate
 with `converged = false`. Partial eigensolvers may return only the pairs whose
 residuals passed the requested tolerance.
 
@@ -57,8 +59,9 @@ one capability from another.
 
 With only `gale-core`, Gale uses its portable implementation on the JVM and
 Scala.js. An optional backend import can accelerate eligible JVM operations,
-but it does not take over every shape or layout. Nothing is selected
-automatically; [Enabling SIMD](advanced/numerical-contract.md#enabling-simd)
+but it does not take over every shape or layout. Importing a backend opts into
+acceleration; the backend then selects eligible calls by shape, layout, and
+its dispatch policy. [Enabling SIMD](advanced/numerical-contract.md#enabling-simd)
 shows the Vector API import.
 
 Explicit numerical policy and allocation control can pin a portable route. For

@@ -1,7 +1,8 @@
 # Choose a module and platform
 
-Gale is pre-release and source-only. This page describes the live build; it does
-not claim that the listed artifact names are available from Maven Central.
+Gale `0.1.0-M1` publishes `gale-core` and `gale-laws` for JVM and Scala.js
+on Maven Central. The other modules below remain provisional or source-only.
+See [Getting started](../getting-started.md) for installation.
 
 ## Public library modules
 

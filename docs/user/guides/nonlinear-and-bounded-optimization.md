@@ -116,13 +116,70 @@ package. The repository reports at `docs/verification/optim-extensions/README.md
 and `docs/verification/optim-performance/README.md` record measured workloads,
 the subsequent performance pass, and limitations.
 
+## Use projected BFGS with a vector callback
+
+Choose `BoxQuasiNewton` for a small or moderate finite-box problem when your
+callback writes into a supplied gradient array and an n-by-n inverse metric
+is affordable. Choose the L-BFGS-B route above when you need limited-memory
+history or infinite open bounds. Their bounds, callbacks, and result types
+are distinct.
+
+`gale.optim.BoxQuasiNewton` provides portable full-memory projected BFGS for
+finite boxes of dimension 1 through 1024. It accepts a value/gradient oracle,
+uses a projected Armijo line search, resets the inverse metric when the active
+set changes, and falls back to projected steepest descent for a non-descent
+direction. It can traverse regions with indefinite objective curvature.
+
+The scalar objective below is minimized at `x = 0.25`, inside `[0, 1]`:
+
+```scala mdoc
+val vectorObjective = new BoxDifferentiableObjective:
+  val dimension = 1
+  def evaluate(x: Array[Double], gradient: Array[Double]): Either[BoxOptimizationError, Double] =
+    val delta = x(0) - 0.25
+    gradient(0) = delta
+    Right(0.5 * delta * delta)
+
+val vectorBounds = BoxBounds.from(Vector(0.0), Vector(1.0)).toOption.get
+val vectorConfig = BoxQuasiNewtonConfig.from(
+  maxIterations = 20, maxEvaluations = 100, maxLineSearch = 20,
+  projectedGradientTolerance = 1e-10
+).toOption.get
+val vectorFit = BoxQuasiNewton.minimize(
+  vectorObjective, vectorBounds, Vector(0.75), vectorConfig
+).toOption.get
+assert(vectorFit.status == BoxOptimizationStatus.Stationary)
+assert(math.abs(vectorFit.point.get.coordinates.head - 0.25) < 1e-10)
+```
+
+The checked constructors return `Either`; the example unwraps them because
+its inputs are fixed. In reusable code, retain the errors and inspect the
+stopping status before using the point. If the initial callback refuses,
+`point` is `None`; a later refusal preserves the last finite point.
+
+Construct `BoxBounds` and `BoxQuasiNewtonConfig` through their checked `from`
+methods, then call `BoxQuasiNewton.minimize` with an in-box initial vector.
+The oracle borrows a read-only coordinate array and must fill every entry of
+the supplied gradient array. Invalid input returns an error before an oracle call;
+runtime oracle refusal preserves the last finite point and charges the attempt.
+Results own their coordinates and gradient and report evaluations, accepted
+iterations, rejected proposals, metric resets and the stopping reason.
+
+`Stationary` means the projected gradient meets the declared tolerance at the
+returned point. It does not certify positive curvature or a global minimum.
+Iteration, evaluation and line-search limits remain distinct from convergence.
+Coordinate/energy scaling, independent starts and application-specific acceptance
+checks belong to the caller. Solver scratch is one n-by-n inverse metric,
+nine length-n Double arrays and two length-n Boolean arrays; it does not grow
+with the iteration count. This implementation is not L-BFGS-B.
+
 ## Scope and interpretation
 
 LM currently supports unconstrained dense least squares and fixed weights.
 Robust adaptive losses, sparse/operator Jacobians, statistical standard errors,
 and bounds on the LM parameters are separate extensions. Use the existing
 [proximal methods](first-order-optimization.md) for nonsmooth penalties.
-Neither solver supplies automatic differentiation or certifies that callbacks
+None of these solvers supplies automatic differentiation or certifies that callbacks
 implement a consistent objective and derivative.
 
 Method references: [L-BFGS-B, Byrd et al.](https://users.iems.northwestern.edu/~nocedal/PDFfiles/limited.pdf),

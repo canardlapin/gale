@@ -10,6 +10,10 @@ Start from the problem you need to solve:
   softmax.
 - [Sparse matrices and operator solves](sparse-operators.md) — construct CSR,
   run iterative methods, and define a matrix-free operator.
+- [Compare two linear fits](numerical-workspaces.md) — certify a decrease
+  without subtracting independently rounded residual energies.
+- [Complex Hermitian factors](complex-hermitian.md) — construct complex matrices,
+  factor a Hermitian PSD matrix, and solve with an explicit rank cutoff.
 - [Spectral analysis](spectral-analysis.md) — compute dense eigenvalues or SVD
   and interpret partial convergence.
 - [Bounded symmetric tanh rotation](ica-rotation.md) — iterate over already
@@ -19,7 +23,7 @@ Start from the problem you need to solve:
 - [First-order composite optimization](first-order-optimization.md) — choose
   proximal, projected, primal-dual, or exact-reduction capabilities.
 - [Nonlinear fitting and bounded optimization](nonlinear-and-bounded-optimization.md) —
-  fit residual models with LM or minimize smooth objectives with L-BFGS-B.
+  fit residual models with LM or choose L-BFGS-B or projected BFGS for bounds.
 - [Derivative-free optimization with CMA-ES](cma-es.md) — evaluate continuous
   black-box objectives with seeded populations, work limits, and optional bounds.
 - [General constrained optimization](augmented-lagrangian.md) — minimize smooth
@@ -34,5 +38,3 @@ to advanced ownership, sparse-structure, and generalized-eigensolver material.
 If you have not completed one Gale call yet, begin with
 [Get your first result](../getting-started.md). If you know the call but not the
 failure, use [Troubleshooting](../troubleshooting.md).
-
-[Owned complex Hermitian factors](complex-hermitian.md) covers the bounded portable complex storage, PSD factors, rank cutoffs and solves.
