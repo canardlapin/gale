@@ -162,3 +162,15 @@ changes when the workspace is reused; its name is the lifetime warning.
 Continue with [Compressed sparse patterns](../advanced/sparse-patterns.md) and
 [Symbolic sparse plans](../advanced/sparse-plans.md) when structure stays fixed
 across many numeric evaluations.
+
+## GMRES convergence with preconditioning
+
+GMRES reports the original-system residual `||b - A x||`, including when a left
+preconditioner is supplied. The internal preconditioned residual only proposes a
+convergence check. Absolute mode checks the configured tolerance; RelativeToRhs
+checks that tolerance times `||b||`. A zero or nonfinite preconditioned residual
+cannot certify an unsolved original system.
+
+The implementation uses one initial operator application, one per Arnoldi step,
+and one true-residual verification after each completed restart/candidate cycle.
+Verification work is additional to the returned Arnoldi iteration count.

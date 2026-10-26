@@ -6,6 +6,9 @@ import gale.linalg.*
   * [[OptimNumerics]] on the JVM: [[LBFGS]], [[LBFGSB]] and the [[AugmentedLagrangian]] inner solves (which add
   * interpolating zoom and the approximate-Wolfe test).
   *
+  * Fixture transcendental functions use StrictMath so identical inputs and objective values are used on ARM and x86
+  * JVMs. This constrains the test corpus, not production arithmetic.
+  *
   * Each case of a fixed corpus is reduced to one 64-bit digest of the raw bits of every point handed to the objective
   * (so every line-search trial, in order), the returned point, objective, residual, step, status, iteration and
   * evaluation counts, and the full progress trace. The stored digests in `lbfgs-digests.txt` were generated from the
@@ -128,7 +131,7 @@ object LbfgsDigestSuite:
     var f = 0.0
     var i = 0
     while i < n do
-      val d = Math.pow(10.0, decades * i / Math.max(1, n - 1))
+      val d = StrictMath.pow(10.0, decades * i / Math.max(1, n - 1))
       val r = x(i) - (i % 3 - 1).toDouble
       f += 0.5 * d * r * r
       g(i) = d * r
@@ -154,8 +157,8 @@ object LbfgsDigestSuite:
           z += design(i)(j) * w(j)
           j += 1
         val m = labels(i) * z
-        f += (if m < 0.0 then -m + Math.log1p(Math.exp(m)) else Math.log1p(Math.exp(-m)))
-        val s = -labels(i) / (1.0 + Math.exp(m))
+        f += (if m < 0.0 then -m + StrictMath.log1p(StrictMath.exp(m)) else StrictMath.log1p(StrictMath.exp(-m)))
+        val s = -labels(i) / (1.0 + StrictMath.exp(m))
         j = 0
         while j < cols do
           g(j) += s * design(i)(j)
@@ -169,7 +172,7 @@ object LbfgsDigestSuite:
     var i = 0
     while i < n do
       val q = 1.0 - x(i) * x(i)
-      f += -Math.log(q) + (i + 1) * 0.1 * x(i)
+      f += -StrictMath.log(q) + (i + 1) * 0.1 * x(i)
       g(i) = 2.0 * x(i) / q + (i + 1) * 0.1
       i += 1
     if f.isNaN then Double.PositiveInfinity else f

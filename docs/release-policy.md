@@ -49,7 +49,7 @@ compatibility promise. Admission requires a later explicit manifest change —
 likely when preparing `1.0.0`, not automatically at M1.
 
 `gale-interop-ravel` is excluded because it currently depends on
-`ravel-core:1.0.0-SNAPSHOT`. Parity projects, benchmarks, documentation, demos,
+an unpublished Ravel source revision rather than a released Central coordinate. Parity projects, benchmarks, documentation, demos,
 consumer probes, and the root aggregator are also not published. The complete
 coordinate and exclusion table is the [release manifest](release-manifest.md).
 
@@ -140,8 +140,9 @@ Do not retarget snapshots or tags to `1.0` until the following are closed:
 - hosted Scaladoc and a real install line;
 - owner Central namespace, signing, and Portal validation on the exact tag.
 
-Deferred from both 0.1 and 1.0, and not release blockers: full dense SVD,
-public Schur/QZ, sparse-direct factorization, MINRES, Ravel publication, and
+Full economy dense SVD and opt-in portable sparse Cholesky are implemented
+and included in core. Deferred from both 0.1 and 1.0, and not release blockers:
+public Schur/QZ, sparse-direct LU/QR, MINRES, Ravel publication, and
 Wasm as a supported route.
 
 ## Release blockers and provenance
@@ -159,9 +160,12 @@ The owner selected Apache-2.0 and `https://github.com/canardlapin/gale` as the
 canonical SCM repository on 2026-07-19. The root `LICENSE` and generated POMs
 carry that provenance. Binary publication still requires a configured
 destination, credentials, signing policy, and remote CI on the exact release
-commit. `.github/workflows/release.yml` is tag-only (or an explicitly selected
+commit. `.github/workflows/release.yml` calls the complete reusable CI workflow on its
+exact candidate before staging and runs independent staged JVM/JS consumers
+(including optimized JS execution) before upload. It is tag-only (or an explicitly selected
 tag dry-run), imports the ephemeral PGP key only in release jobs, validates the
-four-artifact signed bundle, and uploads it to Central Portal as
+four-artifact signed bundle against the repository variable
+`RELEASE_PGP_FINGERPRINT`, and uploads it to Central Portal as
 `USER_MANAGED`. The final Central publish action remains a manual Portal
 operation after validation; `publishLocal` is useful packaging evidence but is
 not a public release.

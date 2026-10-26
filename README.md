@@ -199,8 +199,10 @@ libraries, plus a bounded owned complex Hermitian tier in `gale.complex`.
 The [Hermitian guide](docs/user/guides/complex-hermitian.md) defines its portable
 PSD factor, rank-aware solve and capacity contracts. It is not source-compatible with Breeze and does not replace
 Breeze's statistics, probability, signal-processing, plotting, machine
-learning, tensor, or general complex-number modules. Sparse direct
-factorization is not implemented in the current core.
+learning, tensor, or general complex-number modules. Portable sparse Cholesky is available through the explicit
+`gale.sparse.direct.pure.given` import or `SparseDirectProvider.pure`; the default
+provider advertises no sparse-direct capability. Sparse direct LU and QR remain
+unimplemented. Dense SVD returns the complete economy decomposition.
 
 The shared code targets Scala 3.7.4. Core JVM use requires JDK 21; finalized
 FFM modules require JDK 22 and explicit native access. CI executes the JVM and

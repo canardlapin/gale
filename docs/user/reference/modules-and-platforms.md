@@ -19,7 +19,7 @@ not claim that the listed artifact names are available from Maven Central.
 its current `ravel-core` dependency is a development snapshot. Breeze interop
 and the JVM acceleration backends are tested but provisional: they are not in
 the first Central bundle. The dedicated `interopRavelTest` route remains
-available when a matching Ravel checkout or published snapshot is present; do
+available from its canonical pinned Ravel source revision; do
 not infer publication from the project definition alone. See the
 [release manifest on GitHub](https://github.com/canardlapin/gale/blob/main/docs/release-manifest.md)
 for the complete admitted, provisional, and excluded set.
