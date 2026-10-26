@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 -I tools/release/test_verify_bundle.py
           python3 -I tools/release/test_configure_credentials.py
+          python3 -I tools/release/test_publish_workflow.py
       - name: Compile with fatal compiler warnings
         run: sbt coreJVM/compile coreJS/compile
 
