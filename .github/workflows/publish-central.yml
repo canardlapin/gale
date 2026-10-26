@@ -29,6 +29,7 @@ jobs:
         shell: python
         run: |
           import base64, json, os, re, time, urllib.request
+          import xml.etree.ElementTree as ET
           from pathlib import Path
 
           deployment = os.environ["DEPLOYMENT_ID"]
@@ -46,15 +47,32 @@ jobs:
               with urllib.request.urlopen(request, timeout=60) as response:
                   return response.read()
 
+          def verify_public_poms():
+              ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+              for purl in sorted(expected):
+                  artifact = purl.split("/")[-1].split("@")[0]
+                  url = ("https://repo.maven.apache.org/maven2/io/github/canardlapin/"
+                         + artifact + "/0.1.0-M1/" + artifact + "-0.1.0-M1.pom")
+                  # Public request: never send the Portal authorization header here.
+                  with urllib.request.urlopen(url, timeout=60) as response:
+                      pom = ET.fromstring(response.read())
+                  actual = tuple(pom.findtext("m:" + field, namespaces=ns)
+                                 for field in ("groupId", "artifactId", "version"))
+                  assert actual == ("io.github.canardlapin", artifact, "0.1.0-M1"), "Wrong public POM"
+              print("Verified all four public Maven Central POM coordinates.")
+
           def status():
               result = json.loads(post("status?id=" + deployment))
               Path("central-publication.json").write_text(json.dumps(result, indent=2) + "\n")
               assert result["deploymentId"] == deployment, "Wrong deployment"
+              assert result["deploymentName"] == "Gale-v0.1.0-M1", "Wrong deployment name"
               state = result["deploymentState"]
               purls = set(result.get("purls", []))
-              # Central can omit component metadata while copying a deployment.
-              # Keep exact coordinates mandatory before publication and at completion.
-              if state != "PUBLISHING" or purls:
+              # Central can omit component metadata even after publication.
+              # Never relax the prepublication check; use public evidence at completion.
+              if state == "PUBLISHED" and not purls:
+                  verify_public_poms()
+              elif state != "PUBLISHING" or purls:
                   assert purls == expected, "Unexpected release coordinates"
               return state
 
