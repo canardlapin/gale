@@ -38,3 +38,9 @@ to advanced ownership, sparse-structure, and generalized-eigensolver material.
 If you have not completed one Gale call yet, begin with
 [Get your first result](../getting-started.md). If you know the call but not the
 failure, use [Troubleshooting](../troubleshooting.md).
+
+## Development previews
+
+- [Axis margins (unreleased, source checkout required)](axis-margins.md) — preserve row/column intent
+  through reductions and apply explicit pointwise or fused transformations. This
+  API is not in the published 0.1.0-M1 artifact.
