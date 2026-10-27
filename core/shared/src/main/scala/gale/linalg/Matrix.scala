@@ -605,6 +605,58 @@ final class DMat private[gale] (
       rowStride.value == that.colStride.value &&
       colStride.value == that.rowStride.value
 
+  /** One result per row, preserving orientation through reduction arithmetic.
+    * @since 0.2
+    */
+  def byRow: AxisReductions[Axis.Rows.type] = new AxisReductions(this, Axis.Rows)
+
+  /** One result per column. @since 0.2 */
+  def byCol: AxisReductions[Axis.Cols.type] = new AxisReductions(this, Axis.Cols)
+
+  /** Axis-aware reductions for an axis selected at runtime. @since 0.2 */
+  def byAxis(axis: Axis): AxisReductions[axis.type] = new AxisReductions(this, axis)
+
+  /** Add a value per row or column into an independent result. @since 0.2 */
+  def +(margin: Margin[?]): DMat = MarginOps.binary(this, margin)(_ + _)
+
+  /** Subtract a value per row or column into an independent result. @since 0.2 */
+  def -(margin: Margin[?]): DMat = MarginOps.binary(this, margin)(_ - _)
+
+  /** Replace an open nonaliased builder; all validation precedes writes. @since 0.2 */
+  def addInto(margin: Margin[?], destination: DMatBuilder): Unit =
+    MarginOps.binaryInto(this, margin, destination)(_ + _)
+
+  /** Replace an open nonaliased builder; all validation precedes writes. @since 0.2 */
+  def subInto(margin: Margin[?], destination: DMatBuilder): Unit =
+    MarginOps.binaryInto(this, margin, destination)(_ - _)
+
+  /** One pass computing `(x * scale) + shift`, with separate IEEE operations.
+    * No FMA, coefficient shortcuts, or reassociation; `0 * NaN` remains NaN.
+    * Both margins must have the same axis type and fit this matrix. Preserve
+    * `Margin.ByRow`, `Margin.ByCol`, or a shared type parameter when storing them:
+    * two independently erased `Margin[?]` values cannot establish that agreement.
+    * @since 0.2
+    */
+  def affine[A <: Axis](scale: Margin[A], shift: Margin[A]): DMat =
+    MarginOps.fused(this, scale, shift)((x, s, b) => (x * s) + b)
+
+  /** Destination form of [[affine]], with the same operation order. @since 0.2 */
+  def affineInto[A <: Axis](scale: Margin[A], shift: Margin[A], destination: DMatBuilder): Unit =
+    MarginOps.fusedInto(this, scale, shift, destination)((x, s, b) => (x * s) + b)
+
+  /** One pass computing `(x - center) / scale` in that order. The supplied scale
+    * is not inverted. Zero, negative, and nonfinite scales follow IEEE arithmetic;
+    * this does not estimate means/standard deviations or apply a statistical policy.
+    * Both margins must have the same axis type and fit this matrix, as in [[affine]].
+    * @since 0.2
+    */
+  def standardize[A <: Axis](center: Margin[A], scale: Margin[A]): DMat =
+    MarginOps.fused(this, center, scale)((x, c, s) => (x - c) / s)
+
+  /** Destination form of [[standardize]]; validation precedes writes. @since 0.2 */
+  def standardizeInto[A <: Axis](center: Margin[A], scale: Margin[A], destination: DMatBuilder): Unit =
+    MarginOps.fusedInto(this, center, scale, destination)((x, c, s) => (x - c) / s)
+
   def +(that: DMat): DMat =
     requireSameShape(that)
     addSub(that, subtract = false)
@@ -622,6 +674,21 @@ final class DMat private[gale] (
     val out = toDoubleArrayCopyRowMajor
     if n > 0 then DoubleKernels.dscal(n, alpha, out, 0, 1)
     DMat.fromDoubleArrayOwned(rows, cols, out)
+
+  /** Map entries into an owned row-major result, preserving the input strides.
+    * The scalar pointwise operators use the same unary kernel for each layout.
+    */
+  private[gale] inline def mapElements(inline f: Double => Double): DMat =
+    val destination = DMat.newBuilder(rows, cols)
+    val out = destination.writableData
+    if isContiguousRowMajor then
+      DoubleKernels.dmapInto(rows * cols, data, offset.value, 1, out, 0, 1)(f)
+    else
+      var row = 0
+      while row < rows do
+        DoubleKernels.dmapInto(cols, data, offset.value + row * rowStride.value, colStride.value, out, row * cols, 1)(f)
+        row += 1
+    destination.result()
 
   /** Elementwise (Hadamard) product of two same-shape matrices, as an owned
     * row-major result; the kernel behind `a.pointwise * b`.

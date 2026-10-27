@@ -34,6 +34,12 @@ final class DVec private[gale] (
     checkIndex(index)
     data(offset.value + index * stride.value)
 
+  /** Attach an explicit row/column axis without copying immutable elements.
+    * The receiving matrix checks the length. Use `.toDVec` to discard the axis.
+    * @since 0.2
+    */
+  def along(axis: Axis): Margin[axis.type] = Margin.tag(this, axis)
+
   def updated(index: Int, value: Double): DVec =
     checkIndex(index)
     val out = toDoubleArrayOwnedCopy

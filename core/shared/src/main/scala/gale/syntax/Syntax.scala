@@ -5,6 +5,9 @@ import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.LinAlgError
 import gale.linalg.Matrix
+import gale.linalg.Margin
+import gale.linalg.MarginOps
+import gale.linalg.DMatBuilder
 
 /** Opt-in ergonomic syntax for `gale.linalg`, in focused import modules.
   *
@@ -52,6 +55,29 @@ object all:
 
     /** Elementwise quotient. */
     def /(b: DMat): DMat = reveal(p).elementwiseQuotient(b)
+
+    /** Explicit row/column scaling. A plain DVec is intentionally not accepted. @since 0.2 */
+    def *(margin: Margin[?]): DMat = MarginOps.binary(reveal(p), margin)(_ * _)
+
+    /** Explicit row/column division. @since 0.2 */
+    def /(margin: Margin[?]): DMat = MarginOps.binary(reveal(p), margin)(_ / _)
+
+    def +(margin: Margin[?]): DMat = MarginOps.binary(reveal(p), margin)(_ + _)
+    def -(margin: Margin[?]): DMat = MarginOps.binary(reveal(p), margin)(_ - _)
+
+    /** Scalar pointwise arithmetic uses ordinary IEEE operations. @since 0.2 */
+    def +(scalar: Double): DMat = reveal(p).mapElements(_ + scalar)
+    def -(scalar: Double): DMat = reveal(p).mapElements(_ - scalar)
+    def *(scalar: Double): DMat = reveal(p) * scalar
+    def /(scalar: Double): DMat = reveal(p).mapElements(_ / scalar)
+
+    /** Replace an open, nonaliased destination with scaled elements. @since 0.2 */
+    def mulInto(margin: Margin[?], destination: DMatBuilder): Unit =
+      MarginOps.binaryInto(reveal(p), margin, destination)(_ * _)
+
+    /** Replace an open, nonaliased destination with divided elements. @since 0.2 */
+    def divInto(margin: Margin[?], destination: DMatBuilder): Unit =
+      MarginOps.binaryInto(reveal(p), margin, destination)(_ / _)
 
     /** Apply `f` to every entry. */
     def map(f: Double => Double): DMat =
