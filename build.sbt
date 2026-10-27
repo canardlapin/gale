@@ -32,16 +32,14 @@ ThisBuild / developers := List(
   )
 )
 
-// sbt-ci-release/sbt-dynver owns the release version. Gale is on the 0.1
-// line: only an exact `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag yields a
-// publishable version. Every other state remains a unique
-// `0.1.0+...-SNAPSHOT` development build. 1.0 is a later compatibility freeze,
-// not the current snapshot label.
+// main develops Gale 0.2; release/0.1 preserves the published milestone line.
+// Only an exact clean `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag is admitted
+// for publication today. Moving development to 0.2 does not admit 0.2 releases.
+// All other states remain development snapshots.
 def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
   val taggedVersion = out.ref.value.stripPrefix("v")
   val allowedTag = taggedVersion.matches("0\\.1\\.[0-9]+(?:-(?:M|RC)[1-9][0-9]*)?")
   val exactTag = allowedTag && out.ref.value.startsWith("v") && out.commitSuffix.distance == 0
-  val base = if (exactTag) taggedVersion else "0.1.0"
   val commit =
     if (out.commitSuffix.distance == 0) ""
     else s"+${out.commitSuffix.distance}-${out.commitSuffix.sha}"
@@ -49,11 +47,39 @@ def galeReleaseVersion(out: sbtdynver.GitDescribeOutput): String = {
     if (out.dirtySuffix.value.isEmpty) ""
     else s"+${out.dirtySuffix.value.stripPrefix("+")}"
   val publishable = exactTag && dirty.isEmpty
+  val base = if (publishable) taggedVersion else "0.2.0"
   if (publishable) base else s"$base$commit$dirty-SNAPSHOT"
 }
 
 def galeReleaseFallbackVersion(date: java.util.Date): String = {
-  s"0.1.0-SNAPSHOT-${sbtdynver.DynVer.timestamp(date)}"
+  s"0.2.0+${sbtdynver.DynVer.timestamp(date)}-SNAPSHOT"
+}
+
+lazy val versionPolicyCheck = taskKey[Unit]("Check development versions and the unchanged release-tag admission policy")
+versionPolicyCheck / aggregate := false
+versionPolicyCheck := {
+  def described(ref: String, distance: Int = 0, dirty: String = ""): String =
+    galeReleaseVersion(
+      sbtdynver.GitDescribeOutput(
+        sbtdynver.GitRef(ref),
+        sbtdynver.GitCommitSuffix(distance, "abc1234"),
+        sbtdynver.GitDirtySuffix(dirty)
+      )
+    )
+
+  Seq("v0.1.0-M1" -> "0.1.0-M1", "v0.1.0-RC2" -> "0.1.0-RC2", "v0.1.1" -> "0.1.1").foreach {
+    case (tag, expected) => assert(described(tag) == expected, s"clean admitted tag $tag")
+  }
+  assert(described("v0.1.0-M1", distance = 7) == "0.2.0+7-abc1234-SNAPSHOT")
+  assert(described("v0.1.0-M1", dirty = "+dirty") == "0.2.0+dirty-SNAPSHOT")
+  assert(described("v0.1.0-M1", distance = 7, dirty = "+dirty") == "0.2.0+7-abc1234+dirty-SNAPSHOT")
+  Seq("v0.2.0", "v0.2.0-M1", "v1.0.0", "0.1.0", "v0.1.0-M0", "v0.1.0-RC0", "v0.1.0-preview").foreach {
+    tag => assert(described(tag).endsWith("-SNAPSHOT"), s"unadmitted tag $tag must stay a snapshot")
+  }
+  val fallback = galeReleaseFallbackVersion(new java.util.Date(0L))
+  assert(fallback.startsWith("0.2.0+") && fallback.endsWith("-SNAPSHOT"), s"no-Git snapshot: $fallback")
+  assert(isSnapshot.value == version.value.endsWith("-SNAPSHOT"), "snapshot classification must match the version")
+  streams.value.log.info("Version policy passed: clean 0.1 tags, 0.2 development, dirty/unsupported tags, no-Git fallback")
 }
 
 inThisBuild(

@@ -1,9 +1,29 @@
-# Gale 0.1 compatibility and versioning plan
+# Gale development, compatibility, and release policy
 
-Gale is on the `0.1` line. Untagged source derives a unique
-`0.1.0+...-SNAPSHOT` version. A snapshot names a development state; it is not a
-published release or a compatibility promise. Cross-repository validation must
-identify snapshots by their full Git commit.
+The published checkpoint is `v0.1.0-M1`. `main` develops the next release, 0.2,
+and derives `0.2.0+...-SNAPSHOT` versions. A snapshot names a development state;
+it is not a published release or a compatibility promise. Cross-repository
+validation must identify snapshots by their full Git commit.
+
+## Branches and merging
+
+- Use short-lived feature branches and reviewed PRs into `main`. Merge coherent
+  increments once their API decisions, tests, and executable documentation are
+  complete and the required hosted checks pass on the final candidate. Deferred
+  features must be stated explicitly; unfinished semantics stay on the branch.
+- Keep `main` usable with passing required checks. Require an up-to-date PR and
+  review public API and numerical-contract changes against the published baseline.
+- `release/0.1` starts at the exact `v0.1.0-M1` commit. Use it for later 0.1
+  milestones, release candidates, final stabilization, and maintenance. Selectively
+  backport applicable fixes from `main`; forward-port urgent maintenance fixes.
+  Do not merge 0.2 feature development wholesale into that branch.
+- Release tags and published artifacts are immutable. Merging or pushing a branch
+  does not publish a release. Tagging, artifact admission, and Central publication
+  are separate, explicitly authorized release actions.
+- Keep the README's default dependency on the published version. Default released
+  documentation should come from its release tag; main-branch previews must say
+  they are unreleased and identify the required source version. Track changes in
+  the root [changelog](../CHANGELOG.md) under `Unreleased — 0.2` until release.
 
 `1.0.0-SNAPSHOT` was a premature development label. The numerical core is past
 the PRD 0.1–0.5 feature milestones, but a `1.0` tag would freeze public APIs,
@@ -13,18 +33,24 @@ label with a realistic progression.
 
 ## Version progression
 
-1. `0.1.0+...-SNAPSHOT` for exact-commit development and consumer convergence.
-2. `v0.1.0-M1` for the first immutable ecosystem checkpoint.
-3. Later `v0.1.0-Mn` or `v0.1.0-RCn` tags when another candidate is needed.
-4. `v0.1.0` only after the milestone passes its downstream soak gate.
-5. `v1.0.0` later, as the first compatibility-locked GA, after the 0.1 line has
+1. `v0.1.0-M1` is the first published, immutable ecosystem checkpoint.
+2. `0.2.0+...-SNAPSHOT` identifies current main-branch development. The 0.1
+   maintenance branch retains its own 0.1 version configuration.
+3. Later `v0.1.0-Mn` or `v0.1.0-RCn` tags may stabilize the maintenance line;
+   `v0.1.0` requires the milestone's downstream soak gate.
+4. `v0.2.0-Mn`, `v0.2.0-RCn`, and `v0.2.0` require an explicit update to release
+   admission and a qualified candidate. This development transition does not
+   authorize those versions for publication.
+5. `v1.0.0` comes later, as the first compatibility-locked GA, after Gale has
    been depended on in published form and the remaining freeze work in this
    document is closed.
 
 Only an exact `v0.1.x`, `v0.1.x-Mn`, or `v0.1.x-RCn` tag may produce a
-publishable version today. Any source, build, dependency, or executable
-documentation change creates a new candidate and invalidates evidence tied to
-the old commit.
+publishable version today. `sbt versionPolicyCheck` checks clean admitted tags,
+development and dirty states, rejected tag forms, and the no-Git fallback's
+snapshot classification. CI runs it in the required quality job.
+Any source, build, dependency, or executable documentation change creates a new
+candidate and invalidates evidence tied to the old commit.
 
 ## Artifact admission
 
@@ -73,11 +99,12 @@ backend capability behavior where the documentation makes those observable.
 It does not promise bit-identical floating-point results across legal backends.
 The package-by-package inventory is [API stability](api-stability.md).
 
-There is no compatibility baseline before M1 because no immutable artifact
-exists. Until M1 is published, maintainers must review exported API diffs
-manually and must not describe a candidate as binary-verified. Immediately
-after M1, 0.1-line development should add an automated binary- and
-TASTy-compatibility check against `0.1.0-M1` and make that job blocking.
+M1 is now an immutable published compatibility baseline. Review exported API
+diffs manually and do not describe a candidate as binary-verified without an
+executed compatibility check. Adding automated binary- and TASTy-compatibility
+checks against `0.1.0-M1` remains post-M1 work; they should become blocking for
+the 0.1 maintenance line. Intentional breaks on the 0.2 line require explicit
+review and migration notes rather than silently resetting the baseline.
 
 `1.0.0` is a later freeze, not the next tag. It may admit additional modules
 and begins the `1.x` SemVer promise. It still requires a reviewed export
