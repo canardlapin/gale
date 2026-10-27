@@ -34,8 +34,8 @@ jobs:
           python3 -I tools/release/test_verify_bundle.py
           python3 -I tools/release/test_configure_credentials.py
           python3 -I tools/release/test_publish_workflow.py
-      - name: Compile with fatal compiler warnings
-        run: sbt coreJVM/compile coreJS/compile
+      - name: Check version policy and compile with fatal compiler warnings
+        run: sbt versionPolicyCheck coreJVM/compile coreJS/compile
 
   test:
     name: Tests (Scala 3.7.4, ${{ matrix.platform }})
