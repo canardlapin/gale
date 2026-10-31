@@ -180,7 +180,7 @@ class LinearOperatorSuite extends munit.FunSuite:
     restricted.transposeApplyTo(Vec.zeros(0), output)
     assertEquals(output.asVec.toSeq, Seq(0.0, 0.0, 0.0))
     assertEquals(calls, 0)
-    intercept[LinAlgError.VectorLengthMismatch] { restricted(Vec(1.0)) }
+    val _ = intercept[LinAlgError.VectorLengthMismatch] { restricted(Vec(1.0)) }
     assertEquals(calls, 0)
   }
 
@@ -199,7 +199,7 @@ class LinearOperatorSuite extends munit.FunSuite:
     assertEquals(output.asVec.toSeq, Seq(0.0, 0.0))
     assertEquals(restricted.adjoint(Vec(1.0, 2.0)).length, 0)
     assertEquals(calls, 0)
-    intercept[LinAlgError.VectorLengthMismatch] { restricted.applyTo(Vec.zeros(0), MutableVec.zeros(1)) }
+    val _ = intercept[LinAlgError.VectorLengthMismatch] { restricted.applyTo(Vec.zeros(0), MutableVec.zeros(1)) }
     assertEquals(calls, 0)
   }
 

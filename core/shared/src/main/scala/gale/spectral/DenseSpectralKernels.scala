@@ -796,7 +796,7 @@ private[gale] object DenseSpectralKernels:
           var pendingS = 0.0
           var iBt = m - 1
           while iBt >= l && !innerZero do
-            var f = s * e(eOffset + iBt)
+            val f = s * e(eOffset + iBt)
             val b = c * e(eOffset + iBt)
             r = pythag(f, g)
             e(eOffset + iBt + 1) = r
@@ -975,7 +975,7 @@ private[gale] object DenseSpectralKernels:
       case None =>
         val vectors =
           if wantVectors then
-            normalizeSchurVectors(n, wr, wi, z)
+            normalizeSchurVectors(n, wi, z)
             transposeSquareInPlace(n, z)
             // Normalization must not hide a non-finite/overflowed vector norm
             // by returning an all-zero real column or packed complex pair.
@@ -1278,7 +1278,7 @@ private[gale] object DenseSpectralKernels:
     inline def zv(i: Int, j: Int): Double = z(j * n + i)
     inline def sz(i: Int, j: Int, v: Double): Unit = z(j * n + i) = v
     val na = en - 1
-    var p = (y - x) / 2.0
+    val p = (y - x) / 2.0
     val q = p * p + w
     var zz = math.sqrt(math.abs(q))
     sh(en, en, x + t)
@@ -1668,7 +1668,7 @@ private[gale] object DenseSpectralKernels:
     * `v_re + i·v_im` has unit modulus. Scaling is real and shared across a pair,
     * so the packing invariant and the `A v = λ v` relation are preserved.
     */
-  private def normalizeSchurVectors(n: Int, wr: DoubleArray, wi: DoubleArray, z: DoubleArray): Unit =
+  private def normalizeSchurVectors(n: Int, wi: DoubleArray, z: DoubleArray): Unit =
     var col = 0
     while col < n do
       if wi(col) > 0.0 then

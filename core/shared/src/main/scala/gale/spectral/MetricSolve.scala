@@ -1,6 +1,5 @@
 package gale.spectral
 
-import gale.linalg.DMat
 import gale.linalg.DVec
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.ExactSolveFactor

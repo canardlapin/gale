@@ -1,6 +1,5 @@
 package gale.sparse
 
-import gale.linalg.*
 
 /** Plain regression suite for Matrix Market I/O that stays in core.
   *

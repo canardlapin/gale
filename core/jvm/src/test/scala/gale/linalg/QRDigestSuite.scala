@@ -74,7 +74,7 @@ object QRDigestSuite:
       out += ((s"gauss m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian()), b))
       if !big then
         out += ((s"ints m=$m n=$n", Matrix.tabulate(m, n)((_, _) => (r.nextInt(3) - 1).toDouble), b))
-        out += ((s"zerocol m=$m n=$n", Matrix.tabulate(m, n)((i, j) => if j == n / 2 then 0.0 else r.nextGaussian()), b))
+        out += ((s"zerocol m=$m n=$n", Matrix.tabulate(m, n)((_, j) => if j == n / 2 then 0.0 else r.nextGaussian()), b))
         out += ((s"dupcol m=$m n=$n", Matrix.tabulate(m, n)((i, j) => (i + 1).toDouble * (if j % 2 == 0 then 1.0 else 2.0)), b))
         out += ((s"huge m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e300), b))
         out += ((s"tiny m=$m n=$n", Matrix.tabulate(m, n)((_, _) => r.nextGaussian() * 1e-300), b))
@@ -113,19 +113,19 @@ object QRDigestSuite:
       this
     def double(x: Double): Digest = long(java.lang.Double.doubleToLongBits(x))
     def vec(v: DVec): Digest =
-      long(v.length.toLong)
+      val _ = long(v.length.toLong)
       var i = 0
       while i < v.length do
-        double(v(i))
+        val _ = double(v(i))
         i += 1
       this
     def mat(m: DMat): Digest =
-      long(m.rows.toLong).long(m.cols.toLong)
+      val _ = long(m.rows.toLong).long(m.cols.toLong)
       var i = 0
       while i < m.rows do
         var j = 0
         while j < m.cols do
-          double(m(i, j))
+          val _ = double(m(i, j))
           j += 1
         i += 1
       this
@@ -135,7 +135,7 @@ object QRDigestSuite:
     val d = new Digest().mat(qr.reflectors).mat(qr.r)
     var k = 0
     while k < qr.tau.length do
-      d.double(qr.tau(k))
+      val _ = d.double(qr.tau(k))
       k += 1
     d.long(qr.diagnostics.rank.fold(-1L)(_.toLong)).double(qr.diagnostics.rankTolerance.getOrElse(Double.NaN)).hex
 

@@ -261,10 +261,10 @@ class FactorizationHardeningParitySuite extends munit.FunSuite:
       0.0,
       "3x0 lstsq"
     )
-    intercept[IndexOutOfBoundsException](det(be))
-    intercept[IndexOutOfBoundsException](inv(be))
-    intercept[IndexOutOfBoundsException](BreezeLU(be))
-    intercept[MatrixEmptyException](cholesky(be))
+    val _ = intercept[IndexOutOfBoundsException](det(be))
+    val _ = intercept[IndexOutOfBoundsException](inv(be))
+    val _ = intercept[IndexOutOfBoundsException](BreezeLU(be))
+    val _ = intercept[MatrixEmptyException](cholesky(be))
     intercept[IllegalArgumentException](qr(be))
   }
 
@@ -306,9 +306,9 @@ class FactorizationHardeningParitySuite extends munit.FunSuite:
       assert(ga.det.isLeft, s"$label: gale det must be Left")
       assert(ga.solve(galeVector(vectorData(n, 1L))).isLeft, s"$label: gale solve must be Left")
       assert(ga.solve(Matrix.eye(n)).isLeft, s"$label: gale matrix solve must be Left")
-      intercept[MatrixSingularException](ba \ breezeVector(vectorData(n, 1L)))
-      intercept[MatrixSingularException](ba \ BDM.eye[Double](n))
-      intercept[MatrixSingularException](inv(ba))
+      val _ = intercept[MatrixSingularException](ba \ breezeVector(vectorData(n, 1L)))
+      val _ = intercept[MatrixSingularException](ba \ BDM.eye[Double](n))
+      val _ = intercept[MatrixSingularException](inv(ba))
       assertEquals(math.abs(det(ba)), 0.0, s"$label: breeze det")
   }
 
@@ -334,7 +334,7 @@ class FactorizationHardeningParitySuite extends munit.FunSuite:
     val singular = matrixData(n, n, 81L)
     singular.foreach(row => row(k) = 0.0)
     assertEquals(galeMatrix(singular).lu.left.toOption, Some(LinAlgError.SingularMatrix(k)), "zero column index")
-    intercept[MatrixSingularException](breezeMatrix(singular) \ breezeVector(vectorData(n, 1L)))
+    val _ = intercept[MatrixSingularException](breezeMatrix(singular) \ breezeVector(vectorData(n, 1L)))
 
     // A = L D Lᵀ with a well-conditioned unit-lower L, D > 0 before index k and
     // D(k) = -1: leading minors 1..k are positive, minor k+1 is not, with O(1) margin.

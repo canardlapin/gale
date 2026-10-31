@@ -203,7 +203,7 @@ class EigSymmetricGeneralizedBackendSuite extends munit.FunSuite:
         BackendConvergence(requested = 2, converged = 2, iterations = 1)
       )
     )
-    intercept[LinAlgError.InvalidArgument](publicSolve(wrongCount))
+    val _ = intercept[LinAlgError.InvalidArgument](publicSolve(wrongCount))
 
     val wrongRows = rawProvider(
       RawIterativeGeneralizedEigen(
@@ -212,7 +212,7 @@ class EigSymmetricGeneralizedBackendSuite extends munit.FunSuite:
         BackendConvergence(requested = 2, converged = 2, iterations = 1)
       )
     )
-    intercept[LinAlgError.InvalidArgument](publicSolve(wrongRows))
+    val _ = intercept[LinAlgError.InvalidArgument](publicSolve(wrongRows))
 
     val nonFinite = rawProvider(
       RawIterativeGeneralizedEigen(
@@ -232,7 +232,7 @@ class EigSymmetricGeneralizedBackendSuite extends munit.FunSuite:
         BackendConvergence(requested = 2, converged = 1, iterations = 1)
       )
     )
-    intercept[LinAlgError.InvalidArgument](publicSolve(falseConvergence))
+    val _ = intercept[LinAlgError.InvalidArgument](publicSolve(falseConvergence))
 
     val duplicate = DMat.tabulate(n, 2)((row, _) => if row == 0 then 1.0 else 0.0)
     val nonOrthogonal = rawProvider(

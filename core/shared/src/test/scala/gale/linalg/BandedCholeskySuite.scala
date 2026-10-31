@@ -73,13 +73,13 @@ class BandedCholeskySuite extends munit.FunSuite:
   test("consuming a builder transfers ownership on success and failure"):
     val builder = DMatBuilder.from(tridiagonal(5))
     val f = builder.consumeBandedCholesky().fold(throw _, identity)
-    intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
-    intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, 7.0))
-    intercept[LinAlgError.UnsupportedOperation](builder.result())
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder(0, 0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.update(0, 0, 7.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](builder.result())
     assertEqualsDouble(f.logDet, math.log(6.0), 1e-14)
     val bad = DMatBuilder.zeros(3, 2)
     assert(bad.consumeBandedCholesky().isLeft)
-    intercept[LinAlgError.UnsupportedOperation](bad.fill(1.0))
+    val _ = intercept[LinAlgError.UnsupportedOperation](bad.fill(1.0))
     val badShape = DMatBuilder.zeros(2, 3)
     assert(badShape.consumeBandedCholesky().isLeft)
     intercept[LinAlgError.UnsupportedOperation](badShape.result())
@@ -115,7 +115,7 @@ class BandedCholeskySuite extends munit.FunSuite:
     assert(f.solveInPlace(bad).isLeft)
     for i <- 0 until 4; j <- 0 until 2 if i != 3 || j != 1 do assertEqualsDouble(bad(i, j), 2.0, 0.0)
     val closed = DMatBuilder.zeros(4, 1)
-    closed.result()
+    val _ = closed.result()
     intercept[LinAlgError.UnsupportedOperation](f.solveInPlace(closed))
 
   test("empty, singleton, zero-column RHS, padding, and invalid storage shapes"):

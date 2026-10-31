@@ -10,8 +10,6 @@ class BandedLogDetJetSuite extends munit.FunSuite:
   private def jet(f: BandedCholesky, first: Vector[DMat], secondUpper: Vector[DMat]): BandedLogDetJet =
     f.logDetJet(derivatives(first, secondUpper)).fold(throw _, identity)
 
-  private def pair(p: Int, q: Int): Int = q * (q + 1) / 2 + p
-
   /** Lower band of a dense symmetric matrix, with NaN in the ignored padding. */
   private def bandsOf(dense: DMat, b: Int): DMat =
     Matrix.tabulate(dense.rows, b + 1)((i, d) => if d <= i then dense(i, i - d) else Double.NaN)

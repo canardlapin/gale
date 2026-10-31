@@ -59,7 +59,7 @@ class PreconditionedSolverSuite extends munit.FunSuite:
       if i == j then n.toDouble + rng.nextDouble()
       else rng.nextDouble() * 2.0 - 1.0
     }
-    val truth = Vec.tabulate(n)(i => rng.nextDouble() * 4.0 - 2.0)
+    val truth = Vec.tabulate(n)(_ => rng.nextDouble() * 4.0 - 2.0)
     val b = A * truth
     val result = gmres(A, b, SolverConfig(tolerance = 1e-11, maxIterations = 200, restart = n))
     assert(result.converged, s"residual=${result.residual}")

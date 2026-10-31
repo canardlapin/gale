@@ -1020,10 +1020,10 @@ object FirstOrderSolvers:
       objectiveChange: Double,
       iterations: Int,
       config: FirstOrderConfig,
-      primalScale: Double = 1.0,
-      dualScale: Double = 1.0,
-      primalResolution: Double = 0.0,
-      dualResolution: Double = 0.0
+      primalScale: Double,
+      dualScale: Double,
+      primalResolution: Double,
+      dualResolution: Double
   ): FirstOrderCertificate =
     FirstOrderCertificate(
       ValueSummary.from(primal),

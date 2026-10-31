@@ -74,7 +74,7 @@ class KernelRegressionSuite extends munit.FunSuite:
     y(0) = 1.0
     y(1) = 2.0
     y(2) = 3.0
-    intercept[LinAlgError.UnsupportedOperation] {
+    val _ = intercept[LinAlgError.UnsupportedOperation] {
       a.mulInto(y.asVec, y)
     }
     val z = MutableDVec.zeros(3)

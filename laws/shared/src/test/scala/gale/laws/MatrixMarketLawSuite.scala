@@ -38,7 +38,7 @@ class MatrixMarketLawSuite extends munit.ScalaCheckSuite:
         var col = 0
         while col < 3 do
           val value = raw(row * 3 + col)
-          if value != 0.0 then builder.add(row, col, value)
+          if value != 0.0 then (builder.add(row, col, value): Unit)
           col += 1
         row += 1
       val sparse = builder.toCSR()

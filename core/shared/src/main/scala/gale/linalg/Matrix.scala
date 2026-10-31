@@ -15,6 +15,7 @@ import gale.spectral.TruncatedSvd
 import gale.spectral.MinimumNormSolution
 import gale.spectral.MinimumNormSolutions
 import scala.annotation.targetName
+import scala.annotation.unused
 
 trait Matrix[A] extends LinearOperator[A]:
   def rows: Int
@@ -764,7 +765,7 @@ final class DMat private[gale] (
     * policy is handled by the portable implementation because native provider
     * contracts do not currently expose a matching tolerance parameter.
     */
-  def cholesky(options: CholeskyOptions)(using Backend): Either[LinAlgError, Cholesky] =
+  def cholesky(options: CholeskyOptions)(using @unused backend: Backend): Either[LinAlgError, Cholesky] =
     DenseDecompositions.cholesky(this, options)
 
   /** QR is a total facade — it always returns a `QR`, exactly as the pure Householder

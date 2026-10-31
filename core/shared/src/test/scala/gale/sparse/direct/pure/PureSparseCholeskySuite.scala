@@ -19,7 +19,7 @@ class PureSparseCholeskySuite extends munit.FunSuite:
       var j = 0
       while j < a.cols do
         val v = a(i, j)
-        if v != 0.0 then builder.add(i, j, v)
+        if v != 0.0 then (builder.add(i, j, v): Unit)
         j += 1
       i += 1
     builder.toCSR()
@@ -190,8 +190,8 @@ class PureSparseCholeskySuite extends munit.FunSuite:
     val builder = Sparse.coo(n, n)
     var i = 0
     while i < n do
-      builder.add(i, i, 1.0)
-      if i > 0 then builder.add(i, 0, 1.0)
+      val _ = builder.add(i, i, 1.0)
+      if i > 0 then (builder.add(i, 0, 1.0): Unit)
       i += 1
     val matrix = builder.toCSR()
     val workspace = SparseDirect.newWorkspace().orThrow

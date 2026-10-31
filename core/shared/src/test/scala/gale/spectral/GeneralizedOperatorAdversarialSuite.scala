@@ -297,7 +297,7 @@ class GeneralizedOperatorAdversarialSuite extends munit.FunSuite:
       0.0, 0.0
     )
 
-    Eigen
+    val _ = Eigen
       .eigSymmetricGeneralized(
         a.assumeSymmetricOperator,
         b.assumePositiveDefiniteOperator,

@@ -100,18 +100,18 @@ class DenseDestinationSuite extends munit.FunSuite:
   }
 
   test("destination operations reject shape mismatch and closed builders") {
-    intercept[LinAlgError.DimensionMismatch] {
+    val _ = intercept[LinAlgError.DimensionMismatch] {
       a.gemmInto(Matrix.zeros(4, 2), DMatBuilder.zeros(2, 2))
     }
-    intercept[LinAlgError.DimensionMismatch] {
+    val _ = intercept[LinAlgError.DimensionMismatch] {
       a.gemmInto(b, DMatBuilder.zeros(2, 3))
     }
-    intercept[LinAlgError.DimensionMismatch] {
+    val _ = intercept[LinAlgError.DimensionMismatch] {
       a.linearCombinationInto(Matrix.zeros(2, 2), DMatBuilder.zeros(2, 3), 1.0, 1.0)
     }
 
     val closed = DMatBuilder.zeros(2, 2)
-    closed.result()
+    val _ = closed.result()
     intercept[LinAlgError.UnsupportedOperation] {
       a.gemmInto(b, closed)
     }
@@ -129,8 +129,8 @@ class DenseDestinationSuite extends munit.FunSuite:
     )
     val identity = Matrix.eye(2)
 
-    intercept[LinAlgError.UnsupportedOperation](alias.gemmInto(identity, destination))
-    intercept[LinAlgError.UnsupportedOperation](identity.gemmInto(alias, destination))
+    val _ = intercept[LinAlgError.UnsupportedOperation](alias.gemmInto(identity, destination))
+    val _ = intercept[LinAlgError.UnsupportedOperation](identity.gemmInto(alias, destination))
     intercept[LinAlgError.UnsupportedOperation](alias.linearCombinationInto(identity, destination, 1.0, 1.0))
   }
 

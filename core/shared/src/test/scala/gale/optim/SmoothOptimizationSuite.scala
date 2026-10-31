@@ -83,7 +83,7 @@ final class SmoothOptimizationSuite extends FunSuite:
     val objective = quadratic(DMat.eye(2), column(1.0, -2.0))
     val first = LBFGS.minimize(objective, DMat.zeros(2, 1), LBFGSConfig(tolerance = tolerance)).toOption.get
     val snapshot = DMat.tabulate(2, 1)((r, c) => first.primal(r, c))
-    LBFGS.minimize(objective, column(20.0, 30.0), LBFGSConfig(tolerance = tolerance)).toOption.get
+    val _ = LBFGS.minimize(objective, column(20.0, 30.0), LBFGSConfig(tolerance = tolerance)).toOption.get
     for r <- 0 until snapshot.rows; c <- 0 until snapshot.cols do
       assertEqualsDouble(first.primal(r, c), snapshot(r, c), 0.0)
     val check = GradientCheck.directional(objective, column(0.2, -0.4), column(0.3, 0.7)).toOption.get
@@ -140,7 +140,7 @@ final class SmoothOptimizationSuite extends FunSuite:
 
   test("a stationary initial point triggers exactly one cancellable progress event"):
     var calls = 0
-    val objective = DifferentiableObjective(1)(x => Right(ObjectiveEvaluation(0.0, column(0.0)))).toOption.get
+    val objective = DifferentiableObjective(1)(_ => Right(ObjectiveEvaluation(0.0, column(0.0)))).toOption.get
     val solved = LBFGS
       .minimize(
         objective,

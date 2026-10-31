@@ -1,6 +1,5 @@
 package gale.sparse
 
-import gale.linalg.*
 import gale.platform.DoubleArray
 import gale.platform.IndexArray
 import munit.ScalaCheckSuite

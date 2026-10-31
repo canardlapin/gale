@@ -140,13 +140,13 @@ private[spectral] object BlockSymmetricEigen:
 
     var seedIndex = 0
     while seedIndex < seeds.length && vectors.length < target do
-      add(seeds(seedIndex))
+      val _ = add(seeds(seedIndex))
       seedIndex += 1
 
     var stream = restart * math.max(blockWidth, 1) + 1
     while vectors.length < math.min(blockWidth, target) do
       if !add(deterministicVector(n, stream)) then
-        addCanonicalComplement(n, vectors, images)
+        val _ = addCanonicalComplement(n, vectors, images)
       stream += 1
 
     var frontier = 0
@@ -154,7 +154,7 @@ private[spectral] object BlockSymmetricEigen:
       if frontier < vectors.length then
         val image = apply(op, vectors(frontier))
         images(frontier) = Some(image)
-        add(image)
+        val _ = add(image)
         frontier += 1
       else
         // The current Krylov component is invariant. Probe its orthogonal

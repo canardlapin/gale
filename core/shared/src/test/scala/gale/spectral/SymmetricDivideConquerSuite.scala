@@ -135,7 +135,7 @@ class SymmetricDivideConquerSuite extends munit.FunSuite:
       // Reusing D&C storage on a subsequent dense problem cannot alter the
       // shortcut's separately owned result.
       val saved = entries(reusable.vectors.get)
-      DenseSpectralKernels.symmetricEigenWith(gaussian(n, 7000L + n), wantVectors = true, workspace).toOption.get
+      val _ = DenseSpectralKernels.symmetricEigenWith(gaussian(n, 7000L + n), wantVectors = true, workspace).toOption.get
       assertEquals(entries(reusable.vectors.get), saved)
   }
 

@@ -1,7 +1,6 @@
 package gale.sparse
 
 import gale.TestAccess
-import gale.linalg.*
 
 /** CSC arithmetic/reduction parity with CSR (the two agree because CSC reuses the
   * CSR code through the zero-copy transpose), plus the CSR/COO apply-agreement
