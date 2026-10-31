@@ -1,0 +1,196 @@
+---
+title: Linear algebra for Scala 3
+description: Gale is a linear algebra library for Scala 3 on the JVM and Scala.js, with dense and sparse matrices, direct and iterative solvers, spectral methods, and optimization. Failed solves return typed errors, and iterative results report whether they converged.
+template: splash
+hero:
+  title: Gale
+  tagline: Linear algebra for Scala 3, on the JVM and Scala.js. Dense and sparse matrices, direct and iterative solvers, spectral methods, and optimization. A failed solve returns an error value; an iterative result reports whether it converged.
+  image:
+    file: ../../assets/cholesky-fill.svg
+    alt: Two sparsity patterns. Left, the 217 nonzeros of the five-point Laplacian on a 7 by 7 grid. Right, its Cholesky factor, in which elimination has filled the band with 216 new entries.
+  actions:
+    - text: Get a first result
+      link: start/first-result/
+      icon: right-arrow
+    - text: Core concepts
+      link: start/core-concepts/
+      variant: secondary
+    - text: Find a worked example
+      link: guides/examples/
+      variant: minimal
+---
+
+import { Aside, Card, CardGrid, Code, LinkCard } from '@astrojs/starlight/components';
+import snippets from '../../generated/snippets.json';
+
+export const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+## A first result
+
+Four observations lie on the line *y* = 1 + 2*x*. This program fits an intercept and a slope
+to them. The documentation build compiled and ran it; the comment on the last line is the value
+it printed.
+
+<div class="gale-pair">
+	<Code code={snippets['first-result']} lang="scala" title="FirstResult.scala" />
+	<div>
+		<p>
+			Matrix literals are row-major, so the first column of <code>design</code> is the intercept
+			and the second is the predictor.
+		</p>
+		<p>
+			<code>leastSquares</code> returns <code>Either[LinAlgError, DVec]</code>. If the columns of
+			the design were linearly dependent, the result would be a <code>Left</code> naming the rank
+			deficiency, not an exception and not a vector of meaningless numbers.
+		</p>
+		<p>
+			<code>.orThrow</code> suits a first example or a test. Library code can keep the
+			<code>Either</code> and decide what a rank-deficient design means for its caller.
+		</p>
+		<p>
+			<a href={`${base}/start/first-result/`}>Your first result</a> continues the example: the
+			failure case, and a retained QR factor that reports its rank and pivots.
+		</p>
+	</div>
+</div>
+
+## What a result tells you
+
+<div class="gale-three">
+<CardGrid>
+	<Card title="A failed solve is a value">
+		Solves, factorizations, and spectral methods return `Either[LinAlgError, A]` wherever
+		singularity, rank deficiency, or an indefinite matrix is an ordinary outcome. Each failure has
+		its own case, so a caller can match on a singular matrix and a mismatched right-hand side
+		separately.
+	</Card>
+	<Card title="An iterative result says whether it converged">
+		An iterative solver that exhausts its iteration budget still returns its last iterate, with
+		the residual, the iteration count, and `converged = false`. A partial eigensolver may return
+		only the pairs that met the tolerance. Returning is not the same as converging.
+	</Card>
+	<Card title="Shapes are checked at the call">
+		Every vector and matrix records its dimensions. A product, sum, or solve whose shapes do not
+		agree fails at that call with a `LinAlgError`, rather than with an index error somewhere
+		deeper in the computation.
+	</Card>
+</CardGrid>
+</div>
+
+These rules, with two more about views and backends, are set out in
+[Core concepts](start/core-concepts/).
+
+## Matrices you never store
+
+An iterative method needs only the action of a matrix on a vector. `LinearOperator.fromFunction`
+turns a procedure that computes *A x* into an operator that CG, GMRES, BiCGSTAB, and the other
+Krylov methods accept.
+
+<div class="gale-pair">
+	<Code code={snippets['matrix-free']} lang="scala" title="MatrixFree.scala" wrap />
+	<div>
+		<p>
+			This operator applies the second-difference stencil to a vector of length five without
+			storing a single matrix entry. The right-hand side is the stencil applied to the vector
+			1, 2, 3, 4, 5, and conjugate gradients recovers that vector to rounding error.
+		</p>
+		<p>
+			When the entries do matter, Gale stores them: COO triples for assembly, and CSR or CSC for
+			computation. The figure at the top of this page shows one reason structure matters. Factoring
+			a sparse matrix can create new nonzeros, called fill: here elimination adds 216 entries to
+			the 133 in the lower triangle of <em>A</em>. Portable
+			sparse Cholesky is enabled by an explicit <code>import gale.sparse.direct.pure.given</code>.
+		</p>
+		<p>
+			<a href={`${base}/guides/sparse-operators/`}>Sparse matrices and operators</a> builds a CSR
+			matrix, solves with it, and explains what a solver returns when it stops early.
+		</p>
+	</div>
+</div>
+
+## What Gale covers
+
+<nav class="gale-index" aria-label="Guides by subject">
+	<a href={`${base}/guides/dense-systems/`}>
+		<strong>Dense systems and least squares</strong>
+		Square solves, pivoted QR with rank diagnostics, many right-hand sides at once, and factors
+		kept for reuse.
+	</a>
+	<a href={`${base}/guides/sparse-operators/`}>
+		<strong>Sparse matrices and operators</strong>
+		COO assembly, CSR and CSC storage, and CG, BiCGSTAB, GMRES, CGNR, and LSQR over stored or
+		matrix-free operators.
+	</a>
+	<a href={`${base}/guides/spectral-analysis/`}>
+		<strong>Spectral analysis</strong>
+		Dense symmetric eigenproblems, the economy SVD, and partial results with the residuals that
+		qualify them.
+	</a>
+	<a href={`${base}/advanced/generalized-eigen/`}>
+		<strong>Generalized eigensolving</strong>
+		A few eigenpairs of a symmetric <em>A</em> against a positive-definite <em>B</em>, both supplied
+		as operators: LOBPCG by default, block Lanczos when a solve with <em>B</em> is available.
+	</a>
+	<a href={`${base}/guides/first-order-optimization/`}>
+		<strong>First-order optimization</strong>
+		Proximal, projected, and primal-dual methods for composite objectives, and a typed
+		stopping status that distinguishes convergence from an exhausted budget.
+	</a>
+	<a href={`${base}/guides/nonlinear-and-bounded/`}>
+		<strong>Nonlinear fits and constraints</strong>
+		Levenberg–Marquardt, L-BFGS-B, and projected BFGS; an augmented Lagrangian for general
+		constraints; CMA-ES when there is no gradient.
+	</a>
+	<a href={`${base}/guides/compare-fits/`}>
+		<strong>Numerical control</strong>
+		Certified comparisons of two fits, explicit destination buffers, and reusable workspaces for
+		pipelines you have measured.
+	</a>
+	<a href={`${base}/guides/from-breeze/`}>
+		<strong>Moving from Breeze</strong>
+		Which part of a Breeze workload Gale replaces, how to convert values at the boundary, and where
+		the two libraries deliberately differ.
+	</a>
+</nav>
+
+## One portable core
+
+With only `gale-core` on the classpath, Gale runs its own portable implementation, on the JVM
+and under Scala.js. The published core needs no native library and no JVM flags.
+
+On the JVM, an application can import an optional backend: the Vector API, or BLAS and LAPACK
+through the foreign function interface. The backend then takes the calls it is eligible for, by
+shape and layout, and leaves the rest to the portable code. Result types, ownership, and
+documented numerical meaning do not change. Bit patterns may: a backend can reassociate
+floating-point arithmetic, so Gale promises shapes, orderings, failure modes, and numerical
+invariants rather than identical bits. [The numerical contract](advanced/numerical-contract/)
+states exactly what is guaranteed.
+
+## Status
+
+<Aside type="note" title="First milestone">
+	`0.1.0-M1` is on Maven Central for the JVM and Scala.js. It is a milestone, not a 1.0
+	compatibility freeze. The Breeze interop module and the JVM backends are tested but
+	provisional, and are not part of the published bundle. A page marked as a development preview
+	describes an API that is not yet in a release.
+</Aside>
+
+Gale is built with Scala 3.7.4 and needs JDK 21 on the JVM. Add the core to `build.sbt`:
+
+```scala
+scalaVersion := "3.7.4"
+libraryDependencies += "io.github.canardlapin" %% "gale-core" % "0.1.0-M1"
+```
+
+For Scala.js or a cross-project, use `%%%` in place of `%%`, with the Scala.js plugin enabled.
+[Modules and platforms](reference/modules-and-platforms/) lists every module and the runtime it
+needs.
+
+## Where to go next
+
+<CardGrid>
+	<LinkCard title="Core concepts" description="Five rules that explain most of the API: values, shapes, failures, operators, and backends." href="start/core-concepts/" />
+	<LinkCard title="Guides" description="Task-by-task pages for dense, sparse, spectral, and optimization work." href="guides/" />
+	<LinkCard title="Advanced" description="The numerical contract, ownership, workspaces, and reusable sparse structure." href="advanced/" />
+	<LinkCard title="Troubleshooting" description="Start from the error or the stalled solve, and work back to the cause." href="reference/troubleshooting/" />
+</CardGrid>
