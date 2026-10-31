@@ -26,7 +26,7 @@ class NonsymmetricKernelDigestSuite extends munit.FunSuite:
     assert(stream != null, s"missing resource $DigestResource")
     val source = scala.io.Source.fromInputStream(stream, "UTF-8")
     try
-      source.getLines
+      source.getLines()
         .filter(line => line.nonEmpty && !line.startsWith("#"))
         .map: line =>
           val tab = line.lastIndexOf('\t')
