@@ -106,7 +106,52 @@ lazy val commonScalacOptions = Seq(
   "-feature",
   "-unchecked",
   "-Xmax-inlines:64",
+  "-Wunused:all",
+  "-Wvalue-discard",
+  "-Wnonunit-statement",
   "-Werror"
+)
+
+// mdoc's generated binder deliberately emits every rendered value as a
+// statement and then discards it. Keep all other fatal warnings on executable
+// guides, but do not classify that instrumentation as source-level non-Unit
+// statements or value discards.
+lazy val docsScalacOptions =
+  commonScalacOptions.filterNot(Set("-Wvalue-discard", "-Wnonunit-statement"))
+
+// Binary (MiMa) and TASTy (TASTy-MiMa) compatibility against a published Gale
+// release. The baseline is explicit and opt-in: pass
+// -Dgale.compatibility.baseline=<published version> (for example 0.1.0-M1, or
+// 0.2.0 once it exists) and run `sbt compatibilityCheck`. Without a baseline
+// the check fails instead of silently comparing against nothing. Only modules
+// that have actually been published to Central carry these settings.
+lazy val galeCompatibilityBaseline = settingKey[Option[String]](
+  "Published Gale version used as the binary and TASTy compatibility baseline"
+)
+ThisBuild / galeCompatibilityBaseline :=
+  sys.props.get("gale.compatibility.baseline").map(_.trim).filter(_.nonEmpty)
+
+lazy val requireCompatibilityBaseline = taskKey[Unit](
+  "Fail unless -Dgale.compatibility.baseline names a published Gale version"
+)
+requireCompatibilityBaseline / aggregate := false
+requireCompatibilityBaseline := {
+  val baseline = galeCompatibilityBaseline.value.getOrElse(
+    sys.error("compatibilityCheck requires -Dgale.compatibility.baseline=<published Gale version>")
+  )
+  streams.value.log.info(s"Checking binary and TASTy compatibility against Gale $baseline")
+}
+
+// Build the baseline coordinate from organization/name/cross-version rather
+// than projectID, whose extra attributes (versionScheme) do not resolve.
+def publishedBaseline(baseline: Option[String], org: String, module: String, cross: CrossVersion): Set[ModuleID] =
+  baseline.map(version => (org % module % version).cross(cross)).toSet
+
+lazy val publishedCompatibilitySettings = Seq(
+  mimaPreviousArtifacts :=
+    publishedBaseline(galeCompatibilityBaseline.value, organization.value, moduleName.value, crossVersion.value),
+  tastyMiMaPreviousArtifacts :=
+    publishedBaseline(galeCompatibilityBaseline.value, organization.value, moduleName.value, crossVersion.value)
 )
 
 // Release candidates must not silently pull an unpublished snapshot at
@@ -218,6 +263,7 @@ lazy val core: CrossProject =
     .crossType(CrossType.Full)
     .in(file("core"))
     .settings(commonSettings)
+    .settings(publishedCompatibilitySettings)
     .settings(releaseSnapshotSettings)
     .settings(releaseVersionSettings)
     .settings(
@@ -234,6 +280,7 @@ lazy val laws: CrossProject =
     .crossType(CrossType.Full)
     .in(file("laws"))
     .dependsOn(core)
+    .settings(publishedCompatibilitySettings)
     .settings(releaseSnapshotSettings)
     .settings(releaseVersionSettings)
     .settings(
@@ -267,7 +314,7 @@ lazy val docs =
     .settings(
       name := "gale-docs",
       publish / skip := true,
-      scalacOptions ++= commonScalacOptions,
+      scalacOptions ++= docsScalacOptions,
       mdocIn := file("docs/user"),
       tlSiteHelium := tlSiteHelium.value.site.topNavigationBar(
         homeLink = IconLink.internal(Root / "index.md", HeliumIcon.home)
@@ -641,4 +688,12 @@ addCommandAlias(
 )
 addCommandAlias("benchSmokeJSFull", ";set benchmarksJS/scalaJSStage := FullOptStage;benchmarksJS/run")
 // Compile API docs for both public platforms and execute/render the guide site.
+addCommandAlias(
+  "compatibilityCheck",
+  ";requireCompatibilityBaseline" +
+    ";coreJVM/mimaReportBinaryIssues;coreJVM/tastyMiMaReportIssues" +
+    ";coreJS/mimaReportBinaryIssues;coreJS/tastyMiMaReportIssues" +
+    ";lawsJVM/mimaReportBinaryIssues;lawsJVM/tastyMiMaReportIssues" +
+    ";lawsJS/mimaReportBinaryIssues;lawsJS/tastyMiMaReportIssues"
+)
 addCommandAlias("docsCheck", ";coreJVM/doc;coreJS/doc;docs/tlSite")

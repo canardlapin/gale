@@ -7,7 +7,6 @@ import breeze.linalg.SparseVector as BSV
 import breeze.linalg.argmax as bArgmax
 import breeze.linalg.argmin as bArgmin
 import breeze.linalg.cholesky as bCholesky
-import breeze.linalg.cond as bCond
 import breeze.linalg.det as bDet
 import breeze.linalg.eig as bEig
 import breeze.linalg.eigSym as bEigSym
@@ -270,20 +269,20 @@ object GenerateBreezeGoldens:
       add("matvec", s"${m}x$n") { c =>
         val a = general(m, n, seed); val x = uniform(n, seed + 1); val xt = uniform(m, seed + 2)
         val ba = bm(m, n, a)
-        c.mat("A", m, n, a).vec("x", x).vec("xt", xt).vec("Ax", ba * bv(x)).vec("Atxt", ba.t * bv(xt))
+        val _ = c.mat("A", m, n, a).vec("x", x).vec("xt", xt).vec("Ax", ba * bv(x)).vec("Atxt", ba.t * bv(xt))
       }
     for (m, k, n, seed) <- Seq((1, 1, 1, 21L), (5, 3, 4, 22L), (17, 31, 13, 23L), (48, 48, 48, 24L)) do
       add("matmul", s"${m}x${k}x$n") { c =>
         val a = general(m, k, seed); val b = general(k, n, seed + 1); val d = general(m, n, seed + 2)
         val ba = bm(m, k, a)
-        c.mat("A", m, k, a).mat("B", k, n, b).mat("D", m, n, d)
-        c.mat("AB", ba * bm(k, n, b)).mat("AtD", ba.t * bm(m, n, d))
+        val _ = c.mat("A", m, k, a).mat("B", k, n, b).mat("D", m, n, d)
+        val _ = c.mat("AB", ba * bm(k, n, b)).mat("AtD", ba.t * bm(m, n, d))
       }
     for (n, seed) <- Seq((1, 31L), (10, 32L), (257, 33L), (1000, 34L)) do
       add("vector", s"n$n") { c =>
         val x = uniform(n, seed); val y = uniform(n, seed + 1); val alpha = -1.75
-        c.vec("x", x).vec("y", y).scalar("alpha", alpha)
-        c.scalar("dot", bv(x).dot(bv(y))).vec("axpy", bv(x) * alpha + bv(y))
+        val _ = c.vec("x", x).vec("y", y).scalar("alpha", alpha)
+        val _ = c.scalar("dot", bv(x).dot(bv(y))).vec("axpy", bv(x) * alpha + bv(y))
       }
 
     // LU: solve, det, inverse.
@@ -294,8 +293,8 @@ object GenerateBreezeGoldens:
     for (name, n, a) <- luInputs do
       add("lu", name) { c =>
         val ba = bm(n, n, a); val b = uniform(n, 43L + n)
-        c.mat("A", n, n, a).vec("b", b).scalar("kappa", kappa2(ba))
-        c.vec("x", ba \ bv(b)).scalar("det", bDet(ba))
+        val _ = c.mat("A", n, n, a).vec("b", b).scalar("kappa", kappa2(ba))
+        val _ = c.vec("x", ba \ bv(b)).scalar("det", bDet(ba))
         if n <= 33 then c.mat("inv", bInv(ba))
       }
 
@@ -306,8 +305,8 @@ object GenerateBreezeGoldens:
     for (name, n, a) <- cholInputs do
       add("cholesky", name) { c =>
         val ba = bm(n, n, a); val b = uniform(n, 52L + n)
-        c.mat("A", n, n, a).vec("b", b).scalar("kappa", kappa2(ba))
-        c.mat("L", bCholesky(ba)).vec("x", ba \ bv(b))
+        val _ = c.mat("A", n, n, a).vec("b", b).scalar("kappa", kappa2(ba))
+        val _ = c.mat("L", bCholesky(ba)).vec("x", ba \ bv(b))
       }
 
     // Householder QR: sign-normalized R and least squares.
@@ -320,8 +319,8 @@ object GenerateBreezeGoldens:
         val r = bQr(ba).r(0 until n, ::).copy
         for i <- 0 until n if r(i, i) < 0.0 do r(i, ::) := r(i, ::) * -1.0
         val x = ba \ bv(b)
-        c.mat("A", m, n, a).vec("b", b).scalar("kappa", kappa2(ba))
-        c.mat("R", r).vec("x", x).scalar("residual", bNorm(bv(b) - ba * x))
+        val _ = c.mat("A", m, n, a).vec("b", b).scalar("kappa", kappa2(ba))
+        val _ = c.mat("R", r).vec("x", x).scalar("residual", bNorm(bv(b) - ba * x))
       }
 
     // Symmetric eigen: ascending values and (optionally) vectors.
@@ -340,7 +339,7 @@ object GenerateBreezeGoldens:
     for (name, n, a, withVectors) <- eigInputs do
       add("eigsym", name) { c =>
         val es = bEigSym(bm(n, n, a))
-        c.mat("A", n, n, a).vec("values", es.eigenvalues)
+        val _ = c.mat("A", n, n, a).vec("values", es.eigenvalues)
         if withVectors then c.mat("vectors", es.eigenvectors)
       }
 
@@ -364,7 +363,7 @@ object GenerateBreezeGoldens:
       add("eig", name) { c =>
         val d = bEig(bm(n, n, a))
         val order = (0 until n).sortBy(i => (d.eigenvalues(i), d.eigenvaluesComplex(i)))
-        c.mat("A", n, n, a).vec("real", order.map(d.eigenvalues(_)).toArray).vec("imag", order.map(d.eigenvaluesComplex(_)).toArray)
+        val _ = c.mat("A", n, n, a).vec("real", order.map(d.eigenvalues(_)).toArray).vec("imag", order.map(d.eigenvaluesComplex(_)).toArray)
       }
 
     // Singular values, plus compact economy factors for sign/cluster-safe replay.
@@ -377,10 +376,10 @@ object GenerateBreezeGoldens:
     for (name, m, n, a) <- svdInputs do
       add("svd", name) { c =>
         val d = bSvd(bm(m, n, a))
-        c.mat("A", m, n, a).vec("sigma", d.singularValues)
+        val _ = c.mat("A", m, n, a).vec("sigma", d.singularValues)
         if (m == 8 && n == 5) || (m == 5 && n == 8) || name.startsWith("clustered-") then
           val p = math.min(m, n)
-          c.mat("U", BDM.tabulate(m, p)(d.leftVectors(_, _)))
+          val _ = c.mat("U", BDM.tabulate(m, p)(d.leftVectors(_, _)))
             .mat("VT", BDM.tabulate(p, n)(d.rightVectors(_, _)))
       }
 
@@ -391,13 +390,13 @@ object GenerateBreezeGoldens:
     for (name, m, n, a) <- pinvInputs do
       add("pinv", name) { c =>
         val ba = bm(m, n, a)
-        c.mat("A", m, n, a).scalar("kappa", kappa2(ba)).mat("P", bPinv(ba))
+        val _ = c.mat("A", m, n, a).scalar("kappa", kappa2(ba)).mat("P", bPinv(ba))
       }
 
     for (am, an, cm, cn, seed) <- Seq((1, 1, 3, 3, 100L), (2, 3, 3, 2, 101L), (4, 4, 5, 3, 102L)) do
       add("kron", s"${am}x$an-${cm}x$cn") { c =>
         val a = general(am, an, seed); val b = general(cm, cn, seed + 1)
-        c.mat("A", am, an, a).mat("B", cm, cn, b).mat("K", bKron(bm(am, an, a), bm(cm, cn, b)))
+        val _ = c.mat("A", am, an, a).mat("B", cm, cn, b).mat("K", bKron(bm(am, an, a), bm(cm, cn, b)))
       }
 
     // Reductions and norms.
@@ -410,20 +409,20 @@ object GenerateBreezeGoldens:
     for (name, x) <- reduceVectors do
       add("reduce-vector", name) { c =>
         val v = bv(x)
-        c.vec("x", x).scalar("sum", bSum(v)).scalar("mean", bMean(v))
-        c.scalar("max", bMax(v)).scalar("min", bMin(v))
-        c.scalar("argmax", bArgmax(v).toDouble).scalar("argmin", bArgmin(v).toDouble)
-        c.scalar("norm1", bNorm(v, 1.0)).scalar("norm2", bNorm(v)).scalar("normInf", bNorm(v, Double.PositiveInfinity))
+        val _ = c.vec("x", x).scalar("sum", bSum(v)).scalar("mean", bMean(v))
+        val _ = c.scalar("max", bMax(v)).scalar("min", bMin(v))
+        val _ = c.scalar("argmax", bArgmax(v).toDouble).scalar("argmin", bArgmin(v).toDouble)
+        val _ = c.scalar("norm1", bNorm(v, 1.0)).scalar("norm2", bNorm(v)).scalar("normInf", bNorm(v, Double.PositiveInfinity))
       }
     for (m, n, seed) <- Seq((1, 1, 120L), (5, 7, 121L), (40, 30, 122L)) do
       add("reduce-matrix", s"${m}x$n") { c =>
         val a = general(m, n, seed); val ba = bm(m, n, a)
         val (ai, aj) = bArgmax(ba)
-        c.mat("A", m, n, a).scalar("sum", bSum(ba)).scalar("mean", bMean(ba))
-        c.scalar("max", bMax(ba)).scalar("min", bMin(ba))
-        c.scalar("argmaxRow", ai.toDouble).scalar("argmaxCol", aj.toDouble)
+        val _ = c.mat("A", m, n, a).scalar("sum", bSum(ba)).scalar("mean", bMean(ba))
+        val _ = c.scalar("max", bMax(ba)).scalar("min", bMin(ba))
+        val _ = c.scalar("argmaxRow", ai.toDouble).scalar("argmaxCol", aj.toDouble)
         c.scalar("frobenius", bNorm(ba.toDenseVector))
-        c.scalar("norm1", bMax(bSum(bAbs(ba), Axis._0))).scalar("normInf", bMax(bSum(bAbs(ba), Axis._1)))
+        val _ = c.scalar("norm1", bMax(bSum(bAbs(ba), Axis._0))).scalar("normInf", bMax(bSum(bAbs(ba), Axis._1)))
       }
 
     // Elementwise numerics; Breeze's `softmax(v)` is log-sum-exp.
@@ -438,9 +437,9 @@ object GenerateBreezeGoldens:
         val x = uniform(n, seed, lo, hi)
         val p = uniform(n, seed + 1, -20.0, 20.0).map(StrictMath.exp)
         val lse = bLogSumExp(bv(x))
-        c.vec("x", x).vec("p", p)
-        c.vec("exp", bExp(bv(x))).vec("log", bLog(bv(p))).vec("sigmoid", bSigmoid(bv(x)))
-        c.scalar("logSumExp", lse).vec("softmax", bExp(bv(x) - lse))
+        val _ = c.vec("x", x).vec("p", p)
+        val _ = c.vec("exp", bExp(bv(x))).vec("log", bLog(bv(p))).vec("sigmoid", bSigmoid(bv(x)))
+        val _ = c.scalar("logSumExp", lse).vec("softmax", bExp(bv(x) - lse))
       }
 
     // SparseVector arithmetic and norms.
@@ -449,11 +448,11 @@ object GenerateBreezeGoldens:
         val xi = sparseIndices(n, nx, seed); val yi = sparseIndices(n, ny, seed + 1)
         val xv = uniform(nx, seed + 2); val yv = uniform(ny, seed + 3); val d = uniform(n, seed + 4)
         val sx = new BSV(xi.clone(), xv.clone(), n); val sy = new BSV(yi.clone(), yv.clone(), n)
-        c.vec("xi", xi.map(_.toDouble)).vec("xv", xv).vec("yi", yi.map(_.toDouble)).vec("yv", yv).vec("d", d)
-        c.scalar("dot", sx.dot(sy)).scalar("dotDense", sx.dot(bv(d)))
-        c.vec("plus", (sx + sy).toDenseVector).vec("minus", (sx - sy).toDenseVector)
-        c.scalar("sum", bSum(sx)).scalar("max", bMax(sx)).scalar("min", bMin(sx))
-        c.scalar("norm1", bNorm(sx, 1.0)).scalar("norm2", bNorm(sx))
+        val _ = c.vec("xi", xi.map(_.toDouble)).vec("xv", xv).vec("yi", yi.map(_.toDouble)).vec("yv", yv).vec("d", d)
+        val _ = c.scalar("dot", sx.dot(sy)).scalar("dotDense", sx.dot(bv(d)))
+        val _ = c.vec("plus", (sx + sy).toDenseVector).vec("minus", (sx - sy).toDenseVector)
+        val _ = c.scalar("sum", bSum(sx)).scalar("max", bMax(sx)).scalar("min", bMin(sx))
+        val _ = c.scalar("norm1", bNorm(sx, 1.0)).scalar("norm2", bNorm(sx))
         c.scalar("normInf", bNorm(sx, Double.PositiveInfinity))
       }
 
@@ -478,7 +477,7 @@ object GenerateBreezeGoldens:
       if inPart > 0 && inPart + size > DoublesPerPart then
         parts += ArrayBuffer.empty[Case]
         inPart = 0
-      parts.last += c
+      val _ = parts.last += c
       inPart += size
     val sb = new StringBuilder
     sb ++= "package gale.golden\n\n"

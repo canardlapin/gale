@@ -7,10 +7,10 @@ object MatrixMarket:
 
   def writeCoordinate(A: CSR): String =
     val builder = new StringBuilder
-    builder.append(Header).append('\n')
-    builder.append(A.rows).append(' ').append(A.cols).append(' ').append(A.nnz).append('\n')
+    val _ = builder.append(Header).append('\n')
+    val _ = builder.append(A.rows).append(' ').append(A.cols).append(' ').append(A.nnz).append('\n')
     A.foreachStoredEntry { (row, col, value) =>
-      builder
+      val _ = builder
         .append(row + 1)
         .append(' ')
         .append(col + 1)

@@ -36,6 +36,8 @@ jobs:
           python3 -I tools/release/test_publish_workflow.py
       - name: Check version policy and compile with fatal compiler warnings
         run: sbt versionPolicyCheck coreJVM/compile coreJS/compile
+      - name: Check binary and TASTy compatibility with the published 0.1.0-M1
+        run: sbt -Dgale.compatibility.baseline=0.1.0-M1 compatibilityCheck
 
   test:
     name: Tests (Scala 3.7.4, ${{ matrix.platform }})

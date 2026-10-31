@@ -5,6 +5,7 @@ import gale.linalg.DVec
 import gale.linalg.DoubleLinearOperator
 import gale.linalg.LinAlgError
 import gale.solvers.Preconditioner
+import scala.annotation.unused
 
 /** Raw numeric carriers a [[SpectralBackend]] returns — public, invariant-free
   * containers holding only what a native routine naturally produces. The facade
@@ -155,19 +156,19 @@ trait SpectralBackend:
 
   // Every operation defaults to Left(UnsupportedOperation); a backend overrides
   // only the ones it supports and lists exactly those in `capabilities`.
-  def denseSymmetricEigen(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
+  def denseSymmetricEigen(@unused a: DMat, @unused wantVectors: Boolean): Either[LinAlgError, RawSymmetricEigen] =
     unsupported("dense symmetric eigen")
 
-  def denseNonsymmetricEigen(a: DMat, vectors: EigenVectors): Either[LinAlgError, RawNonsymmetricEigen] =
+  def denseNonsymmetricEigen(@unused a: DMat, @unused vectors: EigenVectors): Either[LinAlgError, RawNonsymmetricEigen] =
     unsupported("dense nonsymmetric eigen")
 
-  def denseSvd(a: DMat, wantVectors: Boolean): Either[LinAlgError, RawSvd] =
+  def denseSvd(@unused a: DMat, @unused wantVectors: Boolean): Either[LinAlgError, RawSvd] =
     unsupported("dense SVD")
 
-  def generalizedNonsymmetricEigen(a: DMat, b: DMat, vectors: EigenVectors): Either[LinAlgError, RawGeneralizedEigen] =
+  def generalizedNonsymmetricEigen(@unused a: DMat, @unused b: DMat, @unused vectors: EigenVectors): Either[LinAlgError, RawGeneralizedEigen] =
     unsupported("generalized nonsymmetric eigen (QZ)")
 
-  def rankDeficientGsvd(a: DMat, b: DMat, wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
+  def rankDeficientGsvd(@unused a: DMat, @unused b: DMat, @unused wantVectors: Boolean): Either[LinAlgError, RawGsvd] =
     unsupported("rank-deficient GSVD")
 
   /** Iterative generalized symmetric-definite Ritz pairs for already validated
@@ -175,13 +176,13 @@ trait SpectralBackend:
     * generalized eigendecomposition and must not materialize either operator.
     */
   def iterativeGeneralizedEigen(
-      a: DoubleLinearOperator,
-      b: DoubleLinearOperator,
-      n: Int,
-      k: Int,
-      order: EigenOrder,
-      options: GeneralizedSpectralOptions,
-      preconditioner: Preconditioner
+      @unused a: DoubleLinearOperator,
+      @unused b: DoubleLinearOperator,
+      @unused n: Int,
+      @unused k: Int,
+      @unused order: EigenOrder,
+      @unused options: GeneralizedSpectralOptions,
+      @unused preconditioner: Preconditioner
   ): Either[LinAlgError, RawIterativeGeneralizedEigen] =
     unsupported("iterative generalized symmetric eigen")
 
@@ -192,7 +193,7 @@ trait SpectralBackend:
     * diagnostics. The backend may factor internally because the caller selected
     * [[LinearSolvePlan.Backend]] explicitly; gale never routes here implicitly.
     */
-  def shiftInvertSolve(a: DMat, b: Option[DMat], sigma: Double): Either[LinAlgError, LinearSolveOperator] =
+  def shiftInvertSolve(@unused a: DMat, @unused b: Option[DMat], @unused sigma: Double): Either[LinAlgError, LinearSolveOperator] =
     unsupported("shift-invert solve")
 
   protected final def unsupported(op: String): Either[LinAlgError, Nothing] =

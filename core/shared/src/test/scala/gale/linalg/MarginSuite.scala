@@ -1,6 +1,5 @@
 package gale.linalg
 
-import gale.platform.DoubleArray.*
 import gale.syntax.all.*
 
 class MarginSuite extends munit.FunSuite:
@@ -56,8 +55,8 @@ class MarginSuite extends munit.FunSuite:
       val lines = if axis == Axis.Rows then a.rows else a.cols
       val count = if axis == Axis.Rows then a.cols else a.rows
       if lines > 0 && count == 0 then
-        intercept[LinAlgError.EmptyInput](r.mean)
-        intercept[LinAlgError.EmptyInput](r.min)
+        val _ = intercept[LinAlgError.EmptyInput](r.mean)
+        val _ = intercept[LinAlgError.EmptyInput](r.min)
         intercept[LinAlgError.EmptyInput](r.max)
       else
         assertEquals(r.mean.toDVec.toSeq, a.mean(axis).toSeq)
@@ -165,26 +164,26 @@ class MarginSuite extends munit.FunSuite:
     val bad = Vec(1.0, 2.0).along(Axis.Cols)
     val out = DMatBuilder.zeros(2, 3)
     out.fill(123.0)
-    intercept[LinAlgError.VectorLengthMismatch](a.subInto(bad, out))
-    intercept[LinAlgError.VectorLengthMismatch](a.standardizeInto(good, bad, out))
-    intercept[LinAlgError.VectorLengthMismatch](a.pointwise.mulInto(bad, out))
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a.subInto(bad, out))
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a.standardizeInto(good, bad, out))
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a.pointwise.mulInto(bad, out))
     for i <- 0 until 2; j <- 0 until 3 do same(out(i, j), 123.0)
     val wrongShape = DMatBuilder.zeros(3, 2)
     wrongShape.fill(456.0)
-    intercept[LinAlgError.DimensionMismatch](a.addInto(good, wrongShape))
+    val _ = intercept[LinAlgError.DimensionMismatch](a.addInto(good, wrongShape))
     same(wrongShape(0, 0), 456.0)
     val dynamicRows: Margin[Axis] = Margin.tag(Vec(1.0, 2.0), Axis.Rows: Axis)
     val dynamicCols: Margin[Axis] = Margin.tag(Vec(1.0, 2.0, 3.0), Axis.Cols: Axis)
-    intercept[LinAlgError.InvalidArgument](dynamicRows.zipMap(dynamicCols)(_ + _))
-    intercept[LinAlgError.InvalidArgument](a.affineInto(dynamicRows, dynamicCols, out))
+    val _ = intercept[LinAlgError.InvalidArgument](dynamicRows.zipMap(dynamicCols)(_ + _))
+    val _ = intercept[LinAlgError.InvalidArgument](a.affineInto(dynamicRows, dynamicCols, out))
     same(out(0, 0), 123.0)
     val aliased = new DMat(out.writableData, Offset(0), Rows(2), Cols(3), Stride(3), Stride(1))
-    intercept[LinAlgError.UnsupportedOperation](aliased.subInto(good, out))
+    val _ = intercept[LinAlgError.UnsupportedOperation](aliased.subInto(good, out))
     val aliasVec = new DVec(out.writableData, Offset(0), Length(3), Stride(1)).along(Axis.Cols)
-    intercept[LinAlgError.UnsupportedOperation](a.addInto(aliasVec, out))
-    intercept[LinAlgError.UnsupportedOperation](a.affineInto(good, aliasVec, out))
+    val _ = intercept[LinAlgError.UnsupportedOperation](a.addInto(aliasVec, out))
+    val _ = intercept[LinAlgError.UnsupportedOperation](a.affineInto(good, aliasVec, out))
     same(out(0, 0), 123.0)
-    out.result()
+    val _ = out.result()
     intercept[LinAlgError.UnsupportedOperation](a.standardizeInto(good, good, out))
   }
 

@@ -77,27 +77,27 @@ object LbfgsDigestSuite:
       s.foreach(ch => long(ch.toLong))
       this
     def mat(m: DMat): Digest =
-      long(m.rows.toLong).long(m.cols.toLong)
+      val _ = long(m.rows.toLong).long(m.cols.toLong)
       var i = 0
       while i < m.rows do
         var j = 0
         while j < m.cols do
-          double(m(i, j))
+          val _ = double(m(i, j))
           j += 1
         i += 1
       this
     def vec(v: DVec): Digest =
-      long(v.length.toLong)
+      val _ = long(v.length.toLong)
       var i = 0
       while i < v.length do
-        double(v(i))
+        val _ = double(v(i))
         i += 1
       this
     def counts(c: EvaluationCounts): Digest =
       c.productIterator.foreach(value => long(value.asInstanceOf[Int].toLong))
       this
     def trace(events: Vector[OptimizationProgress]): Digest =
-      long(events.size.toLong)
+      val _ = long(events.size.toLong)
       events.foreach(e => long(e.iteration.toLong).double(e.objective).double(e.residual).counts(e.evaluations))
       this
     def hex: String = f"$state%016x"
@@ -217,7 +217,7 @@ object LbfgsDigestSuite:
     new DifferentiableObjective:
       def variableRows: Int = problem.rows
       def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
-        trials.mat(at)
+        val _ = trials.mat(at)
         val x = new Array[Double](at.rows * at.cols)
         at.copyRowMajorTo(x)
         val g = new Array[Double](x.length)

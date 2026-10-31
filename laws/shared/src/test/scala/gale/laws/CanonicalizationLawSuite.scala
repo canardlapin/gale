@@ -1,6 +1,5 @@
 package gale.laws
 
-import gale.linalg.*
 import gale.sparse.*
 
 /** Canonicalization laws over the public sparse API. Publicly-constructed

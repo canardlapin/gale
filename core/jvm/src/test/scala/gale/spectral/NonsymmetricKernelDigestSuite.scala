@@ -96,19 +96,19 @@ object NonsymmetricKernelDigestSuite:
       this
     def double(x: Double): Digest = long(java.lang.Double.doubleToRawLongBits(x))
     def vec(v: DVec): Digest =
-      long(v.length.toLong)
+      val _ = long(v.length.toLong)
       var i = 0
       while i < v.length do
-        double(v(i))
+        val _ = double(v(i))
         i += 1
       this
     def mat(m: DMat): Digest =
-      long(m.rows.toLong).long(m.cols.toLong)
+      val _ = long(m.rows.toLong).long(m.cols.toLong)
       var i = 0
       while i < m.rows do
         var j = 0
         while j < m.cols do
-          double(m(i, j))
+          val _ = double(m(i, j))
           j += 1
         i += 1
       this

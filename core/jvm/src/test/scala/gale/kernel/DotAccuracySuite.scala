@@ -2,7 +2,6 @@ package gale.kernel
 
 import gale.numeric.ExactSum
 import gale.platform.DoubleArray
-import gale.platform.DoubleArray.*
 
 /** Accuracy observation for the contiguous dot product, which uses unfused
   * `x*y + acc` accumulators (the JVM-only fused form was ~20% slower). On

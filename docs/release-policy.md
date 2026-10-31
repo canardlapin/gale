@@ -99,12 +99,16 @@ backend capability behavior where the documentation makes those observable.
 It does not promise bit-identical floating-point results across legal backends.
 The package-by-package inventory is [API stability](api-stability.md).
 
-M1 is now an immutable published compatibility baseline. Review exported API
-diffs manually and do not describe a candidate as binary-verified without an
-executed compatibility check. Adding automated binary- and TASTy-compatibility
-checks against `0.1.0-M1` remains post-M1 work; they should become blocking for
-the 0.1 maintenance line. Intentional breaks on the 0.2 line require explicit
-review and migration notes rather than silently resetting the baseline.
+M1 is now an immutable published compatibility baseline. Do not describe a
+candidate as binary-verified without an executed compatibility check.
+`sbt -Dgale.compatibility.baseline=0.1.0-M1 compatibilityCheck` runs MiMa
+(binary) and TASTy-MiMa (TASTy) for all four admitted artifacts against the
+named published version; without a baseline the alias fails rather than
+comparing against nothing. CI runs it against `0.1.0-M1` in the required
+quality job. Intentional breaks on the 0.2 line require explicit review and
+migration notes: change the CI baseline or add a reviewed MiMa filter rather
+than silently resetting it. Once `0.2.0` is published it becomes the baseline
+for `0.2.x`.
 
 `1.0.0` is a later freeze, not the next tag. It may admit additional modules
 and begins the `1.x` SemVer promise. It still requires a reviewed export

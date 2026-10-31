@@ -32,23 +32,6 @@ class ReductionsSuite extends ScalaCheckSuite:
       s"actual=$actual expected=$expected"
     )
 
-  private def assertSameDouble(actual: Double, expected: Double)(using munit.Location): Unit =
-    assert(
-      (actual.isNaN && expected.isNaN) || actual == expected,
-      s"actual=$actual expected=$expected"
-    )
-
-  private def firstIndex(xs: Seq[Double], better: (Double, Double) => Boolean): Int =
-    val nan = xs.indexWhere(_.isNaN)
-    if nan >= 0 then nan
-    else
-      var best = 0
-      var i = 1
-      while i < xs.length do
-        if better(xs(i), xs(best)) then best = i
-        i += 1
-      best
-
   test("DVec reductions agree with naive loops on every layout and unroll tail") {
     for n <- 1 to 13; (name, x) <- layouts(values(n, n.toLong)) do
       val xs = x.toSeq
@@ -61,7 +44,7 @@ class ReductionsSuite extends ScalaCheckSuite:
       assertEquals(x.argmin, xs.indexOf(xs.min), s"$name n=$n")
       assertClose(x.norm1, xs.map(math.abs).sum)
       assertEquals(x.normInf, xs.map(math.abs).max, s"$name n=$n")
-      assertEquals(x.sumExact, xs.foldLeft(ExactSum.zero()) { (acc, v) => acc.add(v); acc }.value)
+      assertEquals(x.sumExact, xs.foldLeft(ExactSum.zero()) { (acc, v) => val _ = acc.add(v); acc }.value)
   }
 
   test("empty vectors: sums and norms are zero, order statistics and mean throw EmptyInput") {
@@ -140,7 +123,7 @@ class ReductionsSuite extends ScalaCheckSuite:
 
   test("sumExact is correctly rounded and order-independent where sum is not") {
     val xs = Seq(1e100, 1.0, -1e100, 1e-30, 3.0)
-    val expected = xs.foldLeft(ExactSum.zero()) { (acc, v) => acc.add(v); acc }.value
+    val expected = xs.foldLeft(ExactSum.zero()) { (acc, v) => val _ = acc.add(v); acc }.value
     assertEquals(expected, 4.0)
     for perm <- xs.permutations; (name, x) <- layouts(perm) do assertEquals(x.sumExact, 4.0, name)
     assert(Vec(1e308, 1e308, -1e308).sumExact == 1e308)
@@ -404,11 +387,11 @@ class ReductionsSuite extends ScalaCheckSuite:
   test("mean recomputes an overflowed sum as sum(x_i / n) and keeps IEEE results for infinities and NaN") {
     val max = Double.MaxValue
     for n <- 2 to 9 do
-      for (name, x) <- layouts(Seq.fill(n)(max)) do assertClose(x.mean, max, 4e-16)
-      for (name, x) <- layouts(Seq.fill(n)(-max)) do assertClose(x.mean, -max, 4e-16)
+      for (_, x) <- layouts(Seq.fill(n)(max)) do assertClose(x.mean, max, 4e-16)
+      for (_, x) <- layouts(Seq.fill(n)(-max)) do assertClose(x.mean, -max, 4e-16)
     for (name, x) <- layouts(Seq(max, max, NInf)) do assertEquals(x.mean, NInf, name)
     for (name, x) <- layouts(Seq(max, max, PInf)) do assertEquals(x.mean, PInf, name)
-    for (name, x) <- layouts(Seq(max, max, -max)) do assertClose(x.mean, max / 3.0, 4e-16)
+    for (_, x) <- layouts(Seq(max, max, -max)) do assertClose(x.mean, max / 3.0, 4e-16)
     for (name, x) <- layouts(Seq(PInf, NInf, 1.0)) do assert(x.mean.isNaN, name)
     for (name, x) <- layouts(Seq(max, max, Nan)) do assert(x.mean.isNaN, name)
   }
@@ -440,7 +423,7 @@ class ReductionsSuite extends ScalaCheckSuite:
       assertClose(colMeans(0), 2.0 * (max / 3.0), 4e-16)
       assertEquals(colMeans(2), NInf, name)
       assertEquals(a.mean, NInf, name)
-    for (name, a) <- matrixLayouts(2, 3, (_, _) => max) do
+    for (_, a) <- matrixLayouts(2, 3, (_, _) => max) do
       assertClose(a.mean, max, 4e-16)
       a.mean(Axis.Cols).toSeq.foreach(assertClose(_, max, 4e-16))
     for (name, a) <- matrixLayouts(2, 2, (i, j) => if i == j then PInf else NInf) do assert(a.mean.isNaN, name)

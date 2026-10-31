@@ -50,8 +50,8 @@ class SyntaxConformanceSuite extends munit.FunSuite:
 
   test("elementwise shape mismatch throws DimensionMismatch (arithmetic-primitive convention)") {
     val wide = Matrix.dense(2, 3)(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-    intercept[LinAlgError.DimensionMismatch](a.pointwise * wide)
-    intercept[LinAlgError.DimensionMismatch](a.pointwise / wide)
+    val _ = intercept[LinAlgError.DimensionMismatch](a.pointwise * wide)
+    val _ = intercept[LinAlgError.DimensionMismatch](a.pointwise / wide)
     intercept[LinAlgError.DimensionMismatch](a.zipMapExact(wide)(_ + _))
   }
 

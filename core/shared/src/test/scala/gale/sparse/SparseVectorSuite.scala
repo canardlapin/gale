@@ -190,10 +190,10 @@ class SparseVectorSuite extends munit.FunSuite:
     val a = SparseVector.zeros(3)
     val b = SparseVector.zeros(4)
     assertEquals(intercept[LinAlgError.VectorLengthMismatch](a.dot(b)), LinAlgError.VectorLengthMismatch(3, 4))
-    intercept[LinAlgError.VectorLengthMismatch](a + b)
-    intercept[LinAlgError.VectorLengthMismatch](a - b)
-    intercept[LinAlgError.VectorLengthMismatch](a.dot(Vec(1.0)))
-    intercept[LinAlgError.VectorLengthMismatch](a.axpyInto(1.0, MutableDVec.zeros(2)))
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a + b)
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a - b)
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a.dot(Vec(1.0)))
+    val _ = intercept[LinAlgError.VectorLengthMismatch](a.axpyInto(1.0, MutableDVec.zeros(2)))
     assertEquals(intercept[LinAlgError.IndexOutOfBounds](a(3)), LinAlgError.IndexOutOfBounds(3, 3))
     intercept[LinAlgError.IndexOutOfBounds](a(-1))
   }
@@ -217,7 +217,7 @@ class SparseVectorSuite extends munit.FunSuite:
     val csc = zeroed.toCSC
     assertEquals(csc.colSparse(2).activeIndices, IndexedSeq(0))
     assertEquals(csc.colSparse(2).activeValues, IndexedSeq(0.0))
-    intercept[LinAlgError.IndexOutOfBounds](csr.rowSparse(2))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](csr.rowSparse(2))
     intercept[LinAlgError.IndexOutOfBounds](csc.colSparse(-1))
   }
 

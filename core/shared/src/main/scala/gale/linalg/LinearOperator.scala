@@ -1,6 +1,7 @@
 package gale.linalg
 
 import gale.backend.Backend
+import scala.annotation.unused
 
 trait LinearOperator[A]:
   def rows: Int
@@ -45,7 +46,9 @@ trait DoubleLinearOperator extends LinearOperator[Double]:
     // result so a user-defined operator cannot mutate an immutable return value.
     out.toVec
 
-  def *(x: DVec)(using Backend): DVec =
+  // The Backend parameter keeps one signature that DMat overrides with backend
+  // dispatch; generic operators use their explicit applyTo contract.
+  def *(x: DVec)(using @unused backend: Backend): DVec =
     apply(x)
 
   /** Apply this operator to every column of `input` in one owned output

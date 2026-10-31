@@ -650,7 +650,8 @@ private[gale] object DoubleKernels:
         // directly (identical arithmetic, less per-call work).
         var c = 0
         while c < nrhs do
-          dtrsv(n, lower, unit, 0.0, a, aOffset, aRowStride, aColStride, b, bOffset + c, ldb)
+          // Zero diagonals were rejected above, so per-column info is always -1.
+          val _ = dtrsv(n, lower, unit, 0.0, a, aOffset, aRowStride, aColStride, b, bOffset + c, ldb)
           c += 1
       else trsmDiagonalBlock(lower, unit, n, nrhs, a, aOffset, aRowStride, aColStride, b, bOffset, ldb)
     else if aColStride != 1 then

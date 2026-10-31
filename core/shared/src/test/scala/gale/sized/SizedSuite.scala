@@ -3,6 +3,7 @@ package gale.sized
 import gale.linalg.DVec
 import gale.linalg.Matrix
 import gale.linalg.Vec
+import scala.annotation.unused
 
 /** Tests for the optional compile-time-dimension layer: dimension-correct ops
   * compile and compute the same as their `DVec`/`DMat` equivalents; dimension-
@@ -66,10 +67,10 @@ class SizedSuite extends munit.FunSuite:
   // --- compile-time NEGATIVES (the whole point) ------------------------------
 
   test("dimension-mismatched ops do NOT compile") {
-    val a23: SMat[2, 3] = SMat.sized[2, 3](1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-    val a24: SMat[2, 4] = SMat.sized[2, 4](1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
-    val v2: SVec[2] = SVec.vec2(1.0, 2.0)
-    val v3: SVec[3] = SVec.vec3(1.0, 2.0, 3.0)
+    @unused val a23: SMat[2, 3] = SMat.sized[2, 3](1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+    @unused val a24: SMat[2, 4] = SMat.sized[2, 4](1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
+    @unused val v2: SVec[2] = SVec.vec2(1.0, 2.0)
+    @unused val v3: SVec[3] = SVec.vec3(1.0, 2.0, 3.0)
 
     // matmul: the right factor's rows must equal the left's cols (3), but a24 is 2×4.
     assert(compileErrors("a23 * a24").nonEmpty, "mismatched matmul must not compile")
@@ -95,7 +96,7 @@ class SizedSuite extends munit.FunSuite:
   }
 
   test("sized throws on an arity mismatch (a programming error)") {
-    intercept[IllegalArgumentException](SVec.sized[3](1.0, 2.0))
+    val _ = intercept[IllegalArgumentException](SVec.sized[3](1.0, 2.0))
     intercept[IllegalArgumentException](SMat.sized[2, 2](1.0, 2.0, 3.0))
   }
 

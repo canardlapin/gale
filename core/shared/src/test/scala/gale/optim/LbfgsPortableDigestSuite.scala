@@ -44,12 +44,12 @@ object LbfgsPortableDigests:
       s.foreach(ch => long(ch.toLong))
       this
     def mat(m: DMat): Digest =
-      long(m.rows.toLong).long(m.cols.toLong)
+      val _ = long(m.rows.toLong).long(m.cols.toLong)
       var i = 0
       while i < m.rows do
         var j = 0
         while j < m.cols do
-          double(m(i, j))
+          val _ = double(m(i, j))
           j += 1
         i += 1
       this
@@ -57,7 +57,7 @@ object LbfgsPortableDigests:
       c.productIterator.foreach(value => long(value.asInstanceOf[Int].toLong))
       this
     def trace(events: Vector[OptimizationProgress]): Digest =
-      long(events.size.toLong)
+      val _ = long(events.size.toLong)
       events.foreach(e => long(e.iteration.toLong).double(e.objective).double(e.residual).counts(e.evaluations))
       this
     def hex: String =
@@ -136,7 +136,7 @@ object LbfgsPortableDigests:
     new DifferentiableObjective:
       def variableRows: Int = problem.rows
       def evaluate(at: DMat): Either[FirstOrderError, ObjectiveEvaluation] =
-        trials.mat(at)
+        val _ = trials.mat(at)
         val x = new Array[Double](at.rows * at.cols)
         at.copyRowMajorTo(x)
         val g = new Array[Double](x.length)

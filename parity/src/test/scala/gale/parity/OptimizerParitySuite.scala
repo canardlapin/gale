@@ -7,7 +7,6 @@ import breeze.optimize.DiffFunction
 import breeze.optimize.FirstOrderMinimizer
 import breeze.optimize.FirstOrderMinimizer.ConvergenceCheck
 import breeze.optimize.FirstOrderMinimizer.ConvergenceReason
-import breeze.optimize.FirstOrderMinimizer.State
 import breeze.optimize.LBFGS as BreezeLBFGS
 import breeze.optimize.LBFGSB as BreezeLBFGSB
 import gale.linalg.DMat
@@ -651,7 +650,7 @@ class OptimizerParitySuite extends munit.FunSuite:
     LBFGSB.minimize(objective, box, column(infeasible), LBFGSBConfig(tolerance = sharedTolerance)) match
       case Left(FirstOrderError.InvalidConfiguration(_)) => ()
       case other                                         => fail(s"gale accepted an infeasible start: $other")
-    intercept[IllegalArgumentException]:
+    val _ = intercept[IllegalArgumentException]:
       BreezeLBFGSB(BDV(lower), BDV(upper)).minimize(diffFunction(Counted(p.oracle)), BDV(infeasible))
     val projected = Array.tabulate(p.n)(i => math.max(lower(i), math.min(upper(i), infeasible(i))))
     compare(p.copy(name = "box, projected infeasible start", start = projected))

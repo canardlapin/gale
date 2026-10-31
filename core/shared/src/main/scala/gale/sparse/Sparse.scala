@@ -177,7 +177,7 @@ final class COO private[gale] (
     val builder = Sparse.coo(rows, cols)
     var i = 0
     while i < nnz do
-      builder.add(rowIndices(i), colIndices(i), entryValues(i))
+      val _ = builder.add(rowIndices(i), colIndices(i), entryValues(i))
       i += 1
     builder.canonicalize(DuplicatePolicy.Sum).pruneZeros.toCOO()
 
@@ -822,7 +822,7 @@ final class CSR private[gale] (
       var p = rowPtr(row)
       val end = rowPtr(row + 1)
       while p < end do
-        builder.add(row, colIdx(p), values(p))
+        val _ = builder.add(row, colIdx(p), values(p))
         p += 1
       row += 1
     builder.toCOO()
@@ -1301,7 +1301,7 @@ final class Diagonal private[gale] (private val diagonal: DoubleArray)
     val builder = Sparse.coo(rows, cols)
     var i = 0
     while i < diagonal.length do
-      if diagonal(i) != 0.0 then builder.add(i, i, diagonal(i))
+      if diagonal(i) != 0.0 then (builder.add(i, i, diagonal(i)): Unit)
       i += 1
     builder.toCSR()
 

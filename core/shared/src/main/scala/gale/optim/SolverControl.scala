@@ -107,7 +107,7 @@ private[optim] final class OptimizationExecution(val control: SolverControl):
 
   def record(result: FirstOrderSolution): Unit =
     last = Some(result)
-    notify(result.certificate.iterations, result.objective, result.certificate.primalResidual)
+    val _ = notify(result.certificate.iterations, result.objective, result.certificate.primalResidual)
     ()
 
   def finish(result: Either[FirstOrderError, FirstOrderSolution]): Either[FirstOrderError, FirstOrderSolution] =

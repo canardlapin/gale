@@ -26,7 +26,7 @@ object NumpyScipySupport:
     while i < data.length do
       var j = 0
       while j < data(0).length do
-        if data(i)(j) != 0.0 then builder.add(i, j, data(i)(j))
+        if data(i)(j) != 0.0 then (builder.add(i, j, data(i)(j)): Unit)
         j += 1
       i += 1
     builder.toCSR()

@@ -890,7 +890,7 @@ object DenseDecompositions:
   ): Unit =
     val width = colUntil - colFrom
     if tauK != 0.0 && width > 0 && width <= DenseWorkspace.QrNarrowMaxWidth then
-      reflectNarrow(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, measure = false)
+      val _ = reflectNarrow(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, measure = false)
     else sweepReflectorRows(r, m, n, reflectors, limit, tauK, k, colFrom, colUntil, scratch, scratchOffset)
 
   /** [[applyReflectorToColumns]] by row sweeps at every width. Blocked QR panels keep this form: their columns are at
@@ -988,7 +988,7 @@ object DenseDecompositions:
       val width = colUntil - colFrom
       scaledReflectorDots(r, m, n, reflectors, limit, tauK, k, colFrom, width, scratch, scratchOffset)
       // Row k is the next step's pivot row, outside the trailing norm.
-      updateReflectedRow(r, n, reflectors(k * limit + k), k * n + colFrom, width, scratch, scratchOffset)
+      updateReflectedRow(r, reflectors(k * limit + k), k * n + colFrom, width, scratch, scratchOffset)
       var ssq = 0.0
       var i = k + 1
       while i + 1 < m do
@@ -1008,7 +1008,7 @@ object DenseDecompositions:
         i += 2
       if i < m then
         val rRow = i * n + colFrom
-        updateReflectedRow(r, n, reflectors(i * limit + k), rRow, width, scratch, scratchOffset)
+        updateReflectedRow(r, reflectors(i * limit + k), rRow, width, scratch, scratchOffset)
         val lead = r(rRow)
         ssq = fma(lead, lead, ssq)
       ssq
@@ -1285,7 +1285,6 @@ object DenseDecompositions:
   /** `R(row, colFrom + j) -= vi * scratch(j)` for one row starting at flat index `rRow`. */
   private def updateReflectedRow(
       r: DoubleArray,
-      n: Int,
       vi: Double,
       rRow: Int,
       width: Int,
@@ -1309,7 +1308,7 @@ object DenseDecompositions:
       tOffset: Int,
       tempOffset: Int,
       tStride: Int
-  )(using backend: Backend): Unit =
+  ): Unit =
     var i = 0
     var j = 0
     while i < panelWidth do
@@ -1669,7 +1668,7 @@ object DenseDecompositions:
         x(i) = bData(bOff + pivots(i) * bStep)
         i += 1
       // L y = Pb: unit lower diagonal, so the guard never trips here.
-      DoubleKernels.dtrsv(n, lower = true, unit = true, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
+      val _ = DoubleKernels.dtrsv(n, lower = true, unit = true, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
       // U x = y: a successful LU has nonzero pivots, but guard exact zeros anyway.
       val info = DoubleKernels.dtrsv(n, lower = false, unit = false, 0.0, pData, pOff, pRowStep, pColStep, x, 0, 1)
       if info >= 0 then Left(LinAlgError.SingularMatrix(info))
@@ -1703,7 +1702,8 @@ object DenseDecompositions:
       val pOff = lu.packed.offset.value
       val pRowStep = lu.packed.rowStride.value
       val pColStep = lu.packed.colStride.value
-      DoubleKernels.dtrsmLeft(
+      // Unit-diagonal L cannot report a zero pivot.
+      val _ = DoubleKernels.dtrsmLeft(
         lower = true,
         unit = true,
         n,
@@ -2439,7 +2439,8 @@ object DenseDecompositions:
       var c0 = 0
       while c0 < n do
         val width = math.min(InverseColumnBlock, n - c0)
-        DoubleKernels.dtrsmLeft(
+        // Unit-diagonal L cannot report a zero pivot.
+        val _ = DoubleKernels.dtrsmLeft(
           lower = true,
           unit = true,
           n - c0,

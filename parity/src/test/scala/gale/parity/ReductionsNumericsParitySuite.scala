@@ -173,8 +173,6 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
   private def correctlyRoundedSum(xs: Iterable[Double]): Double =
     xs.foldLeft(java.math.BigDecimal.ZERO)((acc, x) => acc.add(new java.math.BigDecimal(x))).doubleValue
 
-  private def bvec(v: DVec): BDV[Double] = BDV.tabulate(v.length)(v(_))
-
   // ---------------------------------------------------------------------------
   // Vector reductions and norms
   // ---------------------------------------------------------------------------
@@ -574,18 +572,18 @@ class ReductionsNumericsParitySuite extends ScalaCheckSuite:
   test("divergence: empty max/min/argmax/mean throw EmptyInput; Breeze returns -Inf/0.0 or throws IAE") {
     val g = Vec.zeros(0)
     val b = BDV.zeros[Double](0)
-    intercept[LinAlgError.EmptyInput](g.max)
-    intercept[LinAlgError.EmptyInput](g.min)
-    intercept[LinAlgError.EmptyInput](g.argmax)
-    intercept[LinAlgError.EmptyInput](g.argmin)
-    intercept[LinAlgError.EmptyInput](g.mean)
-    intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 0).max)
-    intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 3).max(Axis.Cols))
-    intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 3).mean(Axis.Cols))
+    val _ = intercept[LinAlgError.EmptyInput](g.max)
+    val _ = intercept[LinAlgError.EmptyInput](g.min)
+    val _ = intercept[LinAlgError.EmptyInput](g.argmax)
+    val _ = intercept[LinAlgError.EmptyInput](g.argmin)
+    val _ = intercept[LinAlgError.EmptyInput](g.mean)
+    val _ = intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 0).max)
+    val _ = intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 3).max(Axis.Cols))
+    val _ = intercept[LinAlgError.EmptyInput](Matrix.zeros(0, 3).mean(Axis.Cols))
     assertEquals(bMax(b), -Inf)
     assertEquals(bMean(b), 0.0)
-    intercept[IllegalArgumentException](bMin(b))
-    intercept[IllegalArgumentException](bArgmax(b))
+    val _ = intercept[IllegalArgumentException](bMin(b))
+    val _ = intercept[IllegalArgumentException](bArgmax(b))
     val bm03 = BDM.zeros[Double](0, 3)
     val colMax: BDV[Double] = bMax(bm03(::, Every)).t
     assertEquals(colMax.toArray.toSeq, Seq(-Inf, -Inf, -Inf))

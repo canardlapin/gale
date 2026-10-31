@@ -2,6 +2,7 @@ package userland
 
 import gale.linalg.*
 import gale.sized.*
+import scala.annotation.unused
 
 /** Consumer-vantage guarantees for the optional sized layer. This suite lives
   * '''outside''' `gale.sized` on purpose: an opaque type is only opaque beyond its
@@ -12,8 +13,8 @@ import gale.sized.*
   */
 class SizedOpacitySuite extends munit.FunSuite:
 
-  private val s: SVec[3] = SVec.vec3(1.0, 2.0, 3.0)
-  private val m: SMat[2, 2] = SMat.mat2(1.0, 2.0, 3.0, 4.0)
+  @unused private val s: SVec[3] = SVec.vec3(1.0, 2.0, 3.0)
+  @unused private val m: SMat[2, 2] = SMat.mat2(1.0, 2.0, 3.0, 4.0)
 
   test("SVec/SMat do not leak into the unsized DVec/DMat API") {
     // Opaque: a sized value is NOT a subtype of the unsized runtime type, so it

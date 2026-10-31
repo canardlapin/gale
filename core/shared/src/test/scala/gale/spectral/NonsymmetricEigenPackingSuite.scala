@@ -99,8 +99,8 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
 
   test("accessors bounds-check and report vectors-not-computed") {
     val d = decomp(None)
-    intercept[LinAlgError.IndexOutOfBounds](d.eigenvalue(4))
-    intercept[LinAlgError.IndexOutOfBounds](d.eigenvector(-1))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](d.eigenvalue(4))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](d.eigenvector(-1))
 
     val valuesOnly = new NonsymmetricEigenDecomposition(
       re,
@@ -196,15 +196,15 @@ class NonsymmetricEigenPackingSuite extends munit.FunSuite:
 
   test("malformed packing is rejected at construction") {
     // Split pair: the positive-imaginary member is not followed by its conjugate.
-    intercept[IllegalArgumentException] {
+    val _ = intercept[IllegalArgumentException] {
       build(Seq(1.0, 1.0, 1.0), Seq(3.0, 0.0, -3.0), DMat.zeros(3, 0))
     }
     // Negative-imaginary member first.
-    intercept[IllegalArgumentException] {
+    val _ = intercept[IllegalArgumentException] {
       build(Seq(1.0, 1.0), Seq(-2.0, 2.0), DMat.zeros(2, 0))
     }
     // Adjacent but mismatched magnitudes (not actually conjugates).
-    intercept[IllegalArgumentException] {
+    val _ = intercept[IllegalArgumentException] {
       build(Seq(1.0, 1.0), Seq(3.0, -4.0), DMat.zeros(2, 0))
     }
     // Packed columns neither 0 nor size.

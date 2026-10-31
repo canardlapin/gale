@@ -386,8 +386,8 @@ class SparseVectorParitySuite extends ScalaCheckSuite:
   // ---------------------------------------------------------------------------
 
   test("divergence: max/min of a length-0 vector throw EmptyInput; Breeze returns -Inf or throws IAE") {
-    intercept[LinAlgError.EmptyInput](SparseVector.zeros(0).max)
-    intercept[LinAlgError.EmptyInput](SparseVector.zeros(0).min)
+    val _ = intercept[LinAlgError.EmptyInput](SparseVector.zeros(0).max)
+    val _ = intercept[LinAlgError.EmptyInput](SparseVector.zeros(0).min)
     assertEquals(bMax(BSV.zeros[Double](0)), Double.NegativeInfinity)
     intercept[IllegalArgumentException](bMin(BSV.zeros[Double](0)))
   }
@@ -439,7 +439,7 @@ class SparseVectorParitySuite extends ScalaCheckSuite:
   }
 
   test("divergence: out-of-range apply throws LinAlgError.IndexOutOfBounds") {
-    intercept[LinAlgError.IndexOutOfBounds](SparseVector.zeros(4)(10))
+    val _ = intercept[LinAlgError.IndexOutOfBounds](SparseVector.zeros(4)(10))
     val b = BSV.zeros[Double](4)
     intercept[IndexOutOfBoundsException](b(10))
   }
