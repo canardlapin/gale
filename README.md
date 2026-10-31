@@ -28,29 +28,31 @@ appropriate Scala.js/cross-project plugin enabled. The portable core needs no
 Vector API import or native library. For source integration, see
 [the pinned source setup](docs/user/getting-started.md#add-gale-from-source).
 
-This example fits an intercept and slope to observations following `1 + 2x`:
+This example makes a matrix, multiplies it by a vector, and solves a system:
 
 ```scala
 import gale.linalg.*
 
-val design = Matrix(4, 2)(
-  1.0, 0.0,
-  1.0, 1.0,
-  1.0, 2.0,
-  1.0, 3.0
+val a = Matrix(3, 3)(
+  2.0, 1.0, 0.0,
+  1.0, 3.0, 1.0,
+  0.0, 1.0, 4.0
 )
-val observations = Vec(1.0, 3.0, 5.0, 7.0)
+val x = Vec(1.0, 2.0, 3.0)
 
-val coefficients = design.leastSquares(observations).orThrow
-coefficients.toSeq // Seq(1.0, 2.0), within floating-point error
+a(1, 2)                // 1.0
+(a * x).toSeq          // Seq(4.0, 10.0, 14.0)
+a.solve(a * x).orThrow // x again
 ```
 
-`leastSquares` returns `Either[LinAlgError, DVec]`; `.orThrow` is convenient in
-a first example or test. Application and library code can keep the `Either` and
-handle rank deficiency or a shape mismatch explicitly.
+`Matrix(rows, cols)` takes its values row by row. `solve` returns
+`Either[LinAlgError, DVec]`, so a singular matrix comes back as a `Left`;
+`.orThrow` turns that into an exception, which suits a first example or a test.
 
-The same workflow is compiled and executed in the
-[getting-started guide](docs/user/getting-started.md).
+The same code is compiled and run in the
+[getting-started guide](docs/user/getting-started.md), and
+[Vectors and matrices](docs/user/guides/vectors-and-matrices.md) covers the
+everyday operations in more detail.
 
 ## What Gale covers
 
@@ -103,8 +105,10 @@ interpreted through their convergence diagnostics.
 
 ## Documentation
 
-- [Getting started](docs/user/getting-started.md) — setup, a regression fit,
-  error handling, and reusable factors.
+- [Getting started](docs/user/getting-started.md) — setup, a first matrix
+  program, and error handling.
+- [Vectors and matrices](docs/user/guides/vectors-and-matrices.md) —
+  construction, indexing, arithmetic, reductions, and square solves.
 - [Core concepts](docs/user/core-concepts.md) — values, failures, operators,
   diagnostics, and backend behavior.
 - [Worked examples](docs/user/guides/examples.md) — dense, sparse, spectral,

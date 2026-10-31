@@ -13,8 +13,8 @@ artifact installation and an optional exact source pin.
 ## Reach a first result
 
 Start with [Getting started](getting-started.md). It shows the core
-dependency, fits a small regression, and explains when to retain
-`Either[LinAlgError, A]` rather than call `.orThrow`.
+dependency, builds and multiplies a matrix, solves a system, and explains when
+to keep `Either[LinAlgError, A]` rather than call `.orThrow`.
 
 Then read [Core concepts](core-concepts.md) for the five rules that explain
 later behavior: immutable-facing values, explicit shapes, typed failure,
@@ -25,6 +25,8 @@ the live `gale-core` API.
 
 ## Continue with your task
 
+- [Vectors and matrices](guides/vectors-and-matrices.md) — construction,
+  indexing, views, arithmetic, and square solves.
 - [Dense systems and least squares](guides/dense-systems.md) — square solves,
   pivoted QR, matrix right-hand sides, row scaling, and reusable scratch.
 - [Reductions, norms, and elementwise numerics](guides/reductions-and-numerics.md) —
