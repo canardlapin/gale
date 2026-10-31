@@ -1,0 +1,80 @@
+name: Documentation site
+
+# Builds website/ from the mdoc output of docs/user and publishes it to GitHub Pages.
+# The site never publishes an example this run did not compile: mdoc runs first, and
+# the sync step refuses mdoc output older than its source.
+on:
+  # Every push to main, not only docs changes: a library change alters the values
+  # that compiled examples print.
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "docs/user/**"
+      - "website/**"
+      - "core/**"
+      - "build.sbt"
+      - ".github/workflows/docs-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+      - name: Compile and run every guide example
+        run: sbt -Dsbt.supershell=false docs/mdoc
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install site dependencies
+        working-directory: website
+        run: npm ci
+      - name: Build the site
+        working-directory: website
+        run: npm run build
+      - name: Upload the Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

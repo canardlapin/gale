@@ -119,8 +119,9 @@ interpreted through their convergence diagnostics.
   backend, and runtime failures.
 
 Run `sbt docsCheck` to build JVM/Scala.js Scaladoc and render the executable
-mdoc/Laika guides. The site is a local and CI artifact; this repository does
-not configure GitHub Pages or a stable hosted Scaladoc URL.
+mdoc/Laika guides. The same compiled guides are published as a Starlight site
+from [`website/`](website/README.md) to GitHub Pages; there is no stable hosted
+Scaladoc URL yet.
 
 ## Development
 
