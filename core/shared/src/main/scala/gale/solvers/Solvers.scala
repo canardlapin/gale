@@ -454,6 +454,11 @@ object IterativeSolvers:
       rhoOld = rhoNew
     SolverResult.NotConverged(x.asVec, iteration, residual)
 
+  /** Left-preconditioned, restarted GMRES. Convergence and the reported
+    * residual use the original-system residual `||b - A x||`, including on
+    * failure. `iterations` counts attempted Arnoldi steps, including a step
+    * that ends in hard breakdown.
+    */
   def gmres(
       A: DoubleLinearOperator,
       b: DVec,
@@ -576,13 +581,15 @@ object IterativeSolvers:
             y(ii) = sum / diag
           ii -= 1
         if singular then
-          return SolverResult.NotConverged(x.asVec, totalIterations + k, residual)
+          return SolverResult.NotConverged(x.asVec, totalIterations + j, residual)
         var i = 0
         while i < k do
           x.axpyInPlace(y(i), basis(i).asVec)
           i += 1
 
-      totalIterations += innerSteps
+      // Count attempted Arnoldi steps, including one ended by hard breakdown:
+      // each consumed an operator application and preconditioner solve.
+      totalIterations += j
       r = trueResidual()
       residual = r.norm2
       if residual <= tol then
