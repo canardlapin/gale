@@ -2,7 +2,6 @@ package gale.interop.ravel
 
 import munit.FunSuite
 import ravel.*
-import ravel.DType.given
 import ravel.js.JsInterop
 import scala.scalajs.js.typedarray.Float64Array
 
