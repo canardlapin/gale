@@ -14,7 +14,7 @@ export const groups = [
 	{
 		label: 'Start here',
 		pages: [
-			{ source: 'getting-started.md', slug: 'start/first-result', label: 'Your first result' },
+			{ source: 'getting-started.md', slug: 'start/first-program', label: 'Your first program' },
 			{ source: 'core-concepts.md', slug: 'start/core-concepts', label: 'Core concepts' },
 			{ source: 'index.md', slug: 'start/reading-path', label: 'A reading path' },
 		],
@@ -29,6 +29,7 @@ export const groups = [
 			{
 				label: 'Linear algebra',
 				pages: [
+					{ source: 'guides/vectors-and-matrices.md', slug: 'guides/vectors-and-matrices', label: 'Vectors and matrices' },
 					{ source: 'guides/dense-systems.md', slug: 'guides/dense-systems', label: 'Dense systems and least squares' },
 					{ source: 'guides/reductions-and-numerics.md', slug: 'guides/reductions-and-numerics', label: 'Reductions and norms' },
 					{ source: 'guides/centered-moments.md', slug: 'guides/centered-moments', label: 'Centered moments' },

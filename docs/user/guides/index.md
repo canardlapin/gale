@@ -2,6 +2,9 @@
 
 Start from the problem you need to solve:
 
+- [Vectors and matrices](vectors-and-matrices.md) — make vectors and
+  matrices, read entries, rows, and columns, do arithmetic, and solve a square
+  system.
 - [Dense systems and least squares](dense-systems.md) — solve square systems,
   fit one or many responses, inspect pivoted QR, apply row scales, and reuse
   scratch.

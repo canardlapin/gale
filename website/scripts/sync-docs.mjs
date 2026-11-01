@@ -172,9 +172,9 @@ const snippets = {};
 
 /** The sections whose code the landing page shows, exactly as mdoc compiled it. */
 const landingSnippets = [
-	{ name: 'first-result', source: 'getting-started.md', heading: 'Fit a small regression' },
-	{ name: 'matrix-free', source: 'guides/sparse-operators.md', heading: 'Define a matrix-free operator', imports: true },
-];
+	{ name: 'first-program', source: 'getting-started.md', headings: ['Make a matrix and use it'] },
+	{ name: 'solve', source: 'getting-started.md', headings: ['Solve a system', 'Keep numerical failure explicit'] },
+]
 
 /**
  * A landing-page excerpt keeps the code and the final printed result. It drops the
@@ -218,11 +218,14 @@ pages.forEach((page, order) => {
 	if (leftover) fail(`docs/user/${page.source} has a link the rewriter did not handle: ${leftover[0]}`);
 
 	for (const snippet of landingSnippets.filter((s) => s.source === page.source)) {
-		const section = rewritten.match(new RegExp(`^## ${snippet.heading}\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'));
-		if (!section) fail(`docs/user/${page.source} no longer has a "${snippet.heading}" section; the landing page shows it`);
 		// An excerpt from the middle of a guide needs the guide's imports to stand alone.
 		const imports = snippet.imports ? [...rewritten.matchAll(/^import .+$/gm)].map((m) => m[0]) : [];
-		snippets[snippet.name] = [...(imports.length > 0 ? [imports.join('\n')] : []), ...[...section[1].matchAll(/^```scala\n([\s\S]*?)\n```/gm)].map((m) => forLanding(m[1]))].join('\n\n');
+		const blocks = snippet.headings.flatMap((heading) => {
+			const section = rewritten.match(new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'));
+			if (!section) fail(`docs/user/${page.source} no longer has a "${heading}" section; the landing page shows it`);
+			return [...section[1].matchAll(/^```scala\n([\s\S]*?)\n```/gm)].map((m) => forLanding(m[1]));
+		});
+		snippets[snippet.name] = [...(imports.length > 0 ? [imports.join('\n')] : []), ...blocks].join('\n\n');
 	}
 
 	const description = describe(body);

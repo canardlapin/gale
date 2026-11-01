@@ -7,6 +7,35 @@ and Scala.js and reuse `SolverControl`, typed failures, and final-point
 certificates. These are local solvers; starting points matter for nonconvex
 problems.
 
+## Minimize a smooth function
+
+A `DifferentiableObjective` returns the value and the gradient at a point in
+one callback. Parameters are a one-column matrix. This is the Rosenbrock
+function, whose minimum is at (1, 1):
+
+```scala mdoc
+import gale.linalg.{DMat, DVec}
+import gale.optim.*
+
+val rosenbrock = DifferentiableObjective(2)(x => {
+  val (a, b) = (x(0, 0), x(1, 0))
+  val value = (1.0 - a) * (1.0 - a) + 100.0 * (b - a * a) * (b - a * a)
+  val gradient = DMat.dense(2, 1, Seq(
+    -2.0 * (1.0 - a) - 400.0 * a * (b - a * a),
+    200.0 * (b - a * a)
+  ))
+  Right(ObjectiveEvaluation(value, gradient))
+}).toOption.get
+
+val smooth = LBFGS.minimize(rosenbrock, DMat.dense(2, 1, Seq(-1.2, 1.0))).toOption.get
+(smooth.status, smooth.primal(0, 0), smooth.primal(1, 0))
+assert(smooth.status == FirstOrderStoppingStatus.Converged)
+assert(math.abs(smooth.primal(0, 0) - 1.0) < 1e-5)
+```
+
+`status` says whether the run converged or stopped for another reason, such as
+the iteration limit. Check it before using `primal`.
+
 ## Fit a nonlinear residual model
 
 The objective is `0.5 * sum(residual_i²)`. A Jacobian has one row per residual
@@ -14,9 +43,6 @@ and one column per parameter. The model below fits exponential decay to
 synthetic observations; model construction does not evaluate callbacks.
 
 ```scala mdoc
-import gale.linalg.{DMat, DVec}
-import gale.optim.*
-
 val times = Vector(0.0, 0.5, 1.0, 2.0, 3.0)
 val observed = times.map(t => 2.0 * math.exp(-0.4 * t))
 val model = LeastSquaresObjective(2, times.size)(
